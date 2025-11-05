@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            // "args": ["https://crex.live/scoreboard/PWH/1M2/23rd-Match/GJ/GZ/ker-vs-mah-23rd-match-syed-mushtaq-ali-trophy-2024/live"]
+        }
+    ]
+}
