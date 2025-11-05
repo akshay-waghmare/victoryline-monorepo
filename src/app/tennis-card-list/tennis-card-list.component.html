@@ -1,0 +1,206 @@
+ <mat-card *ngFor="let league of tennisData | keyvalue" class="mat-elevation-z10">
+
+  <mat-card-header>
+
+      <mat-card-title> {{league.key}} </mat-card-title>
+
+  </mat-card-header>
+
+  <!-- <img mat-card-image [src]="course.iconUrl"> -->
+
+   <mat-card-content *ngFor = " let matches of league.value | keyvalue as leagueMatches ;let i = index;">
+
+
+    <mat-grid-list *ngIf="leagueMatches[i]?.value?.status?.type !=='Canceled'" class="list-style" cols="12" rowHeight="2:1">
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.status?.type !=='finished'" [colspan]="1" [rowspan]="2" [style.background]="blue" class=data-to-watch>
+        {{ leagueMatches[i]?.value?.season?.startTimestamp * 1000 | date:'shortTime' }}<br>&nbsp;{{ leagueMatches[i]?.value?.status?.description }}
+        <span *ngIf="!selectedTabIndex==1" class="blink_me">'</span>
+        <mat-divider [vertical]="true" style="height:40px; margin-left:15px;"></mat-divider>
+        
+      </mat-grid-tile>
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.status?.type ==='finished'" [colspan]="1" [rowspan]="2" [style.background]="blue" class=data-to-watch>
+        {{ leagueMatches[i]?.value?.startTimestamp * 1000 | date:'shortDate' }}<br>&nbsp;{{leagueMatches[i]?.value?.status?.description}}
+        <span *ngIf="!selectedTabIndex==1" class="blink_me">'</span>
+        <mat-divider [vertical]="true" style="height:40px; margin-left:15px;"></mat-divider>
+        
+      </mat-grid-tile>
+      
+        <mat-grid-tile [colspan]="2" [rowspan]="1" class="tennis-card-list">
+          <p class="team-name"> {{leagueMatches[i]?.value?.homeTeam?.name}}</p>
+        </mat-grid-tile>
+      
+      
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.firstToServe =='1' && leagueMatches[i]?.value?.status?.type !=='finished'" [colspan]="2" [rowspan]="1" class="tennis-card-list">
+        <i class="material-icons tennis-circle">brightness_1</i>
+      </mat-grid-tile>
+
+      
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.firstToServe =='2' || leagueMatches[i]?.value?.status?.type ==='finished' " [colspan]="2" [rowspan]="1" class="tennis-card-list">
+        <p></p>
+      </mat-grid-tile>
+     
+      
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.firstToServe=='Null' || leagueMatches[i]?.value?.status?.type ==='notstarted' || leagueMatches[i]?.value?.status?.type ==='canceled'" [colspan]="2" [rowspan]="1" class="tennis-card-list">
+        <p></p>
+      </mat-grid-tile>
+
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.homeScore?.point !== 'Null'" [colspan]="1" [rowspan]="1" class="tennis-card-list">
+        <button  mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" >{{leagueMatches[i]?.value?.homeScore?.point}}</button>
+      
+      </mat-grid-tile>
+    
+      
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.awayScore?.point === 'Null'" [colspan]="1" [rowspan]="1" class="tennis-card-list">
+        <p></p>
+      </mat-grid-tile>
+     
+      
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.status?.type !=='notstarted' && leagueMatches[i]?.value?.status?.type !=='canceled'"
+      [colspan]="5"
+      [rowspan]="1" class="tennis-card-list">
+      <button *ngIf="leagueMatches[i]?.value?.homeScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{leagueMatches[i]?.value?.homeScore?.period1}}
+      <sup *ngIf="leagueMatches[i]?.value?.homeScore?.period1TieBreak">{{ leagueMatches[i]?.value?.homeScore?.period1TieBreak }}</sup></button>
+      <button *ngIf="leagueMatches[i]?.value?.homeScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{ leagueMatches[i]?.value?.homeScore?.period2 }}
+      <sup *ngIf="leagueMatches[i]?.value?.homeScore?.period2TieBreak">{{ leagueMatches[i]?.value?.homeScore?.period2TieBreak }}</sup></button>
+      <button *ngIf="leagueMatches[i]?.value?.homeScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{ leagueMatches[i]?.value?.homeScore?.period3 }}
+      <sup *ngIf="leagueMatches[i]?.value?.homeScore?.period3TieBreak">{{ leagueMatches[i]?.value?.homeScore?.period3TieBreak }}</sup></button>
+      
+      <button *ngIf="leagueMatches[i]?.value?.homeScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{ leagueMatches[i]?.value?.homeScore?.period4 }}
+      <sup *ngIf="leagueMatches[i]?.value?.homeScore?.period4TieBreak">{{ leagueMatches[i]?.value?.homeScore?.period4TieBreak }}</sup></button>
+      <button *ngIf="leagueMatches[i]?.value?.homeScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{ leagueMatches[i]?.value?.homeScore?.period5 }}
+      <sup *ngIf="leagueMatches[i]?.value?.homeScore.period5TieBreak">{{ leagueMatches[i]?.value?.homeScore?.period5TieBreak }}</sup></button>
+      
+      </mat-grid-tile>
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.status?.type ==='notstarted' || leagueMatches[i]?.value?.status?.type ==='canceled'"
+      [colspan]="5"
+      [rowspan]="1" class="tennis-card-list">
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > </button>
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}"></button>
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}"></button>
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}"></button>
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}"></button>
+      
+      
+      </mat-grid-tile>
+      
+      <mat-grid-tile [colspan]="1" [rowspan]="1" class="tennis-card-list">
+        <p>{{leagueMatches[i]?.value?.homeScore?.current}}</p>
+      </mat-grid-tile>
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.homeScore?.current === 'Null'" [colspan]="1" [rowspan]="1" class="tennis-card-list">
+        <p></p>
+      </mat-grid-tile>
+     
+      
+      <mat-grid-tile [colspan]="2" [rowspan]="1" class="tennis-card-list">
+        <p class="team-name">
+          {{leagueMatches[i]?.value?.awayTeam?.name}}
+        </p>
+      </mat-grid-tile>
+  
+        <mat-grid-tile *ngIf="leagueMatches[i]?.value?.firstToServe =='2' && leagueMatches[i]?.value?.status?.type !=='finished'" [colspan]="2" [rowspan]="1" class="tennis-card-list">
+          <i class="material-icons tennis-circle" >brightness_1</i>
+        </mat-grid-tile>
+  
+        
+        <mat-grid-tile *ngIf="leagueMatches[i]?.value?.firstToServe=='1' || leagueMatches[i]?.value?.status?.type ==='finished'" [colspan]="2" [rowspan]="1" class="tennis-card-list">
+          <p></p>
+        </mat-grid-tile>
+      
+        <mat-grid-tile *ngIf="leagueMatches[i]?.value?.firstToServe ==='Null' || leagueMatches[i]?.value?.status?.type ==='notstarted' || leagueMatches[i]?.value?.status?.type ==='canceled'" [colspan]="2" [rowspan]="1" class="tennis-card-list">
+          <p></p>
+        </mat-grid-tile>
+  
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.awayScore?.point !== 'Null'" [colspan]="1" [rowspan]="1" class="tennis-card-list">
+        
+        <button  mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" >{{leagueMatches[i]?.value?.awayScore?.point}} </button>
+      
+      </mat-grid-tile>
+
+     
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.status?.type !=='notstarted' && leagueMatches[i]?.value?.status?.type !=='canceled'"
+      [colspan]="5"
+      [rowspan]="1" class="tennis-card-list">
+      <button *ngIf="leagueMatches[i]?.value?.awayScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{leagueMatches[i]?.value?.awayScore?.period1}}
+      <sup *ngIf="leagueMatches[i]?.value?.awayScore?.period1TieBreak">{{leagueMatches[i]?.value?.awayScore?.period1TieBreak}}</sup></button>
+      <button *ngIf="leagueMatches[i]?.value?.awayScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{leagueMatches[i]?.value?.awayScore?.period2}}
+      <sup *ngIf="leagueMatches[i]?.value?.awayScore?.period2TieBreak">{{leagueMatches[i]?.value?.awayScore?.period2TieBreak}}</sup></button>
+      <button *ngIf="leagueMatches[i]?.value?.awayScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{leagueMatches[i]?.value?.awayScore?.period3}}
+      <sup *ngIf="leagueMatches[i]?.value?.awayScore?.period3TieBreak">{{leagueMatches[i]?.value?.awayScore?.period3TieBreak}}</sup></button>
+      
+      <button *ngIf="leagueMatches[i]?.value?.awayScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{leagueMatches[i]?.value?.awayScore?.period4}}
+      <sup *ngIf="leagueMatches[i]?.value?.awayScore?.period4TieBreak">{{leagueMatches[i]?.value?.awayScore?.period4TieBreak}}</sup></button>
+      <button *ngIf="leagueMatches[i]?.value?.awayScore !=='Null'" mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > {{leagueMatches[i]?.value?.awayScore?.period5}}
+      <sup *ngIf="leagueMatches[i]?.value?.awayScore?.period5TieBreak">{{leagueMatches[i]?.value?.awayScore?.period5TieBreak}}</sup></button>
+      
+      </mat-grid-tile>
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.status?.type ==='notstarted' || leagueMatches[i]?.value?.status?.type ==='canceled'"
+      [colspan]="5"
+      [rowspan]="1" class="tennis-card-list">
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}" > </button>
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}"></button>
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}"></button>
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}"></button>
+      <button mat-stroked-button class="odds-button"
+      [ngClass]="{'blink_once': ifBlink}"></button>
+      
+      
+      </mat-grid-tile>
+
+      <mat-grid-tile [colspan]="1" [rowspan]="1" class="tennis-card-list">
+        <p>{{leagueMatches[i]?.value?.awayScore?.current}}</p>
+      </mat-grid-tile>
+
+      <mat-grid-tile *ngIf="leagueMatches[i]?.value?.awayScore?.current === 'Null'" [colspan]="1" [rowspan]="1" class="tennis-card-list">
+        <p></p>
+      </mat-grid-tile>
+     
+    
+     
+    </mat-grid-list>
+    
+
+    <mat-divider></mat-divider>
+  </mat-card-content>
+  
+</mat-card>
+
+
+
+
+<mat-card *ngIf="isDataEmpty()" class="mat-elevation-z10">
+
+  <mat-card-header>
+
+    <mat-card-title class="text-alignment"> There are no matches currently available for this sport. </mat-card-title>
+
+  </mat-card-header>
+</mat-card>

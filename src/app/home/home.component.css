@@ -1,0 +1,263 @@
+
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 16px;
+  overflow-x: auto;
+  background-color: var(--background-color);
+  font-family: var(--font-family-primary);
+  color: var(--muted-color);
+}
+
+.header {
+  font-size: var(--font-size-large);
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 24px;
+}
+
+.scroll-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;  /* Distribute scroll buttons equally */
+  gap: 16px;
+}
+
+.scroll-button {
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.scroll-button:hover {
+  background-color: var(--primary-dark);  /* Darken on hover */
+  transform: scale(1.1)
+}
+
+.scroll-button:active {
+  background-color: var(--primary-darker);  /* Darker when clicked */
+}
+
+/* Hide scrollbar while retaining scrolling */
+.matches-container {
+  overflow-x: auto;
+  white-space: nowrap;
+  display: flex;
+  gap: 24px;
+  flex-grow: 1;
+  padding-bottom: 16px 0;  /* Space to avoid touching bottom */
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scroll-behavior: smooth;
+}
+
+.matches-container::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
+}
+
+/* Modern match cards */
+.match-card {
+  background-color: var(--secondary-color);
+  border-radius: 16px;  /* Modern rounded corners */
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);  /* Soft shadow for modern look */
+  padding: 24px;
+  width: 18rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;  /* Space between elements inside the card */
+}
+
+.match-card:hover {
+  transform: translateY(-4px);  /* Slight lift on hover for modern effect */
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);  /* Stronger shadow on hover */
+}
+
+.match-date {
+  font-size: var(--font-size-small);
+  color: var(--muted-foreground);
+  margin-bottom: 8px; /* Space below the date */
+}
+
+.match-title {
+  font-size: var(--font-size-medium);
+  font-weight: 700;
+  color: var(--primary);  /* Use accent color for title */
+  margin-bottom: 4px;  /* Slight space between title and description */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;  /* Truncate long titles */
+}
+
+.match-description {
+  font-size: var(--font-size-small);
+  color: var(--muted-color);
+  margin-bottom: 12px;
+  flex-grow: 1;
+}
+
+.teams {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;  /* Align teams vertically */
+  justify-content: center;  /* Align teams to the left */
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-foreground);  /* Slightly darker text */
+}
+
+.team {
+  margin: 0 4px;  /* Small margin around the teams */
+}
+
+.vs {
+  margin: 0 4px;  /* Small space around the 'vs' */
+  font-weight: normal;  /* Make 'vs' less prominent */
+  color: var(--muted-foreground);  /* Lighter color for 'vs' */
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+  .container {
+      padding: 8px;
+  }
+
+  .match-card {
+      width: 14rem;  /* Adjust card size for mobile */
+  }
+
+  .header {
+      font-size: 1.125rem;  /* Adjust font size for smaller screens */
+      text-align: center;
+  }
+
+  .scroll-button {
+      padding: 10px;  /* Adjust padding for smaller screens */
+  }
+
+
+
+}
+/*Hardcoded News CSS*/
+
+.news-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 40px;
+  width: 100%;
+}
+
+.news-item {
+  background-color: var(--secondary-color);
+  display: flex;
+  flex-direction: row; /* Default for larger screens */
+  align-items: center;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  width: 90%;  /* Reduces width from both sides */
+  max-width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  /*margin-bottom: 16px;*/
+  margin: 0 auto 24px; /* Centers the item and adds margin-bottom */
+  /* border-radius: 0; */
+}
+
+.news-item:last-child {
+  margin-bottom: 0;
+}
+
+.news-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.news-image {
+  width: 200px;
+  height: 150px; /* The image will fill the container height */
+  object-fit: cover; /* Ensures the image scales without being cut off */
+  border-radius: 12px 0 0 12px;
+  /* margin-right: 80px; */
+
+}
+
+.news-content {
+  padding : 24px;
+  flex-grow: 1;
+  display: flex; /* Enable flexbox */
+  flex-direction: column; /* Stack the heading and description vertically */
+  align-items: center; /* Center align the content horizontally */
+  justify-content: center; /* Center align the content vertically */
+  text-align: center; /* Center the text */
+}
+
+.news-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+  margin-bottom: 12px;
+}
+
+.news-description {
+  font-size: 1rem;
+  color: var(--muted-color);
+}
+
+.news-hr {
+  width: 92%;  /* Same width as .news-item */
+  max-width: 100%;
+}
+
+
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  .news-item {
+    flex-direction: column; /* Stack image and content vertically */
+    align-items: center;
+    text-align: center; /* Center the text */
+  }
+
+  .news-image {
+
+    width: 100%; /* Make image full width */
+    border-radius: 12px 12px 0 0; /* Rounded corners on top */
+    margin-right: 0px !important;
+  }
+
+  .news-content {
+    padding: 16px;
+  }
+
+  .news-heading {
+    font-size: 1.1rem; /* Slightly smaller for mobile */
+  }
+
+  .news-description {
+    font-size: 0.9rem;
+  }
+
+  .news-description {
+    display: -webkit-box; /* Webkit-based flexbox model */
+    -webkit-box-orient: vertical; /* Vertical orientation for Webkit */
+    -webkit-line-clamp: 2; /* Limit to 2 lines on Webkit-based browsers */
+    line-clamp: 2; /* Standard property for future support */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Add ellipsis */
+    max-height: 3rem; /* Set max height to ensure consistency */
+  }
+}
