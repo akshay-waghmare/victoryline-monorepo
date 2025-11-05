@@ -1,0 +1,177 @@
+<div class="main-content">
+  <div class="container-fluid">
+    <div class="row">
+      <div class="col-md-12">
+
+        <div class="card">
+          <div class="card-header card-header-danger">
+            <h4 class="card-title">Customer List</h4>
+            <p class="card-category">Our Customers </p>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table">
+                  <thead class=" text-primary">
+                    <th>
+                        Id
+                    </th>
+                    <th>
+                        Stock Name
+                    </th>
+                    <th>
+                        Stock Name
+                    </th>
+                    <th>
+                        Address
+                    </th>
+                    <th>
+                        Phone no
+                    </th>
+                    <th>
+                        Email
+                    </th>
+
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            1
+                        </td>
+                        <td>
+                            xyz
+                        </td>
+                        <td>
+                            asd
+                        </td>
+                        <td>
+                          asdasd
+                        </td>
+                        <td>
+                          1234
+                        </td>
+                        <td>
+                          asad@g.com
+                        </td>
+
+                    </tr>
+                    <tr>
+                      <td>
+                          2
+                          <td>
+                              xyz
+                          </td>
+                          <td>
+                              asd
+                          </td>
+                          <td>
+                            asdasd
+                          </td>
+                          <td>
+                            1234
+                          </td>
+                          <td>
+                            asad@g.com
+                          </td>
+
+                      </tr>
+                    <tr>
+                        <td>
+                            3
+                        </td>
+                        <td>
+                            xyz
+                        </td>
+                        <td>
+                            asd
+                        </td>
+                        <td>
+                          asdasd
+                        </td>
+                        <td>
+                          1234
+                        </td>
+                        <td>
+                          asad@g.com
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td>
+                            4
+                        </td>
+                        <td>
+                            xyz
+                        </td>
+                        <td>
+                            asd
+                        </td>
+                        <td>
+                          asdasd
+                        </td>
+                        <td>
+                          1234
+                        </td>
+                        <td>
+                          asad@g.com
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td>
+                            5
+                        </td>
+                        <td>
+                            xyz
+                        </td>
+                        <td>
+                            asd
+                        </td>
+                        <td>
+                          asdasd
+                        </td>
+                        <td>
+                          1234
+                        </td>
+                        <td>
+                          asad@g.com
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td>
+                            6
+                        </td>
+                        <td>
+                            xyz
+                        </td>
+                        <td>
+                            asd
+                        </td>
+                        <td>
+                          asdasd
+                        </td>
+                        <td>
+                          1234
+                        </td>
+                        <td>
+                          asad@g.com
+                        </td>
+
+                    </tr>
+                </tbody>
+                </table>
+               </div>
+
+               <div *ngFor="let ticker of tickerMap | keyvalue">
+                    Key: <b *ngIf="ticker.key!='get' && ticker.key!='set'">{{ticker.key}}</b> and Value: <b *ngIf="ticker.key!='get' && ticker.key!='set'">{{ticker.value}}</b>
+               </div>  
+               <div *ngFor="let cric of cricObj | keyvalue">
+                Key: <b *ngIf="cric.key!='get' && cric.key!='set'">{{cric.key}}</b> and Value: <b *ngIf="cric.key!='get' && cric.key!='set'">{{cric.value}}</b>
+           </div>  
+             </div>
+        </div>
+      </div>
+    </div>
+   </div>
+ </div>
+

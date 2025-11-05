@@ -1,0 +1,13 @@
+<div class="wrapper" [class.sidebar-hidden]="!isSidebarVisible">
+  <div class="sidebar">
+      <app-sidebar (toggleSidebar)="handleToggleSidebar()" ></app-sidebar>
+  </div>
+
+  <div class="main-panel">
+    <app-navbar></app-navbar>
+    <app-banner></app-banner>
+    <router-outlet></router-outlet>
+  </div>
+
+  
+</div>
