@@ -1,0 +1,45 @@
+{
+  "name": "victoryline-monorepo",
+  "version": "1.0.0",
+  "description": "VictoryLine - Live Cricket Score Application Monorepo",
+  "private": true,
+  "scripts": {
+    "frontend:dev": "cd apps/frontend && npm run start",
+    "frontend:build": "cd apps/frontend && npm run build",
+    "frontend:test": "cd apps/frontend && npm run test",
+    "backend:dev": "cd apps/backend && mvn spring-boot:run",
+    "backend:build": "cd apps/backend && mvn clean package",
+    "backend:test": "cd apps/backend && mvn test",
+    "scraper:dev": "cd apps/scraper && python run_server.py",
+    "scraper:install": "cd apps/scraper && pip install -r requirements.txt",
+    "scraper:test": "cd apps/scraper && pytest",
+    "install:all": "pnpm install && npm run scraper:install && cd apps/backend && mvn clean install",
+    "dev:frontend": "npm run frontend:dev",
+    "dev:backend": "npm run backend:dev",
+    "dev:scraper": "npm run scraper:dev",
+    "build:all": "npm run frontend:build && npm run backend:build",
+    "test:all": "npm run frontend:test && npm run backend:test && npm run scraper:test"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "keywords": [
+    "cricket",
+    "live-score",
+    "monorepo",
+    "angular",
+    "spring-boot",
+    "python"
+  ],
+  "author": "Akshay Waghmare",
+  "license": "ISC",
+  "engines": {
+    "node": ">=14.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/akshay-waghmare/victoryline-monorepo.git"
+  }
+}
