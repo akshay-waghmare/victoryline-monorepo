@@ -32,13 +32,30 @@ export class HomeComponent implements OnInit {
 
     this.eventListService.getLiveMatches().subscribe(data => {
       if (Array.isArray(data)) {
-        data.forEach((item: any) => {
+        // Filter out finished or deleted matches
+        const activeMatches = data.filter((item: any) => 
+          !item.finished && !item.deleted
+        );
+        
+        if (activeMatches.length === 0) {
+          console.log('No active live matches available');
+          this.liveMatches = [];
+          return;
+        }
+
+        activeMatches.forEach((item: any) => {
           const url = item.url;
           const match = this.parseLiveMatchUrl(url);
           this.liveMatches.push(match);
         });
-        console.log(this.liveMatches);
+        console.log('Active live matches:', this.liveMatches);
+      } else {
+        console.log('No matches returned from backend');
+        this.liveMatches = [];
       }
+    }, error => {
+      console.error('Error fetching live matches:', error);
+      this.liveMatches = [];
     });
   }
 

@@ -31,19 +31,20 @@ class CricketDataService:
     @staticmethod
     def add_live_matches(urls, token):
         """Adds live match URLs to the local backend service."""
-        if not token:
-            logger.warning("matches.add.skipped", metadata={"reason": "No bearer token"})
-            return
-            
+        # NOTE: /cricket-data/add-live-matches endpoint is public (permitAll in WebSecurityConfig)
+        # No token required, but we still accept it for backwards compatibility
         logger.info("matches.add.start", metadata={"url_count": len(urls)})
         
         add_matches_url = os.getenv('ADD_LIVE_MATCHES_URL', 'http://127.0.0.1:8099/cricket-data/add-live-matches')
         
         try:
             headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {token}"
+                "Content-Type": "application/json"
             }
+            # Add token only if provided (not required since endpoint is public)
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+                
             response = requests.post(add_matches_url, json=urls, headers=headers)
             response.raise_for_status()
             logger.info("matches.add.success", metadata={"url_count": len(urls)})

@@ -165,14 +165,13 @@ def scrape(page, url):
         
         # CRITICAL: Sync complete list of live matches with backend on EVERY scrape
         # This allows backend to mark old/finished matches for deletion
+        # NOTE: /cricket-data/add-live-matches is PUBLIC (no auth required)
         try:
             logger.info("backend.sync_live_matches.start", metadata={"url_count": len(urls)})
             token = CricketDataService.get_bearer_token()
-            if token:
-                CricketDataService.add_live_matches(urls, token)
-                logger.info("backend.sync_live_matches.complete", metadata={"url_count": len(urls), "synced": True})
-            else:
-                logger.warning("backend.sync_live_matches.skipped", metadata={"reason": "No bearer token available"})
+            # Send matches regardless of token (endpoint is public)
+            CricketDataService.add_live_matches(urls, token)
+            logger.info("backend.sync_live_matches.complete", metadata={"url_count": len(urls), "synced": True})
         except Exception as e:
             logger.warning("backend.sync_live_matches.error", metadata={"error": str(e), "message": "Backend sync failed, continuing with local scraping"})
         

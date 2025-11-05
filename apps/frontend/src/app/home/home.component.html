@@ -1,6 +1,16 @@
 <div class="container">
   <h2 class="header">Matches for you</h2>
-  <div class="scroll-wrapper">
+  
+  <!-- Show message when no live matches -->
+  <div *ngIf="liveMatches.length === 0" class="no-matches-container">
+    <mat-card class="no-matches-card">
+      <h3>No Live Matches</h3>
+      <p>There are currently no live cricket matches available. Please check back later.</p>
+    </mat-card>
+  </div>
+
+  <!-- Show matches when available -->
+  <div class="scroll-wrapper" *ngIf="liveMatches.length > 0">
     <button class="scroll-button" (click)="scrollLeft()">&#9664;</button>
     <div class="matches-container" #scrollContainer>
       <mat-card class="match-card" *ngFor="let match of liveMatches" (click)="navigateToMatch(match)">
