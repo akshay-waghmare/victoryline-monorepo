@@ -4,15 +4,12 @@
  * Created: 2025-11-06
  */
 
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 
 import { MatchCardViewModel, ScoreInfo } from '../../models/match-card.models';
 import { getStatusDisplayText, getStatusColor, isLiveMatch, calculateStaleness, formatTimeDisplay } from '../../models/match-status';
 import { AnimationService } from '../../../../core/services/animation.service';
-import { ThemeService } from '../../../../core/services/theme.service';
 
 /**
  * Score update event data
@@ -93,6 +90,16 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   @Output() scoreUpdated = new EventEmitter<ScoreUpdateEvent>();
   
   /**
+   * Emitted when user swipes left on the card (mobile gesture)
+   */
+  @Output() swipeLeft = new EventEmitter<string>();
+
+  /**
+   * Emitted when user swipes right on the card (mobile gesture)
+   */
+  @Output() swipeRight = new EventEmitter<string>();
+  
+  /**
    * Emitted when card enters/leaves viewport (for lazy loading)
    */
   @Output() visibilityChange = new EventEmitter<boolean>();
@@ -110,16 +117,12 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   
   // Intersection Observer for lazy loading
   private intersectionObserver: IntersectionObserver | null = null;
-  
   // Cleanup
-  private destroy$ = new Subject<void>();
-  
   // Element reference
   @ViewChild('cardElement') cardElement?: ElementRef<HTMLDivElement>;
   
   constructor(
-    private animationService: AnimationService,
-    private themeService: ThemeService
+    private animationService: AnimationService
   ) {}
   
   ngOnInit(): void {
@@ -127,6 +130,7 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     if (this.match) {
       this.previousMatch = { ...this.match };
     }
+
   }
   
   ngAfterViewInit(): void {
@@ -168,9 +172,6 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   
   ngOnDestroy(): void {
     // Cleanup
-    this.destroy$.next();
-    this.destroy$.complete();
-    
     if (this.intersectionObserver) {
       this.intersectionObserver.disconnect();
     }
@@ -250,7 +251,7 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   isMatchLive(): boolean {
     return isLiveMatch(this.match.status);
   }
-  
+
   // ===== EVENT HANDLERS =====
   
   onCardClick(): void {
@@ -268,6 +269,22 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   
   onMouseLeave(): void {
     this.isHovered = false;
+  }
+  
+  @HostListener('swipeleft', ['$event'])
+  onSwipeLeft(event: any): void {
+    if (event) {
+      event.preventDefault();
+    }
+    this.swipeLeft.emit(this.match.id);
+  }
+
+  @HostListener('swiperight', ['$event'])
+  onSwipeRight(event: any): void {
+    if (event) {
+      event.preventDefault();
+    }
+    this.swipeRight.emit(this.match.id);
   }
   
   // ===== PRIVATE METHODS =====

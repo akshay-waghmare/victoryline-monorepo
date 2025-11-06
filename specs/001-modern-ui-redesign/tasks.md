@@ -128,16 +128,16 @@
 
 ### Implementation for User Story 3
 
-- [ ] T057 [P] [US3] Update match-card.component.scss with responsive breakpoints (1 column <768px, 2 columns 768-1024px, 3 columns >1024px)
-- [ ] T058 [P] [US3] Add CSS Grid responsive layout to matches-list.component.scss
-- [ ] T059 [US3] Add CSS Grid responsive layout to home.component.scss
-- [ ] T060 [US3] Create mobile navigation menu component apps/frontend/src/app/core/layout/mobile-nav/mobile-nav.component.ts
-- [ ] T061 [US3] Implement hamburger menu toggle in navbar.component.ts (show hamburger icon <768px)
-- [ ] T062 [US3] Add slide-in animation for mobile menu (@slideInFromRight animation) in mobile-nav.component.ts
-- [ ] T063 [US3] Implement touch gesture detection for match card swipe in match-card.component.ts (HammerJS or native touch events)
-- [ ] T064 [US3] Audit all interactive elements for 44x44px minimum touch target size
-- [ ] T065 [US3] Add responsive images with srcset/sizes for team logos in match-card.component.html
-- [ ] T066 [US3] Implement viewport-based font scaling using clamp() in _variables.scss
+- [X] T057 [P] [US3] Update match-card.component.scss with responsive breakpoints (1 column <768px, 2 columns 768-1024px, 3 columns >1024px)
+- [X] T058 [P] [US3] Add CSS Grid responsive layout to matches-list.component.scss
+- [X] T059 [US3] Add CSS Grid responsive layout to home.component.scss
+- [X] T060 [US3] Create mobile navigation menu component apps/frontend/src/app/core/layout/mobile-nav/mobile-nav.component.ts
+- [X] T061 [US3] Implement hamburger menu toggle in navbar.component.ts (show hamburger icon <768px)
+- [X] T062 [US3] Add slide-in animation for mobile menu (@slideInFromRight animation) in mobile-nav.component.ts
+- [X] T063 [US3] Implement touch gesture detection for match card swipe in match-card.component.ts (HammerJS or native touch events)
+- [X] T064 [US3] Audit all interactive elements for 44x44px minimum touch target size
+- [ ] T065 [US3] Add responsive images with srcset/sizes for team logos in match-card.component.html _(deferred: logo assets currently unavailable)_
+- [X] T066 [US3] Implement viewport-based font scaling using clamp() in _variables.scss
 - [ ] T067 [US3] Test scroll performance on mobile devices (use Chrome DevTools Performance profiler, target 60fps)
 - [ ] T068 [US3] Add safe area insets for iOS notch support in navbar.component.scss
 - [ ] T069 [US3] Test on real devices (iPhone, Android) at various screen sizes (320px-768px)

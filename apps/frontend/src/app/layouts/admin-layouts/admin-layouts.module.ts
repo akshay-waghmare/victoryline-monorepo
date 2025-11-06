@@ -2,6 +2,7 @@ import { AddCustomerComponent } from './../../add-customer/add-customer.componen
 import { RouteReuseStrategy, RouterModule } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LayoutModule } from '@angular/cdk/layout';
 import { AdminLayoutsRoute } from './admin-layouts.routing';
 import { DashboardComponent } from '../../dashboard/dashboard.component';
 import { AddServiceComponent } from '../../add-service/add-service.component';
@@ -111,8 +112,9 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule, 
-    MatMomentDateModule,
-    MatListModule,
+  MatMomentDateModule,
+  MatListModule,
+  LayoutModule,
     ComponentsModule,
     MatSnackBarModule, // Import MatSnackBarModule
     MatTooltipModule, // Import MatTooltipModule for navbar tooltips (T046)
