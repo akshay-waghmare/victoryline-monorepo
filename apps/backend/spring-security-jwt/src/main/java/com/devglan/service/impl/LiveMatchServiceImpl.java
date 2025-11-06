@@ -143,8 +143,8 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	}
 
 	public String appendBaseUrl(String url) {
-		// Implement logic to append base URL if needed
-		return "https://crex.live" + url;
+		// URL is already complete (contains https://crex.com), no need to append
+		return url;
 	}
 
 	

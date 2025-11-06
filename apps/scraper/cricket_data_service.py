@@ -40,11 +40,15 @@ def send_cricket_data_to_service(data, bearer_token,url):
     # Define the URL of the service where you want to send the data
     service_url = os.getenv('SERVICE_URL', 'http://127.0.0.1:8099/cricket-data')
 
-    # Define the headers with the bearer token
+    # NOTE: /cricket-data endpoint is PUBLIC (permitAll in WebSecurityConfig)
+    # No authentication required, but we still accept token for backwards compatibility
     headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
+        "Content-Type": "application/json"
     }
+    
+    # Add token only if provided (not required since endpoint is public)
+    if bearer_token:
+        headers["Authorization"] = f"Bearer {bearer_token}"
 
     # Convert the data to JSON (assuming data is a dictionary)
     #json_data = json.dumps(data)
@@ -67,7 +71,7 @@ def send_cricket_data_to_service(data, bearer_token,url):
         logging.info(f"Sending data to service URL: {service_url}")
         logging.debug(f"Payload: {json_payload}")
         
-        # Send the POST request to the service
+        # Send the POST request to the service (works even without token!)
         response = requests.post(service_url, headers=headers, json=json_payload)
 
         # Check the response status code
@@ -85,9 +89,12 @@ def add_live_matches(data, bearer_token):
     
     # Define the headers with the bearer token
     headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
+        "Content-Type": "application/json"
     }
+    
+    # Add Authorization header only if token is provided
+    if bearer_token:
+        headers["Authorization"] = f"Bearer {bearer_token}"
 
     try:
         # Convert the data to a JSON array
@@ -109,9 +116,12 @@ def send_data_to_api_endpoint(data, bearer_token, url, api_endpoint=None):
         api_endpoint = os.getenv('API_ENDPOINT', 'http://127.0.0.1:8099/cricket-data/match-info/save')
 
     headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {bearer_token}"
+        "Content-Type": "application/json"
     }
+    
+    # Add Authorization header only if token is provided
+    if bearer_token:
+        headers["Authorization"] = f"Bearer {bearer_token}"
 
     try:
         logging.info("Preparing data to send to the API endpoint.")
