@@ -2,22 +2,14 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, filter } from 'rxjs/operators';
-import { trigger, state, style, transition, animate } from '@angular/animations';
 import { ThemeService } from '../../core/services/theme.service';
 import { ThemeMode } from '../../core/models/theme.models';
+import { MobileNavLink } from '../../core/layout/mobile-nav/mobile-nav.component';
 
 @Component({
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
-  styleUrls: ['./navbar.component.css'],
-  animations: [
-    trigger('slideInFromRight', [
-      state('closed', style({ transform: 'translateX(100%)', opacity: 0 })),
-      state('open', style({ transform: 'translateX(0)', opacity: 1 })),
-      transition('closed => open', [ animate('300ms ease-out') ]),
-      transition('open => closed', [ animate('250ms ease-in') ])
-    ])
-  ]
+  styleUrls: ['./navbar.component.css']
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   isDarkTheme = false;
@@ -25,6 +17,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
   activeRoute = '';
   logoFilter = 'brightness(0) saturate(100%)';
   private destroy$ = new Subject<void>();
+  readonly navLinks: MobileNavLink[] = [
+    { label: 'Home', icon: 'home', route: '/', exact: true },
+    { label: 'Matches', icon: 'sports_cricket', route: '/matches' },
+    { label: 'Players', icon: 'person', route: '/players' },
+    { label: 'Teams', icon: 'groups', route: '/teams' }
+  ];
   
   constructor(private themeService: ThemeService, private router: Router) {}
   
@@ -51,7 +49,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   toggleMobileMenu(): void { this.isMobileMenuOpen = !this.isMobileMenuOpen; }
   closeMobileMenu(): void { this.isMobileMenuOpen = false; }
   navigateTo(route: string): void { this.router.navigate([route]); this.closeMobileMenu(); }
-  isRouteActive(route: string): boolean { return this.activeRoute.startsWith(route); }
+  handleMobileNavigate(route: string): void { this.navigateTo(route); }
+  isRouteActive(route: string, exact: boolean = false): boolean {
+    return exact ? this.activeRoute === route : this.activeRoute.startsWith(route);
+  }
 
   private applyTheme(theme: ThemeMode): void {
     this.isDarkTheme = theme === 'dark';

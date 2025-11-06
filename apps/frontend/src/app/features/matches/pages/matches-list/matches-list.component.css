@@ -84,6 +84,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  min-height: 44px;
   
   &:hover {
     background: var(--color-background-hover);
@@ -184,6 +185,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 44px;
   
   svg {
     transition: transform 0.5s ease;
@@ -216,15 +218,15 @@
   grid-template-columns: 1fr;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) and (max-width: 1023px) {
   .matches-list__grid {
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 1024px) {
   .matches-list__grid {
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 /* Error State
@@ -259,6 +261,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 44px;
   
   &:hover {
     background: var(--color-primary-dark);

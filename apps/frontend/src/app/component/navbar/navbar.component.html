@@ -18,49 +18,18 @@
     
     <!-- Desktop Navigation -->
     <div class="navbar__nav-desktop">
-      <a 
-        class="navbar__nav-link" 
-        [class.navbar__nav-link--active]="isRouteActive('/')"
-        (click)="navigateTo('/')"
-        routerLink="/"
+      <a
+        *ngFor="let link of navLinks"
+        class="navbar__nav-link"
+        [class.navbar__nav-link--active]="isRouteActive(link.route, link.exact)"
+        (click)="navigateTo(link.route)"
+        [routerLink]="link.route"
         routerLinkActive="navbar__nav-link--active"
-        [routerLinkActiveOptions]="{exact: true}"
+        [routerLinkActiveOptions]="{ exact: link.exact }"
+        [attr.aria-current]="isRouteActive(link.route, link.exact) ? 'page' : null"
       >
-        <mat-icon class="navbar__nav-icon">home</mat-icon>
-        <span>Home</span>
-      </a>
-      
-      <a 
-        class="navbar__nav-link" 
-        [class.navbar__nav-link--active]="isRouteActive('/matches')"
-        (click)="navigateTo('/matches')"
-        routerLink="/matches"
-        routerLinkActive="navbar__nav-link--active"
-      >
-        <mat-icon class="navbar__nav-icon">sports_cricket</mat-icon>
-        <span>Matches</span>
-      </a>
-      
-      <a 
-        class="navbar__nav-link" 
-        [class.navbar__nav-link--active]="isRouteActive('/players')"
-        (click)="navigateTo('/players')"
-        routerLink="/players"
-        routerLinkActive="navbar__nav-link--active"
-      >
-        <mat-icon class="navbar__nav-icon">person</mat-icon>
-        <span>Players</span>
-      </a>
-      
-      <a 
-        class="navbar__nav-link" 
-        [class.navbar__nav-link--active]="isRouteActive('/teams')"
-        (click)="navigateTo('/teams')"
-        routerLink="/teams"
-        routerLinkActive="navbar__nav-link--active"
-      >
-        <mat-icon class="navbar__nav-icon">groups</mat-icon>
-        <span>Teams</span>
+        <mat-icon class="navbar__nav-icon">{{ link.icon }}</mat-icon>
+        <span>{{ link.label }}</span>
       </a>
     </div>
     
@@ -92,55 +61,11 @@
     </div>
   </div>
   
-  <!-- Mobile Navigation Menu (T060-T062) -->
-  <div 
-    class="navbar__mobile-menu" 
-    [class.navbar__mobile-menu--open]="isMobileMenuOpen"
-    [@slideInFromRight]="isMobileMenuOpen ? 'open' : 'closed'"
-  >
-    <a 
-      class="navbar__mobile-link" 
-      [class.navbar__mobile-link--active]="isRouteActive('/')"
-      (click)="navigateTo('/')"
-      routerLink="/"
-      routerLinkActive="navbar__mobile-link--active"
-      [routerLinkActiveOptions]="{exact: true}"
-    >
-      <mat-icon>home</mat-icon>
-      <span>Home</span>
-    </a>
-    
-    <a 
-      class="navbar__mobile-link" 
-      [class.navbar__mobile-link--active]="isRouteActive('/matches')"
-      (click)="navigateTo('/matches')"
-      routerLink="/matches"
-      routerLinkActive="navbar__mobile-link--active"
-    >
-      <mat-icon>sports_cricket</mat-icon>
-      <span>Matches</span>
-    </a>
-    
-    <a 
-      class="navbar__mobile-link" 
-      [class.navbar__mobile-link--active]="isRouteActive('/players')"
-      (click)="navigateTo('/players')"
-      routerLink="/players"
-      routerLinkActive="navbar__mobile-link--active"
-    >
-      <mat-icon>person</mat-icon>
-      <span>Players</span>
-    </a>
-    
-    <a 
-      class="navbar__mobile-link" 
-      [class.navbar__mobile-link--active]="isRouteActive('/teams')"
-      (click)="navigateTo('/teams')"
-      routerLink="/teams"
-      routerLinkActive="navbar__mobile-link--active"
-    >
-      <mat-icon>groups</mat-icon>
-      <span>Teams</span>
-    </a>
-  </div>
+  <app-mobile-nav
+    [open]="isMobileMenuOpen"
+    [links]="navLinks"
+    [activeRoute]="activeRoute"
+    (navigate)="handleMobileNavigate($event)"
+    (close)="closeMobileMenu()"
+  ></app-mobile-nav>
 </nav>
