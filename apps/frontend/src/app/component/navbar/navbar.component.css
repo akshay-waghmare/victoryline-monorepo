@@ -1,167 +1,275 @@
-/* Base styles for navbar */
+/**
+ * Navbar Component Styles
+ * Task: T045-T048 - Navbar with theme toggle
+ * Task: T068 - iOS safe area insets
+ */
+
 .navbar {
-  padding-top: 0.5rem; /* Reduced padding for a more compact look */
-  padding-bottom: 0.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: var(--color-background-elevated, #f5f5f5);
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.12));
+  
+  /* iOS safe area insets (T068) */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
-.navbar-nav {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.navbar__container {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 8px 16px;
+  height: 64px;
 }
 
-/* Base styles for nav items */
-.nav-item {
-  margin-right: 20px;
-}
-
-/* Base styles for dropdown toggle */
-.dropdown-toggle {
+/* Brand */
+.navbar__brand {
   display: flex;
   align-items: center;
-  background-color: transparent;
+  padding: 8px 16px 20px 16px;
+  border-radius: 8px;
   border: none;
-  color: inherit;
+  background: transparent;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.navbar__logo-wordmark {
+  height: 150px;
+  width: 150px;
+  object-fit: contain;
+  display: block;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
   padding: 0;
-}
-
-/* Larger icon size for user icon */
-.icon-large {
-  font-size: 36px;
-}
-
-/* Bold font weight for username */
-.font-weight-bold {
-  font-weight: bold;
-}
-
-/* Margin utilities */
-.me-1 {
-  margin-right: 0.25rem;
-}
-
-.me-2 {
-  margin-right: 0.5rem;
-}
-
-.ms-1 {
-  margin-left: 0.25rem;
-}
-
-.ms-3 {
-  margin-left: 1rem;
-}
-
-/* Margin for icons inside dropdown items */
-.dropdown-item i {
-  margin-right: 10px;
-}
-
-/* User info container */
-.user-info {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-}
-
-/* Balance and exposure info styles */
-.balance-info, .exposure-info {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
   white-space: nowrap;
-}
-
-/* Hide balance and exposure on smaller screens */
-.d-none {
-  display: none !important;
-}
-
-.d-lg-flex {
-  display: flex !important;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .navbar-nav {
-      flex-direction: column; /* Stack nav items vertically */
-      align-items: flex-start; /* Align nav items to the start */
-  }
-
-  .nav-item {
-      margin-right: 0; /* Remove right margin */
-      margin-bottom: 10px; /* Add bottom margin for spacing */
-  }
-
-  .dropdown-toggle {
-      flex-direction: row; /* Keep items in a row */
-      align-items: center; /* Align items to the center */
-  }
-
-  .dropdown-menu {
-      width: 100%; /* Make dropdown menu take full width */
-  }
-
-  .dropdown-item {
-      display: flex;
-      align-items: center;
-      padding: 10px 20px; /* Adjust padding for better spacing */
-  }
-
-  .navbar-wrapper {
-      display: none; /* Hide navbar wrapper on screens smaller than 768px */
-  }
+  border: 0;
 }
 
 @media (max-width: 480px) {
-  .navbar {
-      padding-top: 0.25rem; /* Reduce padding for top and bottom */
-      padding-bottom: 0.25rem;
+  .navbar__logo-wordmark {
+    display: none;
   }
-
-  .icon-large {
-      font-size: 28px; /* Reduce icon size */
+  
+  .navbar__logo-icon {
+    height: 40px;
+    width: 40px;
   }
+}
 
-  .font-weight-bold {
-      font-size: 14px; /* Reduce font size for username */
+/* Desktop Navigation */
+.navbar__nav-desktop {
+  display: none;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (min-width: 768px) {
+  .navbar__nav-desktop {
+    display: flex;
   }
+}
 
-  .me-1 {
-      margin-right: 0.2rem; /* Adjust right margin */
+.navbar__nav-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navbar__nav-link:hover {
+  background: var(--color-background-hover);
+  color: var(--color-text-primary);
+}
+
+.navbar__nav-link--active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.navbar__nav-link--active:hover {
+  background: var(--color-primary);
+  opacity: 0.9;
+}
+
+.navbar__nav-icon {
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+/* Actions */
+.navbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Theme Toggle (T046) */
+.navbar__theme-toggle {
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.navbar__theme-toggle:hover {
+  color: var(--color-primary);
+  background: var(--color-background-hover);
+}
+
+/* Mobile Toggle */
+.navbar__mobile-toggle {
+  display: flex;
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 768px) {
+  .navbar__mobile-toggle {
+    display: none;
   }
+}
 
-  .me-2 {
-      margin-right: 0.4rem; /* Adjust right margin */
+/* Mobile Menu (T060-T062) */
+.navbar__mobile-menu {
+  position: fixed;
+  top: 65px; /* Below navbar */
+  right: 0;
+  width: 280px;
+  height: calc(100vh - 65px);
+  background: var(--color-background-elevated);
+  border-left: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-md);
+  gap: var(--spacing-xs);
+  
+  /* Hidden by default */
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
+  
+  /* Ensure menu is above content */
+  z-index: 999;
+}
+
+.navbar__mobile-menu--open {
+  transform: translateX(0);
+}
+
+@media (min-width: 768px) {
+  .navbar__mobile-menu {
+    display: none;
   }
+}
 
-  .ms-1 {
-      margin-left: 0.2rem; /* Adjust left margin */
+.navbar__mobile-link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  /* Touch target size (T064) */
+  min-height: 44px;
+}
+
+.navbar__mobile-link:hover,
+.navbar__mobile-link:active {
+  background: var(--color-background-hover);
+  color: var(--color-text-primary);
+}
+
+.navbar__mobile-link--active {
+  background: var(--color-primary);
+  color: white;
+}
+
+.navbar__mobile-link--active:hover {
+  background: var(--color-primary);
+  opacity: 0.9;
+}
+
+.navbar__mobile-link mat-icon {
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+/* Backdrop for mobile menu */
+.navbar__mobile-menu--open::before {
+  content: '';
+  position: fixed;
+  top: 65px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: -1;
+}
+
+/* Smooth theme transitions (T049) */
+.navbar,
+.navbar__brand,
+.navbar__nav-link,
+.navbar__theme-toggle,
+.navbar__mobile-toggle,
+.navbar__mobile-menu,
+.navbar__mobile-link {
+  transition: 
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .navbar__mobile-menu {
+    transition: none;
   }
-
-  .ms-3 {
-      margin-left: 0.5rem; /* Adjust left margin for smaller screens */
+  
+  .navbar,
+  .navbar__brand,
+  .navbar__nav-link,
+  .navbar__theme-toggle,
+  .navbar__mobile-toggle,
+  .navbar__mobile-link {
+    transition: none;
   }
+}
 
-  .dropdown-item {
-      padding: 8px 16px; /* Adjust padding for compact display */
+/* Print */
+@media print {
+  .navbar__actions {
+    display: none;
   }
-
-  .user-info {
-      flex-direction: column; /* Display username, balance, and exposure in a column */
-      align-items: flex-start;
-  }
-
-  .balance-info, .exposure-info {
-      flex-direction: row; /* Display balance and exposure in a row */
-      align-items: center;
-      font-size: 12px; /* Reduce font size */
-  }
-
-  .navbar-wrapper {
-      display: none; /* Hide navbar wrapper on screens smaller than 480px */
+  
+  .navbar__mobile-menu {
+    display: none;
   }
 }

@@ -22,6 +22,7 @@ import {
   MatToolbarModule,
   MatIconModule,
   MatDialogModule,
+  MatTooltipModule,
   MatSnackBar
 } from '@angular/material';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -80,6 +81,7 @@ const stompConfig: StompConfig = {
     MatToolbarModule,
     MatProgressSpinnerModule,
     MatIconModule,
+    MatTooltipModule,
     MatDialogModule,
 
 

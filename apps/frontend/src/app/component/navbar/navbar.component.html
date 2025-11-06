@@ -1,81 +1,146 @@
-<!-- <nav class="navbar navbar-expand-lg navbar-transparent navbar-absolute">
-  <div class="container-fluid justify-content-end">
-    <div class="navbar-wrapper">
-      <a class="navbar-brand" href="#"></a>
+<!-- 
+  Navbar Component Template
+  Task: T046 - Add theme toggle button with Material Design icon
+-->
+
+<nav class="navbar">
+  <div class="navbar__container">
+    
+    <!-- Logo/Brand -->
+    <div class="navbar__brand" (click)="navigateTo('/')">
+      <img
+        class="navbar__logo-wordmark"
+        src="/assets/img/branding_logo-txt.png"
+        alt="VictoryLine"
+        [ngStyle]="{ filter: logoFilter }"
+      />
     </div>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navigation" aria-controls="navigation" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse justify-content-end" id="navigation">
-      <ul class="navbar-nav">
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle d-flex align-items-center" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <i class="material-icons icon-large me-2">account_circle</i>
-            <div class="user-info d-flex align-items-center">
-              <div class="username font-weight-bold">{{user?.username}}</div>
-              <div class="balance-info ms-3 d-none d-lg-flex">
-                <i class="material-icons me-1">account_balance_wallet</i>
-                <span>{{user?.balance | currency}}</span>
-              </div>
-              <div class="exposure-info ms-3 d-none d-lg-flex">
-                <i class="material-icons me-1">insights</i>
-                <span>{{user?.exposure | currency}}</span>
-              </div>
-            </div>
-          </a>
-          <div class="dropdown-menu" aria-labelledby="userDropdown"> -->
-            <!-- <a class="dropdown-item" href="#"><i class="material-icons">home</i> Home</a>
-                      <a class="dropdown-item" href="#"><i class="material-icons">account_balance_wallet</i> Deposit</a>
-                      <a class="dropdown-item" href="#"><i class="material-icons">payment</i> Withdraw</a>
-                      <a class="dropdown-item" href="#"><i class="material-icons">person</i> My Profile</a>
-                      <a class="dropdown-item" href="#"><i class="material-icons">description</i> Account Statement</a>
-                      <a class="dropdown-item" href="#"><i class="material-icons">settings</i> Stake Settings</a> -->
-           <!--  <a class="dropdown-item" (click)="navigateToProfitLoss()"><i class="material-icons">trending_up</i> Profit & Loss</a>
-            <a class="dropdown-item" (click)="navigateToBetHistory()"><i class="material-icons">hourglass_empty</i> Unsettled
-              Bets</a> -->
-            <!--      <a class="dropdown-item" href="#"><i class="material-icons">lock</i> Change Password</a>--> 
-           <!--  <a (click)="openLogoutDialog()" class="dropdown-item"><i class="material-icons">logout</i> Sign Out</a>
-          </div>
-        </li>
-      </ul>
+    
+    <!-- Desktop Navigation -->
+    <div class="navbar__nav-desktop">
+      <a 
+        class="navbar__nav-link" 
+        [class.navbar__nav-link--active]="isRouteActive('/')"
+        (click)="navigateTo('/')"
+        routerLink="/"
+        routerLinkActive="navbar__nav-link--active"
+        [routerLinkActiveOptions]="{exact: true}"
+      >
+        <mat-icon class="navbar__nav-icon">home</mat-icon>
+        <span>Home</span>
+      </a>
+      
+      <a 
+        class="navbar__nav-link" 
+        [class.navbar__nav-link--active]="isRouteActive('/matches')"
+        (click)="navigateTo('/matches')"
+        routerLink="/matches"
+        routerLinkActive="navbar__nav-link--active"
+      >
+        <mat-icon class="navbar__nav-icon">sports_cricket</mat-icon>
+        <span>Matches</span>
+      </a>
+      
+      <a 
+        class="navbar__nav-link" 
+        [class.navbar__nav-link--active]="isRouteActive('/players')"
+        (click)="navigateTo('/players')"
+        routerLink="/players"
+        routerLinkActive="navbar__nav-link--active"
+      >
+        <mat-icon class="navbar__nav-icon">person</mat-icon>
+        <span>Players</span>
+      </a>
+      
+      <a 
+        class="navbar__nav-link" 
+        [class.navbar__nav-link--active]="isRouteActive('/teams')"
+        (click)="navigateTo('/teams')"
+        routerLink="/teams"
+        routerLinkActive="navbar__nav-link--active"
+      >
+        <mat-icon class="navbar__nav-icon">groups</mat-icon>
+        <span>Teams</span>
+      </a>
+    </div>
+    
+    <!-- Actions -->
+    <div class="navbar__actions">
+      
+      <!-- Theme Toggle Button (T046) -->
+      <button 
+        mat-icon-button 
+        class="navbar__theme-toggle"
+        (click)="toggleTheme()"
+        [attr.aria-label]="themeTooltip"
+        [matTooltip]="themeTooltip"
+        matTooltipPosition="below"
+      >
+        <mat-icon [attr.aria-hidden]="true">{{ themeIcon }}</mat-icon>
+      </button>
+      
+      <!-- Mobile Menu Toggle (T061) -->
+      <button 
+        mat-icon-button 
+        class="navbar__mobile-toggle"
+        (click)="toggleMobileMenu()"
+        aria-label="Toggle navigation menu"
+        [attr.aria-expanded]="isMobileMenuOpen"
+      >
+        <mat-icon>{{ isMobileMenuOpen ? 'close' : 'menu' }}</mat-icon>
+      </button>
     </div>
   </div>
-</nav> -->
-
-
-<nav *ngIf="showNavBar" class="navbar navbar-expand-lg navbar-transparent navbar-absolute">
-  <div class="container-fluid justify-content-end">
-    <div class="navbar-wrapper">
-      <a class="navbar-brand" href="#"></a>
-    </div>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navigation" aria-controls="navigation" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse justify-content-end" id="navigation">
-      <ul class="navbar-nav">
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle d-flex align-items-center" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            <i class="material-icons icon-large me-2">account_circle</i>
-            <div class="user-info d-flex align-items-center">
-              <div class="username font-weight-bold">{{user?.username}}</div>
-              <div class="balance-info ms-3 d-none d-lg-flex">
-                <i class="material-icons me-1">account_balance_wallet</i>
-                <span>{{user?.balance | currency}}</span>
-              </div>
-              <div class="exposure-info ms-3 d-none d-lg-flex">
-                <i class="material-icons me-1">insights</i>
-                <span>{{user?.exposure | currency}}</span>
-              </div>
-            </div>
-          </a>
-          <div class="dropdown-menu" aria-labelledby="userDropdown">
-            <a class="dropdown-item" (click)="navigateToProfitLoss()"><i class="material-icons">trending_up</i> Profit & Loss</a>
-            <a class="dropdown-item" (click)="navigateToBetHistory()"><i class="material-icons">hourglass_empty</i> Unsettled Bets</a>
-            <a (click)="openLogoutDialog()" class="dropdown-item"><i class="material-icons">logout</i> Sign Out</a>
-          </div>
-        </li>
-      </ul>
-    </div>
+  
+  <!-- Mobile Navigation Menu (T060-T062) -->
+  <div 
+    class="navbar__mobile-menu" 
+    [class.navbar__mobile-menu--open]="isMobileMenuOpen"
+    [@slideInFromRight]="isMobileMenuOpen ? 'open' : 'closed'"
+  >
+    <a 
+      class="navbar__mobile-link" 
+      [class.navbar__mobile-link--active]="isRouteActive('/')"
+      (click)="navigateTo('/')"
+      routerLink="/"
+      routerLinkActive="navbar__mobile-link--active"
+      [routerLinkActiveOptions]="{exact: true}"
+    >
+      <mat-icon>home</mat-icon>
+      <span>Home</span>
+    </a>
+    
+    <a 
+      class="navbar__mobile-link" 
+      [class.navbar__mobile-link--active]="isRouteActive('/matches')"
+      (click)="navigateTo('/matches')"
+      routerLink="/matches"
+      routerLinkActive="navbar__mobile-link--active"
+    >
+      <mat-icon>sports_cricket</mat-icon>
+      <span>Matches</span>
+    </a>
+    
+    <a 
+      class="navbar__mobile-link" 
+      [class.navbar__mobile-link--active]="isRouteActive('/players')"
+      (click)="navigateTo('/players')"
+      routerLink="/players"
+      routerLinkActive="navbar__mobile-link--active"
+    >
+      <mat-icon>person</mat-icon>
+      <span>Players</span>
+    </a>
+    
+    <a 
+      class="navbar__mobile-link" 
+      [class.navbar__mobile-link--active]="isRouteActive('/teams')"
+      (click)="navigateTo('/teams')"
+      routerLink="/teams"
+      routerLinkActive="navbar__mobile-link--active"
+    >
+      <mat-icon>groups</mat-icon>
+      <span>Teams</span>
+    </a>
   </div>
 </nav>
-

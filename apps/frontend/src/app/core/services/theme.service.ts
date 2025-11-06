@@ -31,6 +31,9 @@ export class ThemeService {
   private readonly THEME_STORAGE_KEY = 'victoryline-theme';
   private readonly USE_SYSTEM_THEME_KEY = 'victoryline-use-system-theme';
   private readonly ANIMATIONS_ENABLED_KEY = 'victoryline-animations-enabled';
+  
+  // BroadcastChannel for cross-tab synchronization (T054)
+  private themeChannel: BroadcastChannel | null = null;
 
   // Internal state
   private currentThemeSubject: BehaviorSubject<ThemeMode>;
@@ -190,6 +193,7 @@ export class ThemeService {
     // 3. Set up listeners
     this.setupSystemThemeListener();
     this.setupReducedMotionListener();
+    this.setupBroadcastChannel(); // T054 - Cross-tab synchronization
 
     // 4. Determine and apply initial theme
     this.useSystemTheme = useSystemTheme;
@@ -234,6 +238,8 @@ export class ThemeService {
     // Persist if requested
     if (persist) {
       this.saveToStorage(mode);
+      // Broadcast theme change to other tabs (T054)
+      this.broadcastThemeChange(mode);
     }
 
     console.log(`Theme changed to: ${mode}`);
@@ -519,6 +525,57 @@ export class ThemeService {
     } catch (e) {
       console.warn('Failed to read animationsEnabled from localStorage:', e);
     }
-    return !this.prefersReducedMotion(); // Default to enabled unless reduced motion is preferred
+    return true; // Default to enabled
+  }
+  
+  /**
+   * Set up BroadcastChannel for cross-tab theme synchronization
+   * Task: T054 - BroadcastChannel synchronization
+   */
+  private setupBroadcastChannel(): void {
+    // Check if BroadcastChannel is supported
+    if (typeof BroadcastChannel === 'undefined') {
+      console.warn('BroadcastChannel not supported in this browser');
+      return;
+    }
+    
+    try {
+      // Create broadcast channel for theme updates
+      this.themeChannel = new BroadcastChannel('victoryline-theme');
+      
+      // Listen for theme changes from other tabs
+      this.themeChannel.onmessage = (event) => {
+        const { type, theme } = event.data;
+        
+        if (type === 'theme-change' && isThemeMode(theme)) {
+          console.log(`Received theme change from another tab: ${theme}`);
+          // Apply theme without broadcasting to avoid infinite loop
+          this.applyTheme(theme);
+          this.currentThemeSubject.next(theme);
+          const config = theme === 'light' ? this.LIGHT_THEME : this.DARK_THEME;
+          this.themeConfigSubject.next(config);
+        }
+      };
+      
+      console.log('BroadcastChannel initialized for theme synchronization');
+    } catch (e) {
+      console.warn('Failed to setup BroadcastChannel:', e);
+    }
+  }
+  
+  /**
+   * Broadcast theme change to other tabs
+   */
+  private broadcastThemeChange(theme: ThemeMode): void {
+    if (this.themeChannel) {
+      try {
+        this.themeChannel.postMessage({
+          type: 'theme-change',
+          theme: theme
+        });
+      } catch (e) {
+        console.warn('Failed to broadcast theme change:', e);
+      }
+    }
   }
 }

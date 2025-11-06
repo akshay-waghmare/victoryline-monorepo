@@ -39,13 +39,8 @@
     <!-- Team 1 -->
     <div class="match-card__team match-card__team--team1">
       <div class="match-card__team-header">
-        <img [src]="match.team1.logoUrl" 
-             [alt]="match.team1.name + ' logo'"
-             class="match-card__team-logo"
-             loading="lazy">
         <div class="match-card__team-info">
-          <h3 class="match-card__team-name">{{ match.team1.shortName }}</h3>
-          <span class="match-card__team-full-name">{{ match.team1.name }}</span>
+          <h3 class="match-card__team-name">{{ match.team1.name }}</h3>
         </div>
       </div>
       
@@ -69,13 +64,8 @@
     <!-- Team 2 -->
     <div class="match-card__team match-card__team--team2">
       <div class="match-card__team-header">
-        <img [src]="match.team2.logoUrl" 
-             [alt]="match.team2.name + ' logo'"
-             class="match-card__team-logo"
-             loading="lazy">
         <div class="match-card__team-info">
-          <h3 class="match-card__team-name">{{ match.team2.shortName }}</h3>
-          <span class="match-card__team-full-name">{{ match.team2.name }}</span>
+          <h3 class="match-card__team-name">{{ match.team2.name }}</h3>
         </div>
       </div>
       
@@ -120,8 +110,8 @@
        role="status" 
        aria-live="polite"
        *ngIf="isMatchLive()">
-    {{ match.team1.shortName }} {{ match.team1.score?.runs }} for {{ match.team1.score?.wickets }}
+    {{ match.team1.name }} {{ match.team1.score?.runs }} for {{ match.team1.score?.wickets }}
     versus
-    {{ match.team2.shortName }} {{ match.team2.score?.runs }} for {{ match.team2.score?.wickets }}
+    {{ match.team2.name }} {{ match.team2.score?.runs }} for {{ match.team2.score?.wickets }}
   </div>
 </div>

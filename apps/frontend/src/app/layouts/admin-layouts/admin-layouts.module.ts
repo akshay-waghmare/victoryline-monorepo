@@ -38,7 +38,8 @@ import {
   MatProgressSpinnerModule,
   MatExpansionModule,
   MatSliderModule,
-  MatProgressBarModule
+  MatProgressBarModule,
+  MatTooltipModule
 } from '@angular/material';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AuthenticationGuard } from 'src/app/authentication.guard';
@@ -65,7 +66,6 @@ import { TermsOfServiceComponent } from 'src/app/terms-of-service/terms-of-servi
 import { MatchCardComponent } from 'src/app/features/matches/components/match-card/match-card.component';
 import { SkeletonCardComponent } from 'src/app/shared/components/skeleton-card/skeleton-card.component';
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
-
 
 
 
@@ -115,6 +115,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatListModule,
     ComponentsModule,
     MatSnackBarModule, // Import MatSnackBarModule
+    MatTooltipModule, // Import MatTooltipModule for navbar tooltips (T046)
     
   
   ],
@@ -143,8 +144,6 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatchCardComponent,
     SkeletonCardComponent,
     MatchesListComponent,
-    
-    
     
   ],
   providers: [

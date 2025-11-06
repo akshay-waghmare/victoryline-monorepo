@@ -5,8 +5,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, of, forkJoin, timer, Subject } from 'rxjs';
-import { map, switchMap, catchError, shareReplay, takeUntil } from 'rxjs/operators';
+import { Observable, of, forkJoin, timer } from 'rxjs';
+import { map, switchMap, catchError, shareReplay } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
@@ -20,8 +20,6 @@ import { environment } from '../../../../environments/environment';
 export class MatchesService {
   
   private scorecardApiUrl = environment.REST_API_URL + 'cricket-data/sC4-stats/get';
-  private destroy$ = new Subject<void>();
-  
   constructor(
     private eventListService: EventListService,
     private http: HttpClient
@@ -35,8 +33,7 @@ export class MatchesService {
     // Emit immediately, then every 30 seconds
     return timer(0, 30000).pipe(
       switchMap(() => this.getLiveMatches()),
-      shareReplay(1), // Cache the latest emission
-      takeUntil(this.destroy$)
+      shareReplay(1) // Cache the latest emission
     );
   }
   
@@ -44,8 +41,7 @@ export class MatchesService {
    * Stop auto-refresh (call this when component is destroyed)
    */
   stopAutoRefresh(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+    // Subscriptions manage their own teardown; method retained for backwards compatibility.
   }
   
   /**

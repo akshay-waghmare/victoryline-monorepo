@@ -103,18 +103,18 @@
 
 ### Implementation for User Story 2
 
-- [ ] T045 [US2] Create app navbar component apps/frontend/src/app/core/layout/navbar/navbar.component.ts
-- [ ] T046 [US2] Add theme toggle button to navbar.component.html with Material Design icon button
-- [ ] T047 [US2] Wire theme toggle button to ThemeService.toggleTheme() in navbar.component.ts
-- [ ] T048 [US2] Add theme state subscription to display correct icon (light_mode/dark_mode) in navbar.component.ts
-- [ ] T049 [US2] Implement smooth theme transition using CSS transitions on all color properties in global styles
-- [ ] T050 [US2] Test localStorage persistence (set theme, close browser, reopen, verify theme restored)
-- [ ] T051 [US2] Test system preference detection (set OS to dark mode, clear localStorage, verify app detects and applies dark theme)
-- [ ] T052 [US2] Verify all components receive theme updates via CSS Custom Properties
-- [ ] T053 [US2] Audit all text colors for WCAG AA contrast ratios (4.5:1 normal text, 3:1 large text) in both themes
-- [ ] T054 [US2] Test BroadcastChannel synchronization (open app in 2 tabs, toggle theme in tab 1, verify tab 2 updates)
-- [ ] T055 [US2] Add meta theme-color tag updates for mobile browser chrome in ThemeService
-- [ ] T056 [US2] Document theme usage guidelines in quickstart.md if not already present
+- [X] T045 [US2] Create app navbar component apps/frontend/src/app/core/layout/navbar/navbar.component.ts
+- [X] T046 [US2] Add theme toggle button to navbar.component.html with Material Design icon button
+- [X] T047 [US2] Wire theme toggle button to ThemeService.toggleTheme() in navbar.component.ts
+- [X] T048 [US2] Add theme state subscription to display correct icon (light_mode/dark_mode) in navbar.component.ts
+- [X] T049 [US2] Implement smooth theme transition using CSS transitions on all color properties in global styles
+- [X] T050 [US2] Test localStorage persistence (set theme, close browser, reopen, verify theme restored)
+- [X] T051 [US2] Test system preference detection (set OS to dark mode, clear localStorage, verify app detects and applies dark theme)
+- [X] T052 [US2] Verify all components receive theme updates via CSS Custom Properties
+- [X] T053 [US2] Audit all text colors for WCAG AA contrast ratios (4.5:1 normal text, 3:1 large text) in both themes
+- [X] T054 [US2] Test BroadcastChannel synchronization (open app in 2 tabs, toggle theme in tab 1, verify tab 2 updates)
+- [X] T055 [US2] Add meta theme-color tag updates for mobile browser chrome in ThemeService
+- [X] T056 [US2] Document theme usage guidelines in quickstart.md if not already present
 
 **Checkpoint**: User Story 2 complete - theme system fully functional with persistence and system detection
 

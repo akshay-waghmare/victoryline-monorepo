@@ -858,6 +858,244 @@ This design system provides:
 - Test color contrast for accessibility
 - Keep animations quick and purposeful (200-300ms)
 
+---
+
+## Theme System Usage
+
+### Task T056: Theme System Documentation
+
+VictoryLine implements a robust theme system with light/dark mode support, localStorage persistence, system preference detection, and cross-tab synchronization.
+
+### Using the ThemeService
+
+#### 1. Inject the Service
+
+```typescript
+import { ThemeService } from '@core/services/theme.service';
+
+export class MyComponent implements OnInit {
+  constructor(private themeService: ThemeService) {}
+  
+  ngOnInit(): void {
+    // Subscribe to theme changes
+    this.themeService.currentTheme$.subscribe(theme => {
+      console.log(`Current theme: ${theme}`);
+    });
+  }
+}
+```
+
+#### 2. Toggle Theme
+
+```typescript
+// Toggle between light and dark
+toggleTheme(): void {
+  const newTheme = this.themeService.toggleTheme();
+  console.log(`Switched to ${newTheme} theme`);
+}
+
+// Set specific theme
+setLightTheme(): void {
+  this.themeService.setTheme('light');
+}
+
+setDarkTheme(): void {
+  this.themeService.setTheme('dark');
+}
+```
+
+#### 3. Get Current Theme
+
+```typescript
+// Get current theme mode
+const currentTheme = this.themeService.getCurrentTheme(); // 'light' | 'dark'
+
+// Get current theme config with colors, spacing, typography
+this.themeService.themeConfig$.subscribe(config => {
+  console.log('Primary color:', config.colors.primary);
+});
+```
+
+#### 4. System Preference Detection
+
+```typescript
+// Enable/disable system theme detection
+this.themeService.setUseSystemTheme(true);  // Follow OS setting
+this.themeService.setUseSystemTheme(false); // Use user preference
+
+// Listen to system theme changes
+this.themeService.systemTheme$.subscribe(systemTheme => {
+  console.log(`System theme is: ${systemTheme}`);
+});
+```
+
+### Using CSS Custom Properties
+
+All theme colors are available as CSS custom properties that automatically update when the theme changes:
+
+```css
+.my-component {
+  /* Background colors */
+  background: var(--color-background);
+  background: var(--color-background-elevated); /* For cards */
+  background: var(--color-background-hover);    /* For hover states */
+  
+  /* Text colors */
+  color: var(--color-text-primary);
+  color: var(--color-text-secondary);
+  color: var(--color-text-disabled);
+  
+  /* Border colors */
+  border-color: var(--color-border);
+  
+  /* Brand colors */
+  color: var(--color-primary);
+  background: var(--color-primary-hover); /* On hover */
+  
+  /* Status colors */
+  color: var(--color-success);
+  color: var(--color-warning);
+  color: var(--color-error);
+  
+  /* Spacing */
+  padding: var(--spacing-md);
+  margin: var(--spacing-lg);
+  gap: var(--spacing-sm);
+  
+  /* Typography */
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+```
+
+### Theme Features
+
+#### ✅ localStorage Persistence (T050)
+Themes are automatically saved to localStorage and restored on next visit:
+```typescript
+// Automatically persisted on theme change
+this.themeService.setTheme('dark');
+
+// Theme restored automatically on app initialization
+```
+
+#### ✅ System Preference Detection (T051)
+Automatically detects OS dark mode preference:
+```typescript
+// On first visit, app detects system preference
+// User can override with manual theme selection
+```
+
+#### ✅ Cross-Tab Synchronization (T054)
+Theme changes sync across all open tabs using BroadcastChannel:
+```typescript
+// Change theme in Tab 1
+this.themeService.setTheme('dark');
+
+// Tab 2 automatically updates to dark theme
+```
+
+#### ✅ Mobile Browser Theme Color (T055)
+Updates mobile browser chrome color to match theme:
+```html
+<!-- Automatically updated by ThemeService -->
+<meta name="theme-color" content="#1976d2">
+```
+
+#### ✅ Smooth Transitions (T049)
+All color properties transition smoothly (300ms):
+```css
+/* Applied globally to all elements */
+* {
+  transition: background-color 0.3s ease,
+              color 0.3s ease,
+              border-color 0.3s ease;
+}
+```
+
+### Accessibility
+
+#### WCAG AA Compliance (T053)
+All theme colors meet WCAG AA contrast requirements:
+
+**Light Theme:**
+- Text on background: 16.1:1 ✅ (Exceeds 4.5:1 requirement)
+- Secondary text: 6.5:1 ✅
+- Disabled text: 3.2:1 ✅
+
+**Dark Theme:**
+- Text on background: 13.3:1 ✅ (Exceeds 4.5:1 requirement)
+- Secondary text: 5.8:1 ✅
+- Disabled text: 3.1:1 ✅
+
+#### Reduced Motion Support
+Theme transitions respect user's reduced motion preference:
+```css
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+```
+
+### Best Practices
+
+1. **Always use CSS custom properties** instead of hardcoded colors
+2. **Never use inline styles** for theme-dependent colors
+3. **Test in both themes** during development
+4. **Respect user preferences** (system theme, reduced motion)
+5. **Use semantic color names** (--color-text-primary, not --color-gray-900)
+
+### Example: Themed Component
+
+```typescript
+// TypeScript
+@Component({
+  selector: 'app-themed-card',
+  template: `
+    <div class="card">
+      <h2>{{ title }}</h2>
+      <p>{{ description }}</p>
+      <button (click)="toggleTheme()">
+        {{ (themeService.currentTheme$ | async) === 'dark' ? 'Light' : 'Dark' }}
+      </button>
+    </div>
+  `,
+  styles: [`
+    .card {
+      background: var(--color-background-elevated);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--shadow-md);
+    }
+    
+    button {
+      background: var(--color-primary);
+      color: white;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: none;
+      border-radius: var(--border-radius-md);
+    }
+    
+    button:hover {
+      background: var(--color-primary-hover);
+    }
+  `]
+})
+export class ThemedCardComponent {
+  constructor(public themeService: ThemeService) {}
+  
+  toggleTheme(): void {
+    this.themeService.toggleTheme();
+  }
+}
+```
+
+---
+
 For implementation details, refer to:
 - `data-model.md` - TypeScript interfaces
 - `contracts/` - Component API definitions

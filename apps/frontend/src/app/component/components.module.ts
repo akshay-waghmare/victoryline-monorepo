@@ -8,7 +8,9 @@ import {MatFormFieldModule,
         MatInputModule,
         MatDividerModule,
         MatDialog,
-        MatDialogModule} from '@angular/material';
+        MatDialogModule,
+        MatIconModule,
+        MatTooltipModule} from '@angular/material';
 import { InjectableRxStompConfig, RxStompService, StompConfig, rxStompServiceFactory } from '@stomp/ng2-stompjs';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { LoaderInterceptor } from '../loader/loader.interceptor';
@@ -43,6 +45,8 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatButtonModule,
     MatInputModule,
     MatDividerModule,
+    MatIconModule,
+    MatTooltipModule,
   ],
   declarations: [
     SidebarComponent,
