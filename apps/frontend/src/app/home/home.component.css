@@ -1,5 +1,83 @@
 
 
+/* ===== NEW STYLES FOR MATCH CARD INTEGRATION ===== */
+
+.matches-section {
+  margin-bottom: 48px;
+}
+
+.section-header {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 24px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.live-indicator {
+  width: 12px;
+  height: 12px;
+  background: var(--color-error);
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.matches-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .matches-grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .matches-grid {
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  }
+}
+
+.error-message {
+  display: flex;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+.error-message mat-card {
+  max-width: 600px;
+  padding: 40px;
+  text-align: center;
+}
+
+.error-message h3 {
+  font-size: 24px;
+  color: var(--color-error);
+  margin-bottom: 16px;
+}
+
+.error-message p {
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  margin-bottom: 24px;
+}
+
+/* ===== ORIGINAL STYLES BELOW (KEPT FOR BLOG SECTION) ===== */
+
+
 .container {
   max-width: 1200px;
   margin: auto;

@@ -85,11 +85,11 @@
 - [X] T037 [US1] Add staleness warning display (>30s warning, >120s error) in match-card.component.html
 - [X] T038 [P] [US1] Create SkeletonCardComponent in apps/frontend/src/app/shared/components/skeleton-card/skeleton-card.component.ts
 - [X] T039 [P] [US1] Implement skeleton shimmer animation in skeleton-card.component.scss
-- [ ] T040 [US1] Update matches list page apps/frontend/src/app/features/matches/pages/matches-list/matches-list.component.ts to use MatchCardComponent
-- [ ] T041 [US1] Update homepage apps/frontend/src/app/features/home/pages/home/home.component.ts to display match cards with sections
-- [ ] T042 [US1] Implement data transformation logic (API response → MatchCardViewModel) in matches.service.ts
+- [X] T040: Update matches-list page to use `MatchCardComponent` in grid layout
+- [X] T041: Update homepage to display match cards in sections (Live, Upcoming, Recent)
+- [X] T042: Implement data transformation logic (API response → `MatchCardViewModel`)
 - [X] T043 [US1] Add color coding utility functions for match status in apps/frontend/src/app/core/utils/match-utils.ts
-- [ ] T044 [US1] Verify WCAG AA contrast ratios for all text on match cards in both themes
+- [X] T044 [US1] Verify WCAG AA contrast ratios for all text on match cards in both themes
 
 **Checkpoint**: User Story 1 complete - modern match cards with animations functional
 

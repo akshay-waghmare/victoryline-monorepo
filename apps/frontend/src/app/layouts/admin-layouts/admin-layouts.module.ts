@@ -61,6 +61,11 @@ import { ScorecardComponent } from 'src/app/scorecard/scorecard.component';
 import { PrivacyPolicyComponent } from 'src/app/privacy-policy/privacy-policy.component';
 import { TermsOfServiceComponent } from 'src/app/terms-of-service/terms-of-service.component';
 
+// New match card components
+import { MatchCardComponent } from 'src/app/features/matches/components/match-card/match-card.component';
+import { SkeletonCardComponent } from 'src/app/shared/components/skeleton-card/skeleton-card.component';
+import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
+
 
 
 
@@ -134,6 +139,10 @@ const myRxStompConfig: InjectableRxStompConfig = {
     ScorecardComponent,
     PrivacyPolicyComponent,
     TermsOfServiceComponent,
+    // New match card components
+    MatchCardComponent,
+    SkeletonCardComponent,
+    MatchesListComponent,
     
     
     

@@ -1,34 +1,85 @@
 <div class="container">
-  <h2 class="header">Matches for you</h2>
   
-  <!-- Show message when no live matches -->
-  <div *ngIf="liveMatches.length === 0" class="no-matches-container">
-    <mat-card class="no-matches-card">
-      <h3>No Live Matches</h3>
-      <p>There are currently no live cricket matches available. Please check back later.</p>
-    </mat-card>
-  </div>
-
-  <!-- Show matches when available -->
-  <div class="scroll-wrapper" *ngIf="liveMatches.length > 0">
-    <button class="scroll-button" (click)="scrollLeft()">&#9664;</button>
-    <div class="matches-container" #scrollContainer>
-      <mat-card class="match-card" *ngFor="let match of liveMatches" (click)="navigateToMatch(match)">
-        <div class="match-date">{{ match.date }}</div>
-        <div class="match-title">{{ match.title }}</div>
-        <div class="match-description">{{ match.description }}</div>
-        <div class="teams">
-          <div class="team">{{ match.team1 }}</div>
-          <div class="vs">vs</div>
-          <div class="team">{{ match.team2 }}</div>
-        </div>
+  <!-- ===== LIVE MATCHES SECTION ===== -->
+  <section class="matches-section" *ngIf="!isLoadingMatches && liveMatches.length > 0">
+    <h2 class="section-header">
+      <span class="live-indicator"></span>
+      Live Matches
+    </h2>
+    <div class="matches-grid">
+      <app-match-card
+        *ngFor="let match of liveMatches; trackBy: trackByMatchId"
+        [match]="match"
+        [enableAnimations]="true"
+        [showDetailsButton]="true"
+        (cardClick)="onMatchClick(match)"
+        (detailsClick)="onDetailsClick(match)"
+      ></app-match-card>
+    </div>
+  </section>
+  
+  <!-- ===== UPCOMING MATCHES SECTION ===== -->
+  <section class="matches-section" *ngIf="!isLoadingMatches && upcomingMatches.length > 0">
+    <h2 class="section-header">Upcoming Matches</h2>
+    <div class="matches-grid">
+      <app-match-card
+        *ngFor="let match of upcomingMatches; trackBy: trackByMatchId"
+        [match]="match"
+        [enableAnimations]="false"
+        [showDetailsButton]="true"
+        (cardClick)="onMatchClick(match)"
+        (detailsClick)="onDetailsClick(match)"
+      ></app-match-card>
+    </div>
+  </section>
+  
+  <!-- ===== RECENT RESULTS SECTION ===== -->
+  <section class="matches-section" *ngIf="!isLoadingMatches && recentMatches.length > 0">
+    <h2 class="section-header">Recent Results</h2>
+    <div class="matches-grid">
+      <app-match-card
+        *ngFor="let match of recentMatches; trackBy: trackByMatchId"
+        [match]="match"
+        [enableAnimations]="false"
+        [showDetailsButton]="true"
+        (cardClick)="onMatchClick(match)"
+        (detailsClick)="onDetailsClick(match)"
+      ></app-match-card>
+    </div>
+  </section>
+  
+  <!-- ===== LOADING STATE ===== -->
+  <section class="matches-section" *ngIf="isLoadingMatches">
+    <h2 class="section-header">Loading Matches...</h2>
+    <div class="matches-grid">
+      <app-skeleton-card [count]="3"></app-skeleton-card>
+    </div>
+  </section>
+  
+  <!-- ===== ERROR STATE ===== -->
+  <section class="matches-section" *ngIf="hasMatchError && !isLoadingMatches">
+    <div class="error-message">
+      <mat-card>
+        <h3>Unable to Load Matches</h3>
+        <p>There was an error loading cricket matches. Please try refreshing the page.</p>
+        <button mat-raised-button color="primary" (click)="loadMatches()">Retry</button>
       </mat-card>
     </div>
-    <button class="scroll-button" (click)="scrollRight()">&#9654;</button>
-  </div>
+  </section>
+  
+  <!-- ===== NO MATCHES STATE ===== -->
+  <section class="matches-section" *ngIf="!isLoadingMatches && !hasMatchError && liveMatches.length === 0 && upcomingMatches.length === 0 && recentMatches.length === 0">
+    <div class="no-matches-container">
+      <mat-card class="no-matches-card">
+        <h3>No Live Matches</h3>
+        <p>There are currently no live cricket matches available. Please check back later.</p>
+      </mat-card>
+    </div>
+  </section>
   
   <hr class="news-hr" />
 
+  <!-- ===== BLOG POSTS SECTION (UNCHANGED) ===== -->
   <div *ngFor="let blogPost of blogPosts" class="news-item" (click)="openNews(blogPost.link)">
     <img [src]="blogPost.imgUrl" alt="{{ blogPost.title }}" class="news-image" />
     <div class="news-content">

@@ -1,0 +1,144 @@
+<!-- Matches List Page -->
+<div class="matches-list">
+  
+  <!-- Page Header -->
+  <div class="matches-list__header">
+    <h1 class="matches-list__title">Cricket Matches</h1>
+    <p class="matches-list__subtitle">Live scores and upcoming fixtures</p>
+  </div>
+  
+  <!-- Filters and Search -->
+  <div class="matches-list__controls">
+    
+    <!-- Status Filter Tabs -->
+    <div class="matches-list__filter-tabs" role="tablist">
+      <button 
+        type="button"
+        class="matches-list__filter-tab"
+        [class.matches-list__filter-tab--active]="selectedStatus === 'all'"
+        (click)="onStatusFilterChange('all')"
+        role="tab"
+        [attr.aria-selected]="selectedStatus === 'all'"
+      >
+        All Matches
+        <span class="matches-list__filter-badge">{{ getMatchCount('all') }}</span>
+      </button>
+      
+      <button 
+        type="button"
+        class="matches-list__filter-tab"
+        [class.matches-list__filter-tab--active]="selectedStatus === MatchStatus.LIVE"
+        (click)="onStatusFilterChange(MatchStatus.LIVE)"
+        role="tab"
+        [attr.aria-selected]="selectedStatus === MatchStatus.LIVE"
+      >
+        <span class="matches-list__live-indicator"></span>
+        Live
+        <span class="matches-list__filter-badge">{{ liveMatchesCount }}</span>
+      </button>
+      
+      <button 
+        type="button"
+        class="matches-list__filter-tab"
+        [class.matches-list__filter-tab--active]="selectedStatus === MatchStatus.UPCOMING"
+        (click)="onStatusFilterChange(MatchStatus.UPCOMING)"
+        role="tab"
+        [attr.aria-selected]="selectedStatus === MatchStatus.UPCOMING"
+      >
+        Upcoming
+        <span class="matches-list__filter-badge">{{ upcomingMatchesCount }}</span>
+      </button>
+      
+      <button 
+        type="button"
+        class="matches-list__filter-tab"
+        [class.matches-list__filter-tab--active]="selectedStatus === MatchStatus.COMPLETED"
+        (click)="onStatusFilterChange(MatchStatus.COMPLETED)"
+        role="tab"
+        [attr.aria-selected]="selectedStatus === MatchStatus.COMPLETED"
+      >
+        Completed
+        <span class="matches-list__filter-badge">{{ completedMatchesCount }}</span>
+      </button>
+    </div>
+    
+    <!-- Search Bar -->
+    <div class="matches-list__search">
+      <input 
+        type="text"
+        class="matches-list__search-input"
+        placeholder="Search by team or venue..."
+        [(ngModel)]="searchQuery"
+        (input)="onSearchChange(searchQuery)"
+        aria-label="Search matches"
+      />
+      <svg class="matches-list__search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 17A8 8 0 1 0 9 1a8 8 0 0 0 0 16zM19 19l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    
+    <!-- Refresh Button -->
+    <button 
+      type="button"
+      class="matches-list__refresh-btn"
+      (click)="onRefresh()"
+      [disabled]="isLoading"
+      aria-label="Refresh matches"
+      title="Refresh matches"
+    >
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 4v6h6M19 16v-6h-6M2.51 9A8 8 0 0 1 17 7.5M17.49 11A8 8 0 0 1 3 12.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
+  
+  <!-- Loading State -->
+  <div class="matches-list__grid" *ngIf="isLoading">
+    <app-skeleton-card [count]="6"></app-skeleton-card>
+  </div>
+  
+  <!-- Error State -->
+  <div class="matches-list__error" *ngIf="hasError && !isLoading">
+    <svg class="matches-list__error-icon" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2"/>
+      <path d="M24 14v12M24 32v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <p class="matches-list__error-message">{{ errorMessage }}</p>
+    <button 
+      type="button"
+      class="matches-list__retry-btn"
+      (click)="onRefresh()"
+    >
+      Try Again
+    </button>
+  </div>
+  
+  <!-- Matches Grid -->
+  <div class="matches-list__grid" *ngIf="!isLoading && !hasError">
+    
+    <!-- No Matches State -->
+    <div class="matches-list__empty" *ngIf="filteredMatches.length === 0">
+      <svg class="matches-list__empty-icon" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="2"/>
+        <path d="M32 20v16M32 44v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p class="matches-list__empty-message">No matches found</p>
+      <p class="matches-list__empty-hint">
+        <span *ngIf="searchQuery">Try adjusting your search</span>
+        <span *ngIf="selectedStatus !== 'all' && !searchQuery">Try selecting a different filter</span>
+        <span *ngIf="selectedStatus === 'all' && !searchQuery">Check back later for updates</span>
+      </p>
+    </div>
+    
+    <!-- Match Cards -->
+    <app-match-card
+      *ngFor="let match of filteredMatches; trackBy: trackByMatchId"
+      [match]="match"
+      [enableAnimations]="true"
+      [showDetailsButton]="true"
+      (cardClick)="onMatchClick(match)"
+      (detailsClick)="onDetailsClick(match)"
+    ></app-match-card>
+  </div>
+</div>

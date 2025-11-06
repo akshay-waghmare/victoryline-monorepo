@@ -1,8 +1,12 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { EventListService } from '../component/event-list.service';
 import { Router } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { BlogListService, BlogPost } from '../component/blog-list.service';
+import { MatchesService } from '../features/matches/services/matches.service';
+import { MatchCardViewModel, MatchStatus } from '../features/matches/models/match-card.models';
+import { filterLiveMatches, filterUpcomingMatches, filterCompletedMatches } from '../core/utils/match-utils';
+import { Subscription } from 'rxjs';
 
 
 @Component({
@@ -10,14 +14,26 @@ import { BlogListService, BlogPost } from '../component/blog-list.service';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.css']
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
 
   @ViewChild('scrollContainer', { read: ElementRef }) scrollContainer!: ElementRef;
-  liveMatches: any[] = [];
+  
+  // New: Match data with strong typing
+  liveMatches: MatchCardViewModel[] = [];
+  upcomingMatches: MatchCardViewModel[] = [];
+  recentMatches: MatchCardViewModel[] = [];
+  isLoadingMatches = true;
+  hasMatchError = false;
+  
+  // Subscription for auto-refresh
+  private matchSubscription?: Subscription;
+  
+  // Existing: Blog posts
   blogPosts: BlogPost[];
 
   constructor(
-    private eventListService: EventListService, 
+    private eventListService: EventListService,
+    private matchesService: MatchesService, // New: Matches service
     private router: Router,
     private metaService: Meta,
     private titleService: Title,
@@ -25,39 +41,112 @@ export class HomeComponent implements OnInit {
     ) { }
 
   ngOnInit(): void {
+    // Load blog posts
     this.blogListService.getBlogPosts().subscribe((data) => {
       this.blogPosts = data;
       console.log(this.blogPosts);
     });
 
-    this.eventListService.getLiveMatches().subscribe(data => {
-      if (Array.isArray(data)) {
-        // Filter out finished or deleted matches
-        const activeMatches = data.filter((item: any) => 
-          !item.finished && !item.deleted
-        );
-        
-        if (activeMatches.length === 0) {
-          console.log('No active live matches available');
-          this.liveMatches = [];
-          return;
-        }
-
-        activeMatches.forEach((item: any) => {
-          const url = item.url;
-          const match = this.parseLiveMatchUrl(url);
-          this.liveMatches.push(match);
-        });
-        console.log('Active live matches:', this.liveMatches);
-      } else {
-        console.log('No matches returned from backend');
-        this.liveMatches = [];
-      }
-    }, error => {
-      console.error('Error fetching live matches:', error);
-      this.liveMatches = [];
-    });
+    // Load matches using new MatchesService
+    this.loadMatches();
   }
+  
+  /**
+   * Load matches and categorize them with auto-refresh every 30 seconds
+   * T041 - Integration with new MatchCardComponent
+   */
+  loadMatches(): void {
+    this.isLoadingMatches = true;
+    this.hasMatchError = false;
+    
+    // Subscribe to auto-refreshing matches (updates every 30 seconds)
+    this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
+      (matches) => {
+        // Categorize matches into sections
+        this.liveMatches = filterLiveMatches(matches);
+        this.upcomingMatches = filterUpcomingMatches(matches).slice(0, 3); // Show top 3 upcoming
+        this.recentMatches = filterCompletedMatches(matches).slice(0, 3); // Show top 3 recent
+        
+        console.log('Live matches updated:', this.liveMatches);
+        console.log('Upcoming matches:', this.upcomingMatches);
+        console.log('Recent matches:', this.recentMatches);
+        
+        this.isLoadingMatches = false;
+      },
+      (error) => {
+        console.error('Error loading matches:', error);
+        this.hasMatchError = true;
+        this.isLoadingMatches = false;
+      }
+    );
+  }
+  
+  /**
+   * Cleanup on component destroy
+   */
+  ngOnDestroy(): void {
+    // Unsubscribe from match updates
+    if (this.matchSubscription) {
+      this.matchSubscription.unsubscribe();
+    }
+    
+    // Stop auto-refresh timer
+    this.matchesService.stopAutoRefresh();
+  }
+  
+  /**
+   * Handle match card click
+   */
+  onMatchClick(match: MatchCardViewModel): void {
+    // Update meta tags
+    this.updateMetaTagsForMatch(match);
+    
+    // Navigate to match details using the original URL structure
+    if (match.matchUrl) {
+      // Extract the match URL path from the full URL
+      // URL format: https://crex.com/scoreboard/.../ind-a-vs-sa-a-2nd-test.../live
+      const urlParts = match.matchUrl.split('/');
+      const matchUrlPath = urlParts[urlParts.length - 2]; // Get the part before '/live'
+      
+      // Navigate to cric-live route (existing route in the app)
+      this.router.navigate(['cric-live', matchUrlPath]);
+    } else {
+      console.warn('No match URL available for navigation');
+    }
+  }
+  
+  /**
+   * Handle details button click
+   */
+  onDetailsClick(match: MatchCardViewModel): void {
+    console.log('Details clicked for match:', match);
+    this.onMatchClick(match);
+  }
+  
+  /**
+   * Update meta tags for match
+   */
+  updateMetaTagsForMatch(match: MatchCardViewModel): void {
+    const title = `${match.team1.name} vs ${match.team2.name} - ${match.displayStatus}`;
+    const description = `Live cricket score: ${match.team1.name} vs ${match.team2.name} at ${match.venue}`;
+    const keywords = `${match.team1.name}, ${match.team2.name}, cricket match, live score, ${match.venue}`;
+    
+    this.titleService.setTitle(title);
+    this.metaService.updateTag({ name: 'description', content: description });
+    this.metaService.updateTag({ name: 'keywords', content: keywords });
+    this.metaService.updateTag({ property: 'og:title', content: title });
+    this.metaService.updateTag({ property: 'og:description', content: description });
+  }
+  
+  /**
+   * TrackBy function for ngFor optimization
+   */
+  trackByMatchId(index: number, match: MatchCardViewModel): string {
+    return match.id;
+  }
+
+  // ===== OLD CODE BELOW - KEPT FOR BACKWARD COMPATIBILITY =====
+  // Can be removed after migration is complete
 
   parseLiveMatchUrl(url: string) {
     const result1 = this.extractTeamAndTournament(url);
@@ -86,31 +175,22 @@ export class HomeComponent implements OnInit {
     };
   }
 
-  navigateToMatch(match: any): void {
+  // ===== OLD CODE BELOW - KEPT FOR REFERENCE ONLY =====
+  // These methods are no longer used but kept for backward compatibility
+  // Can be removed after full migration is verified
 
-     // Dynamically update meta tags for the clicked match
-    this.updateMetaTags(match);
+  // navigateToMatch(match: any): void {
+  //   this.updateMetaTags(match);
+  //   this.router.navigate(['cric-live', match.matchUrl]);
+  // }
 
-    // Navigate to the match details page
-    this.router.navigate(['cric-live', match.matchUrl]);
-  }
-
-  updateMetaTags(match: any): void {
-    // Update page title dynamically
-    this.titleService.setTitle(match.title);
-  
-    // Update meta description
-    this.metaService.updateTag({ name: 'description', content: match.description });
-  
-    // Update meta keywords
-    this.metaService.updateTag({ name: 'keywords', content: `${match.team1}, ${match.team2}, cricket match, live score, ${match.title}` });
-  
-    // Update Open Graph title
-    this.metaService.updateTag({ property: 'og:title', content: match.title });
-  
-    // Update Open Graph description
-    this.metaService.updateTag({ property: 'og:description', content: match.description });
-  }
+  // updateMetaTags(match: any): void {
+  //   this.titleService.setTitle(match.title);
+  //   this.metaService.updateTag({ name: 'description', content: match.description });
+  //   this.metaService.updateTag({ name: 'keywords', content: `${match.team1}, ${match.team2}, cricket match, live score, ${match.title}` });
+  //   this.metaService.updateTag({ property: 'og:title', content: match.title });
+  //   this.metaService.updateTag({ property: 'og:description', content: match.description });
+  // }
   
 
   private formatTeamName(team: string): string {

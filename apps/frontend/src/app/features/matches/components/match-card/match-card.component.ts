@@ -28,7 +28,7 @@ export interface ScoreUpdateEvent {
 @Component({
   selector: 'app-match-card',
   templateUrl: './match-card.component.html',
-  styleUrls: ['./match-card.component.scss'],
+  styleUrls: ['./match-card.component.css'],
   animations: [
     // Score update animation
     trigger('scoreUpdate', [
