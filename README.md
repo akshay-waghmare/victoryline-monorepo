@@ -2,6 +2,8 @@
 
 A comprehensive live cricket score application built with a modern tech stack, combining real-time data scraping, secure backend APIs, and an interactive frontend.
 
+> 📋 **Now using [SpecKit](https://github.com/github/spec-kit)** for specification-driven development! See [.specify/SPECKIT_GUIDE.md](.specify/SPECKIT_GUIDE.md) for details.
+
 ## 🏗️ Architecture
 
 This monorepo contains three main applications that work together:
