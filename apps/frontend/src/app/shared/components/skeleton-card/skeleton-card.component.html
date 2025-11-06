@@ -1,0 +1,52 @@
+<!-- Skeleton Card Component Template -->
+<div class="skeleton-card"
+     *ngFor="let index of skeletonArray"
+     [attr.data-variant]="variant"
+     [attr.aria-busy]="true"
+     [attr.aria-label]="'Loading match ' + (index + 1)">
+  
+  <!-- Status Badge Skeleton -->
+  <div class="skeleton-card__status-badge skeleton-card__shimmer"></div>
+  
+  <!-- Teams Container -->
+  <div class="skeleton-card__teams">
+    
+    <!-- Team 1 Skeleton -->
+    <div class="skeleton-card__team">
+      <div class="skeleton-card__team-header">
+        <div class="skeleton-card__team-logo skeleton-card__shimmer"></div>
+        <div class="skeleton-card__team-info">
+          <div class="skeleton-card__team-name skeleton-card__shimmer"></div>
+          <div class="skeleton-card__team-full-name skeleton-card__shimmer"></div>
+        </div>
+      </div>
+      <div class="skeleton-card__score skeleton-card__shimmer"></div>
+    </div>
+    
+    <!-- Separator Skeleton -->
+    <div class="skeleton-card__separator skeleton-card__shimmer"></div>
+    
+    <!-- Team 2 Skeleton -->
+    <div class="skeleton-card__team">
+      <div class="skeleton-card__team-header">
+        <div class="skeleton-card__team-logo skeleton-card__shimmer"></div>
+        <div class="skeleton-card__team-info">
+          <div class="skeleton-card__team-name skeleton-card__shimmer"></div>
+          <div class="skeleton-card__team-full-name skeleton-card__shimmer"></div>
+        </div>
+      </div>
+      <div class="skeleton-card__score skeleton-card__shimmer"></div>
+    </div>
+  </div>
+  
+  <!-- Match Info Skeleton -->
+  <div class="skeleton-card__info">
+    <div class="skeleton-card__info-item skeleton-card__shimmer"></div>
+    <div class="skeleton-card__info-item skeleton-card__shimmer"></div>
+  </div>
+  
+  <!-- Button Skeleton -->
+  <div class="skeleton-card__actions">
+    <div class="skeleton-card__button skeleton-card__shimmer"></div>
+  </div>
+</div>

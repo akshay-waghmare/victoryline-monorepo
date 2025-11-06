@@ -72,23 +72,23 @@
 
 ### Implementation for User Story 1
 
-- [ ] T027 [P] [US1] Create MatchCardViewModel interface in apps/frontend/src/app/features/matches/models/match-card.models.ts (from data-model.md)
-- [ ] T028 [P] [US1] Create match status enum and helper functions in apps/frontend/src/app/features/matches/models/match-status.ts
-- [ ] T029 [US1] Create MatchCardComponent in apps/frontend/src/app/features/matches/components/match-card/match-card.component.ts (per match-card.contract.md)
-- [ ] T030 [US1] Implement MatchCardComponent template in match-card.component.html with Material Design structure from contract
-- [ ] T031 [US1] Implement MatchCardComponent styles in match-card.component.scss using design tokens from quickstart.md
-- [ ] T032 [US1] Add status badge with color coding (green=live, blue=upcoming, gray=completed) in match-card.component
-- [ ] T033 [US1] Implement score update animation trigger (@scoreUpdate animation) in match-card.component.ts
-- [ ] T034 [US1] Implement live indicator pulse animation (@pulse animation) in match-card.component.ts
-- [ ] T035 [US1] Add hover elevation effect with box-shadow transition in match-card.component.scss
-- [ ] T036 [US1] Implement IntersectionObserver for lazy loading in match-card.component.ts
-- [ ] T037 [US1] Add staleness warning display (>30s warning, >120s error) in match-card.component.html
-- [ ] T038 [P] [US1] Create SkeletonCardComponent in apps/frontend/src/app/shared/components/skeleton-card/skeleton-card.component.ts
-- [ ] T039 [P] [US1] Implement skeleton shimmer animation in skeleton-card.component.scss
+- [X] T027 [P] [US1] Create MatchCardViewModel interface in apps/frontend/src/app/features/matches/models/match-card.models.ts (from data-model.md)
+- [X] T028 [P] [US1] Create match status enum and helper functions in apps/frontend/src/app/features/matches/models/match-status.ts
+- [X] T029 [US1] Create MatchCardComponent in apps/frontend/src/app/features/matches/components/match-card/match-card.component.ts (per match-card.contract.md)
+- [X] T030 [US1] Implement MatchCardComponent template in match-card.component.html with Material Design structure from contract
+- [X] T031 [US1] Implement MatchCardComponent styles in match-card.component.scss using design tokens from quickstart.md
+- [X] T032 [US1] Add status badge with color coding (green=live, blue=upcoming, gray=completed) in match-card.component
+- [X] T033 [US1] Implement score update animation trigger (@scoreUpdate animation) in match-card.component.ts
+- [X] T034 [US1] Implement live indicator pulse animation (@pulse animation) in match-card.component.ts
+- [X] T035 [US1] Add hover elevation effect with box-shadow transition in match-card.component.scss
+- [X] T036 [US1] Implement IntersectionObserver for lazy loading in match-card.component.ts
+- [X] T037 [US1] Add staleness warning display (>30s warning, >120s error) in match-card.component.html
+- [X] T038 [P] [US1] Create SkeletonCardComponent in apps/frontend/src/app/shared/components/skeleton-card/skeleton-card.component.ts
+- [X] T039 [P] [US1] Implement skeleton shimmer animation in skeleton-card.component.scss
 - [ ] T040 [US1] Update matches list page apps/frontend/src/app/features/matches/pages/matches-list/matches-list.component.ts to use MatchCardComponent
 - [ ] T041 [US1] Update homepage apps/frontend/src/app/features/home/pages/home/home.component.ts to display match cards with sections
 - [ ] T042 [US1] Implement data transformation logic (API response → MatchCardViewModel) in matches.service.ts
-- [ ] T043 [US1] Add color coding utility functions for match status in apps/frontend/src/app/core/utils/match-utils.ts
+- [X] T043 [US1] Add color coding utility functions for match status in apps/frontend/src/app/core/utils/match-utils.ts
 - [ ] T044 [US1] Verify WCAG AA contrast ratios for all text on match cards in both themes
 
 **Checkpoint**: User Story 1 complete - modern match cards with animations functional
