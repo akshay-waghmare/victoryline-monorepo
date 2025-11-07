@@ -197,12 +197,49 @@ export class HomeComponent implements OnInit, OnDestroy {
     return team.toUpperCase();
   }
 
-  scrollLeft(): void {
-    this.scrollContainer.nativeElement.scrollBy({ left: -300, behavior: 'smooth' });
+  /**
+   * Scroll carousel left by section ID
+   */
+  scrollLeft(containerId: string): void {
+    const container = document.getElementById(containerId);
+    if (container) {
+      const scrollAmount = container.offsetWidth * 0.8; // Scroll 80% of container width
+      container.scrollBy({
+        left: -scrollAmount,
+        behavior: 'smooth'
+      });
+    }
   }
 
-  scrollRight(): void {
-    this.scrollContainer.nativeElement.scrollBy({ left: 300, behavior: 'smooth' });
+  /**
+   * Scroll carousel right by section ID
+   */
+  scrollRight(containerId: string): void {
+    const container = document.getElementById(containerId);
+    if (container) {
+      const scrollAmount = container.offsetWidth * 0.8; // Scroll 80% of container width
+      container.scrollBy({
+        left: scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  }
+
+  /**
+   * Check if we can scroll left
+   */
+  canScrollLeft(containerId: string): boolean {
+    const container = document.getElementById(containerId);
+    return container ? container.scrollLeft > 0 : false;
+  }
+
+  /**
+   * Check if we can scroll right
+   */
+  canScrollRight(containerId: string): boolean {
+    const container = document.getElementById(containerId);
+    if (!container) return false;
+    return container.scrollLeft < (container.scrollWidth - container.clientWidth - 1);
   }
 
 

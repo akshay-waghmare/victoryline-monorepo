@@ -13,20 +13,38 @@
         <span class="live-indicator"></span>
         <h2 class="home__section-title">Live Now</h2>
       </div>
-      <a routerLink="/matches" class="home__section-link">
-        View All
-        <i class="material-icons">arrow_forward</i>
-      </a>
+      <div class="home__section-actions">
+        <button 
+          class="carousel-btn carousel-btn--left" 
+          (click)="scrollLeft('live-matches-grid')"
+          [disabled]="!canScrollLeft('live-matches-grid')"
+          aria-label="Scroll left">
+          <i class="material-icons">chevron_left</i>
+        </button>
+        <button 
+          class="carousel-btn carousel-btn--right" 
+          (click)="scrollRight('live-matches-grid')"
+          [disabled]="!canScrollRight('live-matches-grid')"
+          aria-label="Scroll right">
+          <i class="material-icons">chevron_right</i>
+        </button>
+        <a routerLink="/matches" class="home__section-link">
+          View All
+          <i class="material-icons">arrow_forward</i>
+        </a>
+      </div>
     </div>
-    <div class="matches-grid">
-      <app-match-card
-        *ngFor="let match of liveMatches; trackBy: trackByMatchId"
-        [match]="match"
-        [enableAnimations]="true"
-        [showDetailsButton]="true"
-        (cardClick)="onMatchClick(match)"
-        (detailsClick)="onDetailsClick(match)"
-      ></app-match-card>
+    <div class="matches-grid-wrapper">
+      <div class="matches-grid matches-grid--carousel" id="live-matches-grid">
+        <app-match-card
+          *ngFor="let match of liveMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [enableAnimations]="true"
+          [showDetailsButton]="true"
+          (cardClick)="onMatchClick(match)"
+          (detailsClick)="onDetailsClick(match)"
+        ></app-match-card>
+      </div>
     </div>
   </section>
   
@@ -37,20 +55,38 @@
         <i class="material-icons home__section-icon">schedule</i>
         <h2 class="home__section-title">Upcoming Matches</h2>
       </div>
-      <a routerLink="/matches" class="home__section-link">
-        View All
-        <i class="material-icons">arrow_forward</i>
-      </a>
+      <div class="home__section-actions">
+        <button 
+          class="carousel-btn carousel-btn--left" 
+          (click)="scrollLeft('upcoming-matches-grid')"
+          [disabled]="!canScrollLeft('upcoming-matches-grid')"
+          aria-label="Scroll left">
+          <i class="material-icons">chevron_left</i>
+        </button>
+        <button 
+          class="carousel-btn carousel-btn--right" 
+          (click)="scrollRight('upcoming-matches-grid')"
+          [disabled]="!canScrollRight('upcoming-matches-grid')"
+          aria-label="Scroll right">
+          <i class="material-icons">chevron_right</i>
+        </button>
+        <a routerLink="/matches" class="home__section-link">
+          View All
+          <i class="material-icons">arrow_forward</i>
+        </a>
+      </div>
     </div>
-    <div class="matches-grid">
-      <app-match-card
-        *ngFor="let match of upcomingMatches; trackBy: trackByMatchId"
-        [match]="match"
-        [enableAnimations]="false"
-        [showDetailsButton]="true"
-        (cardClick)="onMatchClick(match)"
-        (detailsClick)="onDetailsClick(match)"
-      ></app-match-card>
+    <div class="matches-grid-wrapper">
+      <div class="matches-grid matches-grid--carousel" id="upcoming-matches-grid">
+        <app-match-card
+          *ngFor="let match of upcomingMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [enableAnimations]="false"
+          [showDetailsButton]="true"
+          (cardClick)="onMatchClick(match)"
+          (detailsClick)="onDetailsClick(match)"
+        ></app-match-card>
+      </div>
     </div>
   </section>
   
@@ -61,20 +97,38 @@
         <i class="material-icons home__section-icon">check_circle</i>
         <h2 class="home__section-title">Recent Results</h2>
       </div>
-      <a routerLink="/matches" class="home__section-link">
-        View All
-        <i class="material-icons">arrow_forward</i>
-      </a>
+      <div class="home__section-actions">
+        <button 
+          class="carousel-btn carousel-btn--left" 
+          (click)="scrollLeft('recent-matches-grid')"
+          [disabled]="!canScrollLeft('recent-matches-grid')"
+          aria-label="Scroll left">
+          <i class="material-icons">chevron_left</i>
+        </button>
+        <button 
+          class="carousel-btn carousel-btn--right" 
+          (click)="scrollRight('recent-matches-grid')"
+          [disabled]="!canScrollRight('recent-matches-grid')"
+          aria-label="Scroll right">
+          <i class="material-icons">chevron_right</i>
+        </button>
+        <a routerLink="/matches" class="home__section-link">
+          View All
+          <i class="material-icons">arrow_forward</i>
+        </a>
+      </div>
     </div>
-    <div class="matches-grid">
-      <app-match-card
-        *ngFor="let match of recentMatches; trackBy: trackByMatchId"
-        [match]="match"
-        [enableAnimations]="false"
-        [showDetailsButton]="true"
-        (cardClick)="onMatchClick(match)"
-        (detailsClick)="onDetailsClick(match)"
-      ></app-match-card>
+    <div class="matches-grid-wrapper">
+      <div class="matches-grid matches-grid--carousel" id="recent-matches-grid">
+        <app-match-card
+          *ngFor="let match of recentMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [enableAnimations]="false"
+          [showDetailsButton]="true"
+          (cardClick)="onMatchClick(match)"
+          (detailsClick)="onDetailsClick(match)"
+        ></app-match-card>
+      </div>
     </div>
   </section>
   

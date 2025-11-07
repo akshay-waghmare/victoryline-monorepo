@@ -199,21 +199,113 @@
   }
 }
 
+/* ============================================================================
+   SECTION ACTIONS (Carousel buttons + View All)
+   ============================================================================ */
+
+.home__section-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.carousel-btn {
+  display: none; /* Hidden on mobile by default */
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.carousel-btn:hover:not(:disabled) {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  transform: scale(1.05);
+}
+
+.carousel-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.carousel-btn .material-icons {
+  font-size: 24px;
+}
+
+/* Show carousel buttons only on desktop */
+@media (min-width: 1024px) {
+  .carousel-btn {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .home__section-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ============================================================================
+   MATCHES GRID
+   ============================================================================ */
+
+.matches-grid-wrapper {
+  position: relative;
+}
+
 .matches-grid {
   display: grid;
   gap: 24px;
   grid-template-columns: 1fr;
 }
 
+/* Carousel mode for desktop */
+@media (min-width: 1024px) {
+  .matches-grid--carousel {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+  }
+
+  .matches-grid--carousel::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
+  }
+
+  .matches-grid--carousel > * {
+    flex: 0 0 calc(33.333% - 16px);
+    scroll-snap-align: start;
+    min-width: 320px;
+    max-width: 400px;
+  }
+}
+
+/* Regular grid for tablet */
 @media (min-width: 768px) and (max-width: 1023px) {
   .matches-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (min-width: 1024px) {
+/* Single column for mobile */
+@media (max-width: 767px) {
   .matches-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
