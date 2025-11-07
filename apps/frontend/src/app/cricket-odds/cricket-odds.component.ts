@@ -822,6 +822,15 @@ onTabChange(event: MatTabChangeEvent) {
 
       this.fetchScorecardInfo(this.matchUrl);
     });
+  } else if (event.index === 3) { // Lineups tab is selected (002-match-details-ux)
+    // Load match info if not already loaded (needed for playing XI data)
+    if (!this.matchInfo) {
+      this.activatedRoute.params.subscribe(params => {
+        const match = params['path'];
+        this.matchUrl = match;
+        this.fetchMatchInfo(this.matchUrl);
+      });
+    }
   }
 }
 

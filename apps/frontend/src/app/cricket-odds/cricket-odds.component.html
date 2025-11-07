@@ -503,11 +503,10 @@
 
         <!-- Third Tab: Scorecard -->
         <mat-tab label="Scorecard">
-          <!-- 002-match-details-ux: Enhanced Scorecard Component -->
-          <app-match-scorecard 
-            *ngIf="scorecardData"
-            [scorecardInfo]="scorecardData">
-          </app-match-scorecard>
+          <!-- Use existing scorecard component (already working) -->
+          <div *ngIf="scorecardData">
+            <app-scorecard [scorecardInfo]="scorecardData"></app-scorecard>
+          </div>
           
           <!-- Loading state -->
           <div *ngIf="!scorecardData">
