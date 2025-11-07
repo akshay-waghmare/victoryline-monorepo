@@ -5,6 +5,7 @@
  */
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -53,7 +54,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   // Unsubscribe subject
   private destroy$ = new Subject<void>();
   
-  constructor(private matchesService: MatchesService) {}
+  constructor(private matchesService: MatchesService, private router: Router) {}
   
   ngOnInit(): void {
     this.loadMatches();
@@ -149,18 +150,53 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    * Handle match card click
    */
   onMatchClick(match: MatchCardViewModel): void {
-    // Navigate to match details page
-    // TODO: Implement navigation when match details page is ready
-    console.log('Match clicked:', match);
+    // Navigate to match details page (cric-live/:path)
+    const slug = this.getMatchSlug(match);
+    if (slug) {
+      this.router.navigate(['/cric-live', slug]);
+    } else {
+      console.warn('Unable to derive match slug for navigation', match);
+    }
   }
   
   /**
    * Handle details button click
    */
   onDetailsClick(match: MatchCardViewModel): void {
-    // Navigate to match details page
-    // TODO: Implement navigation when match details page is ready
-    console.log('Details clicked:', match);
+    // Navigate to match details page (cric-live/:path)
+    const slug = this.getMatchSlug(match);
+    if (slug) {
+      this.router.navigate(['/cric-live', slug]);
+    } else {
+      console.warn('Unable to derive match slug for navigation', match);
+    }
+  }
+
+  /**
+   * Derive the match slug used by the cric-live/:path route from the full match URL or data
+   * Expects a crex.com URL ending with '/<slug>/live'. Falls back to match.id if it's already a slug.
+   */
+  private getMatchSlug(match: MatchCardViewModel): string | null {
+    // Prefer explicit matchUrl if present
+    const url = match.matchUrl;
+    if (url && url.indexOf('/') !== -1) {
+      const parts = url.split('/').filter(Boolean);
+      // Find the segment before trailing 'live'
+      const last = parts[parts.length - 1];
+      const prev = parts[parts.length - 2];
+      if (last && last.toLowerCase() === 'live' && prev) {
+        return prev;
+      }
+      // Some URLs might end with '/scorecard'
+      if (last && last.toLowerCase() === 'scorecard' && prev) {
+        return prev;
+      }
+    }
+    // Fallback: if id looks like a slug (contains dashes), use it
+    if (match.id && match.id.indexOf('-') !== -1) {
+      return match.id;
+    }
+    return null;
   }
   
   /**
