@@ -240,11 +240,21 @@ export class ScorecardComponent implements OnInit {
   }
 
   calculateOvers(teamScore: string): string {
-    const match = teamScore.match(/\((\d+)/);
+    if (!teamScore) return '';
+    const match = teamScore.match(/\(([^)]+)\)/);
     if (match && match[1]) {
-      const oversNumber = match[1];
-      const overs = (parseInt(oversNumber, 10) / 10).toFixed(1);
-      return overs;
+      const raw = match[1];
+      // If already decimal overs like 17.0, return as-is
+      if (raw.indexOf('.') !== -1) {
+        return raw;
+      }
+      // Treat as total balls and convert to overs.balls (6 balls = 1 over)
+      const totalBalls = parseInt(raw, 10);
+      if (!isNaN(totalBalls)) {
+        const completeOvers = Math.floor(totalBalls / 6);
+        const remainingBalls = totalBalls % 6;
+        return `${completeOvers}.${remainingBalls}`;
+      }
     }
     return '';
   }
@@ -280,19 +290,14 @@ export class ScorecardComponent implements OnInit {
 
   private toOvers(digits: string): string {
     // If already contains a decimal, return as-is
-    if (digits.indexOf('.') !== -1) {
+    if (digits && digits.indexOf('.') !== -1) {
       return digits;
     }
-    // Convert trailing ball count into decimal overs
-    // e.g., '102' => '10.2', '70' => '7.0', '5' => '0.5'
-    if (!digits) {
-      return digits;
-    }
-    if (digits.length === 1) {
-      return `0.${digits}`;
-    }
-    const whole = digits.slice(0, -1);
-    const frac = digits.slice(-1);
-    return `${parseInt(whole, 10)}.${frac}`;
+    // Convert total balls into overs.balls (6 balls = 1 over)
+    const totalBalls = parseInt(digits || '0', 10);
+    if (isNaN(totalBalls)) return digits;
+    const completeOvers = Math.floor(totalBalls / 6);
+    const remainingBalls = totalBalls % 6;
+    return `${completeOvers}.${remainingBalls}`;
   }
 }

@@ -8,6 +8,7 @@ import { SidebarService } from 'src/app/component/sidebar/sidebar.service';
 })
 export class AdminLayoutsComponent implements OnInit {
   isSidebarVisible = false; // Hide sidebar by default
+  showAdBanner = false; // Hide bottom banner for now
   constructor(private sidebarService: SidebarService) {
     console.log('hello');
   }

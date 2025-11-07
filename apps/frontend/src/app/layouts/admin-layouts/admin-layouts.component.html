@@ -4,7 +4,7 @@
   </div>
 
   <div class="main-panel">
-    <app-banner></app-banner>
+    <app-banner *ngIf="showAdBanner"></app-banner>
     <router-outlet></router-outlet>
   </div>
 
