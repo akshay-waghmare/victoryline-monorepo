@@ -25,7 +25,6 @@
 
 /* Enhanced typography for better readability */
 .team-label, .session-label, .score-update, .team-overs, .team-score {
-    color: #1e293b;
     line-height: 1.5;
     font-weight: 600;
 }
@@ -122,7 +121,6 @@
 }
 
 .team-label, .session-label, .score-update, .team-overs, .team-score, .crr, .final-result-text {
-    color: #34495e; /* Deep, professional text color */
     line-height: 1.4;
     margin: 5px 0; /* Uniform margin for clean spacing */
 }
@@ -298,11 +296,15 @@
 }
 
 .team-score, .team-overs {
-    font-size: 16px;
-    color: #f1f5f9;
-    font-weight: 600;
+    font-size: 18px;
+    color: #1e293b;
+    font-weight: 700;
     margin: 3px 0;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    text-shadow: none;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
 }
 
 .crr, .final-result-text {
@@ -324,7 +326,11 @@
 
 .team-score, .team-overs {
     font-weight: 700;
-    color: #667eea;
+    color: #1e293b !important;
+    background-color: rgba(255, 255, 255, 0.25);
+    padding: 4px 10px;
+    border-radius: 6px;
+    display: inline-block;
 }
 
 
