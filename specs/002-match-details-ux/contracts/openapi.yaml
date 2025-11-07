@@ -5,6 +5,17 @@ info:
   description: Contracts supporting match details UI/UX redesign (snapshot, commentary, scorecard, lineups, info)
 servers:
   - url: https://api.victoryline.example.com/api/v1
+x-websocket-topics:
+  # Preliminary WebSocket topic conventions (to be confirmed in integration)
+  # These are non-normative OpenAPI vendor extensions documenting push channels.
+  - name: match-snapshot
+    topic: "/topic/cricket.match.{matchId}.snapshot"
+    payload: "ScoreSnapshotResponse.data"
+    notes: "Confirm exact topic naming with backend; environment.ws.brokerURL from Angular used via RxStompService."
+  - name: match-commentary
+    topic: "/topic/cricket.match.{matchId}.commentary"
+    payload: "CommentaryPageResponse.data.entries[*]"
+    notes: "Latest ball events streamed; REST used for pagination/backfill."
 paths:
   /matches/{matchId}/snapshot:
     get:

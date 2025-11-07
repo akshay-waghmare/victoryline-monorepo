@@ -4,13 +4,13 @@ This plan is organized by phases and user stories. Each task is independently ac
 
 ## Phase 1: Setup
 
-- [ ] T001 Ensure feature branch checked out: 002-match-details-ux
-- [ ] T002 Verify WebSocket channel/topic names and endpoints used by existing services (MatchService/EventListService) and document in specs/002-match-details-ux/contracts/openapi.yaml
-- [ ] T003 Add .gitignore rules for local DB artifacts if missing (apps/backend/spring-security-jwt/testdb.mv.db)
-- [ ] T004 Prepare enhancement plan for existing match detail page at apps/frontend/src/app/cricket-odds/cricket-odds.component.{ts,html,css} (no new module)
-- [ ] T005 Create shared WebSocket client/facade skeleton leveraging existing services in apps/frontend/src/app/cricket-odds/match-live.facade.ts
-- [ ] T006 Create REST client service skeleton mapping contracts in apps/frontend/src/app/cricket-odds/match-api.service.ts
-- [ ] T007 Add a11y testing script placeholder (axe) docs reference in apps/frontend/docs/features/002-match-details-ux/README.md
+- [X] T001 Ensure feature branch checked out: 002-match-details-ux
+- [X] T002 Verify WebSocket channel/topic names and endpoints used by existing services (MatchService/EventListService) and document in specs/002-match-details-ux/contracts/openapi.yaml
+- [X] T003 Add .gitignore rules for local DB artifacts if missing (apps/backend/spring-security-jwt/testdb.mv.db)
+- [X] T004 Prepare enhancement plan for existing match detail page at apps/frontend/src/app/cricket-odds/cricket-odds.component.{ts,html,css} (no new module)
+- [X] T005 Create shared WebSocket client/facade skeleton leveraging existing services in apps/frontend/src/app/cricket-odds/match-live.facade.ts
+- [X] T006 Create REST client service skeleton mapping contracts in apps/frontend/src/app/cricket-odds/match-api.service.ts
+- [X] T007 Add a11y testing script placeholder (axe) docs reference in apps/frontend/docs/features/002-match-details-ux/README.md
 
 ## Phase 2: Foundational
 
@@ -57,7 +57,7 @@ This plan is organized by phases and user stories. Each task is independently ac
 
 ## Phase 7: User Story 5 — Match Context (P5)
 
-- [ ] T036 [US5] Create MatchInfo view in apps/frontend/src/app/cricket-odds/components/match-info/match-info.{ts,html,scss}
+- [ ] T036 [US5] Create MatchInfo view in apps/frontend/src/app/cricket-odds/components/match-info/match-info.{ts,html,css}
 - [ ] T037 [P] [US5] Display venue, toss, officials, format, series in match-info.html
 - [ ] T038 [US5] Fetch match info via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
 
