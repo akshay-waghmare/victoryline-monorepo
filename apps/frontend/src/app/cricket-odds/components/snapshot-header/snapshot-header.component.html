@@ -1,0 +1,43 @@
+<div class="snapshot-header" *ngIf="snapshot" role="region" aria-label="Live match snapshot">
+  <div class="snapshot-top">
+    <div class="match-status">
+      <span class="status-label">{{ matchStatus }}</span>
+      <app-staleness-indicator [lastUpdated]="lastUpdated"></app-staleness-indicator>
+    </div>
+  </div>
+
+  <div class="snapshot-main">
+    <div class="score-display">
+      <div class="team-score" aria-label="Team score">{{ teamScore }}</div>
+      <div class="overs" aria-label="Overs bowled">{{ overs }} Overs</div>
+    </div>
+
+    <div class="run-rates">
+      <div class="rate-item">
+        <span class="rate-label">CRR</span>
+        <span class="rate-value" aria-label="Current run rate">{{ crr }}</span>
+      </div>
+      <div class="rate-item" *ngIf="rrr">
+        <span class="rate-label">RRR</span>
+        <span class="rate-value" aria-label="Required run rate">{{ rrr }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="recent-balls" *ngIf="recentBalls.length > 0" aria-label="Recent balls">
+    <div class="ball-label">Last {{ recentBalls.length }} balls:</div>
+    <div class="balls-row">
+      <span 
+        *ngFor="let ball of recentBalls" 
+        class="ball-outcome" 
+        [ngClass]="getBallClass(ball)"
+        [attr.aria-label]="'Ball outcome: ' + ball.outcome">
+        {{ ball.outcome }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="snapshot-placeholder" *ngIf="!snapshot" role="status" aria-live="polite">
+  <p>Loading snapshot...</p>
+</div>

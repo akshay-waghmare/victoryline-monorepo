@@ -25,11 +25,11 @@ This plan is organized by phases and user stories. Each task is independently ac
 
 ## Phase 3: User Story 1 — Live Match Snapshot (P1)
 
-- [ ] T016 [US1] Create SnapshotHeader component in apps/frontend/src/app/cricket-odds/components/snapshot-header/snapshot-header.{ts,html,css}
-- [ ] T017 [P] [US1] Bind WebSocket snapshot stream to SnapshotHeader via facade in apps/frontend/src/app/cricket-odds/match-live.facade.ts
-- [ ] T018 [US1] Render CRR/RRR, score, overs, wickets, teams, recent balls per spec in snapshot-header.html
-- [ ] T019 [US1] Integrate StalenessIndicator into SnapshotHeader with tiers from constitution in snapshot-header.ts
-- [ ] T020 [P] [US1] Unit tests for SnapshotHeader rendering states in apps/frontend/src/app/cricket-odds/components/snapshot-header/snapshot-header.spec.ts
+- [X] T016 [US1] Create SnapshotHeader component in apps/frontend/src/app/cricket-odds/components/snapshot-header/snapshot-header.{ts,html,css}
+- [X] T017 [P] [US1] Bind WebSocket snapshot stream to SnapshotHeader via facade in apps/frontend/src/app/cricket-odds/match-live.facade.ts
+- [X] T018 [US1] Render CRR/RRR, score, overs, wickets, teams, recent balls per spec in snapshot-header.html
+- [X] T019 [US1] Integrate StalenessIndicator into SnapshotHeader with tiers from constitution in snapshot-header.ts
+- [X] T020 [P] [US1] Unit tests for SnapshotHeader rendering states in apps/frontend/src/app/cricket-odds/components/snapshot-header/snapshot-header.spec.ts
 
 ## Phase 4: User Story 2 — Commentary Narrative (P2)
 
