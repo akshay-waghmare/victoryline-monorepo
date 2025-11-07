@@ -253,62 +253,62 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricObj.batsman_data !== undefined && Array.isArray(this.cricObj.batsman_data)) {
         const batsmanData = this.cricObj.batsman_data;
   
-        // Initialize arrays to store batsman and bowler data
-        this.batsmanDataList = [];
+        // Create a temporary array to build the new data
+        const tempBatsmanList = [];
   
         // Iterate through the batsman_data array
-        if (this.cricObj.batsman_data && Array.isArray(this.cricObj.batsman_data)) {
-          const batsmanData = this.cricObj.batsman_data;
-    
-          this.batsmanDataList = [];
-    
-          batsmanData.forEach(playerInfo => {
-            if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
-              const strikeRate = (playerInfo.score / playerInfo.ballsFaced) * 100; // Strike rate calculation
-                this.batsmanDataList.push({
-                    name: playerInfo.name,
-                    score: playerInfo.score,
-                    ballsFaced: playerInfo.ballsFaced,
-                    fours: playerInfo.fours,
-                    sixes: playerInfo.sixes,
-                    strikeRate: strikeRate.toFixed(2),
-                    onStrike: playerInfo.onStrike
-                });
-            }
+        batsmanData.forEach(playerInfo => {
+          if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
+            const strikeRate = (playerInfo.score / playerInfo.ballsFaced) * 100; // Strike rate calculation
+            tempBatsmanList.push({
+              name: playerInfo.name,
+              score: playerInfo.score,
+              ballsFaced: playerInfo.ballsFaced,
+              fours: playerInfo.fours,
+              sixes: playerInfo.sixes,
+              strikeRate: strikeRate.toFixed(2),
+              onStrike: playerInfo.onStrike
+            });
+          }
         });
-    
-          console.log("Parsed Batsman Data List:", this.batsmanDataList);
+        
+        // Only update if we have data to prevent flickering
+        if (tempBatsmanList.length > 0) {
+          this.batsmanDataList = tempBatsmanList;
         }
-
-  
-        // Log the batsman and bowler data for debugging
-        console.log("Parsed Bowler Data List:", this.bowlerDataList);
+    
+        console.log("Parsed Batsman Data List:", this.batsmanDataList);
       }
 
       if (this.cricObj.bowler_data !== undefined && Array.isArray(this.cricObj.bowler_data)) {
         const bowlerData = this.cricObj.bowler_data;
 
-        this.bowlerDataList = [];
+        // Create a temporary array to build the new data
+        const tempBowlerList = [];
   
-        // Initialize arrays to store batsman and bowler data
+        // Iterate through the bowler_data array
         bowlerData.forEach(playerInfo => {
           if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
-
-              const ballsBowled = playerInfo.ballsBowled;
-              const oversBowled = Math.floor(ballsBowled / 6); // Full overs
-              const ballsInCurrentOver = ballsBowled % 6; // Remaining balls in current over
-              const oversDisplay = `${oversBowled}.${ballsInCurrentOver}`; // Display as 'x.y' where y is the number of balls
-              const economyRate = playerInfo.score / oversBowled; // Economy rate calculation
-              this.bowlerDataList.push({
-                  name: playerInfo.name,
-                  score: playerInfo.score,
-                  ballsBowled: oversDisplay,
-                  economyRate: economyRate.toFixed(2),
-                  wicketsTaken:playerInfo.wicketsTaken,
-                  dotBalls:playerInfo.dotBalls
-              });
+            const ballsBowled = playerInfo.ballsBowled;
+            const oversBowled = Math.floor(ballsBowled / 6); // Full overs
+            const ballsInCurrentOver = ballsBowled % 6; // Remaining balls in current over
+            const oversDisplay = `${oversBowled}.${ballsInCurrentOver}`; // Display as 'x.y' where y is the number of balls
+            const economyRate = oversBowled > 0 ? playerInfo.score / oversBowled : 0; // Economy rate calculation
+            tempBowlerList.push({
+              name: playerInfo.name,
+              score: playerInfo.score,
+              ballsBowled: oversDisplay,
+              economyRate: economyRate.toFixed(2),
+              wicketsTaken: playerInfo.wicketsTaken,
+              dotBalls: playerInfo.dotBalls
+            });
           }
-      })
+        });
+        
+        // Only update if we have data to prevent flickering
+        if (tempBowlerList.length > 0) {
+          this.bowlerDataList = tempBowlerList;
+        }
         
         console.log("Parsed Bowler Data List:", this.bowlerDataList);
       }
