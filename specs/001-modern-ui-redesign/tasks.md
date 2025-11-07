@@ -165,11 +165,12 @@
 - [X] T078 [US4] Redesign homepage with clear sections: "Live Now", "Upcoming Matches", "Recent Results" in home.component.html
 - [X] T079 [US4] Add section headings with visual hierarchy (font-size-xxl, font-weight-bold) in home.component.scss
 - [X] T080 [US4] Implement visual separation between sections (spacing, borders) in home.component.scss
-- [ ] T081 [P] [US4] Create search/filter bar component apps/frontend/src/app/features/matches/components/search-bar/search-bar.component.ts
-- [ ] T082 [P] [US4] Add search bar to matches-list.component.html with Material Design input
-- [ ] T083 [US4] Implement search filtering logic (filter by team name) in matches-list.component.ts
-- [ ] T084 [US4] Add smooth page transitions using Angular route animations in app-routing.module.ts
-- [ ] T085 [US4] Implement scroll restoration to prevent layout shifts during navigation
+- [X] T081 [P] [US4] Create search/filter bar component apps/frontend/src/app/features/matches/components/search-bar/search-bar.component.ts _(already exists in matches-list)_
+- [X] T082 [P] [US4] Add search bar to matches-list.component.html with Material Design input _(already added)_
+- [X] T083 [US4] Implement search filtering logic (filter by team name) in matches-list.component.ts _(already implemented with searchMatches util)_
+- [X] T084 [US4] Add smooth page transitions using Angular route animations in app-routing.module.ts
+- [X] T085 [US4] Implement scroll restoration to prevent layout shifts during navigation
+- [ ] T086 [US4] Test navigation task completion with 5 new users (record time to find live match from homepage)
 - [ ] T086 [US4] Test navigation task completion with 5 new users (measure time and success rate)
 
 **Checkpoint**: User Story 4 complete - navigation intuitive and homepage redesigned

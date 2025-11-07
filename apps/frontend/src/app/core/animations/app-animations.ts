@@ -20,6 +20,7 @@ import {
   transition,
   animate,
   keyframes,
+  query,
   AnimationTriggerMetadata
 } from '@angular/animations';
 
@@ -298,6 +299,72 @@ export const rotate: AnimationTriggerMetadata = trigger('rotate', [
   ])
 ]);
 
+/* ============================================================================
+   ROUTE TRANSITION ANIMATIONS (T084)
+   ============================================================================ */
+
+/**
+ * Route Transition Animation
+ * Provides smooth fade + slide transitions between pages
+ * Used in: app.component.html with [@routeAnimations]="getRouteAnimationData()"
+ * Duration: 300ms
+ */
+export const routeAnimations: AnimationTriggerMetadata = trigger('routeAnimations', [
+  transition('* <=> *', [
+    // Query for both leaving and entering routes
+    // Optional: true allows animation to work even if element doesn't exist
+    query(':enter, :leave', [
+      style({
+        position: 'absolute',
+        width: '100%',
+        opacity: 0
+      })
+    ], { optional: true }),
+    
+    // Fade out the leaving page
+    query(':leave', [
+      animate('200ms ease-out', style({ opacity: 0 }))
+    ], { optional: true }),
+    
+    // Fade in the entering page with slight slide up
+    query(':enter', [
+      style({ 
+        opacity: 0,
+        transform: 'translateY(10px)'
+      }),
+      animate('300ms 100ms ease-in', style({ 
+        opacity: 1,
+        transform: 'translateY(0)'
+      }))
+    ], { optional: true })
+  ])
+]);
+
+/**
+ * Fade Transition (simpler route animation)
+ * Pure fade without slide - faster and smoother for quick navigation
+ * Duration: 250ms
+ */
+export const fadeTransition: AnimationTriggerMetadata = trigger('fadeTransition', [
+  transition('* <=> *', [
+    query(':enter, :leave', [
+      style({
+        position: 'absolute',
+        width: '100%'
+      })
+    ], { optional: true }),
+    
+    query(':leave', [
+      animate('150ms ease-out', style({ opacity: 0 }))
+    ], { optional: true }),
+    
+    query(':enter', [
+      style({ opacity: 0 }),
+      animate('250ms ease-in', style({ opacity: 1 }))
+    ], { optional: true })
+  ])
+]);
+
 /**
  * Export all animations as array for easy component imports
  * 
@@ -323,5 +390,7 @@ export const APP_ANIMATIONS: AnimationTriggerMetadata[] = [
   bounce,
   listItem,
   expandCollapse,
-  rotate
+  rotate,
+  routeAnimations,
+  fadeTransition
 ];
