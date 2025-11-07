@@ -198,3 +198,62 @@ export function getStalenessSeverity(match: MatchCardViewModel): 'none' | 'warni
     return 'error';
   }
 }
+
+/**
+ * Convert total balls to overs.balls string (6 balls = 1 over)
+ * Examples: 102 -> "17.0", 70 -> "11.4", 5 -> "0.5"
+ */
+export function ballsToOvers(value: number | string): string {
+  if (value === undefined || value === null) return '';
+  const n = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(n)) return '';
+  // If already decimal like 17.0
+  if (typeof value === 'string' && value.indexOf('.') !== -1) {
+    return value;
+  }
+  const totalBalls = Math.floor(n);
+  const completeOvers = Math.floor(totalBalls / 6);
+  const remainingBalls = totalBalls % 6;
+  return completeOvers + '.' + remainingBalls;
+}
+
+/**
+ * Normalize score string by spacing parentheses and converting raw ball counts to overs.
+ * E.g., "155/9(102" -> "155/9 (17.0)"; "155-9(17.0)" stays as-is.
+ */
+export function normalizeTeamScoreString(raw: string): string {
+  if (!raw) return raw;
+  var s = String(raw).trim();
+  // Ensure single space before '('
+  s = s.replace(/\s*\(/g, ' (');
+  // If '(digits)' convert digits to overs
+  s = s.replace(/\((\d+)\)/g, function(m, d) { return '(' + ballsToOvers(d) + ')'; });
+  // If '(' without closing ')', close and normalize
+  s = s.replace(/\(([^)]*)$/, function(m, inside) {
+    var cleaned = String(inside).trim();
+    if (/^\d+$/.test(cleaned)) {
+      return '(' + ballsToOvers(cleaned) + ')';
+    }
+    return '(' + cleaned + ')';
+  });
+  return s;
+}
+
+/**
+ * Extract the match slug from a full URL, e.g., '.../some-match-slug/live' => 'some-match-slug'.
+ * Also supports '/scorecard' ending.
+ */
+export function extractSlugFromUrl(url: string): string | null {
+  if (!url || url.indexOf('/') === -1) return null;
+  var parts = url.split('/').filter(function(p) { return !!p; });
+  if (parts.length < 2) return null;
+  var last = parts[parts.length - 1];
+  var prev = parts[parts.length - 2];
+  if (last && prev) {
+    var lastLower = last.toLowerCase();
+    if (lastLower === 'live' || lastLower === 'scorecard') {
+      return prev;
+    }
+  }
+  return null;
+}

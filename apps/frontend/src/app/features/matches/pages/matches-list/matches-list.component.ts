@@ -11,6 +11,7 @@ import { takeUntil } from 'rxjs/operators';
 
 import { MatchCardViewModel, MatchStatus } from '../../models/match-card.models';
 import { MatchesService } from '../../services/matches.service';
+import { extractSlugFromUrl } from '../../../../core/utils/match-utils';
 import { 
   sortMatchesByPriority, 
   filterMatchesByStatus, 
@@ -179,19 +180,8 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   private getMatchSlug(match: MatchCardViewModel): string | null {
     // Prefer explicit matchUrl if present
     const url = match.matchUrl;
-    if (url && url.indexOf('/') !== -1) {
-      const parts = url.split('/').filter(Boolean);
-      // Find the segment before trailing 'live'
-      const last = parts[parts.length - 1];
-      const prev = parts[parts.length - 2];
-      if (last && last.toLowerCase() === 'live' && prev) {
-        return prev;
-      }
-      // Some URLs might end with '/scorecard'
-      if (last && last.toLowerCase() === 'scorecard' && prev) {
-        return prev;
-      }
-    }
+    var slug = url ? extractSlugFromUrl(url) : null;
+    if (slug) return slug;
     // Fallback: if id looks like a slug (contains dashes), use it
     if (match.id && match.id.indexOf('-') !== -1) {
       return match.id;

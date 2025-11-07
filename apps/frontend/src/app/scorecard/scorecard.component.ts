@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { ballsToOvers, normalizeTeamScoreString } from '../core/utils/match-utils';
 import { MatTabChangeEvent } from '@angular/material/tabs';
 
 @Component({
@@ -243,18 +244,7 @@ export class ScorecardComponent implements OnInit {
     if (!teamScore) return '';
     const match = teamScore.match(/\(([^)]+)\)/);
     if (match && match[1]) {
-      const raw = match[1];
-      // If already decimal overs like 17.0, return as-is
-      if (raw.indexOf('.') !== -1) {
-        return raw;
-      }
-      // Treat as total balls and convert to overs.balls (6 balls = 1 over)
-      const totalBalls = parseInt(raw, 10);
-      if (!isNaN(totalBalls)) {
-        const completeOvers = Math.floor(totalBalls / 6);
-        const remainingBalls = totalBalls % 6;
-        return `${completeOvers}.${remainingBalls}`;
-      }
+      return ballsToOvers(match[1]);
     }
     return '';
   }
@@ -267,37 +257,11 @@ export class ScorecardComponent implements OnInit {
     if (!raw) {
       return raw;
     }
-    let s = String(raw).trim();
-
-    // Ensure a single space before any opening parenthesis
-    s = s.replace(/\s*\(/g, ' (');
-
-    // If we have (digits) convert to decimal overs
-    s = s.replace(/\((\d+)\)/g, (m, d) => `(${this.toOvers(d)})`);
-
-    // If we have an opening parenthesis at the end without a closing one, close it
-    // and normalize the digits inside to overs, e.g., "(102" => "(10.2)"
-    s = s.replace(/\(([^)]*)$/, (m, inside) => {
-      const cleaned = String(inside).trim();
-      if (/^\d+$/.test(cleaned)) {
-        return `(${this.toOvers(cleaned)})`;
-      }
-      return `(${cleaned})`;
-    });
-
-    return s;
+    return normalizeTeamScoreString(raw);
   }
 
   private toOvers(digits: string): string {
-    // If already contains a decimal, return as-is
-    if (digits && digits.indexOf('.') !== -1) {
-      return digits;
-    }
-    // Convert total balls into overs.balls (6 balls = 1 over)
-    const totalBalls = parseInt(digits || '0', 10);
-    if (isNaN(totalBalls)) return digits;
-    const completeOvers = Math.floor(totalBalls / 6);
-    const remainingBalls = totalBalls % 6;
-    return `${completeOvers}.${remainingBalls}`;
+    // Delegate to shared util
+    return ballsToOvers(digits) || digits;
   }
 }

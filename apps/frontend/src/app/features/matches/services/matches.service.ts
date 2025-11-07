@@ -12,6 +12,7 @@ import { HttpClient } from '@angular/common/http';
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
 import { EventListService } from '../../../component/event-list.service';
 import { getStatusDisplayText, formatTimeDisplay, calculateStaleness } from '../models/match-status';
+import { ballsToOvers, extractSlugFromUrl } from '../../../core/utils/match-utils';
 import { environment } from '../../../../environments/environment';
 
 @Injectable({
@@ -104,13 +105,7 @@ export class MatchesService {
     // Extract the match identifier from the full URL
     // URL format: https://crex.com/scoreboard/.../pak-vs-sa-2nd-odi.../live
     // We need: pak-vs-sa-2nd-odi-south-africa-tour-of-pakistan-2025
-    let matchIdentifier = matchUrl;
-    
-    if (matchUrl.includes('/')) {
-      const urlParts = matchUrl.split('/');
-      // Get the part before '/live'
-      matchIdentifier = urlParts[urlParts.length - 2];
-    }
+    let matchIdentifier = extractSlugFromUrl(matchUrl) || matchUrl;
     
     const url = `${this.scorecardApiUrl}?url=${encodeURIComponent(matchIdentifier)}`;
     console.log('Fetching scorecard from:', url);
@@ -373,8 +368,8 @@ export class MatchesService {
     
     // Handle formats like "243/8(291" or "243/8(50.0)" or "150/5"
     // Extract runs, wickets, and balls/overs using regex
-    const scoreMatch = scoreStr.match(/(\d+)\/(\d+)/);
-    const ballsOrOversMatch = scoreStr.match(/\((\d+\.?\d*)/);
+  const scoreMatch = scoreStr.match(/(\d+)[\/-](\d+)/);
+  const ballsOrOversMatch = scoreStr.match(/\(([^)]+)\)/);
     
     if (scoreMatch) {
       const runs = parseInt(scoreMatch[1], 10) || 0;
@@ -383,31 +378,12 @@ export class MatchesService {
       
       // Try to get balls/overs from the score string itself
       if (ballsOrOversMatch) {
-        const value = parseFloat(ballsOrOversMatch[1]) || 0;
-        
-        // If value is > 100, it's likely total balls, not overs
-        // Convert balls to overs (6 balls = 1 over)
-        if (value > 100) {
-          const totalBalls = Math.floor(value);
-          const completeOvers = Math.floor(totalBalls / 6);
-          const remainingBalls = totalBalls % 6;
-          overs = parseFloat(`${completeOvers}.${remainingBalls}`);
-          console.log(`Converted ${totalBalls} balls to ${overs} overs`);
-        } else {
-          // Already in overs format
-          overs = value;
-        }
+        const raw = (ballsOrOversMatch[1] || '').toString();
+        const normalized = ballsToOvers(raw);
+        overs = normalized ? parseFloat(normalized) : 0;
       } else if (oversStr) {
-        const value = parseFloat(oversStr.toString()) || 0;
-        // Apply same logic for oversStr parameter
-        if (value > 100) {
-          const totalBalls = Math.floor(value);
-          const completeOvers = Math.floor(totalBalls / 6);
-          const remainingBalls = totalBalls % 6;
-          overs = parseFloat(`${completeOvers}.${remainingBalls}`);
-        } else {
-          overs = value;
-        }
+        const normalized = ballsToOvers(oversStr);
+        overs = normalized ? parseFloat(normalized) : 0;
       }
       
       const displayText = overs > 0 
