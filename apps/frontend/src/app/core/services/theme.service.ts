@@ -247,15 +247,27 @@ export class ThemeService {
 
   /**
    * Toggle between light and dark theme
+   * Debounced to prevent rapid switching (T114)
    * @returns New theme mode
    */
+  private toggleDebounceTimer: any = null;
+  
   public toggleTheme(): ThemeMode {
+    // Clear existing debounce timer
+    if (this.toggleDebounceTimer) {
+      clearTimeout(this.toggleDebounceTimer);
+    }
+    
     const currentTheme = this.getCurrentTheme();
     const newTheme: ThemeMode = currentTheme === 'light' ? 'dark' : 'light';
     
-    // Disable system theme sync when manually toggling
-    this.setUseSystemTheme(false);
-    this.setTheme(newTheme, true);
+    // Debounce theme toggle (300ms) to prevent rapid switching
+    this.toggleDebounceTimer = setTimeout(() => {
+      // Disable system theme sync when manually toggling
+      this.setUseSystemTheme(false);
+      this.setTheme(newTheme, true);
+      this.toggleDebounceTimer = null;
+    }, 300);
     
     return newTheme;
   }

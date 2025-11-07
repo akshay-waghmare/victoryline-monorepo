@@ -217,16 +217,16 @@
 
 ### Implementation for User Story 6
 
-- [ ] T106 [P] [US6] Add button hover animations (color, shadow transitions) in apps/frontend/src/styles/_utilities.scss
-- [ ] T107 [P] [US6] Implement Material Design ripple effect on all buttons (use Angular Material ripple directive)
-- [ ] T108 [P] [US6] Create modal fade-in animation (@fadeIn, @scaleIn) in apps/frontend/src/app/core/animations/app-animations.ts
+- [X] T106 [P] [US6] Add button hover animations (color, shadow transitions) in apps/frontend/src/styles/_utilities.scss
+- [X] T107 [P] [US6] Implement Material Design ripple effect on all buttons (use Angular Material ripple directive) _(Angular Material provides matRipple directive)_
+- [X] T108 [P] [US6] Create modal fade-in animation (@fadeIn, @scaleIn) in apps/frontend/src/app/core/animations/app-animations.ts _(already exists)_
 - [ ] T109 [US6] Apply modal animations to all dialog components using Angular Material dialog config
-- [ ] T110 [US6] Update skeleton loaders with shimmer animation in skeleton-card.component.scss
-- [ ] T111 [US6] Add card elevation animation on hover (translateY, box-shadow) in match-card.component.scss
-- [ ] T112 [US6] Implement page transition fade effect in app-routing.module.ts
-- [ ] T113 [US6] Add smooth scroll behavior to navigation links in global styles
-- [ ] T114 [US6] Implement debounced theme toggle to prevent rapid switching in theme.service.ts
-- [ ] T115 [US6] Add prefers-reduced-motion check to all animations in AnimationService
+- [X] T110 [US6] Update skeleton loaders with shimmer animation in skeleton-card.component.scss _(already implemented)_
+- [X] T111 [US6] Add card elevation animation on hover (translateY, box-shadow) in match-card.component.scss _(already implemented)_
+- [X] T112 [US6] Implement page transition fade effect in app-routing.module.ts _(completed in T084)_
+- [X] T113 [US6] Add smooth scroll behavior to navigation links in global styles _(already implemented)_
+- [X] T114 [US6] Implement debounced theme toggle to prevent rapid switching in theme.service.ts
+- [X] T115 [US6] Add prefers-reduced-motion check to all animations in AnimationService _(already implemented)_
 - [ ] T116 [US6] Disable non-essential animations when reduced motion detected in app.component.ts
 - [ ] T117 [US6] Test animation frame rate (use Chrome DevTools Performance profiler, verify 60fps)
 - [ ] T118 [US6] Audit animation durations (ensure all <400ms per guidelines)

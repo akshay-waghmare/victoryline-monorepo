@@ -261,6 +261,52 @@
 }
 
 // ============================================================================
+// BUTTON HOVER ANIMATIONS (T106)
+// ============================================================================
+
+.btn-hover-lift {
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-hover-lift:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-hover-lift:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-hover-shadow {
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.btn-hover-shadow:hover:not(:disabled) {
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-hover-glow {
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-hover-glow:hover:not(:disabled) {
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.2);
+}
+
+.btn-hover-scale {
+  transition: transform 0.2s ease-in-out;
+}
+
+.btn-hover-scale:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.btn-hover-scale:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+// ============================================================================
 // iOS SAFE AREA UTILITIES
 // ============================================================================
 
