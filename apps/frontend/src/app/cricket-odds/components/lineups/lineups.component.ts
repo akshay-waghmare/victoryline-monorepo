@@ -8,7 +8,7 @@ import { Team, Player, PlayerRole } from '../../../shared/models/match.models';
   styleUrls: ['./lineups.component.css']
 })
 export class LineupsComponent implements OnInit {
-  @Input() matchId!: string;
+  @Input() matchId?: string;
   @Input() playingXIData?: any; // Existing lineup data from parent
 
   teams: Team[] = [];
@@ -20,26 +20,27 @@ export class LineupsComponent implements OnInit {
     if (this.playingXIData) {
       this.parseExistingLineupData();
     } else if (this.matchId) {
-      this.loadLineups();
+      // this.loadLineups(); // Future API implementation
+      console.warn('[LineupsComponent] API fetch not yet implemented');
     }
   }
 
   private parseExistingLineupData(): void {
     // Parse existing playing XI data to match our model
-    if (this.playingXIData) {
-      const teamNames = Object.keys(this.playingXIData);
+    if (this.playingXIData && this.playingXIData.playing_xi) {
+      const teamNames = Object.keys(this.playingXIData.playing_xi);
       this.teams = teamNames.map((teamName, index) => ({
         id: `team-${index}`,
         name: teamName,
         shortName: teamName,
-        players: this.playingXIData[teamName].map((p: any) => ({
+        players: this.playingXIData.playing_xi[teamName].map((p: any) => ({
           id: p.playerId || `player-${p.playerName}`,
           name: p.playerName,
           role: this.mapRole(p.playerRole),
           isPlayingXI: true
         }))
       }));
-      console.log('[Lineups] Using existing lineup data');
+      console.log('[Lineups] Parsed teams:', this.teams);
     }
   }
 

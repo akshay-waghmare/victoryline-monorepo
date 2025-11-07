@@ -7,7 +7,7 @@ import { MatchApiService } from '../../match-api.service';
   styleUrls: ['./match-info.component.css']
 })
 export class MatchDetailsInfoComponent implements OnInit {
-  @Input() matchId!: string;
+  @Input() matchId?: string;
   @Input() matchInfo?: any; // Existing match info from parent
 
   matchData: any = null;
@@ -18,9 +18,10 @@ export class MatchDetailsInfoComponent implements OnInit {
   ngOnInit(): void {
     if (this.matchInfo) {
       this.matchData = this.matchInfo;
-      console.log('[MatchInfo] Using existing match info data');
+      console.log('[MatchDetailsInfo] Using existing match info data');
     } else if (this.matchId) {
-      this.loadMatchInfo();
+      // this.loadMatchInfo(); // Future API implementation
+      console.warn('[MatchDetailsInfo] API fetch not yet implemented');
     }
   }
 

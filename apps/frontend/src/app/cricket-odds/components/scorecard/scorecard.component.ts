@@ -8,7 +8,7 @@ import { Innings } from '../../../shared/models/match.models';
   styleUrls: ['./scorecard.component.css']
 })
 export class ScorecardComponent implements OnInit {
-  @Input() matchId!: string;
+  @Input() matchId?: string;
   @Input() scorecardInfo?: any; // Existing scorecard data from parent
 
   innings: Innings[] = [];
@@ -22,8 +22,9 @@ export class ScorecardComponent implements OnInit {
       // Use existing data if provided
       this.parseExistingScorecardData();
     } else if (this.matchId) {
-      // Fetch from API if matchId provided
-      this.loadScorecard();
+      // Fetch from API if matchId provided (future implementation)
+      // this.loadScorecard();
+      console.warn('[ScorecardComponent] API fetch not yet implemented, matchId:', this.matchId);
     }
   }
 

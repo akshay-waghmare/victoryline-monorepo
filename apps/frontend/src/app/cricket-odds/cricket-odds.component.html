@@ -7,10 +7,11 @@
       </mat-card-header>
       
       <!-- 002-match-details-ux: Snapshot Header Component (T016-T020) -->
-      <app-snapshot-header 
+      <!-- NOTE: Using existing cricket-odds data until WebSocket/API integration complete -->
+      <!-- <app-snapshot-header 
         *ngIf="matchId"
         [matchId]="matchId">
-      </app-snapshot-header>
+      </app-snapshot-header> -->
     </header>
 
     <!-- Main content area (T009) -->
@@ -301,10 +302,9 @@
 
         <!-- Second Tab: Match Info -->
         <mat-tab label="Match Info">
-          <!-- 002-match-details-ux: New MatchInfo Component (T036-T038) -->
+          <!-- 002-match-details-ux: Enhanced Match Info Display -->
           <app-match-details-info 
-            *ngIf="matchId"
-            [matchId]="matchId"
+            *ngIf="matchInfo"
             [matchInfo]="matchInfo">
           </app-match-details-info>
           
@@ -503,18 +503,14 @@
 
         <!-- Third Tab: Scorecard -->
         <mat-tab label="Scorecard">
-          <!-- 002-match-details-ux: New Scorecard Component (T027-T031) -->
+          <!-- 002-match-details-ux: Enhanced Scorecard Component -->
           <app-match-scorecard 
-            *ngIf="matchId"
-            [matchId]="matchId"
+            *ngIf="scorecardData"
             [scorecardInfo]="scorecardData">
           </app-match-scorecard>
           
-          <!-- Fallback to existing scorecard component -->
-          <div *ngIf="scorecardData && !matchId">
-            <app-scorecard [scorecardInfo]="scorecardData"></app-scorecard>
-          </div>
-          <div *ngIf="!scorecardData && !matchId">
+          <!-- Loading state -->
+          <div *ngIf="!scorecardData">
             <p>Loading scorecard...</p>
           </div>
         </mat-tab>
@@ -522,12 +518,11 @@
         <!-- Fourth Tab: Lineups (NEW - T032-T035) -->
         <mat-tab label="Lineups">
           <app-lineups
-            *ngIf="matchId"
-            [matchId]="matchId"
+            *ngIf="matchInfo && matchInfo.playing_xi"
             [playingXIData]="matchInfo">
           </app-lineups>
           
-          <div *ngIf="!matchId">
+          <div *ngIf="!matchInfo || !matchInfo.playing_xi">
             <p>Loading lineups...</p>
           </div>
         </mat-tab>

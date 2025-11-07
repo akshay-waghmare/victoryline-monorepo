@@ -78,6 +78,12 @@ import { ScorecardComponent as MatchDetailsScorecardComponent } from 'src/app/cr
 import { LineupsComponent } from 'src/app/cricket-odds/components/lineups/lineups.component';
 import { MatchDetailsInfoComponent } from 'src/app/cricket-odds/components/match-info/match-info.component';
 
+// 002-match-details-ux: Services
+import { MatchLiveFacade } from 'src/app/cricket-odds/match-live.facade';
+import { MatchApiService } from 'src/app/cricket-odds/match-api.service';
+import { AnalyticsService } from 'src/app/cricket-odds/analytics.service';
+import { MatchFallbackService } from 'src/app/cricket-odds/match-fallback.service';
+
 
 
 const myRxStompConfig: InjectableRxStompConfig = {
@@ -182,7 +188,12 @@ const myRxStompConfig: InjectableRxStompConfig = {
       provide: RxStompService,
       useFactory: rxStompServiceFactory,
       deps: [InjectableRxStompConfig]
-    }
+    },
+    // 002-match-details-ux: Feature services
+    MatchLiveFacade,
+    MatchApiService,
+    AnalyticsService,
+    MatchFallbackService
   ],
   exports: [
     RouterModule
