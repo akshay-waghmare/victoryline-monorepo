@@ -1,0 +1,18 @@
+<div class="tab-nav">
+  <div class="tab-nav__container">
+    <button
+      *ngFor="let tab of tabs"
+      class="tab-nav__tab"
+      [class.tab-nav__tab--active]="isActive(tab.id)"
+      (click)="selectTab(tab.id)"
+      [attr.aria-selected]="isActive(tab.id)"
+      [attr.aria-label]="tab.label + (tab.count ? ' (' + tab.count + ')' : '')"
+      role="tab"
+    >
+      <i *ngIf="tab.icon" class="material-icons tab-nav__icon">{{ tab.icon }}</i>
+      <span class="tab-nav__label">{{ tab.label }}</span>
+      <span *ngIf="tab.count !== undefined" class="tab-nav__count">{{ tab.count }}</span>
+    </button>
+  </div>
+  <div class="tab-nav__indicator" [style.transform]="getIndicatorTransform()"></div>
+</div>

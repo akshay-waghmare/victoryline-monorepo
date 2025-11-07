@@ -1,0 +1,68 @@
+<nav class="navbar">
+  <div class="navbar__container">
+    <!-- Logo -->
+    <a routerLink="/Home" class="navbar__logo">
+      <img src="/assets/img/branding_logo-img.png" alt="Victory Line" class="navbar__logo-img">
+      <span class="navbar__logo-text">Victory Line</span>
+    </a>
+
+    <!-- Desktop Navigation Links -->
+    <ul class="navbar__links">
+      <li *ngFor="let link of navLinks" class="navbar__link-item">
+        <a 
+          [routerLink]="link.path" 
+          class="navbar__link"
+          [class.navbar__link--active]="isActive(link.path)"
+          routerLinkActive="navbar__link--active"
+        >
+          <i class="material-icons navbar__link-icon">{{ link.icon }}</i>
+          <span class="navbar__link-text">{{ link.title }}</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Right Side Actions -->
+    <div class="navbar__actions">
+      <!-- Theme Toggle -->
+      <button 
+        class="navbar__action-btn" 
+        (click)="toggleTheme()"
+        [attr.aria-label]="(themeService.currentTheme$ | async) === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        title="Toggle theme"
+      >
+        <i class="material-icons">
+          {{ (themeService.currentTheme$ | async) === 'dark' ? 'light_mode' : 'dark_mode' }}
+        </i>
+      </button>
+
+      <!-- Mobile Menu Toggle -->
+      <button 
+        class="navbar__action-btn navbar__mobile-toggle" 
+        (click)="toggleMobileMenu()"
+        aria-label="Toggle navigation menu"
+        [class.navbar__mobile-toggle--open]="isMobileMenuOpen"
+      >
+        <i class="material-icons">
+          {{ isMobileMenuOpen ? 'close' : 'menu' }}
+        </i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Navigation Menu -->
+  <div class="navbar__mobile-menu" [class.navbar__mobile-menu--open]="isMobileMenuOpen">
+    <ul class="navbar__mobile-links">
+      <li *ngFor="let link of navLinks" class="navbar__mobile-link-item">
+        <a 
+          [routerLink]="link.path" 
+          class="navbar__mobile-link"
+          [class.navbar__mobile-link--active]="isActive(link.path)"
+          (click)="toggleMobileMenu()"
+        >
+          <i class="material-icons navbar__mobile-link-icon">{{ link.icon }}</i>
+          <span class="navbar__mobile-link-text">{{ link.title }}</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>

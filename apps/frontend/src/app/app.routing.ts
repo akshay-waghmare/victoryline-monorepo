@@ -29,7 +29,13 @@ const routes: Routes = [
   imports: [
     CommonModule,
     BrowserModule,
-    RouterModule.forRoot(routes)],
+    RouterModule.forRoot(routes, {
+      scrollPositionRestoration: 'enabled', // T085: Restore scroll position on navigation
+      anchorScrolling: 'enabled',
+      scrollOffset: [0, 64], // Offset for fixed navbar (64px height)
+      enableTracing: false, // Set to true for debugging router events
+    })
+  ],
   exports: [RouterModule]
 })
 export class AppRoutingModule { }

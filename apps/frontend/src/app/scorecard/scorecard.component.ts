@@ -1,4 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core';
+import { ballsToOvers, normalizeTeamScoreString } from '../core/utils/match-utils';
 import { MatTabChangeEvent } from '@angular/material/tabs';
 
 @Component({
@@ -240,12 +241,27 @@ export class ScorecardComponent implements OnInit {
   }
 
   calculateOvers(teamScore: string): string {
-    const match = teamScore.match(/\((\d+)/);
+    if (!teamScore) return '';
+    const match = teamScore.match(/\(([^)]+)\)/);
     if (match && match[1]) {
-      const oversNumber = match[1];
-      const overs = (parseInt(oversNumber, 10) / 10).toFixed(1);
-      return overs;
+      return ballsToOvers(match[1]);
     }
     return '';
+  }
+
+  // Normalize raw team_score strings like "155/9(102" -> "155/9 (10.2)"
+  // - Ensures a space before the opening parenthesis
+  // - Adds a missing closing parenthesis if absent
+  // - Converts digits-only inside parentheses to proper overs with a decimal
+  formatTeamScore(raw: string): string {
+    if (!raw) {
+      return raw;
+    }
+    return normalizeTeamScoreString(raw);
+  }
+
+  private toOvers(digits: string): string {
+    // Delegate to shared util
+    return ballsToOvers(digits) || digits;
   }
 }

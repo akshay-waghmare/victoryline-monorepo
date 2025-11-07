@@ -1,0 +1,284 @@
+/**
+ * Global Styles
+ * Main stylesheet that imports all design system components
+ */
+
+// ============================================================================
+// DESIGN SYSTEM IMPORTS
+// ============================================================================
+
+@import 'styles/variables';
+@import 'styles/mixins';
+@import 'styles/animations';
+@import 'styles/utilities';
+
+// ============================================================================
+// THEME SYSTEM IMPORTS
+// ============================================================================
+
+@import 'app/core/themes/theme-core';
+@import 'app/core/themes/light-theme';
+@import 'app/core/themes/dark-theme';
+
+// ============================================================================
+// LEGACY BOOTSTRAP IMPORT (TODO: Gradually migrate away)
+// ============================================================================
+
+@import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
+
+// ============================================================================
+// CSS CUSTOM PROPERTIES (for theme switching)
+// ============================================================================
+
+:root {
+  /* These will be dynamically updated by ThemeService */
+  /* Light theme colors (default) */
+  --color-primary: #1976d2;
+  --color-primary-hover: #1565c0;
+  --color-primary-active: #0d47a1;
+  
+  --color-background: #ffffff;
+  --color-background-elevated: #f5f5f5;
+  --color-background-hover: #eeeeee;
+  
+  --color-text-primary: #212121;
+  --color-text-secondary: #757575;
+  --color-text-disabled: #bdbdbd;
+  
+  --color-border: #e0e0e0;
+  --color-border-light: #f5f5f5;
+  
+  /* iOS Safe Area Insets (for notched devices like iPhone X+) */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-error: #f44336;
+  --color-info: #2196f3;
+  
+  --color-match-live: #4caf50;
+  --color-match-upcoming: #2196f3;
+  --color-match-completed: #757575;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  
+  /* Typography */
+  --font-family: 'Roboto', 'Helvetica Neue', sans-serif;
+  
+  /* Border Radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --border-radius-full: 9999px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark theme colors (applied when [data-theme="dark"]) */
+[data-theme="dark"] {
+  --color-primary: #90caf9;
+  --color-primary-hover: #64b5f6;
+  --color-primary-active: #42a5f5;
+  
+  --color-background: #121212;
+  --color-background-elevated: #1e1e1e;
+  --color-background-hover: #2a2a2a;
+  
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b0b0b0;
+  --color-text-disabled: #666666;
+  
+  --color-border: #2a2a2a;
+  --color-border-light: #1e1e1e;
+  
+  --color-success: #66bb6a;
+  --color-warning: #ffa726;
+  --color-error: #ef5350;
+  --color-info: #42a5f5;
+  
+  --color-match-live: #66bb6a;
+  --color-match-upcoming: #42a5f5;
+  --color-match-completed: #757575;
+}
+
+// ============================================================================
+// GLOBAL STYLES
+// ============================================================================
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: $font-size-base;
+  line-height: $line-height-normal;
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  margin: 0;
+  padding: 0;
+  transition: background-color $duration-slow $ease-in-out,
+              color $duration-slow $ease-in-out;
+  
+  /* iOS Safe Area Support - Add padding to body */
+  padding-top: var(--safe-area-inset-top);
+  padding-right: var(--safe-area-inset-right);
+  padding-bottom: var(--safe-area-inset-bottom);
+  padding-left: var(--safe-area-inset-left);
+}
+
+// ============================================================================
+// SMOOTH THEME TRANSITIONS
+// ============================================================================
+
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: $duration-slow;
+  transition-timing-function: $ease-in-out;
+}
+
+// Exclude animations from theme transitions
+*[class*="animate-"],
+*[class*="transition-"] {
+  transition-property: none;
+}
+
+// ============================================================================
+// FOCUS MANAGEMENT
+// ============================================================================
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// ============================================================================
+// CUSTOM SCROLLBAR
+// ============================================================================
+
+* {
+  @include custom-scrollbar;
+}
+
+// ============================================================================
+// LEGACY STYLES (from original styles.css)
+// ============================================================================
+
+.wrapper {
+  position: relative;
+  top: 0;
+  height: 100vh;
+}
+
+.sidebar-wrapper {
+  background-color: var(--color-background-elevated);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  position: fixed;
+  height: 100%;
+  overflow-y: auto;
+  width: 260px;
+  z-index: 1000;
+  padding-bottom: 30px;
+  transition: width 0.3s;
+  box-shadow: var(--shadow-lg);
+}
+
+.sidebar .nav {
+  margin-top: 20px;
+  display: block;
+}
+
+.nav p {
+  margin: 0;
+  line-height: 30px;
+  font-size: 14px;
+  position: relative;
+  display: block;
+  height: auto;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+  padding: 10px 15px;
+}
+
+.nav i {
+  font-size: 24px;
+  float: left;
+  margin-right: 15px;
+  line-height: 30px;
+  width: 30px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  padding-left: 0;
+  margin-bottom: 0;
+  list-style: none;
+}
+
+// ============================================================================
+// PRINT STYLES
+// ============================================================================
+
+@media print {
+  * {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  a,
+  a:visited {
+    text-decoration: underline;
+  }
+
+  pre,
+  blockquote {
+    border: 1px solid #999;
+    page-break-inside: avoid;
+  }
+
+  img {
+    page-break-inside: avoid;
+  }
+
+  p,
+  h2,
+  h3 {
+    orphans: 3;
+    widows: 3;
+  }
+
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+}

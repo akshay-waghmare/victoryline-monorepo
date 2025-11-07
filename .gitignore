@@ -88,6 +88,10 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# Local development databases (Java H2/HSQL, etc.)
+*.mv.db
+apps/backend/spring-security-jwt/testdb.mv.db
+
 # Temporary files
 *.tmp
 *.temp

@@ -144,7 +144,7 @@
               "projects/route/src/assets"
             ],
             "styles": [
-              "projects/route/src/styles.css"
+              "projects/route/src/styles.scss"
             ],
             "scripts": []
           },
@@ -193,7 +193,7 @@
             "tsConfig": "projects/route/tsconfig.spec.json",
             "karmaConfig": "projects/route/karma.conf.js",
             "styles": [
-              "projects/route/src/styles.css"
+              "projects/route/src/styles.scss"
             ],
             "scripts": [],
             "assets": [

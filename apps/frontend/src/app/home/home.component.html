@@ -1,36 +1,171 @@
 <div class="container">
-  <h2 class="header">Matches for you</h2>
   
-  <!-- Show message when no live matches -->
-  <div *ngIf="liveMatches.length === 0" class="no-matches-container">
-    <mat-card class="no-matches-card">
-      <h3>No Live Matches</h3>
-      <p>There are currently no live cricket matches available. Please check back later.</p>
-    </mat-card>
-  </div>
-
-  <!-- Show matches when available -->
-  <div class="scroll-wrapper" *ngIf="liveMatches.length > 0">
-    <button class="scroll-button" (click)="scrollLeft()">&#9664;</button>
-    <div class="matches-container" #scrollContainer>
-      <mat-card class="match-card" *ngFor="let match of liveMatches" (click)="navigateToMatch(match)">
-        <div class="match-date">{{ match.date }}</div>
-        <div class="match-title">{{ match.title }}</div>
-        <div class="match-description">{{ match.description }}</div>
-        <div class="teams">
-          <div class="team">{{ match.team1 }}</div>
-          <div class="vs">vs</div>
-          <div class="team">{{ match.team2 }}</div>
-        </div>
+  <!-- ===== PAGE HEADER ===== -->
+  <header class="home__header">
+    <h1 class="home__title">Cricket Live Scores</h1>
+    <p class="home__subtitle">Stay updated with live matches, upcoming fixtures, and recent results</p>
+  </header>
+  
+  <!-- ===== LIVE MATCHES SECTION ===== -->
+  <section class="home__section home__section--live" *ngIf="!isLoadingMatches && liveMatches.length > 0">
+    <div class="home__section-header">
+      <div class="home__section-title-wrapper">
+        <span class="live-indicator"></span>
+        <h2 class="home__section-title">Live Now</h2>
+      </div>
+      <div class="home__section-actions">
+        <button 
+          class="carousel-btn carousel-btn--left" 
+          (click)="scrollLeft('live-matches-grid')"
+          [disabled]="!canScrollLeft('live-matches-grid')"
+          aria-label="Scroll left">
+          <i class="material-icons">chevron_left</i>
+        </button>
+        <button 
+          class="carousel-btn carousel-btn--right" 
+          (click)="scrollRight('live-matches-grid')"
+          [disabled]="!canScrollRight('live-matches-grid')"
+          aria-label="Scroll right">
+          <i class="material-icons">chevron_right</i>
+        </button>
+        <a routerLink="/matches" class="home__section-link">
+          View All
+          <i class="material-icons">arrow_forward</i>
+        </a>
+      </div>
+    </div>
+    <div class="matches-grid-wrapper">
+      <div class="matches-grid matches-grid--carousel" id="live-matches-grid">
+        <app-match-card
+          *ngFor="let match of liveMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [enableAnimations]="true"
+          [showDetailsButton]="true"
+          (cardClick)="onMatchClick(match)"
+          (detailsClick)="onDetailsClick(match)"
+        ></app-match-card>
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== UPCOMING MATCHES SECTION ===== -->
+  <section class="home__section home__section--upcoming" *ngIf="!isLoadingMatches && upcomingMatches.length > 0">
+    <div class="home__section-header">
+      <div class="home__section-title-wrapper">
+        <i class="material-icons home__section-icon">schedule</i>
+        <h2 class="home__section-title">Upcoming Matches</h2>
+      </div>
+      <div class="home__section-actions">
+        <button 
+          class="carousel-btn carousel-btn--left" 
+          (click)="scrollLeft('upcoming-matches-grid')"
+          [disabled]="!canScrollLeft('upcoming-matches-grid')"
+          aria-label="Scroll left">
+          <i class="material-icons">chevron_left</i>
+        </button>
+        <button 
+          class="carousel-btn carousel-btn--right" 
+          (click)="scrollRight('upcoming-matches-grid')"
+          [disabled]="!canScrollRight('upcoming-matches-grid')"
+          aria-label="Scroll right">
+          <i class="material-icons">chevron_right</i>
+        </button>
+        <a routerLink="/matches" class="home__section-link">
+          View All
+          <i class="material-icons">arrow_forward</i>
+        </a>
+      </div>
+    </div>
+    <div class="matches-grid-wrapper">
+      <div class="matches-grid matches-grid--carousel" id="upcoming-matches-grid">
+        <app-match-card
+          *ngFor="let match of upcomingMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [enableAnimations]="false"
+          [showDetailsButton]="true"
+          (cardClick)="onMatchClick(match)"
+          (detailsClick)="onDetailsClick(match)"
+        ></app-match-card>
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== RECENT RESULTS SECTION ===== -->
+  <section class="home__section home__section--recent" *ngIf="!isLoadingMatches && recentMatches.length > 0">
+    <div class="home__section-header">
+      <div class="home__section-title-wrapper">
+        <i class="material-icons home__section-icon">check_circle</i>
+        <h2 class="home__section-title">Recent Results</h2>
+      </div>
+      <div class="home__section-actions">
+        <button 
+          class="carousel-btn carousel-btn--left" 
+          (click)="scrollLeft('recent-matches-grid')"
+          [disabled]="!canScrollLeft('recent-matches-grid')"
+          aria-label="Scroll left">
+          <i class="material-icons">chevron_left</i>
+        </button>
+        <button 
+          class="carousel-btn carousel-btn--right" 
+          (click)="scrollRight('recent-matches-grid')"
+          [disabled]="!canScrollRight('recent-matches-grid')"
+          aria-label="Scroll right">
+          <i class="material-icons">chevron_right</i>
+        </button>
+        <a routerLink="/matches" class="home__section-link">
+          View All
+          <i class="material-icons">arrow_forward</i>
+        </a>
+      </div>
+    </div>
+    <div class="matches-grid-wrapper">
+      <div class="matches-grid matches-grid--carousel" id="recent-matches-grid">
+        <app-match-card
+          *ngFor="let match of recentMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [enableAnimations]="false"
+          [showDetailsButton]="true"
+          (cardClick)="onMatchClick(match)"
+          (detailsClick)="onDetailsClick(match)"
+        ></app-match-card>
+      </div>
+    </div>
+  </section>
+  
+  <!-- ===== LOADING STATE ===== -->
+  <section class="matches-section" *ngIf="isLoadingMatches">
+    <h2 class="section-header">Loading Matches...</h2>
+    <div class="matches-grid">
+      <app-skeleton-card [count]="3"></app-skeleton-card>
+    </div>
+  </section>
+  
+  <!-- ===== ERROR STATE ===== -->
+  <section class="matches-section" *ngIf="hasMatchError && !isLoadingMatches">
+    <div class="error-message">
+      <mat-card>
+        <h3>Unable to Load Matches</h3>
+        <p>There was an error loading cricket matches. Please try refreshing the page.</p>
+        <button mat-raised-button color="primary" (click)="loadMatches()">Retry</button>
       </mat-card>
     </div>
-    <button class="scroll-button" (click)="scrollRight()">&#9654;</button>
-  </div>
+  </section>
+  
+  <!-- ===== NO MATCHES STATE ===== -->
+  <section class="matches-section" *ngIf="!isLoadingMatches && !hasMatchError && liveMatches.length === 0 && upcomingMatches.length === 0 && recentMatches.length === 0">
+    <div class="no-matches-container">
+      <mat-card class="no-matches-card">
+        <h3>No Live Matches</h3>
+        <p>There are currently no live cricket matches available. Please check back later.</p>
+      </mat-card>
+    </div>
+  </section>
   
   <hr class="news-hr" />
 
+  <!-- ===== BLOG POSTS SECTION (UNCHANGED) ===== -->
   <div *ngFor="let blogPost of blogPosts" class="news-item" (click)="openNews(blogPost.link)">
-    <img [src]="blogPost.imgUrl" alt="{{ blogPost.title }}" class="news-image" />
+    <img [src]="blogPost.imgUrl" alt="{{ blogPost.title }}" class="news-image" loading="lazy" />
     <div class="news-content">
       <h3 class="news-heading">{{ blogPost.title }}</h3>
       <p class="news-description">{{ blogPost.description | slice:0:400 }}...</p>

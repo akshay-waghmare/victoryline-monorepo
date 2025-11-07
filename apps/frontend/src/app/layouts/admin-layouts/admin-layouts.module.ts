@@ -2,6 +2,7 @@ import { AddCustomerComponent } from './../../add-customer/add-customer.componen
 import { RouteReuseStrategy, RouterModule } from '@angular/router';
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { LayoutModule } from '@angular/cdk/layout';
 import { AdminLayoutsRoute } from './admin-layouts.routing';
 import { DashboardComponent } from '../../dashboard/dashboard.component';
 import { AddServiceComponent } from '../../add-service/add-service.component';
@@ -38,7 +39,8 @@ import {
   MatProgressSpinnerModule,
   MatExpansionModule,
   MatSliderModule,
-  MatProgressBarModule
+  MatProgressBarModule,
+  MatTooltipModule
 } from '@angular/material';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AuthenticationGuard } from 'src/app/authentication.guard';
@@ -61,6 +63,26 @@ import { ScorecardComponent } from 'src/app/scorecard/scorecard.component';
 import { PrivacyPolicyComponent } from 'src/app/privacy-policy/privacy-policy.component';
 import { TermsOfServiceComponent } from 'src/app/terms-of-service/terms-of-service.component';
 
+// New match card components
+import { MatchCardComponent } from 'src/app/features/matches/components/match-card/match-card.component';
+import { SkeletonCardComponent } from 'src/app/shared/components/skeleton-card/skeleton-card.component';
+import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
+import { TabNavComponent } from 'src/app/shared/components/tab-nav/tab-nav.component';
+
+// 002-match-details-ux: Shared components
+import { StalenessIndicatorComponent } from 'src/app/shared/components/staleness-indicator/staleness-indicator.component';
+
+// 002-match-details-ux: Cricket odds feature components
+import { SnapshotHeaderComponent } from 'src/app/cricket-odds/components/snapshot-header/snapshot-header.component';
+import { ScorecardComponent as MatchDetailsScorecardComponent } from 'src/app/cricket-odds/components/scorecard/scorecard.component';
+import { LineupsComponent } from 'src/app/cricket-odds/components/lineups/lineups.component';
+import { MatchDetailsInfoComponent } from 'src/app/cricket-odds/components/match-info/match-info.component';
+
+// 002-match-details-ux: Services
+import { MatchLiveFacade } from 'src/app/cricket-odds/match-live.facade';
+import { MatchApiService } from 'src/app/cricket-odds/match-api.service';
+import { AnalyticsService } from 'src/app/cricket-odds/analytics.service';
+import { MatchFallbackService } from 'src/app/cricket-odds/match-fallback.service';
 
 
 
@@ -106,10 +128,12 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatSelectModule,
     MatDatepickerModule,
     MatNativeDateModule, 
-    MatMomentDateModule,
-    MatListModule,
+  MatMomentDateModule,
+  MatListModule,
+  LayoutModule,
     ComponentsModule,
     MatSnackBarModule, // Import MatSnackBarModule
+    MatTooltipModule, // Import MatTooltipModule for navbar tooltips (T046)
     
   
   ],
@@ -134,8 +158,18 @@ const myRxStompConfig: InjectableRxStompConfig = {
     ScorecardComponent,
     PrivacyPolicyComponent,
     TermsOfServiceComponent,
-    
-    
+    // New match card components
+    MatchCardComponent,
+    SkeletonCardComponent,
+    MatchesListComponent,
+    TabNavComponent,
+    // 002-match-details-ux: Shared components
+    StalenessIndicatorComponent,
+    // 002-match-details-ux: Cricket odds feature components
+    SnapshotHeaderComponent,
+    MatchDetailsScorecardComponent,
+    LineupsComponent,
+    MatchDetailsInfoComponent,
     
   ],
   providers: [
@@ -154,7 +188,12 @@ const myRxStompConfig: InjectableRxStompConfig = {
       provide: RxStompService,
       useFactory: rxStompServiceFactory,
       deps: [InjectableRxStompConfig]
-    }
+    },
+    // 002-match-details-ux: Feature services
+    MatchLiveFacade,
+    MatchApiService,
+    AnalyticsService,
+    MatchFallbackService
   ],
   exports: [
     RouterModule

@@ -1,0 +1,259 @@
+/**
+ * Keyframe Animations
+ * Reusable animation definitions
+ */
+
+@import 'variables';
+
+// ============================================================================
+// PULSE ANIMATION (for live indicators)
+// ============================================================================
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s $ease-in-out infinite;
+}
+
+// ============================================================================
+// SHIMMER ANIMATION (for skeleton loaders)
+// ============================================================================
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+  background: linear-gradient(
+    90deg,
+    var(--color-background-elevated) 0%,
+    var(--color-background-hover) 50%,
+    var(--color-background-elevated) 100%
+  );
+  background-size: 1000px 100%;
+}
+
+// ============================================================================
+// FADE IN ANIMATION
+// ============================================================================
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn $duration-normal $ease-out;
+}
+
+// ============================================================================
+// FADE OUT ANIMATION
+// ============================================================================
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-fade-out {
+  animation: fadeOut $duration-normal $ease-in;
+}
+
+// ============================================================================
+// SLIDE UP ANIMATION
+// ============================================================================
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp $duration-slow $ease-out;
+}
+
+// ============================================================================
+// SLIDE DOWN ANIMATION
+// ============================================================================
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown $duration-slow $ease-out;
+}
+
+// ============================================================================
+// SLIDE IN FROM RIGHT (for mobile menu)
+// ============================================================================
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight $duration-slow $ease-out;
+}
+
+// ============================================================================
+// SLIDE OUT TO RIGHT
+// ============================================================================
+
+@keyframes slideOutToRight {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.animate-slide-out-right {
+  animation: slideOutToRight $duration-slow $ease-in;
+}
+
+// ============================================================================
+// SCALE IN ANIMATION (for modals)
+// ============================================================================
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn $duration-slow $ease-out;
+}
+
+// ============================================================================
+// SCALE OUT ANIMATION
+// ============================================================================
+
+@keyframes scaleOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+.animate-scale-out {
+  animation: scaleOut $duration-normal $ease-in;
+}
+
+// ============================================================================
+// BOUNCE ANIMATION
+// ============================================================================
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s $ease-bounce infinite;
+}
+
+// ============================================================================
+// SPIN ANIMATION (for loading spinners)
+// ============================================================================
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+// ============================================================================
+// SHAKE ANIMATION (for errors)
+// ============================================================================
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s $ease-in-out;
+}
+
+// ============================================================================
+// REDUCED MOTION SUPPORT
+// ============================================================================
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

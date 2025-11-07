@@ -73,6 +73,15 @@ import 'core-js/es7/reflect';
  */
 import 'zone.js/dist/zone';  // Included with Angular CLI.
 
+// Promise.allSettled polyfill for older browsers
+if (!(Promise as any).allSettled) {
+  (Promise as any).allSettled = function(promises: any[]) {
+    return Promise.all(promises.map(p => Promise.resolve(p).then(
+      value => ({ status: 'fulfilled', value }),
+      reason => ({ status: 'rejected', reason })
+    )));
+  };
+}
 
 
 /***************************************************************************************************

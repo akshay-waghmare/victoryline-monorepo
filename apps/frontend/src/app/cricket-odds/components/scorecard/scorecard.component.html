@@ -1,0 +1,119 @@
+<div class="scorecard-container" role="region" aria-label="Match scorecard">
+  <!-- Innings tabs -->
+  <div class="innings-tabs" role="tablist" *ngIf="innings.length > 0">
+    <button 
+      *ngFor="let inning of innings; let i = index"
+      role="tab"
+      [attr.aria-selected]="i === selectedInningsIndex"
+      [attr.aria-controls]="'innings-panel-' + i"
+      [class.active]="i === selectedInningsIndex"
+      (click)="selectInnings(i)"
+      class="innings-tab">
+      Innings {{ inning.number }}
+    </button>
+  </div>
+
+  <!-- Selected innings panel -->
+  <div 
+    *ngIf="selectedInnings"
+    [attr.id]="'innings-panel-' + selectedInningsIndex"
+    role="tabpanel"
+    [attr.aria-labelledby]="'innings-tab-' + selectedInningsIndex"
+    class="innings-panel">
+    
+    <!-- Innings summary -->
+    <div class="innings-summary">
+      <h3>{{ selectedInnings.runs }}/{{ selectedInnings.wickets }} ({{ formatOvers(selectedInnings.overs) }} Ov)</h3>
+    </div>
+
+    <!-- Batting table -->
+    <div class="batting-section">
+      <h4>Batting</h4>
+      <table class="scorecard-table" role="table">
+        <thead>
+          <tr>
+            <th scope="col">Batter</th>
+            <th scope="col">R</th>
+            <th scope="col">B</th>
+            <th scope="col">4s</th>
+            <th scope="col">6s</th>
+            <th scope="col">SR</th>
+            <th scope="col">Dismissal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let batsman of selectedInnings.batting">
+            <td>
+              <strong>{{ batsman.name }}</strong>
+              <span *ngIf="!batsman.isOut" class="not-out-badge" aria-label="Not out">*</span>
+            </td>
+            <td>{{ batsman.runs }}</td>
+            <td>{{ batsman.balls }}</td>
+            <td>{{ batsman.fours }}</td>
+            <td>{{ batsman.sixes }}</td>
+            <td>{{ calculateStrikeRate(batsman.runs, batsman.balls) }}</td>
+            <td class="dismissal">{{ batsman.dismissal || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Extras -->
+    <div class="extras-section" *ngIf="selectedInnings.extras">
+      <p><strong>Extras:</strong> {{ selectedInnings.extras.total }} 
+        (b {{ selectedInnings.extras.byes }}, 
+        lb {{ selectedInnings.extras.legByes }}, 
+        w {{ selectedInnings.extras.wides }}, 
+        nb {{ selectedInnings.extras.noBalls }}
+        <span *ngIf="selectedInnings.extras.penalties > 0">, p {{ selectedInnings.extras.penalties }}</span>)
+      </p>
+    </div>
+
+    <!-- Fall of wickets -->
+    <div class="fall-of-wickets-section" *ngIf="selectedInnings.fallOfWickets && selectedInnings.fallOfWickets.length > 0">
+      <h4>Fall of Wickets</h4>
+      <ol class="fow-list">
+        <li *ngFor="let fow of selectedInnings.fallOfWickets">
+          {{ fow.score }} at {{ formatOvers(fow.over) }} Ov ({{ fow.playerOutName }})
+        </li>
+      </ol>
+    </div>
+
+    <!-- Bowling table -->
+    <div class="bowling-section">
+      <h4>Bowling</h4>
+      <table class="scorecard-table" role="table">
+        <thead>
+          <tr>
+            <th scope="col">Bowler</th>
+            <th scope="col">O</th>
+            <th scope="col">M</th>
+            <th scope="col">R</th>
+            <th scope="col">W</th>
+            <th scope="col">Econ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let bowler of selectedInnings.bowling">
+            <td><strong>{{ bowler.name }}</strong></td>
+            <td>{{ formatOvers(bowler.overs) }}</td>
+            <td>{{ bowler.maidens }}</td>
+            <td>{{ bowler.runs }}</td>
+            <td>{{ bowler.wickets }}</td>
+            <td>{{ calculateEconomy(bowler.runs, bowler.overs) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="loading-state" *ngIf="isLoading" role="status" aria-live="polite">
+    <p>Loading scorecard...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading && innings.length === 0">
+    <p>No scorecard data available</p>
+  </div>
+</div>

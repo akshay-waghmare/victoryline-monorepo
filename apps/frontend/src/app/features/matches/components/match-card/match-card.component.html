@@ -1,0 +1,117 @@
+<!-- Match Card Component Template -->
+<div class="match-card"
+     #cardElement
+     [attr.data-status]="match.status"
+     [attr.data-variant]="variant"
+     [class.is-live]="isMatchLive()"
+     [class.is-hovered]="isHovered"
+     [class.is-animating]="isAnimating"
+     [style.max-height]="maxHeight"
+     (click)="onCardClick()"
+     (mouseenter)="onMouseEnter()"
+     (mouseleave)="onMouseLeave()">
+  
+  <!-- Status Badge -->
+  <div class="match-card__status-badge"
+       [style.background-color]="getStatusColor()">
+    <span class="match-card__status-text">{{ getStatusDisplayText() }}</span>
+    
+    <!-- Live Pulse Indicator -->
+    <span class="match-card__live-indicator"
+          *ngIf="isMatchLive()"
+          [@pulse]>
+    </span>
+  </div>
+  
+  <!-- Staleness Warning -->
+  <div class="match-card__staleness-warning"
+       *ngIf="isMatchLive() && getStaleness() !== 'fresh'"
+       [attr.data-staleness]="getStaleness()">
+    <mat-icon class="match-card__staleness-icon">warning</mat-icon>
+    <span class="match-card__staleness-text">
+      {{ getStaleness() === 'warning' ? 'Data may be delayed' : 'Data is stale' }}
+    </span>
+  </div>
+  
+  <!-- Teams Container -->
+  <div class="match-card__teams">
+    
+    <!-- Team 1 -->
+    <div class="match-card__team match-card__team--team1">
+      <div class="match-card__team-header">
+        <div class="match-card__team-info">
+          <h3 class="match-card__team-name">{{ match.team1.name }}</h3>
+        </div>
+      </div>
+      
+      <div class="match-card__score"
+           *ngIf="match.team1.score"
+           [@scoreUpdate]="team1ScoreState">
+        <span class="match-card__score-text">{{ match.team1.score.displayText }}</span>
+      </div>
+      
+      <div class="match-card__score-placeholder"
+           *ngIf="!match.team1.score">
+        <span class="match-card__score-text">—</span>
+      </div>
+    </div>
+    
+    <!-- VS Separator -->
+    <div class="match-card__separator">
+      <span class="match-card__separator-text">VS</span>
+    </div>
+    
+    <!-- Team 2 -->
+    <div class="match-card__team match-card__team--team2">
+      <div class="match-card__team-header">
+        <div class="match-card__team-info">
+          <h3 class="match-card__team-name">{{ match.team2.name }}</h3>
+        </div>
+      </div>
+      
+      <div class="match-card__score"
+           *ngIf="match.team2.score"
+           [@scoreUpdate]="team2ScoreState">
+        <span class="match-card__score-text">{{ match.team2.score.displayText }}</span>
+      </div>
+      
+      <div class="match-card__score-placeholder"
+           *ngIf="!match.team2.score">
+        <span class="match-card__score-text">—</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Match Info -->
+  <div class="match-card__info">
+    <div class="match-card__info-item">
+      <mat-icon class="match-card__info-icon">location_on</mat-icon>
+      <span class="match-card__info-text">{{ match.venue }}</span>
+    </div>
+    
+    <div class="match-card__info-item">
+      <mat-icon class="match-card__info-icon">schedule</mat-icon>
+      <span class="match-card__info-text">{{ getTimeDisplay() }}</span>
+    </div>
+  </div>
+  
+  <!-- Details Button -->
+  <div class="match-card__actions" *ngIf="showDetailsButton">
+    <button mat-raised-button 
+            color="primary"
+            class="match-card__details-btn"
+            (click)="onDetailsClick($event)">
+      View Details
+    </button>
+  </div>
+  
+  <!-- Accessibility: Screen reader only live region -->
+  <div class="sr-only" 
+       role="status" 
+       aria-live="polite"
+       *ngIf="isMatchLive()">
+    {{ match.team1.name }} {{ match.team1.score?.runs }} for {{ match.team1.score?.wickets }}
+    versus
+    {{ match.team2.name }} {{ match.team2.score?.runs }} for {{ match.team2.score?.wickets }}
+  </div>
+</div>

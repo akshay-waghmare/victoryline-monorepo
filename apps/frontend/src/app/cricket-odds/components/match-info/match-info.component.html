@@ -1,0 +1,86 @@
+<div class="match-info-container" role="region" aria-label="Match information">
+  <div *ngIf="matchData || matchInfo" class="info-sections">
+    
+    <!-- Match Overview -->
+    <section class="info-section">
+      <h3 class="section-title"><mat-icon>info</mat-icon> Match Overview</h3>
+      <dl class="info-list">
+        <div class="info-item">
+          <dt>Series</dt>
+          <dd>{{ seriesName }}</dd>
+        </div>
+        <div class="info-item">
+          <dt>Format</dt>
+          <dd>{{ matchFormat }}</dd>
+        </div>
+        <div class="info-item">
+          <dt>Status</dt>
+          <dd class="status-badge">{{ matchStatus }}</dd>
+        </div>
+        <div class="info-item" *ngIf="matchDate">
+          <dt>Date & Time</dt>
+          <dd>{{ matchDate | date: 'fullDate' }}, {{ matchDate | date: 'shortTime' }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Venue Information -->
+    <section class="info-section venue-section">
+      <h3 class="section-title"><mat-icon>location_on</mat-icon> Venue</h3>
+      <dl class="info-list">
+        <div class="info-item">
+          <dt>Ground</dt>
+          <dd class="venue-name">{{ venueName }}</dd>
+        </div>
+        <div class="info-item" *ngIf="venueLocation">
+          <dt>Location</dt>
+          <dd>{{ venueLocation }}</dd>
+        </div>
+        <div class="info-item" *ngIf="venueCapacity">
+          <dt>Capacity</dt>
+          <dd>{{ venueCapacity | number }} spectators</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- Toss Information -->
+    <section class="info-section toss-section">
+      <h3 class="section-title"><mat-icon>monetization_on</mat-icon> Toss</h3>
+      <p class="toss-result">{{ tossInfo }}</p>
+    </section>
+
+    <!-- Match Officials -->
+    <section class="info-section officials-section" *ngIf="officials && (officials.umpire1 || officials.umpire2)">
+      <h3 class="section-title"><mat-icon>gavel</mat-icon> Match Officials</h3>
+      <dl class="info-list">
+        <div class="info-item" *ngIf="officials.umpire1">
+          <dt>Umpire 1</dt>
+          <dd>{{ officials.umpire1 }}</dd>
+        </div>
+        <div class="info-item" *ngIf="officials.umpire2">
+          <dt>Umpire 2</dt>
+          <dd>{{ officials.umpire2 }}</dd>
+        </div>
+        <div class="info-item" *ngIf="officials.thirdUmpire">
+          <dt>Third Umpire</dt>
+          <dd>{{ officials.thirdUmpire }}</dd>
+        </div>
+        <div class="info-item" *ngIf="officials.referee">
+          <dt>Match Referee</dt>
+          <dd>{{ officials.referee }}</dd>
+        </div>
+      </dl>
+    </section>
+
+  </div>
+
+  <!-- Loading state -->
+  <div class="loading-state" *ngIf="isLoading" role="status" aria-live="polite">
+    <p>Loading match information...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading && !matchData && !matchInfo">
+    <p>No match information available</p>
+  </div>
+</div>

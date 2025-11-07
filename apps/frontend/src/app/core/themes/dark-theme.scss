@@ -1,0 +1,183 @@
+/**
+ * Dark Theme SCSS
+ * 
+ * Dark mode color palette and theme-specific overrides.
+ * Applied when [data-theme="dark"] is set on document root.
+ */
+
+// ============================================================================
+// DARK THEME COLORS
+// ============================================================================
+
+$dark-primary: #90caf9;
+$dark-primary-hover: #64b5f6;
+$dark-primary-active: #42a5f5;
+
+$dark-background: #121212;
+$dark-background-elevated: #1e1e1e;
+$dark-background-hover: #2a2a2a;
+
+$dark-text-primary: #ffffff;
+$dark-text-secondary: #b0b0b0;
+$dark-text-disabled: #666666;
+
+$dark-border: #2a2a2a;
+$dark-border-light: #1e1e1e;
+
+$dark-success: #66bb6a;
+$dark-warning: #ffa726;
+$dark-error: #ef5350;
+$dark-info: #42a5f5;
+
+$dark-match-live: #66bb6a;
+$dark-match-upcoming: #42a5f5;
+$dark-match-completed: #757575;
+
+// ============================================================================
+// DARK THEME SHADOWS (softer, more diffuse)
+// ============================================================================
+
+$dark-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+$dark-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+$dark-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+$dark-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.5);
+
+// ============================================================================
+// APPLY DARK THEME
+// ============================================================================
+
+[data-theme="dark"] {
+  // Colors
+  --color-primary: #{$dark-primary};
+  --color-primary-hover: #{$dark-primary-hover};
+  --color-primary-active: #{$dark-primary-active};
+  
+  --color-background: #{$dark-background};
+  --color-background-elevated: #{$dark-background-elevated};
+  --color-background-hover: #{$dark-background-hover};
+  
+  --color-text-primary: #{$dark-text-primary};
+  --color-text-secondary: #{$dark-text-secondary};
+  --color-text-disabled: #{$dark-text-disabled};
+  
+  --color-border: #{$dark-border};
+  --color-border-light: #{$dark-border-light};
+  
+  --color-success: #{$dark-success};
+  --color-warning: #{$dark-warning};
+  --color-error: #{$dark-error};
+  --color-info: #{$dark-info};
+  
+  --color-match-live: #{$dark-match-live};
+  --color-match-upcoming: #{$dark-match-upcoming};
+  --color-match-completed: #{$dark-match-completed};
+  
+  // Shadows
+  --shadow-sm: #{$dark-shadow-sm};
+  --shadow-md: #{$dark-shadow-md};
+  --shadow-lg: #{$dark-shadow-lg};
+  --shadow-xl: #{$dark-shadow-xl};
+  
+  // Theme-specific adjustments
+  --card-bg: #{$dark-background-elevated};
+  --card-hover-bg: #{$dark-background-hover};
+  --input-bg: #{$dark-background-elevated};
+  --input-border: #{$dark-border};
+  
+  // Status badge backgrounds (dark mode uses darker tints)
+  --status-live-bg: rgba(102, 187, 106, 0.15);
+  --status-upcoming-bg: rgba(66, 165, 245, 0.15);
+  --status-completed-bg: rgba(117, 117, 117, 0.15);
+  
+  // Chart colors (optimized for dark backgrounds)
+  --chart-primary: #{$dark-primary};
+  --chart-success: #{$dark-success};
+  --chart-warning: #{$dark-warning};
+  --chart-error: #{$dark-error};
+  --chart-grid: rgba(255, 255, 255, 0.1);
+  --chart-text: #{$dark-text-secondary};
+}
+
+// ============================================================================
+// DARK THEME COMPONENT OVERRIDES
+// ============================================================================
+
+[data-theme="dark"] {
+  // Improve readability with slight background tint
+  color-scheme: dark;
+  
+  // Scrollbar (dark mode)
+  ::-webkit-scrollbar-track {
+    background: $dark-background;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: lighten($dark-background-elevated, 15%);
+    
+    &:hover {
+      background: lighten($dark-background-elevated, 25%);
+    }
+  }
+  
+  // Code blocks (if any)
+  code,
+  pre {
+    background: lighten($dark-background, 3%);
+    color: $dark-text-primary;
+  }
+  
+  // Selection highlight
+  ::selection {
+    background: rgba($dark-primary, 0.3);
+    color: $dark-text-primary;
+  }
+  
+  // Skeleton loader (dark mode)
+  .skeleton-loader {
+    background: linear-gradient(
+      90deg,
+      $dark-background-elevated 0%,
+      lighten($dark-background-elevated, 5%) 50%,
+      $dark-background-elevated 100%
+    );
+  }
+  
+  // Focus rings (dark mode)
+  :focus-visible {
+    outline-color: $dark-primary;
+  }
+  
+  // Disabled states
+  [disabled],
+  .disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    color: $dark-text-disabled !important;
+  }
+  
+  // Reduce pure white for OLED screens (prevent burn-in)
+  h1, h2, h3, h4, h5, h6 {
+    color: rgba(255, 255, 255, 0.95);
+  }
+  
+  // Image dimming in dark mode (optional, can be enabled)
+  // img:not([data-no-dim]) {
+  //   opacity: 0.9;
+  // }
+}
+
+// ============================================================================
+// DARK MODE IMAGE ADJUSTMENTS (optional)
+// ============================================================================
+
+// Slightly dim bright images in dark mode to reduce eye strain
+[data-theme="dark"] {
+  img.auto-dim {
+    filter: brightness(0.9);
+    transition: filter 0.3s ease;
+    
+    &:hover {
+      filter: brightness(1);
+    }
+  }
+}

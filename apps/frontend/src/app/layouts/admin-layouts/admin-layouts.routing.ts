@@ -24,11 +24,13 @@ import { ScorecardComponent } from 'src/app/scorecard/scorecard.component';
 import { BannerComponent } from 'src/app/component/banner/banner.component';
 import { PrivacyPolicyComponent } from 'src/app/privacy-policy/privacy-policy.component';
 import { TermsOfServiceComponent } from 'src/app/terms-of-service/terms-of-service.component';
+import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
 
 
 export const AdminLayoutsRoute: Routes = [
   { path: 'Home', component: HomeComponent },
   { path: 'live-cricket-score', component: HomeComponent },
+  { path: 'matches', component: MatchesListComponent },
   { path: 'dashboard', component: DashboardComponent },
   { path: 'add-service', component: AddServiceComponent },
   { path: 'football', component: ServiceListComponent },

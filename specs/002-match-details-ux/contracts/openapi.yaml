@@ -1,0 +1,297 @@
+openapi: 3.0.3
+info:
+  title: Match Details API (Feature 002)
+  version: 0.1.0
+  description: Contracts supporting match details UI/UX redesign (snapshot, commentary, scorecard, lineups, info)
+servers:
+  - url: https://api.victoryline.example.com/api/v1
+x-websocket-topics:
+  # Preliminary WebSocket topic conventions (to be confirmed in integration)
+  # These are non-normative OpenAPI vendor extensions documenting push channels.
+  - name: match-snapshot
+    topic: "/topic/cricket.match.{matchId}.snapshot"
+    payload: "ScoreSnapshotResponse.data"
+    notes: "Confirm exact topic naming with backend; environment.ws.brokerURL from Angular used via RxStompService."
+  - name: match-commentary
+    topic: "/topic/cricket.match.{matchId}.commentary"
+    payload: "CommentaryPageResponse.data.entries[*]"
+    notes: "Latest ball events streamed; REST used for pagination/backfill."
+paths:
+  /matches/{matchId}/snapshot:
+    get:
+      summary: Get live snapshot for a match
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Snapshot retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScoreSnapshotResponse'
+        '404': { description: Match not found }
+  /matches/{matchId}/commentary:
+    get:
+      summary: Get commentary entries (paginated, latest-first)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string }
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: pageSize
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+      responses:
+        '200':
+          description: Commentary page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentaryPageResponse'
+        '404': { description: Match not found }
+  /matches/{matchId}/scorecard:
+    get:
+      summary: Get scorecard (innings, batting, bowling, fall of wickets)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Scorecard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScorecardResponse'
+        '404': { description: Match not found }
+  /matches/{matchId}/lineups:
+    get:
+      summary: Get team lineups with roles
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Lineups
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineupsResponse'
+        '404': { description: Match not found }
+  /matches/{matchId}/info:
+    get:
+      summary: Get match contextual info (venue, toss, officials, status)
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Match info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchInfoResponse'
+        '404': { description: Match not found }
+components:
+  schemas:
+    BaseResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+        error:
+          type: object
+          nullable: true
+          properties:
+            code: { type: string }
+            message: { type: string }
+            field: { type: string, nullable: true }
+        timestamp: { type: string, format: date-time }
+    ScoreSnapshotResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                matchId: { type: string }
+                battingTeamId: { type: string }
+                score: { type: string }
+                overs: { type: number }
+                currentRunRate: { type: number }
+                requiredRunRate: { type: number, nullable: true }
+                recentBalls:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      overBall: { type: string }
+                      outcome: { type: string }
+                      highlight: { type: string, enum: [NONE, BOUNDARY, SIX, WICKET] }
+                matchStatus: { type: string }
+                lastUpdated: { type: string, format: date-time }
+    CommentaryPageResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                matchId: { type: string }
+                page: { type: integer }
+                pageSize: { type: integer }
+                totalPages: { type: integer }
+                entries:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      inningsNumber: { type: integer }
+                      overBall: { type: string }
+                      text: { type: string }
+                      type: { type: string, enum: [BALL, OVER_SUMMARY, WICKET, BOUNDARY, INFO] }
+                      batsmanId: { type: string, nullable: true }
+                      bowlerId: { type: string, nullable: true }
+                      highlights:
+                        type: array
+                        items: { type: string }
+                      timestamp: { type: string, format: date-time }
+    ScorecardResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                matchId: { type: string }
+                innings:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      number: { type: integer }
+                      battingTeamId: { type: string }
+                      bowlingTeamId: { type: string }
+                      runs: { type: integer }
+                      wickets: { type: integer }
+                      overs: { type: number }
+                      extras:
+                        type: object
+                        properties:
+                          byes: { type: integer }
+                          legByes: { type: integer }
+                          wides: { type: integer }
+                          noBalls: { type: integer }
+                          penalties: { type: integer }
+                          total: { type: integer }
+                      fallOfWickets:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            score: { type: string }
+                            over: { type: number }
+                            playerOutName: { type: string }
+                      batting:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            playerId: { type: string }
+                            name: { type: string }
+                            runs: { type: integer }
+                            balls: { type: integer }
+                            fours: { type: integer }
+                            sixes: { type: integer }
+                            strikeRate: { type: number }
+                            dismissal: { type: string }
+                            isOut: { type: boolean }
+                      bowling:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            playerId: { type: string }
+                            name: { type: string }
+                            overs: { type: number }
+                            maidens: { type: integer }
+                            runs: { type: integer }
+                            wickets: { type: integer }
+                            economy: { type: number }
+    LineupsResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                matchId: { type: string }
+                teams:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      teamId: { type: string }
+                      name: { type: string }
+                      shortName: { type: string }
+                      players:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            playerId: { type: string }
+                            name: { type: string }
+                            role: { type: string, enum: [BATSMAN, BOWLER, ALL_ROUNDER, WICKET_KEEPER, UNKNOWN] }
+                            isPlayingXI: { type: boolean }
+    MatchInfoResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                matchId: { type: string }
+                format: { type: string }
+                status: { type: string }
+                series: { type: string }
+                startTime: { type: string, format: date-time }
+                venue:
+                  type: object
+                  properties:
+                    venueId: { type: string }
+                    name: { type: string }
+                    city: { type: string }
+                    country: { type: string }
+                    capacity: { type: integer, nullable: true }
+                toss:
+                  type: object
+                  properties:
+                    winnerTeamId: { type: string }
+                    decision: { type: string, enum: [BAT, FIELD] }
+                officials:
+                  type: object
+                  properties:
+                    umpire1: { type: string }
+                    umpire2: { type: string }
+                    thirdUmpire: { type: string, nullable: true }
+                    referee: { type: string, nullable: true }

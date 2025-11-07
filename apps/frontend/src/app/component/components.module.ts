@@ -8,7 +8,9 @@ import {MatFormFieldModule,
         MatInputModule,
         MatDividerModule,
         MatDialog,
-        MatDialogModule} from '@angular/material';
+        MatDialogModule,
+        MatIconModule,
+        MatTooltipModule} from '@angular/material';
 import { InjectableRxStompConfig, RxStompService, StompConfig, rxStompServiceFactory } from '@stomp/ng2-stompjs';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { LoaderInterceptor } from '../loader/loader.interceptor';
@@ -18,6 +20,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { HomeComponent } from '../home/home.component';
 import { MatchInfoComponent } from './match-info/match-info.component';
 import { BannerComponent } from './banner/banner.component';
+import { MobileNavComponent } from '../core/layout/mobile-nav/mobile-nav.component';
 
 const myRxStompConfig: InjectableRxStompConfig = {
   // added '/websocket' for spring boot SockJS
@@ -43,13 +46,16 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatButtonModule,
     MatInputModule,
     MatDividerModule,
+    MatIconModule,
+    MatTooltipModule,
   ],
   declarations: [
     SidebarComponent,
     NavbarComponent,
     LogoutFormComponent,
     MatchInfoComponent,
-    BannerComponent,
+  BannerComponent,
+  MobileNavComponent,
     
   ],
   entryComponents: [
@@ -60,7 +66,8 @@ const myRxStompConfig: InjectableRxStompConfig = {
     NavbarComponent,
     LogoutFormComponent,
     MatchInfoComponent,
-    BannerComponent
+  BannerComponent,
+  MobileNavComponent
   ],
 
   providers: [RxStompService,

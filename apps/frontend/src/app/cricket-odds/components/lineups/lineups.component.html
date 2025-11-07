@@ -1,0 +1,41 @@
+<div class="lineups-container" role="region" aria-label="Team lineups">
+  <!-- Role legend -->
+  <div class="role-legend" role="table" aria-label="Player role legend">
+    <div class="legend-title">Legend:</div>
+    <div class="legend-items">
+      <span class="legend-item role-batsman"><mat-icon>sports_cricket</mat-icon> Batsman</span>
+      <span class="legend-item role-bowler"><mat-icon>sports_baseball</mat-icon> Bowler</span>
+      <span class="legend-item role-all-rounder"><mat-icon>sports</mat-icon> All-Rounder</span>
+      <span class="legend-item role-wicket-keeper"><mat-icon>sports_handball</mat-icon> Wicket Keeper</span>
+    </div>
+  </div>
+
+  <!-- Teams -->
+  <div class="teams-grid" *ngIf="teams.length > 0">
+    <div *ngFor="let team of teams" class="team-card">
+      <h3 class="team-name">{{ team.name }}</h3>
+      
+      <ol class="players-list">
+        <li *ngFor="let player of team.players" 
+            [ngClass]="getRoleClass(player.role)"
+            class="player-item">
+          <mat-icon class="player-role-icon" [attr.aria-label]="getRoleLabel(player.role)">
+            {{ getRoleIcon(player.role) }}
+          </mat-icon>
+          <span class="player-name">{{ player.name }}</span>
+          <span class="player-role-label">{{ getRoleLabel(player.role) }}</span>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="loading-state" *ngIf="isLoading" role="status" aria-live="polite">
+    <p>Loading lineups...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="!isLoading && teams.length === 0">
+    <p>No lineup data available</p>
+  </div>
+</div>

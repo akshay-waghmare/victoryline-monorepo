@@ -1,0 +1,55 @@
+.staleness-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.staleness-icon {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* LIVE tier (<30s): green with subtle pulse (respects reduced motion) */
+.staleness-live {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.staleness-live .staleness-icon {
+  color: #10b981;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .staleness-live .staleness-icon {
+    animation: pulse-live 2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* WARNING tier (30-120s): amber */
+.staleness-warning {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.staleness-warning .staleness-icon {
+  color: #f59e0b;
+}
+
+/* ERROR tier (>120s): red */
+.staleness-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.staleness-error .staleness-icon {
+  color: #ef4444;
+}

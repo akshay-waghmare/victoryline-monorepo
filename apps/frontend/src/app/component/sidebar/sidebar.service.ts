@@ -5,7 +5,7 @@ import { BehaviorSubject } from 'rxjs';
   providedIn: 'root'
 })
 export class SidebarService {
-  private visibilitySource = new BehaviorSubject<boolean>(true);
+  private visibilitySource = new BehaviorSubject<boolean>(false); // Hidden by default
   visibility$ = this.visibilitySource.asObservable();
 
   toggleVisibility() {

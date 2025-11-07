@@ -1,171 +1,298 @@
 /* Global Styles */
 body {
   font-family: 'Arial', sans-serif;
-  background-color: #f4f4f4;
-  color: #333;
+  background-color: #f8fafc;
+  color: #1e293b;
   margin: 0;
   padding: 20px;
   line-height: 1.6;
 }
 
 .scorecard {
-  max-width: 900px;
+  max-width: 1000px;
   margin: 0 auto;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(to bottom right, #ffffff 0%, #f8fafc 100%);
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+  border: 2px solid #e2e8f0;
+  position: relative;
+}
+
+.scorecard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
 }
 
 /* Header Styles */
 .scorecard h1 {
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: #333;
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   text-align: center;
+  letter-spacing: 0.5px;
 }
 
 .scorecard .header {
   display: flex;
   align-items: center;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #eee;
-  padding-bottom: 10px;
+  margin-bottom: 24px;
+  border-bottom: 3px solid #e2e8f0;
+  padding-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.scorecard .header:hover {
+  border-bottom-color: #667eea;
 }
 
 .scorecard .header img {
-  width: 32px;
-  height: 32px;
-  margin-right: 15px;
+  width: 40px;
+  height: 40px;
+  margin-right: 16px;
   border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .scorecard .header .score {
-  font-size: 20px;
-  font-weight: 600;
-  color: #007bff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Batting Section */
 .scorecard .batting {
-  margin-top: 20px;
+  margin-top: 24px;
+  padding: 20px;
+  background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
 }
 
 .scorecard .batting h2 {
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 15px;
-  color: #333;
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scorecard .batting h2::before {
+  content: '🏏';
+  font-size: 1.5rem;
 }
 
 .scorecard table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 8px;
 }
 
 .scorecard table th, .scorecard table td {
-  padding: 12px;
+  padding: 14px 16px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .scorecard table th {
-  background-color: #f9f9f9;
-  font-weight: 600;
-  color: #555;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.scorecard table th:first-child {
+  border-top-left-radius: 8px;
+}
+
+.scorecard table th:last-child {
+  border-top-right-radius: 8px;
 }
 
 .scorecard table td {
-  font-size: 14px;
-  color: #666;
+  font-size: 0.9375rem;
+  color: #475569;
+  font-weight: 500;
+  background-color: #ffffff;
+}
+
+.scorecard table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.scorecard table tbody tr:hover {
+  background: linear-gradient(to right, #f8fafc 0%, #e0e7ff 100%);
+  transform: translateX(4px);
 }
 
 .scorecard table td i {
-  font-size: 18px;
-  color: #007bff;
+  font-size: 1.125rem;
+  color: #667eea;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.scorecard table td i:hover {
+  color: #764ba2;
+  transform: scale(1.2);
 }
 
 /* Extras Section */
 .scorecard .extras {
-  margin-top: 10px;
-  padding: 10px;
-  font-size: 14px;
-  background-color: #f1f1f1;
-  border-radius: 4px;
-  color: #555;
+  margin-top: 16px;
+  padding: 16px 20px;
+  font-size: 0.9375rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-radius: 8px;
+  color: #78350f;
+  font-weight: 600;
+  border-left: 5px solid #f59e0b;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
 }
 
 /* Partnership Section */
 .partnership {
-  max-width: 800px;
-  margin: 40px auto;
+  max-width: 900px;
+  margin: 48px auto;
+  padding: 24px;
+  background: linear-gradient(to bottom right, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 2px solid #e2e8f0;
 }
 
 .partnership h1 {
-  font-size: 24px;
-  font-weight: 600;
-  margin-bottom: 20px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 24px;
   text-align: center;
-  color: #333;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .partnership .players {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
+  padding: 16px;
+  background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
+  border-radius: 8px;
 }
 
 .partnership .players div {
-  font-size: 14px;
-  margin-bottom: 5px;
+  font-size: 0.9375rem;
+  margin-bottom: 8px;
   text-align: center;
+  font-weight: 600;
+  color: #475569;
 }
 
 .partnership .players .score {
-  font-weight: 600;
-  color: #28a745;
+  font-weight: 700;
+  font-size: 1.125rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .partnership .progress {
-  height: 6px;
-  background: #d3d3d3;
-  border-radius: 2px;
-  margin-top: 10px;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 20px;
+  margin-top: 16px;
   overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .partnership .progress .bar {
   height: 100%;
-  transition: width 0.3s ease-in-out;
+  transition: width 0.5s ease-in-out;
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.partnership .progress .bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(90deg, 
+    rgba(255,255,255,0) 0%, 
+    rgba(255,255,255,0.3) 50%, 
+    rgba(255,255,255,0) 100%);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
 .partnership .progress .bar.red {
-  background: #ff4500;
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
 }
 
 .partnership .progress .bar.green {
-  background: #28a745;
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .scorecard table th, .scorecard table td {
-    padding: 8px;
-    font-size: 12px;
+  .scorecard {
+    padding: 20px;
   }
 
-  .scorecard h1, .scorecard h2 {
-    font-size: 20px;
+  .scorecard table th, .scorecard table td {
+    padding: 10px 8px;
+    font-size: 0.8125rem;
+  }
+
+  .scorecard h1 {
+    font-size: 1.375rem;
+  }
+  
+  .scorecard .batting h2 {
+    font-size: 1.125rem;
   }
 
   .scorecard .header img {
-    width: 24px;
-    height: 24px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .partnership {
+    padding: 16px;
   }
 
   .partnership .players {
@@ -179,31 +306,37 @@ body {
   }
 
   .partnership .players .score {
-    font-size: 12px;
-    color: #28a745;
+    font-size: 1rem;
   }
-}
-
-/* Add hover effects to table rows */
-.scorecard table tbody tr:hover {
-  background-color: #f1f1f1;
-}
-
-.scorecard table tbody tr td {
-  transition: background-color 0.3s ease;
 }
 
 /* Target "1st Wicket" and similar words */
 .partnership .wicket {
-  font-size: 06px; /* Reduce font size */
-  font-weight: normal; /* Optional: Make the font weight lighter */
-  color: #555; /* Optional: Slightly lighter color */
-  text-transform: capitalize; /* Keep the first letter capitalized */
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 12px;
+  display: inline-block;
 }
 
 /* For larger devices */
 @media (min-width: 768px) {
   .partnership .wicket {
-    font-size: 12px; /* Adjust to a smaller size for larger screens */
+    font-size: 0.8125rem;
+  }
+}
+
+/* Add reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .scorecard table tbody tr,
+  .scorecard table td i,
+  .partnership .progress .bar,
+  .partnership .progress .bar::after {
+    transition: none !important;
+    animation: none !important;
   }
 }

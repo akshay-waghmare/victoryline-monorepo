@@ -1,75 +1,63 @@
-import { HttpHeaders } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
-import { namespaceHTML } from '@angular/core/src/render3';
-import { MatDialog } from '@angular/material';
-import { Router } from '@angular/router';
-import { AuthService } from 'src/app/auth.service';
-import { LogoutFormComponent } from 'src/app/logout-form/logout-form.component';
-import { TokenStorage } from 'src/app/token.storage';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil, filter } from 'rxjs/operators';
+import { ThemeService } from '../../core/services/theme.service';
+import { ThemeMode } from '../../core/models/theme.models';
+import { MobileNavLink } from '../../core/layout/mobile-nav/mobile-nav.component';
 
 @Component({
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
   styleUrls: ['./navbar.component.css']
 })
-export class NavbarComponent implements OnInit {
-  user: any;
-  showNavBar: boolean = false; // Controls the visibility of the navbar
-  //inject AuthService 
+export class NavbarComponent implements OnInit, OnDestroy {
+  isDarkTheme = false;
+  isMobileMenuOpen = false;
+  activeRoute = '';
+  logoFilter = 'brightness(0) saturate(100%)';
+  private destroy$ = new Subject<void>();
+  readonly navLinks: MobileNavLink[] = [
+    { label: 'Home', icon: 'home', route: '/', exact: true },
+    { label: 'Matches', icon: 'sports_cricket', route: '/matches' },
+    { label: 'Players', icon: 'person', route: '/players' },
+    { label: 'Teams', icon: 'groups', route: '/teams' }
+  ];
+  
+  constructor(private themeService: ThemeService, private router: Router) {}
+  
+  ngOnInit(): void {
+    this.applyTheme(this.themeService.getCurrentTheme());
 
-  constructor(private router: Router, public dialog: MatDialog, private authService: AuthService, private tokenStorage: TokenStorage) { }
-
-  ngOnInit() {
-    const userString = this.tokenStorage.getUser();
-    if (userString) {
-      this.user = JSON.parse(userString);
-      if (this.user && this.user.sub) {
-        this.getUserData(this.user.sub);
-      }
-    }
-
-    // Show the navbar when user data is loaded
-    //this.showNavBar = true;
-
-    this.authService.userUpdates.subscribe((updatedUserDetails) => {
-      if (updatedUserDetails) {
-        console.log("on update ", updatedUserDetails);
-        this.user = updatedUserDetails;
-      }
+    this.themeService.currentTheme$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(theme => this.applyTheme(theme));
+    this.router.events.pipe(filter(event => event instanceof NavigationEnd), takeUntil(this.destroy$)).subscribe((event: NavigationEnd) => {
+      this.activeRoute = event.urlAfterRedirects;
     });
+    this.activeRoute = this.router.url;
+  }
+  
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+  
+  toggleTheme(): void { this.themeService.toggleTheme(); }
+  get themeIcon(): string { return this.isDarkTheme ? 'brightness_3' : 'wb_sunny'; }
+  get themeTooltip(): string { return this.isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'; }
+  toggleMobileMenu(): void { this.isMobileMenuOpen = !this.isMobileMenuOpen; }
+  closeMobileMenu(): void { this.isMobileMenuOpen = false; }
+  navigateTo(route: string): void { this.router.navigate([route]); this.closeMobileMenu(); }
+  handleMobileNavigate(route: string): void { this.navigateTo(route); }
+  isRouteActive(route: string, exact: boolean = false): boolean {
+    return exact ? this.activeRoute === route : this.activeRoute.startsWith(route);
   }
 
-  getUserData(userName: string): void {
-    this.authService.getUserByName(userName).subscribe(data => {
-      this.user = data;
-      console.log(data);
-      this.authService.updateUserDetails(data);
-    }, error => console.log(error));
-  }
-
-  openLogoutDialog(): void {
-    const dialogRef = this.dialog.open(LogoutFormComponent, {
-      width: '300px',
-    });
-
-    dialogRef.afterClosed().subscribe(result => {
-      if (result) {
-        this.logout();
-      }
-    });
-
-  }
-
-  logout(): void {
-    // Your logout logic here
-    console.log('User logged out');
-  }
-
-  navigateToBetHistory(): void {
-    this.router.navigate(['/account/bet-history']);
-  }
-
-  navigateToProfitLoss():void {
-    this.router.navigate(['/account/profit-loss']);
+  private applyTheme(theme: ThemeMode): void {
+    this.isDarkTheme = theme === 'dark';
+    this.logoFilter = this.isDarkTheme
+      ? 'none'
+      : 'brightness(0) saturate(100%)';
   }
 }

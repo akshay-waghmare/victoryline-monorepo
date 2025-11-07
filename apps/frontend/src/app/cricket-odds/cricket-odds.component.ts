@@ -86,7 +86,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   matchInfo: any;
   scorecardData: any;
 
-  last6Balls: { score: number }[] = [{ score: 0 }, { score: 0 }, { score: 0 }, { score: 0 }, { score: 0 }, { score: 0 }]; // Example: Array to store last 6 ball scores.
+  last6Balls: { score: any }[] = []; // Initialize empty array, will be populated from API data
   cricetTopicSubscription: any;
   cricObj: any;
 
@@ -110,6 +110,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   // Property to hold the match URL
   currentUrl: string;
+  
+  // 002-match-details-ux: Match ID for new components (T039+)
+  matchId: string | null = null;
+  currentMatch: any = null; // Hold full match object if available
 
 
 
@@ -157,6 +161,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   }
   ngOnInit(): void {
     this.currentUrl = this.activatedRoute.snapshot.queryParamMap.get('url') || this.activatedRoute.snapshot.params['url'];
+    
+    // 002-match-details-ux: Extract matchId from URL or route params
+    this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId') 
+                || this.activatedRoute.snapshot.params['matchId']
+                || this.extractMatchIdFromUrl(this.currentUrl);
 
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -244,62 +253,62 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricObj.batsman_data !== undefined && Array.isArray(this.cricObj.batsman_data)) {
         const batsmanData = this.cricObj.batsman_data;
   
-        // Initialize arrays to store batsman and bowler data
-        this.batsmanDataList = [];
+        // Create a temporary array to build the new data
+        const tempBatsmanList = [];
   
         // Iterate through the batsman_data array
-        if (this.cricObj.batsman_data && Array.isArray(this.cricObj.batsman_data)) {
-          const batsmanData = this.cricObj.batsman_data;
-    
-          this.batsmanDataList = [];
-    
-          batsmanData.forEach(playerInfo => {
-            if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
-              const strikeRate = (playerInfo.score / playerInfo.ballsFaced) * 100; // Strike rate calculation
-                this.batsmanDataList.push({
-                    name: playerInfo.name,
-                    score: playerInfo.score,
-                    ballsFaced: playerInfo.ballsFaced,
-                    fours: playerInfo.fours,
-                    sixes: playerInfo.sixes,
-                    strikeRate: strikeRate.toFixed(2),
-                    onStrike: playerInfo.onStrike
-                });
-            }
+        batsmanData.forEach(playerInfo => {
+          if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
+            const strikeRate = (playerInfo.score / playerInfo.ballsFaced) * 100; // Strike rate calculation
+            tempBatsmanList.push({
+              name: playerInfo.name,
+              score: playerInfo.score,
+              ballsFaced: playerInfo.ballsFaced,
+              fours: playerInfo.fours,
+              sixes: playerInfo.sixes,
+              strikeRate: strikeRate.toFixed(2),
+              onStrike: playerInfo.onStrike
+            });
+          }
         });
-    
-          console.log("Parsed Batsman Data List:", this.batsmanDataList);
+        
+        // Only update if we have data to prevent flickering
+        if (tempBatsmanList.length > 0) {
+          this.batsmanDataList = tempBatsmanList;
         }
-
-  
-        // Log the batsman and bowler data for debugging
-        console.log("Parsed Bowler Data List:", this.bowlerDataList);
+    
+        console.log("Parsed Batsman Data List:", this.batsmanDataList);
       }
 
       if (this.cricObj.bowler_data !== undefined && Array.isArray(this.cricObj.bowler_data)) {
         const bowlerData = this.cricObj.bowler_data;
 
-        this.bowlerDataList = [];
+        // Create a temporary array to build the new data
+        const tempBowlerList = [];
   
-        // Initialize arrays to store batsman and bowler data
+        // Iterate through the bowler_data array
         bowlerData.forEach(playerInfo => {
           if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
-
-              const ballsBowled = playerInfo.ballsBowled;
-              const oversBowled = Math.floor(ballsBowled / 6); // Full overs
-              const ballsInCurrentOver = ballsBowled % 6; // Remaining balls in current over
-              const oversDisplay = `${oversBowled}.${ballsInCurrentOver}`; // Display as 'x.y' where y is the number of balls
-              const economyRate = playerInfo.score / oversBowled; // Economy rate calculation
-              this.bowlerDataList.push({
-                  name: playerInfo.name,
-                  score: playerInfo.score,
-                  ballsBowled: oversDisplay,
-                  economyRate: economyRate.toFixed(2),
-                  wicketsTaken:playerInfo.wicketsTaken,
-                  dotBalls:playerInfo.dotBalls
-              });
+            const ballsBowled = playerInfo.ballsBowled;
+            const oversBowled = Math.floor(ballsBowled / 6); // Full overs
+            const ballsInCurrentOver = ballsBowled % 6; // Remaining balls in current over
+            const oversDisplay = `${oversBowled}.${ballsInCurrentOver}`; // Display as 'x.y' where y is the number of balls
+            const economyRate = oversBowled > 0 ? playerInfo.score / oversBowled : 0; // Economy rate calculation
+            tempBowlerList.push({
+              name: playerInfo.name,
+              score: playerInfo.score,
+              ballsBowled: oversDisplay,
+              economyRate: economyRate.toFixed(2),
+              wicketsTaken: playerInfo.wicketsTaken,
+              dotBalls: playerInfo.dotBalls
+            });
           }
-      })
+        });
+        
+        // Only update if we have data to prevent flickering
+        if (tempBowlerList.length > 0) {
+          this.bowlerDataList = tempBowlerList;
+        }
         
         console.log("Parsed Bowler Data List:", this.bowlerDataList);
       }
@@ -415,14 +424,52 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       //check and handle the "overs_data" field
       if (this.cricObj.overs_data !== undefined && this.cricObj.overs_data !== null) {
         const oversDataValue = this.cricObj.overs_data;
-        const thisOverData = this.cricObj.overs_data.find(over => over.overNumber === "This Over:");
-        if (thisOverData !== undefined) {
-          // Prepare the last6Balls array with the data for "This Over"
-          this.last6Balls = thisOverData.balls.map(ball => {
-            return { score: ball.trim() }; // Adjust if your structure requires more than just the score
-          }).filter(ball => ball.score !== "");
+        console.log("Full Overs Data:", oversDataValue);
+        
+        // Try to find "This Over:" first
+        let thisOverData = this.cricObj.overs_data.find(over => over.overNumber === "This Over:");
+        
+        // If not found, try the last over in the array
+        if (!thisOverData && Array.isArray(this.cricObj.overs_data) && this.cricObj.overs_data.length > 0) {
+          thisOverData = this.cricObj.overs_data[this.cricObj.overs_data.length - 1];
+          console.log("Using last over data:", thisOverData);
         }
-        console.log("Overs Data:", oversDataValue);
+        
+        if (thisOverData !== undefined && thisOverData.balls) {
+          console.log("Processing balls:", thisOverData.balls);
+          // Prepare the last6Balls array with the data
+          const tempBalls = thisOverData.balls.map(ball => {
+            // Handle different ball formats (string or object)
+            const ballValue = typeof ball === 'string' ? ball.trim() : (ball.score || ball.runs || ball.toString());
+            return { score: ballValue };
+          }).filter(ball => ball.score !== "" && ball.score !== null && ball.score !== undefined);
+          
+          console.log("Processed temp balls:", tempBalls);
+          
+          // Only update if we have valid ball data
+          if (tempBalls.length > 0) {
+            this.last6Balls = tempBalls;
+            console.log("Updated last6Balls:", this.last6Balls);
+          } else {
+            console.log("No valid ball data found after processing");
+          }
+        } else {
+          console.log("No thisOverData or balls found");
+        }
+      } else {
+        console.log("No overs_data available");
+      }
+
+      // Fallback: derive last 6 balls from runs_on_ball stream if still empty
+      if (this.last6Balls.length === 0 && this.cricObj.runs_on_ball) {
+        const raw = String(this.cricObj.runs_on_ball).trim();
+        // Tokenize by space or comma
+        const tokens = raw.split(/[,\s]+/).filter(t => t.length > 0);
+        const lastSix = tokens.slice(-6).map(t => ({ score: t }));
+        if (lastSix.length > 0) {
+          this.last6Balls = lastSix;
+          console.log("Fallback last6Balls from runs_on_ball:", this.last6Balls);
+        }
       }
 
       // Check and handle the "runs_on_ball" field
@@ -813,6 +860,15 @@ onTabChange(event: MatTabChangeEvent) {
 
       this.fetchScorecardInfo(this.matchUrl);
     });
+  } else if (event.index === 3) { // Lineups tab is selected (002-match-details-ux)
+    // Load match info if not already loaded (needed for playing XI data)
+    if (!this.matchInfo) {
+      this.activatedRoute.params.subscribe(params => {
+        const match = params['path'];
+        this.matchUrl = match;
+        this.fetchMatchInfo(this.matchUrl);
+      });
+    }
   }
 }
 
@@ -991,5 +1047,28 @@ placeSessionBet() {
     }
   });
 }
+
+  // 002-match-details-ux: Helper to extract matchId from URL
+  private extractMatchIdFromUrl(url: string): string | null {
+    if (!url) return null;
+    
+    // Try to extract match ID from various URL patterns
+    // Example patterns: /match/12345, ?matchId=12345, /cricket-odds/12345
+    const patterns = [
+      /\/match\/([^\/\?]+)/,
+      /matchId=([^&]+)/,
+      /\/cricket-odds\/([^\/\?]+)/,
+      /\/(\d+)$/  // numeric ID at end
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    
+    return null;
+  }
 
 }

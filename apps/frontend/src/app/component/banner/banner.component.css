@@ -14,6 +14,8 @@
 
     position: fixed; /* Fix the banner to the screen */
     bottom: 20px; /* Distance from the bottom of the screen */
+    /* iOS Safe Area Support for bottom notch/home indicator */
+    bottom: calc(20px + env(safe-area-inset-bottom));
     left: 50%; /* Center horizontally */
     transform: translateX(-50%); /* Adjust horizontal centering */
     z-index: 1000; /* Ensure it stays on top of other elements */

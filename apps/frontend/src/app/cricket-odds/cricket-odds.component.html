@@ -1,9 +1,22 @@
 <div class="courses-panel" style="margin-top: 170px;">
   <mat-card>
-    <mat-card-header class="mat-card-header-danger">
-      <mat-card-title>LIVE</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
+    <!-- ARIA landmark: header region for snapshot (T009) -->
+    <header role="banner" aria-label="Match snapshot header">
+      <mat-card-header class="mat-card-header-danger">
+        <mat-card-title>LIVE</mat-card-title>
+      </mat-card-header>
+      
+      <!-- 002-match-details-ux: Snapshot Header Component (T016-T020) -->
+      <!-- NOTE: Using existing cricket-odds data until WebSocket/API integration complete -->
+      <!-- <app-snapshot-header 
+        *ngIf="matchId"
+        [matchId]="matchId">
+      </app-snapshot-header> -->
+    </header>
+
+    <!-- Main content area (T009) -->
+    <main role="main" aria-label="Match details content">
+      <mat-card-content>
        
       <mat-tab-group (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
@@ -57,6 +70,19 @@
                   </div>
                 </div>
         
+                <!-- Last 6 Balls -->
+                <div class="last-6-balls-container" *ngIf="last6Balls && last6Balls.length > 0">
+                  <div class="balls-header">
+                    <mat-icon class="balls-icon">sports_cricket</mat-icon>
+                    <h3>Last 6 Balls</h3>
+                  </div>
+                  <div class="last-6-balls">
+                    <div class="ball" *ngFor="let ball of last6Balls">
+                      <div class="ball-score">{{ ball.score }}</div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Overall Win/Loss Summary -->
                 <div class="overall-win-loss" *ngIf="userBets.length > 0">
                   <div class="overall-item">
@@ -196,16 +222,13 @@
                   </div>
                 </div>
         
-                <!-- Last 6 Balls -->
-                <div class="last-6-balls">
-                  <div class="ball" *ngFor="let ball of last6Balls">
-                    <div class="ball-score">{{ ball.score }}</div>
-                  </div>
-                </div>
-    
                 <div class="stats-container">
                   <!-- Batsman Stats -->
                   <div class="batsman-stats" *ngIf="batsmanDataList.length > 0">
+                    <div class="stats-header">
+                      <mat-icon class="stats-icon">sports_cricket</mat-icon>
+                      <h3>Current Batsmen</h3>
+                    </div>
                     <table class="stats-table">
                       <thead>
                         <tr>
@@ -219,14 +242,15 @@
                       </thead>
                       <tbody>
                         <tr *ngFor="let batsman of batsmanDataList">
-                          <td>{{ batsman.name }}  
-                            <span *ngIf="batsman.onStrike" class="material-icons">sports_cricket</span> <!-- Cricket bat icon -->
+                          <td class="player-name">
+                            {{ batsman.name }}  
+                            <mat-icon *ngIf="batsman.onStrike" class="on-strike-icon">sports_cricket</mat-icon>
                           </td>
-                          <td>{{ batsman.score }}</td>
-                          <td>{{ batsman.ballsFaced }}</td>
-                          <td>{{ batsman.fours }}</td>
-                          <td>{{ batsman.sixes }}</td>
-                          <td>{{ batsman.strikeRate }}</td>
+                          <td class="stat-value">{{ batsman.score }}</td>
+                          <td class="stat-value">{{ batsman.ballsFaced }}</td>
+                          <td class="stat-value">{{ batsman.fours }}</td>
+                          <td class="stat-value">{{ batsman.sixes }}</td>
+                          <td class="stat-value highlight-sr">{{ batsman.strikeRate }}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -234,6 +258,10 @@
                 
                   <!-- Bowler Stats -->
                   <div class="bowler-stats" *ngIf="bowlerDataList.length > 0">
+                    <div class="stats-header">
+                      <mat-icon class="stats-icon">sports_baseball</mat-icon>
+                      <h3>Current Bowler</h3>
+                    </div>
                     <table class="stats-table">
                       <thead>
                         <tr>
@@ -247,12 +275,12 @@
                       </thead>
                       <tbody>
                         <tr *ngFor="let bowler of bowlerDataList">
-                          <td>{{ bowler.name }}</td>
-                          <td>{{ bowler.ballsBowled }}</td>
-                          <td>{{ bowler.score }}</td>
-                          <td>{{ bowler.wicketsTaken }}</td>
-                          <td>{{ bowler.dotBalls }}</td>
-                          <td>{{ bowler.economyRate }}</td>
+                          <td class="player-name">{{ bowler.name }}</td>
+                          <td class="stat-value">{{ bowler.ballsBowled }}</td>
+                          <td class="stat-value">{{ bowler.score }}</td>
+                          <td class="stat-value highlight-wickets">{{ bowler.wicketsTaken }}</td>
+                          <td class="stat-value">{{ bowler.dotBalls }}</td>
+                          <td class="stat-value highlight-eco">{{ bowler.economyRate }}</td>
                         </tr>
                       </tbody>
                     </table>
@@ -289,6 +317,13 @@
 
         <!-- Second Tab: Match Info -->
         <mat-tab label="Match Info">
+          <!-- 002-match-details-ux: Enhanced Match Info Display -->
+          <app-match-details-info 
+            *ngIf="matchInfo"
+            [matchInfo]="matchInfo">
+          </app-match-details-info>
+          
+          <!-- Existing detailed match info (team comparison, venue stats, etc.) -->
           <div class="match-info-container" *ngIf="matchInfo">
             <!-- Match Overview Section -->
             <section class="match-overview">
@@ -483,18 +518,31 @@
 
         <!-- Third Tab: Scorecard -->
         <mat-tab label="Scorecard">
-          <!-- Scorecard Content -->
-          <!-- Implement your scorecard content here -->
+          <!-- Use existing scorecard component (already working) -->
           <div *ngIf="scorecardData">
-            <!-- Display scorecard data -->
-             <app-scorecard [scorecardInfo]="scorecardData"></app-scorecard>
+            <app-scorecard [scorecardInfo]="scorecardData"></app-scorecard>
           </div>
+          
+          <!-- Loading state -->
           <div *ngIf="!scorecardData">
             <p>Loading scorecard...</p>
+          </div>
+        </mat-tab>
+        
+        <!-- Fourth Tab: Lineups (NEW - T032-T035) -->
+        <mat-tab label="Lineups">
+          <app-lineups
+            *ngIf="matchInfo && matchInfo.playing_xi"
+            [playingXIData]="matchInfo">
+          </app-lineups>
+          
+          <div *ngIf="!matchInfo || !matchInfo.playing_xi">
+            <p>Loading lineups...</p>
           </div>
         </mat-tab>
       </mat-tab-group>
 
     </mat-card-content>
+    </main> <!-- End main role -->
   </mat-card>
 </div>
