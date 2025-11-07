@@ -70,6 +70,19 @@
                   </div>
                 </div>
         
+                <!-- Last 6 Balls -->
+                <div class="last-6-balls-container" *ngIf="last6Balls && last6Balls.length > 0">
+                  <div class="balls-header">
+                    <mat-icon class="balls-icon">sports_cricket</mat-icon>
+                    <h3>Last 6 Balls</h3>
+                  </div>
+                  <div class="last-6-balls">
+                    <div class="ball" *ngFor="let ball of last6Balls">
+                      <div class="ball-score">{{ ball.score }}</div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Overall Win/Loss Summary -->
                 <div class="overall-win-loss" *ngIf="userBets.length > 0">
                   <div class="overall-item">
@@ -209,19 +222,6 @@
                   </div>
                 </div>
         
-                <!-- Last 6 Balls -->
-                <div class="last-6-balls-container">
-                  <div class="balls-header">
-                    <mat-icon class="balls-icon">sports_cricket</mat-icon>
-                    <h3>Last 6 Balls</h3>
-                  </div>
-                  <div class="last-6-balls">
-                    <div class="ball" *ngFor="let ball of last6Balls">
-                      <div class="ball-score">{{ ball.score }}</div>
-                    </div>
-                  </div>
-                </div>
-    
                 <div class="stats-container">
                   <!-- Batsman Stats -->
                   <div class="batsman-stats" *ngIf="batsmanDataList.length > 0">

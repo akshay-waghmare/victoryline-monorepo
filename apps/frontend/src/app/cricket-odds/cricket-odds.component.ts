@@ -425,13 +425,21 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricObj.overs_data !== undefined && this.cricObj.overs_data !== null) {
         const oversDataValue = this.cricObj.overs_data;
         const thisOverData = this.cricObj.overs_data.find(over => over.overNumber === "This Over:");
-        if (thisOverData !== undefined) {
+        if (thisOverData !== undefined && thisOverData.balls) {
           // Prepare the last6Balls array with the data for "This Over"
-          this.last6Balls = thisOverData.balls.map(ball => {
-            return { score: ball.trim() }; // Adjust if your structure requires more than just the score
-          }).filter(ball => ball.score !== "");
+          const tempBalls = thisOverData.balls.map(ball => {
+            // Handle different ball formats (string or object)
+            const ballValue = typeof ball === 'string' ? ball.trim() : (ball.score || ball.runs || '0');
+            return { score: ballValue };
+          }).filter(ball => ball.score !== "" && ball.score !== null && ball.score !== undefined);
+          
+          // Only update if we have valid ball data
+          if (tempBalls.length > 0) {
+            this.last6Balls = tempBalls;
+          }
         }
         console.log("Overs Data:", oversDataValue);
+        console.log("Last 6 Balls:", this.last6Balls);
       }
 
       // Check and handle the "runs_on_ball" field
