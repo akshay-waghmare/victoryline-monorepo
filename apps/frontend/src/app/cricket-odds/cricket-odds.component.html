@@ -5,6 +5,12 @@
       <mat-card-header class="mat-card-header-danger">
         <mat-card-title>LIVE</mat-card-title>
       </mat-card-header>
+      
+      <!-- 002-match-details-ux: Snapshot Header Component (T016-T020) -->
+      <app-snapshot-header 
+        *ngIf="matchId"
+        [matchId]="matchId">
+      </app-snapshot-header>
     </header>
 
     <!-- Main content area (T009) -->
@@ -295,6 +301,14 @@
 
         <!-- Second Tab: Match Info -->
         <mat-tab label="Match Info">
+          <!-- 002-match-details-ux: New MatchInfo Component (T036-T038) -->
+          <app-match-details-info 
+            *ngIf="matchId"
+            [matchId]="matchId"
+            [matchInfo]="matchInfo">
+          </app-match-details-info>
+          
+          <!-- Existing detailed match info (team comparison, venue stats, etc.) -->
           <div class="match-info-container" *ngIf="matchInfo">
             <!-- Match Overview Section -->
             <section class="match-overview">
@@ -489,14 +503,32 @@
 
         <!-- Third Tab: Scorecard -->
         <mat-tab label="Scorecard">
-          <!-- Scorecard Content -->
-          <!-- Implement your scorecard content here -->
-          <div *ngIf="scorecardData">
-            <!-- Display scorecard data -->
-             <app-scorecard [scorecardInfo]="scorecardData"></app-scorecard>
+          <!-- 002-match-details-ux: New Scorecard Component (T027-T031) -->
+          <app-match-scorecard 
+            *ngIf="matchId"
+            [matchId]="matchId"
+            [scorecardInfo]="scorecardData">
+          </app-match-scorecard>
+          
+          <!-- Fallback to existing scorecard component -->
+          <div *ngIf="scorecardData && !matchId">
+            <app-scorecard [scorecardInfo]="scorecardData"></app-scorecard>
           </div>
-          <div *ngIf="!scorecardData">
+          <div *ngIf="!scorecardData && !matchId">
             <p>Loading scorecard...</p>
+          </div>
+        </mat-tab>
+        
+        <!-- Fourth Tab: Lineups (NEW - T032-T035) -->
+        <mat-tab label="Lineups">
+          <app-lineups
+            *ngIf="matchId"
+            [matchId]="matchId"
+            [playingXIData]="matchInfo">
+          </app-lineups>
+          
+          <div *ngIf="!matchId">
+            <p>Loading lineups...</p>
           </div>
         </mat-tab>
       </mat-tab-group>

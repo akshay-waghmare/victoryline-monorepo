@@ -44,7 +44,7 @@ export class LineupsComponent implements OnInit {
   }
 
   private mapRole(roleStr: string): PlayerRole {
-    const normalized = roleStr?.toUpperCase() || '';
+    const normalized = (roleStr && roleStr.toUpperCase()) || '';
     if (normalized.includes('BAT')) return PlayerRole.BATSMAN;
     if (normalized.includes('BOWL')) return PlayerRole.BOWLER;
     if (normalized.includes('ALL') || normalized.includes('ROUND')) return PlayerRole.ALL_ROUNDER;

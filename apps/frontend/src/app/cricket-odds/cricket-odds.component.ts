@@ -110,6 +110,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   // Property to hold the match URL
   currentUrl: string;
+  
+  // 002-match-details-ux: Match ID for new components (T039+)
+  matchId: string | null = null;
+  currentMatch: any = null; // Hold full match object if available
 
 
 
@@ -157,6 +161,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   }
   ngOnInit(): void {
     this.currentUrl = this.activatedRoute.snapshot.queryParamMap.get('url') || this.activatedRoute.snapshot.params['url'];
+    
+    // 002-match-details-ux: Extract matchId from URL or route params
+    this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId') 
+                || this.activatedRoute.snapshot.params['matchId']
+                || this.extractMatchIdFromUrl(this.currentUrl);
 
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -991,5 +1000,28 @@ placeSessionBet() {
     }
   });
 }
+
+  // 002-match-details-ux: Helper to extract matchId from URL
+  private extractMatchIdFromUrl(url: string): string | null {
+    if (!url) return null;
+    
+    // Try to extract match ID from various URL patterns
+    // Example patterns: /match/12345, ?matchId=12345, /cricket-odds/12345
+    const patterns = [
+      /\/match\/([^\/\?]+)/,
+      /matchId=([^&]+)/,
+      /\/cricket-odds\/([^\/\?]+)/,
+      /\/(\d+)$/  // numeric ID at end
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    
+    return null;
+  }
 
 }

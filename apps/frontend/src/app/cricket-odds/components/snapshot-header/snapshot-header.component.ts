@@ -40,42 +40,44 @@ export class SnapshotHeaderComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.snapshotSub?.unsubscribe();
+    if (this.snapshotSub) {
+      this.snapshotSub.unsubscribe();
+    }
     this.liveFacade.dispose();
   }
 
   get teamScore(): string {
-    return this.snapshot?.score || '-/-';
+    return (this.snapshot && this.snapshot.score) || '-/-';
   }
 
   get overs(): string {
-    return this.snapshot?.overs ? this.snapshot.overs.toFixed(1) : '0.0';
+    return (this.snapshot && this.snapshot.overs) ? this.snapshot.overs.toFixed(1) : '0.0';
   }
 
   get crr(): string {
-    return this.snapshot?.currentRunRate ? this.snapshot.currentRunRate.toFixed(2) : '0.00';
+    return (this.snapshot && this.snapshot.currentRunRate) ? this.snapshot.currentRunRate.toFixed(2) : '0.00';
   }
 
   get rrr(): string | null {
-    return this.snapshot?.requiredRunRate !== undefined && this.snapshot.requiredRunRate !== null
+    return (this.snapshot && this.snapshot.requiredRunRate !== undefined && this.snapshot.requiredRunRate !== null)
       ? this.snapshot.requiredRunRate.toFixed(2)
       : null;
   }
 
   get matchStatus(): string {
-    return this.snapshot?.matchStatus || 'Unknown';
+    return (this.snapshot && this.snapshot.matchStatus) || 'Unknown';
   }
 
   get recentBalls() {
-    return this.snapshot?.recentBalls || [];
+    return (this.snapshot && this.snapshot.recentBalls) || [];
   }
 
   get lastUpdated(): string | undefined {
-    return this.snapshot?.lastUpdated;
+    return this.snapshot && this.snapshot.lastUpdated;
   }
 
   getBallClass(ball: any): string {
-    const outcome = ball.outcome?.toString().toUpperCase();
+    const outcome = (ball.outcome && ball.outcome.toString().toUpperCase()) || '';
     if (ball.highlight === 'WICKET' || outcome === 'W') {
       return 'ball-wicket';
     } else if (ball.highlight === 'SIX' || outcome === '6') {

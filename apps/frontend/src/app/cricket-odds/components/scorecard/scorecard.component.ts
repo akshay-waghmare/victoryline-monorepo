@@ -3,7 +3,7 @@ import { MatchApiService } from '../../match-api.service';
 import { Innings } from '../../../shared/models/match.models';
 
 @Component({
-  selector: 'app-scorecard',
+  selector: 'app-match-scorecard',
   templateUrl: './scorecard.component.html',
   styleUrls: ['./scorecard.component.css']
 })

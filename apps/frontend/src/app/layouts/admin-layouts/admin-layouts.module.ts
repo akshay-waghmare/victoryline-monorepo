@@ -69,6 +69,15 @@ import { SkeletonCardComponent } from 'src/app/shared/components/skeleton-card/s
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
 import { TabNavComponent } from 'src/app/shared/components/tab-nav/tab-nav.component';
 
+// 002-match-details-ux: Shared components
+import { StalenessIndicatorComponent } from 'src/app/shared/components/staleness-indicator/staleness-indicator.component';
+
+// 002-match-details-ux: Cricket odds feature components
+import { SnapshotHeaderComponent } from 'src/app/cricket-odds/components/snapshot-header/snapshot-header.component';
+import { ScorecardComponent as MatchDetailsScorecardComponent } from 'src/app/cricket-odds/components/scorecard/scorecard.component';
+import { LineupsComponent } from 'src/app/cricket-odds/components/lineups/lineups.component';
+import { MatchDetailsInfoComponent } from 'src/app/cricket-odds/components/match-info/match-info.component';
+
 
 
 const myRxStompConfig: InjectableRxStompConfig = {
@@ -148,6 +157,13 @@ const myRxStompConfig: InjectableRxStompConfig = {
     SkeletonCardComponent,
     MatchesListComponent,
     TabNavComponent,
+    // 002-match-details-ux: Shared components
+    StalenessIndicatorComponent,
+    // 002-match-details-ux: Cricket odds feature components
+    SnapshotHeaderComponent,
+    MatchDetailsScorecardComponent,
+    LineupsComponent,
+    MatchDetailsInfoComponent,
     
   ],
   providers: [
