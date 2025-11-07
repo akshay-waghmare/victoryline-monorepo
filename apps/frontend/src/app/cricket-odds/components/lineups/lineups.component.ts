@@ -35,13 +35,35 @@ export class LineupsComponent implements OnInit {
         shortName: teamName,
         players: this.playingXIData.playing_xi[teamName].map((p: any) => ({
           id: p.playerId || `player-${p.playerName}`,
-          name: p.playerName,
+          name: this.sanitizePlayerName(p.playerName),
           role: this.mapRole(p.playerRole),
           isPlayingXI: true
         }))
       }));
       console.log('[Lineups] Parsed teams:', this.teams);
     }
+  }
+
+  // Remove redundant role words appended to the player's name, since we show role separately
+  private sanitizePlayerName(name: string): string {
+    if (!name) return name;
+    let s = String(name).trim();
+    // Iteratively strip known role descriptors from the end
+    const patterns = [
+      /\s+(Batter|Batsman)\s*$/i,
+      /\s+(Bowler)\s*$/i,
+      /\s+(All\s*[- ]?Rounder)\s*$/i,
+      /\s+(Wicket\s*Keeper)\s*$/i
+    ];
+    let prev: string;
+    do {
+      prev = s;
+      for (var i = 0; i < patterns.length; i++) {
+        s = s.replace(patterns[i], '');
+      }
+      s = s.replace(/\s{2,}/g, ' ').trim();
+    } while (s !== prev);
+    return s;
   }
 
   private mapRole(roleStr: string): PlayerRole {
