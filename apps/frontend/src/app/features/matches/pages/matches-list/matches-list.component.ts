@@ -18,6 +18,7 @@ import {
   filterUpcomingMatches, 
   filterCompletedMatches 
 } from '../../../../core/utils/match-utils';
+import { Tab } from '../../../../shared/components/tab-nav/tab-nav.component';
 
 @Component({
   selector: 'app-matches-list',
@@ -37,6 +38,14 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   // Filter state
   selectedStatus: MatchStatus | 'all' = 'all';
   searchQuery = '';
+  
+  // Tab navigation configuration
+  filterTabs: Tab[] = [
+    { id: 'all', label: 'All Matches', icon: 'view_list', count: 0 },
+    { id: MatchStatus.LIVE, label: 'Live', icon: 'sports_cricket', count: 0 },
+    { id: MatchStatus.UPCOMING, label: 'Upcoming', icon: 'schedule', count: 0 },
+    { id: MatchStatus.COMPLETED, label: 'Completed', icon: 'check_circle', count: 0 }
+  ];
   
   // Expose MatchStatus enum to template
   MatchStatus = MatchStatus;
@@ -67,6 +76,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
       .subscribe(
         (matches) => {
           this.allMatches = sortMatchesByPriority(matches);
+          this.updateTabCounts();
           this.applyFilters();
           this.isLoading = false;
           console.log('Matches auto-refreshed:', matches.length);
@@ -97,6 +107,26 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     }
     
     this.filteredMatches = matches;
+  }
+  
+  /**
+   * Update tab counts based on current matches
+   */
+  updateTabCounts(): void {
+    this.filterTabs = [
+      { id: 'all', label: 'All Matches', icon: 'view_list', count: this.allMatches.length },
+      { id: MatchStatus.LIVE, label: 'Live', icon: 'sports_cricket', count: this.liveMatchesCount },
+      { id: MatchStatus.UPCOMING, label: 'Upcoming', icon: 'schedule', count: this.upcomingMatchesCount },
+      { id: MatchStatus.COMPLETED, label: 'Completed', icon: 'check_circle', count: this.completedMatchesCount }
+    ];
+  }
+  
+  /**
+   * Handle tab change from tab-nav component
+   */
+  onTabChange(tabId: string): void {
+    this.selectedStatus = tabId as MatchStatus | 'all';
+    this.applyFilters();
   }
   
   /**

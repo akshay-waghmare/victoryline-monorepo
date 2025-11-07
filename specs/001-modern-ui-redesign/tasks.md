@@ -139,7 +139,7 @@
 - [ ] T065 [US3] Add responsive images with srcset/sizes for team logos in match-card.component.html _(deferred: logo assets currently unavailable)_
 - [X] T066 [US3] Implement viewport-based font scaling using clamp() in _variables.scss
 - [ ] T067 [US3] Test scroll performance on mobile devices (use Chrome DevTools Performance profiler, target 60fps)
-- [ ] T068 [US3] Add safe area insets for iOS notch support in navbar.component.scss
+- [X] T068 [US3] Add safe area insets for iOS notch support in navbar.component.scss
 - [ ] T069 [US3] Test on real devices (iPhone, Android) at various screen sizes (320px-768px)
 - [ ] T070 [US3] Verify no horizontal scrolling at any viewport width (320px-2560px)
 
@@ -155,13 +155,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T071 [US4] Update navbar.component.html with links: Home, Matches, Teams, Players, Stats
-- [ ] T072 [US4] Implement active route highlighting in navbar.component.ts using Angular Router
-- [ ] T073 [US4] Style active navigation items with underline/highlight in navbar.component.scss
-- [ ] T074 [US4] Create tabbed navigation component apps/frontend/src/app/shared/components/tab-nav/tab-nav.component.ts
-- [ ] T075 [US4] Implement Live/Upcoming/Completed tabs in matches-list.component.html using Material Design tabs
-- [ ] T076 [US4] Wire tab navigation to filter matches by status in matches-list.component.ts
-- [ ] T077 [US4] Add active tab indicator styling in tab-nav.component.scss
+- [X] T071 [US4] Update navbar.component.html with links: Home, Matches, Teams, Players, Stats
+- [X] T072 [US4] Implement active route highlighting in navbar.component.ts using Angular Router
+- [X] T073 [US4] Style active navigation items with underline/highlight in navbar.component.scss
+- [X] T074 [US4] Create tabbed navigation component apps/frontend/src/app/shared/components/tab-nav/tab-nav.component.ts
+- [X] T075 [US4] Implement Live/Upcoming/Completed tabs in matches-list.component.html using Material Design tabs
+- [X] T076 [US4] Wire tab navigation to filter matches by status in matches-list.component.ts
+- [X] T077 [US4] Add active tab indicator styling in tab-nav.component.scss
 - [ ] T078 [US4] Redesign homepage with clear sections: "Live Now", "Upcoming Matches", "Recent Results" in home.component.html
 - [ ] T079 [US4] Add section headings with visual hierarchy (font-size-xxl, font-weight-bold) in home.component.scss
 - [ ] T080 [US4] Implement visual separation between sections (spacing, borders) in home.component.scss

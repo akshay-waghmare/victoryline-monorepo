@@ -48,6 +48,12 @@
   --color-border: #e0e0e0;
   --color-border-light: #f5f5f5;
   
+  /* iOS Safe Area Insets (for notched devices like iPhone X+) */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  
   --color-success: #4caf50;
   --color-warning: #ff9800;
   --color-error: #f44336;
@@ -133,6 +139,12 @@ body {
   padding: 0;
   transition: background-color $duration-slow $ease-in-out,
               color $duration-slow $ease-in-out;
+  
+  /* iOS Safe Area Support - Add padding to body */
+  padding-top: var(--safe-area-inset-top);
+  padding-right: var(--safe-area-inset-right);
+  padding-bottom: var(--safe-area-inset-bottom);
+  padding-left: var(--safe-area-inset-left);
 }
 
 // ============================================================================

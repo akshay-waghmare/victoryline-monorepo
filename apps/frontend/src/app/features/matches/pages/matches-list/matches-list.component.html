@@ -10,57 +10,13 @@
   <!-- Filters and Search -->
   <div class="matches-list__controls">
     
-    <!-- Status Filter Tabs -->
-    <div class="matches-list__filter-tabs" role="tablist">
-      <button 
-        type="button"
-        class="matches-list__filter-tab"
-        [class.matches-list__filter-tab--active]="selectedStatus === 'all'"
-        (click)="onStatusFilterChange('all')"
-        role="tab"
-        [attr.aria-selected]="selectedStatus === 'all'"
-      >
-        All Matches
-        <span class="matches-list__filter-badge">{{ getMatchCount('all') }}</span>
-      </button>
-      
-      <button 
-        type="button"
-        class="matches-list__filter-tab"
-        [class.matches-list__filter-tab--active]="selectedStatus === MatchStatus.LIVE"
-        (click)="onStatusFilterChange(MatchStatus.LIVE)"
-        role="tab"
-        [attr.aria-selected]="selectedStatus === MatchStatus.LIVE"
-      >
-        <span class="matches-list__live-indicator"></span>
-        Live
-        <span class="matches-list__filter-badge">{{ liveMatchesCount }}</span>
-      </button>
-      
-      <button 
-        type="button"
-        class="matches-list__filter-tab"
-        [class.matches-list__filter-tab--active]="selectedStatus === MatchStatus.UPCOMING"
-        (click)="onStatusFilterChange(MatchStatus.UPCOMING)"
-        role="tab"
-        [attr.aria-selected]="selectedStatus === MatchStatus.UPCOMING"
-      >
-        Upcoming
-        <span class="matches-list__filter-badge">{{ upcomingMatchesCount }}</span>
-      </button>
-      
-      <button 
-        type="button"
-        class="matches-list__filter-tab"
-        [class.matches-list__filter-tab--active]="selectedStatus === MatchStatus.COMPLETED"
-        (click)="onStatusFilterChange(MatchStatus.COMPLETED)"
-        role="tab"
-        [attr.aria-selected]="selectedStatus === MatchStatus.COMPLETED"
-      >
-        Completed
-        <span class="matches-list__filter-badge">{{ completedMatchesCount }}</span>
-      </button>
-    </div>
+    <!-- Status Filter Tabs (Modern Tab Navigation) -->
+    <app-tab-nav 
+      [tabs]="filterTabs" 
+      [activeTabId]="selectedStatus"
+      (tabChange)="onTabChange($event)"
+      class="matches-list__tab-nav"
+    ></app-tab-nav>
     
     <!-- Search Bar -->
     <div class="matches-list__search">
