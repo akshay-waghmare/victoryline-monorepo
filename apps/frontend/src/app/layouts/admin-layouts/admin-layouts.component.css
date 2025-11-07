@@ -1,0 +1,26 @@
+.wrapper {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.sidebar {
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.main-panel {
+  flex: 1;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* Hide sidebar when sidebar-hidden class is applied */
+.wrapper.sidebar-hidden .sidebar {
+  display: none;
+}
+
+.wrapper.sidebar-hidden .main-panel {
+  width: 100%;
+  margin-left: 0;
+}

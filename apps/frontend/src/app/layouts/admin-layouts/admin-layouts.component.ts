@@ -7,7 +7,7 @@ import { SidebarService } from 'src/app/component/sidebar/sidebar.service';
   styleUrls: ['./admin-layouts.component.css']
 })
 export class AdminLayoutsComponent implements OnInit {
-  isSidebarVisible = true;
+  isSidebarVisible = false; // Hide sidebar by default
   constructor(private sidebarService: SidebarService) {
     console.log('hello');
   }
