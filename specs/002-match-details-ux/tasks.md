@@ -33,33 +33,33 @@ This plan is organized by phases and user stories. Each task is independently ac
 
 ## Phase 4: User Story 2 — Commentary Narrative (P2)
 
-- [ ] T021 [US2] Create CommentaryList component in apps/frontend/src/app/cricket-odds/components/commentary-list/commentary-list.{ts,html,css}
-- [ ] T022 [P] [US2] Implement latest-first render and visual highlights (wicket/boundary) in commentary-list.html
-- [ ] T023 [US2] WebSocket subscription for new commentary entries and prepend strategy in apps/frontend/src/app/cricket-odds/match-live.facade.ts
-- [ ] T024 [US2] Implement Load More (pageSize=30) via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
-- [ ] T025 [P] [US2] Virtualize long list (≥200 entries) using Angular CDK Virtual Scroll in commentary-list.ts
-- [ ] T026 [US2] Accessible semantics: list roles, non-color cues, live region polite updates in commentary-list.ts
+- [ ] T021 [US2] Create CommentaryList component in apps/frontend/src/app/cricket-odds/components/commentary-list/commentary-list.{ts,html,css} [SKIPPED - No commentary data yet]
+- [ ] T022 [P] [US2] Implement latest-first render and visual highlights (wicket/boundary) in commentary-list.html [SKIPPED]
+- [ ] T023 [US2] WebSocket subscription for new commentary entries and prepend strategy in apps/frontend/src/app/cricket-odds/match-live.facade.ts [SKIPPED]
+- [ ] T024 [US2] Implement Load More (pageSize=30) via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts [SKIPPED]
+- [ ] T025 [P] [US2] Virtualize long list (≥200 entries) using Angular CDK Virtual Scroll in commentary-list.ts [SKIPPED]
+- [ ] T026 [US2] Accessible semantics: list roles, non-color cues, live region polite updates in commentary-list.ts [SKIPPED]
 
 ## Phase 5: User Story 3 — Detailed Scorecard (P3)
 
-- [ ] T027 [US3] Create Scorecard view with tabs per innings in apps/frontend/src/app/cricket-odds/components/scorecard/scorecard.{ts,html,css}
-- [ ] T028 [P] [US3] Render batting table with accessible headers and SR calc in scorecard.html
-- [ ] T029 [US3] Render bowling table and economy calc in scorecard.html
-- [ ] T030 [US3] Render extras and fall-of-wickets ordered list in scorecard.html
-- [ ] T031 [P] [US3] Fetch scorecard via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
+- [X] T027 [US3] Create Scorecard view with tabs per innings in apps/frontend/src/app/cricket-odds/components/scorecard/scorecard.{ts,html,css}
+- [X] T028 [P] [US3] Render batting table with accessible headers and SR calc in scorecard.html
+- [X] T029 [US3] Render bowling table and economy calc in scorecard.html
+- [X] T030 [US3] Render extras and fall-of-wickets ordered list in scorecard.html
+- [X] T031 [P] [US3] Fetch scorecard via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
 
 ## Phase 6: User Story 4 — Team Lineups & Roles (P4)
 
-- [ ] T032 [US4] Create Lineups view in apps/frontend/src/app/cricket-odds/components/lineups/lineups.{ts,html,css}
-- [ ] T033 [P] [US4] Role indicators with accessible legend in lineups.html
-- [ ] T034 [US4] Highlight current striker/non-striker and active bowler in live mode in lineups.ts
-- [ ] T035 [US4] Fetch lineups via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
+- [X] T032 [US4] Create Lineups view in apps/frontend/src/app/cricket-odds/components/lineups/lineups.{ts,html,css}
+- [X] T033 [P] [US4] Role indicators with accessible legend in lineups.html
+- [X] T034 [US4] Highlight current striker/non-striker and active bowler in live mode in lineups.ts
+- [X] T035 [US4] Fetch lineups via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
 
 ## Phase 7: User Story 5 — Match Context (P5)
 
-- [ ] T036 [US5] Create MatchInfo view in apps/frontend/src/app/cricket-odds/components/match-info/match-info.{ts,html,css}
-- [ ] T037 [P] [US5] Display venue, toss, officials, format, series in match-info.html
-- [ ] T038 [US5] Fetch match info via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
+- [X] T036 [US5] Create MatchInfo view in apps/frontend/src/app/cricket-odds/components/match-info/match-info.{ts,html,css}
+- [X] T037 [P] [US5] Display venue, toss, officials, format, series in match-info.html
+- [X] T038 [US5] Fetch match info via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
 
 ## Phase 8: User Story 6 — Mobile Interaction (P6)
 

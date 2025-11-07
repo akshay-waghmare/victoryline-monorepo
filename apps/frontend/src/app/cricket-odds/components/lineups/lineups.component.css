@@ -1,0 +1,162 @@
+.lineups-container {
+  padding: 16px;
+}
+
+.role-legend {
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.legend-title {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text-color, #333);
+  margin-bottom: 8px;
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--muted-color, #6b7280);
+}
+
+.legend-item mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.team-card {
+  padding: 20px;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.team-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-color, #1e3a8a);
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.players-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  counter-reset: player-counter;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-bottom: 1px solid #f3f4f6;
+  counter-increment: player-counter;
+}
+
+.player-item::before {
+  content: counter(player-counter);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background-color: #e5e7eb;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-color, #6b7280);
+  flex-shrink: 0;
+}
+
+.player-item:hover {
+  background-color: #f9fafb;
+}
+
+.player-role-icon {
+  font-size: 1.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.player-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-color, #333);
+}
+
+.player-role-label {
+  font-size: 0.75rem;
+  color: var(--muted-color, #6b7280);
+  font-style: italic;
+}
+
+/* Role-specific colors (non-color cues via icons) */
+.role-batsman .player-role-icon {
+  color: #3b82f6;
+}
+
+.role-bowler .player-role-icon {
+  color: #ef4444;
+}
+
+.role-all-rounder .player-role-icon {
+  color: #8b5cf6;
+}
+
+.role-wicket-keeper .player-role-icon {
+  color: #10b981;
+}
+
+.loading-state,
+.empty-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--muted-color, #6b7280);
+  font-style: italic;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 767px) {
+  .teams-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .legend-items {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .player-item {
+    font-size: 0.875rem;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .player-item {
+    transition: none !important;
+  }
+}
