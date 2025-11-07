@@ -14,7 +14,7 @@ This plan is organized by phases and user stories. Each task is independently ac
 
 ## Phase 2: Foundational
 
-- [ ] T008 Confirm existing route to match detail page ('cric-live/:path') in apps/frontend/src/app/layouts/admin-layouts/admin-layouts.routing.ts
+- [X] T008 Confirm existing route to match detail page ('cric-live/:path') in apps/frontend/src/app/layouts/admin-layouts/admin-layouts.routing.ts
 - [ ] T009 [P] Refactor base layout of apps/frontend/src/app/cricket-odds/cricket-odds.component.html to include ARIA landmarks and tab structure (Summary, Commentary, Scorecard, Lineups, Info)
 - [ ] T010 Implement reduced motion CSS custom properties & utility classes (no SCSS) in apps/frontend/src/styles.css
 - [ ] T011 [P] Implement StalenessIndicator component in apps/frontend/src/app/shared/components/staleness-indicator/staleness-indicator.{ts,html,css}
