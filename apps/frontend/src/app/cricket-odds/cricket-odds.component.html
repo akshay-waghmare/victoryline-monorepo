@@ -1,9 +1,15 @@
 <div class="courses-panel" style="margin-top: 170px;">
   <mat-card>
-    <mat-card-header class="mat-card-header-danger">
-      <mat-card-title>LIVE</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
+    <!-- ARIA landmark: header region for snapshot (T009) -->
+    <header role="banner" aria-label="Match snapshot header">
+      <mat-card-header class="mat-card-header-danger">
+        <mat-card-title>LIVE</mat-card-title>
+      </mat-card-header>
+    </header>
+
+    <!-- Main content area (T009) -->
+    <main role="main" aria-label="Match details content">
+      <mat-card-content>
        
       <mat-tab-group (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
@@ -494,6 +500,7 @@
           </div>
         </mat-tab>
       </mat-tab-group>
+      </main> <!-- End main role -->
 
     </mat-card-content>
   </mat-card>
