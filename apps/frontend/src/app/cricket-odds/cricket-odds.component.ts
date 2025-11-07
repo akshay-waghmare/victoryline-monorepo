@@ -86,7 +86,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   matchInfo: any;
   scorecardData: any;
 
-  last6Balls: { score: number }[] = [{ score: 0 }, { score: 0 }, { score: 0 }, { score: 0 }, { score: 0 }, { score: 0 }]; // Example: Array to store last 6 ball scores.
+  last6Balls: { score: any }[] = []; // Initialize empty array, will be populated from API data
   cricetTopicSubscription: any;
   cricObj: any;
 
@@ -424,22 +424,40 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       //check and handle the "overs_data" field
       if (this.cricObj.overs_data !== undefined && this.cricObj.overs_data !== null) {
         const oversDataValue = this.cricObj.overs_data;
-        const thisOverData = this.cricObj.overs_data.find(over => over.overNumber === "This Over:");
+        console.log("Full Overs Data:", oversDataValue);
+        
+        // Try to find "This Over:" first
+        let thisOverData = this.cricObj.overs_data.find(over => over.overNumber === "This Over:");
+        
+        // If not found, try the last over in the array
+        if (!thisOverData && Array.isArray(this.cricObj.overs_data) && this.cricObj.overs_data.length > 0) {
+          thisOverData = this.cricObj.overs_data[this.cricObj.overs_data.length - 1];
+          console.log("Using last over data:", thisOverData);
+        }
+        
         if (thisOverData !== undefined && thisOverData.balls) {
-          // Prepare the last6Balls array with the data for "This Over"
+          console.log("Processing balls:", thisOverData.balls);
+          // Prepare the last6Balls array with the data
           const tempBalls = thisOverData.balls.map(ball => {
             // Handle different ball formats (string or object)
-            const ballValue = typeof ball === 'string' ? ball.trim() : (ball.score || ball.runs || '0');
+            const ballValue = typeof ball === 'string' ? ball.trim() : (ball.score || ball.runs || ball.toString());
             return { score: ballValue };
           }).filter(ball => ball.score !== "" && ball.score !== null && ball.score !== undefined);
+          
+          console.log("Processed temp balls:", tempBalls);
           
           // Only update if we have valid ball data
           if (tempBalls.length > 0) {
             this.last6Balls = tempBalls;
+            console.log("Updated last6Balls:", this.last6Balls);
+          } else {
+            console.log("No valid ball data found after processing");
           }
+        } else {
+          console.log("No thisOverData or balls found");
         }
-        console.log("Overs Data:", oversDataValue);
-        console.log("Last 6 Balls:", this.last6Balls);
+      } else {
+        console.log("No overs_data available");
       }
 
       // Check and handle the "runs_on_ball" field
