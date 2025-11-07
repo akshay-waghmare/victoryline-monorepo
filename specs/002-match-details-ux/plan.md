@@ -16,15 +16,14 @@ Redesign the individual match page for clarity, engagement, accessibility, and p
 **Target Platform**: Web (mobile-first responsive)
 **Project Type**: Web application (frontend + backend + scraper monorepo)
 **Performance Goals**: Live updates ≤5s from backend timestamp; Lighthouse mobile ≥90; LCP <2.5s; CLS <0.1; 60fps updates (reduced motion respected)
-**Constraints**: Bundle <500KB gzipped (lazy load where possible); commentary virtualization >200 entries; polling interval ≤5s unless WebSocket available
+**Constraints**: Bundle <500KB gzipped (lazy load where possible); commentary virtualization >200 entries; WebSocket primary updates with ≤5s polling fallback
 **Scale/Scope**: Unknown live concurrency and history depth [NEEDS CLARIFICATION: typical max commentary entries per match, concurrent live viewers]
 
 NEEDS CLARIFICATION (carried to Phase 0 research):
 - Backend Java and Spring Boot versions for API contract generation rigor
-- Availability of WebSocket vs polling for live updates
-- Commentary history retention policy and pagination window
+- Commentary history retention policy and pagination window (now set: 30/page; confirm)
 - Desktop compact mode toggle preference
-- Inclusion of partnerships in Phase 002 vs deferral
+- Inclusion of partnerships in Phase 002 vs deferral (currently deferred)
 
 ## Constitution Check
 

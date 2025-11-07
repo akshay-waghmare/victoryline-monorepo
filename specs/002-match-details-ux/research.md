@@ -5,9 +5,9 @@ This document consolidates clarifications and decisions required to proceed with
 ## Decisions
 
 ### 1) Live update mechanism (WebSocket vs polling)
-- Decision: Polling every ≤5 seconds for Phase 002.
-- Rationale: Current stack already uses polling patterns; WebSocket not guaranteed across services yet.
-- Alternatives considered: WebSocket (preferred long-term), Server-Sent Events (SSE). Deferred to a later performance phase.
+- Decision: WebSocket channel subscription as primary; polling (≤5s) as fallback only.
+- Rationale: Project already uses WebSockets; ensures push-based low-latency updates. Polling retained solely for resilience.
+- Alternatives considered: Server-Sent Events (SSE) — not needed; pure polling — inferior latency and higher bandwidth.
 
 ### 2) Commentary ordering
 - Decision: Latest-first ordering (newest entries appear at top).

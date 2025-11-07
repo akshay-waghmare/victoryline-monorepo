@@ -9,6 +9,11 @@
 
 The current individual match page provides limited live context, inconsistent layout, and lacks structured access to commentary, score progression, lineups, and contextual metadata (venue, toss, officials). This feature introduces a structured, mobile-first, accessible, performance-conscious redesign that presents all critical match information in progressive layers—quick summary, detailed score context, narrative (commentary), statistical detail (scorecard), personnel (lineups), and environmental context (venue, toss, match status).
 
+## Clarifications
+
+### Session 2025-11-07
+- Q: Live update mechanism for snapshot and commentary? → A: WebSocket stream (push-based) with polling fallback.
+
 ## Scope (Phase 002)
 In scope:
 1. Live summary header (teams, score, status, run rates, recent balls)
@@ -160,7 +165,7 @@ As a user I want clarity on when data last updated so I can trust live state.
 ### Functional Requirements
 
 - **FR-001**: Provide live snapshot block with teams, score, overs, wickets, run rates, recent balls.
-- **FR-002**: Refresh snapshot & commentary at defined interval (≤5s live) with graceful staleness indicators.
+- **FR-002**: Use WebSocket to receive live snapshot & commentary updates; provide a polling fallback at ≤5s interval with graceful staleness indicators.
 - **FR-003**: Allow user switching between tabs (Summary, Commentary, Scorecard, Lineups, Info) without page reload.
 - **FR-004**: Commentary view supports incremental loading (pagination or infinite scroll trigger).
 - **FR-005**: Scorecard view renders innings list (1..N) each with batting/bowling tables & fall-of-wickets order.
@@ -235,10 +240,8 @@ As a user I want clarity on when data last updated so I can trust live state.
 | Layout thrash during updates | Janky experience | Minimize DOM mutations; update snapshot diffs only |
 
 ## Open Questions
-1. Should ordering of commentary be latest-first or chronological? (Decision needed for UX consistency.)
-2. Are partnerships required in Phase 002 or deferred? (Scorecard complexity.)
-3. Provide optional compact mode for desktop? (User preference setting.)
-4. Include weather data if available? (Source reliability.)
+1. Provide optional compact mode for desktop? (User preference setting.)
+2. Include weather data if available? (Source reliability.)
 
 ## Out-of-Scope Confirmations
 - Predictive metrics (win probability) – future analytics feature.
