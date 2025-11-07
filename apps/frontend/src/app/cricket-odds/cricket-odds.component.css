@@ -227,7 +227,7 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    padding: 20px 0;
+    padding: 20px;
     border-radius: 12px;
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
     position: relative;
@@ -256,19 +256,62 @@
 .score-update {
     font-size: 32px;
     font-weight: 800;
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #ffffff;
     margin: 0;
     padding: 12px 0;
-    text-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+    text-align: center;
+    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
     animation: pulse 2s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
 }
 
 @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.9; transform: scale(1.02); }
+    50% { opacity: 0.95; transform: scale(1.01); }
+}
+
+.bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.left-half,
+.match-info {
+    flex: 1;
+    text-align: left;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0 10px;
+}
+
+.team-label, .session-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 5px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.team-score, .team-overs {
+    font-size: 16px;
+    color: #f1f5f9;
+    font-weight: 600;
+    margin: 3px 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.crr, .final-result-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fef3c7;
+    line-height: 1.5;
+    margin: 5px 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Adjusting the team name, score, and overs for clarity */
@@ -498,28 +541,74 @@
     z-index: 1;
   }
 
-  .last-6-balls {
-    margin-top: 20px; /* Space from the content above */
-    padding: 15px;
-    background-color: #e7e7e7; /* Softer background for form */
-    color: #333;
-    border-radius: 8px; /* Rounded corners */
-    display: flex;
-    justify-content: start;
-    align-items: center;
-    gap: 15px;
-    flex-wrap: wrap; /* Allow items to wrap on smaller screens */
+  .last-6-balls-container {
+    margin-top: 24px;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #667eea;
+  }
 
+  .balls-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .balls-icon {
+    color: #667eea;
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+  }
+
+  .balls-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    letter-spacing: 0.3px;
+  }
+
+  .last-6-balls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .ball {
-    width: 40px; /* Slightly larger for visibility */
-    height: 40px;
-    line-height: 40px; /* Vertically center the text */
-    font-size: 16px; /* Larger font for visibility */
-    margin: 0 16px; /* Space between balls */
-    background-color: #32bbe3f2; /* Consistent with the back odds button */
-    color: white; /* White text for contrast */
+    width: 48px;
+    height: 48px;
+    line-height: 48px;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+    border: 3px solid #ffffff;
+}
+
+.ball:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.ball-score {
+    font-weight: 800;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .loader-container {
@@ -893,21 +982,15 @@
 
   .last-6-balls {
     justify-content: center;
-    /* Center align items on smaller screens */
-    gap: 10px;
-    /* Adjust gap between balls */
+    gap: 12px;
   }
 
   .ball {
-    width: 30px;
-    /* Smaller size for visibility on smaller screens */
-    height: 30px;
-    line-height: 30px;
-    /* Vertically center the text */
-    font-size: 14px;
-    /* Adjust font size */
-    margin: 0 5px;
-    /* Adjust space between balls */
+    width: 40px;
+    height: 40px;
+    line-height: 40px;
+    font-size: 16px;
+    margin: 0;
   }
 
   .cricket-odds-container,
@@ -957,21 +1040,15 @@
 
   .last-6-balls {
       justify-content: center;
-      /* Center align items on smaller screens */
       gap: 8px;
-      /* Adjust gap between balls */
     }
   
     .ball {
-      width: 25px;
-      /* Smaller size for visibility on smallest screens */
-      height: 25px;
-      line-height: 25px;
-      /* Vertically center the text */
-      font-size: 12px;
-      /* Adjust font size */
-      margin: 0 4px;
-      /* Adjust space between balls */
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
+      font-size: 14px;
+      margin: 0;
     }
   
     .cricket-odds-container,
@@ -1084,36 +1161,146 @@
 /* Overall container for batsman and bowler stats to ensure consistent width */
 .stats-container {
   width: 100%;
-  max-width: 100%; /* Set the maximum width for larger screens */
-  margin: 0 auto; /* Center the container */
-  padding: 10px;
+  max-width: 100%;
+  margin: 24px auto 0;
+  padding: 0;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.batsman-stats,
+.bowler-stats {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid #667eea;
+  transition: all 0.3s ease;
+}
+
+.batsman-stats:hover,
+.bowler-stats:hover {
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+}
+
+.stats-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.stats-icon {
+  color: #667eea;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.stats-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: 0.3px;
 }
 
 /* Table Styles for Batsman and Bowler Stats */
 .stats-table {
-  width: 100%; /* Make the table span the full width of its container */
+  width: 100%;
   border-collapse: collapse;
-  margin-bottom: 20px;
-  table-layout: fixed; /* Distribute column widths evenly */
+  margin-bottom: 0;
+  table-layout: auto;
+  overflow: hidden;
+  border-radius: 8px;
 }
 
 .stats-table th,
 .stats-table td {
-  padding: 8px 12px;
+  padding: 12px 16px;
   text-align: center;
-  border-bottom: 1px solid #ddd;
   font-size: 14px;
 }
 
 .stats-table th {
-  background-color: #f4f4f4;
-  font-weight: bold;
-  color: #333;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+  border: none;
+}
+
+.stats-table th:first-child {
+  text-align: left;
+  border-top-left-radius: 8px;
+}
+
+.stats-table th:last-child {
+  border-top-right-radius: 8px;
+}
+
+.stats-table tbody tr {
+  border-bottom: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.stats-table tbody tr:last-child {
+  border-bottom: none;
 }
 
 .stats-table tbody tr:hover {
-  background-color: #f1f1f1;
+  background: linear-gradient(to right, #f8fafc 0%, #e0e7ff 100%);
+  transform: translateX(4px);
+}
+
+.player-name {
+  text-align: left;
+  font-weight: 600;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.on-strike-icon {
+  color: #10b981;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #475569;
+}
+
+.highlight-sr {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  font-weight: 700;
+  color: #92400e;
+  border-radius: 4px;
+}
+
+.highlight-wickets {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  font-weight: 700;
+  color: #991b1b;
+  border-radius: 4px;
+}
+
+.highlight-eco {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  font-weight: 700;
+  color: #1e40af;
+  border-radius: 4px;
 }
 
 .batsman-stats h3, 
