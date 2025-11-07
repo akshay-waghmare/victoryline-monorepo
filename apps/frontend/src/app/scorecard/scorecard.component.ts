@@ -248,4 +248,51 @@ export class ScorecardComponent implements OnInit {
     }
     return '';
   }
+
+  // Normalize raw team_score strings like "155/9(102" -> "155/9 (10.2)"
+  // - Ensures a space before the opening parenthesis
+  // - Adds a missing closing parenthesis if absent
+  // - Converts digits-only inside parentheses to proper overs with a decimal
+  formatTeamScore(raw: string): string {
+    if (!raw) {
+      return raw;
+    }
+    let s = String(raw).trim();
+
+    // Ensure a single space before any opening parenthesis
+    s = s.replace(/\s*\(/g, ' (');
+
+    // If we have (digits) convert to decimal overs
+    s = s.replace(/\((\d+)\)/g, (m, d) => `(${this.toOvers(d)})`);
+
+    // If we have an opening parenthesis at the end without a closing one, close it
+    // and normalize the digits inside to overs, e.g., "(102" => "(10.2)"
+    s = s.replace(/\(([^)]*)$/, (m, inside) => {
+      const cleaned = String(inside).trim();
+      if (/^\d+$/.test(cleaned)) {
+        return `(${this.toOvers(cleaned)})`;
+      }
+      return `(${cleaned})`;
+    });
+
+    return s;
+  }
+
+  private toOvers(digits: string): string {
+    // If already contains a decimal, return as-is
+    if (digits.indexOf('.') !== -1) {
+      return digits;
+    }
+    // Convert trailing ball count into decimal overs
+    // e.g., '102' => '10.2', '70' => '7.0', '5' => '0.5'
+    if (!digits) {
+      return digits;
+    }
+    if (digits.length === 1) {
+      return `0.${digits}`;
+    }
+    const whole = digits.slice(0, -1);
+    const frac = digits.slice(-1);
+    return `${parseInt(whole, 10)}.${frac}`;
+  }
 }

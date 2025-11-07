@@ -460,6 +460,18 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         console.log("No overs_data available");
       }
 
+      // Fallback: derive last 6 balls from runs_on_ball stream if still empty
+      if (this.last6Balls.length === 0 && this.cricObj.runs_on_ball) {
+        const raw = String(this.cricObj.runs_on_ball).trim();
+        // Tokenize by space or comma
+        const tokens = raw.split(/[,\s]+/).filter(t => t.length > 0);
+        const lastSix = tokens.slice(-6).map(t => ({ score: t }));
+        if (lastSix.length > 0) {
+          this.last6Balls = lastSix;
+          console.log("Fallback last6Balls from runs_on_ball:", this.last6Balls);
+        }
+      }
+
       // Check and handle the "runs_on_ball" field
       if (this.cricObj.match_odds !== undefined && this.cricObj.match_odds !== null) {
         const testMatchOddsValue = this.cricObj.match_odds;

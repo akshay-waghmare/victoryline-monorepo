@@ -99,7 +99,7 @@
       <!-- Team Info -->
       <div class="header">
         <!-- <img [src]="getTeamLogo(scorecardData.innings[inningKey].team_code)" alt="{{ scorecardData.innings[inningKey].team_code }} Logo" width="24" height="24"> -->
-        <div class="score">{{ this.scorecardInfo.match_stats_by_innings.innings[inningKey].team_code }} {{ this.scorecardInfo.match_stats_by_innings.innings[inningKey].team_score }}</div>
+  <div class="score">{{ scorecardInfo.match_stats_by_innings.innings[inningKey].team_code }} {{ formatTeamScore(scorecardInfo.match_stats_by_innings.innings[inningKey].team_score) }}</div>
       </div>
 
       <!-- Batting Section -->
