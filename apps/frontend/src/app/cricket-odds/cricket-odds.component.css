@@ -1189,6 +1189,7 @@
 .stats-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   margin-bottom: 16px;
   padding-bottom: 12px;
