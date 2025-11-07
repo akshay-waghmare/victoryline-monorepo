@@ -1,99 +1,51 @@
-# Victory Line - Frontend# Victory Line - Cricket Live Scores
+# Victory Line - Cricket Live Scores
 
+Modern cricket live scores application with real-time updates, responsive design, and dark/light theme support.
 
+## 🚀 Quick Start
 
-Modern cricket live scores application built with Angular.Modern cricket live scores application with real-time updates, responsive design, and dark/light theme support.
-
-
-
-## 🚀 Quick Start## 🚀 Quick Start
-
-
-
-```bash### Prerequisites
-
-# Install dependencies- Node.js 16.20.2 (use `nvm use 16.20.2`)
-
-npm install- Angular CLI 6.2.3+
-
+### Prerequisites
+- Node.js 16.20.2 (use `nvm use 16.20.2`)
+- Angular CLI 6.2.3+
 - npm or pnpm
 
-# Start development server
+### Installation
 
-ng serve### Installation
-
-
-
-# Application runs at http://localhost:4200```bash
-
-```# Install dependencies
-
+```bash
+# Install dependencies
 npm install
 
-## 📚 Documentation
-
 # Start development server
+ng serve
 
-For comprehensive documentation about the application, please see:ng serve
-
-
-
-- **[Project Setup & Features](docs/features/001-modern-ui-redesign/README.md)** - Complete guide to setup, features, and usage# Application will be available at http://localhost:4200
-
-- **[Design System Guide](docs/features/001-modern-ui-redesign/DESIGN_SYSTEM.md)** - Design tokens, components, utilities, and guidelines```
-
-- **[Implementation Summary](docs/features/001-modern-ui-redesign/IMPLEMENTATION_SUMMARY.md)** - Feature implementation details and progress
+# Application will be available at http://localhost:4200
+```
 
 ### Backend
+The backend for this app is available at: https://github.com/akiaksdon/jwt-example-role-based/tree/cricket
 
-## 🔗 BackendThe backend for this app is available at: https://github.com/akiaksdon/jwt-example-role-based/tree/cricket
+**Note**: Angular version 8.9.0, Angular CLI version 6.2.3
 
+## ✨ Features
 
-
-The backend for this app is available at: https://github.com/akiaksdon/jwt-example-role-based/tree/cricket**Note**: Angular version 8.9.0, Angular CLI version 6.2.3
-
-
-
-## 📋 Tech Stack## ✨ Features
-
-
-
-- Angular 8.9.0### Modern UI Redesign (v2.0)
-
-- Angular CLI 6.2.3- **Responsive Design**: Mobile-first approach with responsive layouts (320px - 2560px)
-
-- TypeScript 4.9+- **Dark/Light Theme**: System preference detection with manual toggle
-
-- Angular Material 7.x- **Live Match Cards**: Real-time score updates with smooth animations
-
-- RxJS 6.x- **iOS Safe Areas**: Support for notched devices (iPhone X+)
-
+### Modern UI Redesign (v2.0)
+- **Responsive Design**: Mobile-first approach with responsive layouts (320px - 2560px)
+- **Dark/Light Theme**: System preference detection with manual toggle
+- **Live Match Cards**: Real-time score updates with smooth animations
+- **iOS Safe Areas**: Support for notched devices (iPhone X+)
 - **Smooth Animations**: 60fps animations with reduced motion support
-
-## 🎨 Key Features- **Intuitive Navigation**: Active route highlighting and tab-based filtering
-
+- **Intuitive Navigation**: Active route highlighting and tab-based filtering
 - **Search & Filter**: Real-time search by team names and venues
+- **Accessibility**: WCAG 2.1 compliant with keyboard navigation
 
-- ✅ Modern responsive UI design- **Accessibility**: WCAG 2.1 compliant with keyboard navigation
+## 🎨 Design System
 
-- ✅ Dark/Light theme support
+### CSS Custom Properties
+The application uses CSS custom properties for consistent theming:
 
-- ✅ Real-time match updates## 🎨 Design System
-
-- ✅ Carousel navigation on desktop
-
-- ✅ Search and filtering### CSS Custom Properties
-
-- ✅ WCAG 2.1 accessibility compliantThe application uses CSS custom properties for consistent theming:
-
-
-
----```css
-
+```css
 /* Color System */
-
-**Note**: For detailed setup instructions, component documentation, and development guidelines, please refer to the [comprehensive documentation](docs/features/001-modern-ui-redesign/).--color-primary: #1976d2;
-
+--color-primary: #1976d2;
 --color-background: #ffffff;
 --color-text-primary: #212121;
 
