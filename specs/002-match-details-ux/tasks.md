@@ -47,6 +47,7 @@ This plan is organized by phases and user stories. Each task is independently ac
 - [X] T029 [US3] Render bowling table and economy calc in scorecard.html
 - [X] T030 [US3] Render extras and fall-of-wickets ordered list in scorecard.html
 - [X] T031 [P] [US3] Fetch scorecard via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
+- [X] T031b [BONUS] Enhanced existing scorecard component with modern gradient styling, animations, and purple theme
 
 ## Phase 6: User Story 4 — Team Lineups & Roles (P4)
 
@@ -54,12 +55,14 @@ This plan is organized by phases and user stories. Each task is independently ac
 - [X] T033 [P] [US4] Role indicators with accessible legend in lineups.html
 - [X] T034 [US4] Highlight current striker/non-striker and active bowler in live mode in lineups.ts
 - [X] T035 [US4] Fetch lineups via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
+- [X] T035b [BONUS] Enhanced with purple gradient legend, numbered players, hover effects, and modern design
 
 ## Phase 7: User Story 5 — Match Context (P5)
 
 - [X] T036 [US5] Create MatchInfo view in apps/frontend/src/app/cricket-odds/components/match-info/match-info.{ts,html,css}
 - [X] T037 [P] [US5] Display venue, toss, officials, format, series in match-info.html
 - [X] T038 [US5] Fetch match info via REST contract in apps/frontend/src/app/cricket-odds/match-api.service.ts
+- [X] T038b [BONUS] Enhanced with gradient cards, hover effects, golden toss section, and modern styling
 
 ## Phase 8: User Story 6 — Mobile Interaction (P6)
 
