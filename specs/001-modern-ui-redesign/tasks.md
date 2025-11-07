@@ -162,9 +162,9 @@
 - [X] T075 [US4] Implement Live/Upcoming/Completed tabs in matches-list.component.html using Material Design tabs
 - [X] T076 [US4] Wire tab navigation to filter matches by status in matches-list.component.ts
 - [X] T077 [US4] Add active tab indicator styling in tab-nav.component.scss
-- [ ] T078 [US4] Redesign homepage with clear sections: "Live Now", "Upcoming Matches", "Recent Results" in home.component.html
-- [ ] T079 [US4] Add section headings with visual hierarchy (font-size-xxl, font-weight-bold) in home.component.scss
-- [ ] T080 [US4] Implement visual separation between sections (spacing, borders) in home.component.scss
+- [X] T078 [US4] Redesign homepage with clear sections: "Live Now", "Upcoming Matches", "Recent Results" in home.component.html
+- [X] T079 [US4] Add section headings with visual hierarchy (font-size-xxl, font-weight-bold) in home.component.scss
+- [X] T080 [US4] Implement visual separation between sections (spacing, borders) in home.component.scss
 - [ ] T081 [P] [US4] Create search/filter bar component apps/frontend/src/app/features/matches/components/search-bar/search-bar.component.ts
 - [ ] T082 [P] [US4] Add search bar to matches-list.component.html with Material Design input
 - [ ] T083 [US4] Implement search filtering logic (filter by team name) in matches-list.component.ts

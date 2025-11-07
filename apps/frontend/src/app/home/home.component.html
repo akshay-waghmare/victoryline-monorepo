@@ -1,11 +1,23 @@
 <div class="container">
   
+  <!-- ===== PAGE HEADER ===== -->
+  <header class="home__header">
+    <h1 class="home__title">Cricket Live Scores</h1>
+    <p class="home__subtitle">Stay updated with live matches, upcoming fixtures, and recent results</p>
+  </header>
+  
   <!-- ===== LIVE MATCHES SECTION ===== -->
-  <section class="matches-section" *ngIf="!isLoadingMatches && liveMatches.length > 0">
-    <h2 class="section-header">
-      <span class="live-indicator"></span>
-      Live Matches
-    </h2>
+  <section class="home__section home__section--live" *ngIf="!isLoadingMatches && liveMatches.length > 0">
+    <div class="home__section-header">
+      <div class="home__section-title-wrapper">
+        <span class="live-indicator"></span>
+        <h2 class="home__section-title">Live Now</h2>
+      </div>
+      <a routerLink="/live-cricket-score" class="home__section-link">
+        View All
+        <i class="material-icons">arrow_forward</i>
+      </a>
+    </div>
     <div class="matches-grid">
       <app-match-card
         *ngFor="let match of liveMatches; trackBy: trackByMatchId"
@@ -19,8 +31,17 @@
   </section>
   
   <!-- ===== UPCOMING MATCHES SECTION ===== -->
-  <section class="matches-section" *ngIf="!isLoadingMatches && upcomingMatches.length > 0">
-    <h2 class="section-header">Upcoming Matches</h2>
+  <section class="home__section home__section--upcoming" *ngIf="!isLoadingMatches && upcomingMatches.length > 0">
+    <div class="home__section-header">
+      <div class="home__section-title-wrapper">
+        <i class="material-icons home__section-icon">schedule</i>
+        <h2 class="home__section-title">Upcoming Matches</h2>
+      </div>
+      <a routerLink="/live-cricket-score" class="home__section-link">
+        View All
+        <i class="material-icons">arrow_forward</i>
+      </a>
+    </div>
     <div class="matches-grid">
       <app-match-card
         *ngFor="let match of upcomingMatches; trackBy: trackByMatchId"
@@ -34,8 +55,17 @@
   </section>
   
   <!-- ===== RECENT RESULTS SECTION ===== -->
-  <section class="matches-section" *ngIf="!isLoadingMatches && recentMatches.length > 0">
-    <h2 class="section-header">Recent Results</h2>
+  <section class="home__section home__section--recent" *ngIf="!isLoadingMatches && recentMatches.length > 0">
+    <div class="home__section-header">
+      <div class="home__section-title-wrapper">
+        <i class="material-icons home__section-icon">check_circle</i>
+        <h2 class="home__section-title">Recent Results</h2>
+      </div>
+      <a routerLink="/live-cricket-score" class="home__section-link">
+        View All
+        <i class="material-icons">arrow_forward</i>
+      </a>
+    </div>
     <div class="matches-grid">
       <app-match-card
         *ngFor="let match of recentMatches; trackBy: trackByMatchId"
