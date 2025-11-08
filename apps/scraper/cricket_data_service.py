@@ -153,7 +153,9 @@ def send_data_to_api_endpoint(data, bearer_token, url, api_endpoint=None):
             logging.error(f"Response content: {response.text}")
     except Exception as e:
         logging.exception(f"An error occurred while sending data: {str(e)}")
-                
+                        
+
         
+
         
-        
+

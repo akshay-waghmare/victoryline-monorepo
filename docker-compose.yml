@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: victoryline-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-cricket_db}
+      MYSQL_USER: ${MYSQL_USER:-cricket_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-cricket_pass}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Spring Boot Backend
+  backend:
+    build:
+      context: ./apps/backend/spring-security-jwt
+      dockerfile: Dockerfile
+    container_name: victoryline-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8099}:8099"
+    environment:
+      # Database Configuration (Using H2 embedded for now)
+      SPRING_DATASOURCE_URL: jdbc:h2:file:/app/data/victoryline;DB_CLOSE_ON_EXIT=FALSE
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.h2.Driver
+      SPRING_DATASOURCE_USERNAME: sa
+      SPRING_DATASOURCE_PASSWORD:
+      SPRING_JPA_DATABASE_PLATFORM: org.hibernate.dialect.H2Dialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: ${SHOW_SQL:-false}
+      SPRING_H2_CONSOLE_ENABLED: true
+      SPRING_H2_CONSOLE_PATH: /h2-console
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET:-victorylineSecretKey123456789012345678901234567890}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400}
+    volumes:
+      - backend_data:/app/data
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8099/actuator/health || [ $(curl -s -o /dev/null -w '%{http_code}' http://localhost:8099/actuator/health) -eq 401 ]"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Python Scraper
+  scraper:
+    build:
+      context: ./apps/scraper
+      dockerfile: Dockerfile
+    container_name: victoryline-scraper
+    restart: unless-stopped
+    ports:
+      - "${SCRAPER_PORT:-5000}:5000"
+    environment:
+      # Backend API Configuration
+      TOKEN_URL: http://backend:8099/token/generate-token
+      SERVICE_URL: http://backend:8099/cricket-data
+      ADD_LIVE_MATCHES_URL: http://backend:8099/cricket-data/add-live-matches
+      API_ENDPOINT: http://backend:8099/cricket-data/match-info/save
+      API_ENDPOINT_SC4: http://backend:8099/cricket-data/sC4-stats/save
+      # Scraper Configuration
+      FLASK_ENV: ${FLASK_ENV:-production}
+      FLASK_DEBUG: ${FLASK_DEBUG:-0}
+    volumes:
+      - scraper_data:/app/storage
+    depends_on:
+      - backend
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Angular Frontend
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION:-16.20.2}
+    container_name: victoryline-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    environment:
+      API_URL: http://backend:8099
+    depends_on:
+      - backend
+      - scraper
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  victoryline-network:
+    driver: bridge
+    name: victoryline-network
+
+volumes:
+  mysql_data:
+    driver: local
+    name: victoryline-mysql-data
+  backend_data:
+    driver: local
+    name: victoryline-backend-data
+  scraper_data:
+    driver: local
+    name: victoryline-scraper-data

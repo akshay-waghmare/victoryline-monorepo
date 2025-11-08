@@ -782,9 +782,17 @@ def fetchData(url):
     with sync_playwright() as p:
         try:
             scraper_logger.info("Launching browser")
+            headless = os.getenv('PLAYWRIGHT_HEADLESS', 'true').lower() not in ('0', 'false')
             browser = p.chromium.launch(
-                headless=False,  # Set to False if you want to see the browser
-                args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--no-first-run', '--disable-infobars']
+                headless=headless,
+                args=[
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--no-first-run',
+                    '--disable-infobars'
+                ]
             )
             scraper_logger.info("Browser launched successfully")
             context = browser.new_context(
