@@ -24,19 +24,47 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 8px 16px;
-  height: 64px;
+  height: 80px; /* enlarge navbar height for better logo visibility */
 }
 
 /* Brand */
 .navbar__brand {
   display: flex;
   align-items: center;
-  padding: 8px 16px 20px 16px;
+  padding: 4px 8px;
   border-radius: 8px;
   border: none;
   background: transparent;
   cursor: pointer;
   flex-shrink: 0;
+}
+
+.navbar__brand-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.navbar__brand-container .logo-image {
+  height: 64px !important; /* full logo in navbar */
+  max-height: 64px !important;
+  width: auto;
+  display: block;
+}
+
+/* Provide a text fallback styling when image hidden */
+.navbar__brand-container .logo-text {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  background: linear-gradient(90deg,#0d47a1,#29b6f6);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
 }
 
 .navbar__logo-wordmark {

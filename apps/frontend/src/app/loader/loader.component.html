@@ -1,4 +1,17 @@
 <div *ngIf="isLoading | async" class="overlay">
-  <mat-progress-spinner class="spinner" [color]="color" [mode]="mode" [value]="value">
-  </mat-progress-spinner>
+  <div class="loader-container">
+    <div class="loader-branding">
+      <app-logo 
+        variant="primary" 
+        size="xl" 
+        [showText]="true"
+        logoText="Crickzen"
+        altText="Crickzen Live Cricket"
+        containerClass="loader-logo"
+      ></app-logo>
+    </div>
+    <mat-progress-spinner class="spinner" [color]="color" [mode]="mode" [value]="value">
+    </mat-progress-spinner>
+    <p class="loader-text">Loading cricket updates...</p>
+  </div>
 </div>

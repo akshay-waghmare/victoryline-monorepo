@@ -21,6 +21,8 @@ import { HomeComponent } from '../home/home.component';
 import { MatchInfoComponent } from './match-info/match-info.component';
 import { BannerComponent } from './banner/banner.component';
 import { MobileNavComponent } from '../core/layout/mobile-nav/mobile-nav.component';
+import { LogoComponent } from '../shared/components/logo/logo.component';
+import { FooterComponent } from '../shared/components/footer/footer.component';
 
 const myRxStompConfig: InjectableRxStompConfig = {
   // added '/websocket' for spring boot SockJS
@@ -42,6 +44,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
   imports: [
     CommonModule,
     RouterModule,
+    ReactiveFormsModule,
     MatFormFieldModule,
     MatButtonModule,
     MatInputModule,
@@ -56,6 +59,8 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatchInfoComponent,
   BannerComponent,
   MobileNavComponent,
+    LogoComponent,
+    FooterComponent,
     
   ],
   entryComponents: [
@@ -67,7 +72,9 @@ const myRxStompConfig: InjectableRxStompConfig = {
     LogoutFormComponent,
     MatchInfoComponent,
   BannerComponent,
-  MobileNavComponent
+  MobileNavComponent,
+    LogoComponent,
+    FooterComponent
   ],
 
   providers: [RxStompService,

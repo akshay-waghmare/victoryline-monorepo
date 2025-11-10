@@ -96,7 +96,7 @@ services:
       start_period: 45s
 
   frontend:
-    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:prod}"
+    image: "${FRONTEND_IMAGE:-victoryline-monorepo-frontend:latest}"
     container_name: victoryline-frontend
     restart: unless-stopped
     ports:
