@@ -117,6 +117,26 @@ services:
       retries: 3
       start_period: 30s
 
+  caddy:
+    image: caddy:2
+    container_name: victoryline-proxy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Optional but recommended for Let's Encrypt notifications
+      - ACME_AGREE=true
+      - EMAIL=${LETSENCRYPT_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - victoryline-network
+
 networks:
   victoryline-network:
     driver: bridge
@@ -127,4 +147,8 @@ volumes:
   backend_data:
     driver: local
   scraper_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
     driver: local
