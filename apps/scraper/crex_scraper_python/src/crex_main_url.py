@@ -26,6 +26,11 @@ CORS(app, resources={
     }
 })
 
+
+@app.route("/health", methods=["GET"])  # Simple health probe for Docker
+def health():
+    return jsonify({"status": "ok"}), 200
+
 # Configure structured JSON logging
 configure_logging(level=logging.DEBUG)
 logger = get_logger(component="crex_main_url")

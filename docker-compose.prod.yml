@@ -1,0 +1,154 @@
+version: "3.8"
+
+services:
+  # MySQL Database - COMMENTED OUT: Using H2 embedded database instead
+  # mysql:
+  #   image: "${MYSQL_IMAGE:-mysql:8.0}"
+  #   container_name: victoryline-mysql
+  #   restart: unless-stopped
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}"
+  #     MYSQL_DATABASE: "${MYSQL_DATABASE:-cricket_db}"
+  #     MYSQL_USER: "${MYSQL_USER:-cricket_user}"
+  #     MYSQL_PASSWORD: "${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}"
+  #   ports:
+  #     - "${MYSQL_PORT:-3306}:3306"
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   networks:
+  #     - victoryline-network
+  #   healthcheck:
+  #     test:
+  #       - CMD
+  #       - mysqladmin
+  #       - ping
+  #       - -h
+  #       - localhost
+  #       - -u
+  #       - root
+  #       - "-p${MYSQL_ROOT_PASSWORD}"
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+
+  backend:
+    image: "${BACKEND_IMAGE:-macubex/victoryline-backend:prod}"
+    container_name: victoryline-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8099}:8099"
+    environment:
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-prod}"
+      # Using H2 embedded database for production
+      SPRING_DATASOURCE_URL: "${SPRING_DATASOURCE_URL:-jdbc:h2:file:/app/data/victoryline;DB_CLOSE_ON_EXIT=FALSE}"
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: "${SPRING_DATASOURCE_DRIVER_CLASS_NAME:-org.h2.Driver}"
+      SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME:-sa}"
+      SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD:-}"
+      SPRING_JPA_DATABASE_PLATFORM: "${SPRING_JPA_DATABASE_PLATFORM:-org.hibernate.dialect.H2Dialect}"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "${SPRING_JPA_HIBERNATE_DDL_AUTO:-update}"
+      SPRING_JPA_SHOW_SQL: "${SHOW_SQL:-false}"
+      SPRING_H2_CONSOLE_ENABLED: "${SPRING_H2_CONSOLE_ENABLED:-true}"
+      SPRING_H2_CONSOLE_PATH: "${SPRING_H2_CONSOLE_PATH:-/h2-console}"
+      JWT_SECRET: "${JWT_SECRET:-change_me}"
+      JWT_EXPIRATION: "${JWT_EXPIRATION:-86400}"
+    volumes:
+      - backend_data:/app/data
+    networks:
+      - victoryline-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "curl -fsS http://localhost:8099/actuator/health || [ $$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8099/actuator/health) -eq 401 ]"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  scraper:
+    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:prod}"
+    container_name: victoryline-scraper
+    restart: unless-stopped
+    ports:
+      - "${SCRAPER_PORT:-5000}:5000"
+    environment:
+      TOKEN_URL: "${TOKEN_URL:-http://backend:8099/token/generate-token}"
+      SERVICE_URL: "${SERVICE_URL:-http://backend:8099/cricket-data}"
+      ADD_LIVE_MATCHES_URL: "${ADD_LIVE_MATCHES_URL:-http://backend:8099/cricket-data/add-live-matches}"
+      API_ENDPOINT: "${API_ENDPOINT:-http://backend:8099/cricket-data/match-info/save}"
+      API_ENDPOINT_SC4: "${API_ENDPOINT_SC4:-http://backend:8099/cricket-data/sC4-stats/save}"
+      FLASK_ENV: "${FLASK_ENV:-production}"
+      FLASK_DEBUG: "${FLASK_DEBUG:-0}"
+      PLAYWRIGHT_HEADLESS: "${PLAYWRIGHT_HEADLESS:-true}"
+    volumes:
+      - scraper_data:/app/storage
+    depends_on:
+      - backend
+    networks:
+      - victoryline-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "curl -fsS http://localhost:5000/health || exit 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  frontend:
+    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:prod}"
+    container_name: victoryline-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4007}:80"
+    environment:
+      API_URL: "${API_URL:-http://backend:8099}"
+    depends_on:
+      - backend
+      - scraper
+    networks:
+      - victoryline-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "curl -fsS http://localhost:80 || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  caddy:
+    image: caddy:2
+    container_name: victoryline-proxy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      # Optional but recommended for Let's Encrypt notifications
+      - ACME_AGREE=true
+      - EMAIL=${LETSENCRYPT_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - victoryline-network
+
+networks:
+  victoryline-network:
+    driver: bridge
+
+volumes:
+  # mysql_data:  # Not needed with H2 embedded database
+  #   driver: local
+  backend_data:
+    driver: local
+  scraper_data:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

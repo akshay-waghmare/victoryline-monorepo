@@ -1,0 +1,23 @@
+.login-branding {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.login-logo {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent; /* removed white background */
+  padding: 0;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.login-logo .logo-image {
+  height: 100px !important; /* doubled from 50px */
+  max-height: 100px !important;
+  width: auto;
+  display: block;
+}

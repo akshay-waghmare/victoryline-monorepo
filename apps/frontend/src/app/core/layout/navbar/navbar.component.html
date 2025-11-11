@@ -1,9 +1,14 @@
 <nav class="navbar">
   <div class="navbar__container">
     <!-- Logo -->
-    <a routerLink="/Home" class="navbar__logo">
-      <img src="/assets/img/branding_logo-img.png" alt="Victory Line" class="navbar__logo-img">
-      <span class="navbar__logo-text">Victory Line</span>
+    <a routerLink="/Home" class="navbar__logo" aria-label="Navigate to Home">
+      <app-logo 
+        variant="primary" 
+        size="navbar" 
+        [showText]="false"
+        altText="Crickzen Live Cricket"
+        containerClass="navbar__logo-container"
+      ></app-logo>
     </a>
 
     <!-- Desktop Navigation Links -->

@@ -1,0 +1,28 @@
+/* Commentary List Component Styles */
+
+.commentary-container {
+  padding: 1rem;
+}
+
+.commentary-entry {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 2rem;
+}
+
+.load-more-btn {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.no-commentary {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}

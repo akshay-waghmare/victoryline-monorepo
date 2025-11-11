@@ -1,15 +1,48 @@
-# Use an official OpenJDK runtime as a parent image
-FROM openjdk:8-jre-slim
+# Stage 1: Build the application
+FROM maven:3.8-openjdk-11 AS build
 
-# Set the working directory inside the container
+# Set working directory
 WORKDIR /app
 
-# Copy the project’s jar file into the container at /app
-COPY target/spring-security-jwt-1.0-SNAPSHOT.war /app/app.war
+# Copy pom.xml and download dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
 
-# Expose port 8099 to the outside world
+# Copy source code
+COPY src ./src
+
+# Build the application
+RUN mvn clean package -DskipTests
+
+# Stage 2: Run the application
+FROM eclipse-temurin:11-jre-alpine
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# Set working directory
+WORKDIR /app
+
+# Copy the built artifact from build stage
+COPY --from=build /app/target/*.war /app/app.war
+
+# Create directory for H2 database (fallback)
+RUN mkdir -p /app/data
+
+# Expose application port
 EXPOSE 8099
 
-# Run the application
-ENTRYPOINT ["java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", "-jar", "/app/app.war"]
+# Expose debug port (optional, can be removed in production)
+EXPOSE 5005
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -f http://localhost:8099/actuator/health || exit 1
+
+# Run the application with optional debug support
+# Remove debug agent in production
+ENTRYPOINT ["java", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-default}", \
+    "-jar", "/app/app.war"]
 

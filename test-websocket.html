@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test - Crickzen.com</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #007bff;
+            padding-left: 10px;
+        }
+        .log-entry.success {
+            border-left-color: #28a745;
+        }
+        .log-entry.error {
+            border-left-color: #dc3545;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 WebSocket Connection Test</h1>
+        <p>Test STOMP over WebSocket connection to Crickzen.com backend</p>
+
+        <div class="info">
+            <strong>Testing:</strong> wss://<span id="host"></span>/api/ws/websocket
+        </div>
+
+        <div id="status" class="status connecting">
+            Status: Initializing...
+        </div>
+
+        <div style="margin: 20px 0;">
+            <button id="connectBtn" onclick="connect()">Connect</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+
+        <h3>Connection Log:</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+    <script>
+        let stompClient = null;
+        const statusDiv = document.getElementById('status');
+        const logDiv = document.getElementById('log');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+
+        // Display the host
+        document.getElementById('host').textContent = window.location.host;
+
+        function addLog(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry ' + type;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatus(message, state) {
+            statusDiv.textContent = 'Status: ' + message;
+            statusDiv.className = 'status ' + state;
+        }
+
+        function connect() {
+            // For SockJS, use HTTP/HTTPS (not WS/WSS) - SockJS handles the upgrade
+            const sockJsUrl = `${window.location.protocol}//${window.location.host}/api/ws`;
+            const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws/websocket`;
+            
+            addLog('Attempting to connect via SockJS to: ' + sockJsUrl, 'info');
+            addLog('WebSocket URL would be: ' + wsUrl, 'info');
+            updateStatus('Connecting...', 'connecting');
+            connectBtn.disabled = true;
+
+            // Create STOMP client - using SockJS transport (Spring Boot default)
+            stompClient = new StompJs.Client({
+                connectHeaders: {
+                    login: 'guest',
+                    passcode: 'guest'
+                },
+                debug: function (str) {
+                    addLog('DEBUG: ' + str, 'info');
+                },
+                reconnectDelay: 5000,
+                heartbeatIncoming: 4000,
+                heartbeatOutgoing: 4000
+            });
+
+            // Use SockJS transport (required for Spring Boot STOMP)
+            stompClient.webSocketFactory = function () {
+                addLog('Creating SockJS connection...', 'info');
+                return new SockJS(sockJsUrl);
+            };
+
+            stompClient.onConnect = function (frame) {
+                addLog('✅ CONNECTED! WebSocket is working!', 'success');
+                updateStatus('Connected Successfully! ✅', 'connected');
+                disconnectBtn.disabled = false;
+                
+                addLog('Frame details: ' + JSON.stringify(frame.headers), 'success');
+                
+                // Try to subscribe to a test topic
+                try {
+                    const subscription = stompClient.subscribe('/topic/test', function (message) {
+                        addLog('Received message: ' + message.body, 'success');
+                    });
+                    addLog('Subscribed to /topic/test', 'success');
+                } catch (e) {
+                    addLog('Subscription test: ' + e.message, 'info');
+                }
+            };
+
+            stompClient.onStompError = function (frame) {
+                addLog('❌ STOMP Error: ' + frame.headers['message'], 'error');
+                addLog('Details: ' + frame.body, 'error');
+                updateStatus('STOMP Error', 'error');
+            };
+
+            stompClient.onWebSocketError = function (event) {
+                addLog('❌ WebSocket Error occurred', 'error');
+                updateStatus('WebSocket Error', 'error');
+                connectBtn.disabled = false;
+            };
+
+            stompClient.onWebSocketClose = function (event) {
+                addLog('WebSocket closed. Code: ' + event.code + ', Reason: ' + event.reason, 'error');
+                updateStatus('Disconnected', 'error');
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            };
+
+            stompClient.onDisconnect = function () {
+                addLog('Disconnected from STOMP', 'info');
+                updateStatus('Disconnected', 'error');
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            };
+
+            // Activate the connection
+            try {
+                stompClient.activate();
+                addLog('STOMP client activated', 'info');
+            } catch (e) {
+                addLog('❌ Failed to activate: ' + e.message, 'error');
+                updateStatus('Failed to connect', 'error');
+                connectBtn.disabled = false;
+            }
+        }
+
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.deactivate();
+                addLog('Disconnecting...', 'info');
+            }
+        }
+
+        function clearLog() {
+            logDiv.innerHTML = '';
+            addLog('Log cleared', 'info');
+        }
+
+        // Initial log
+        addLog('WebSocket test page loaded', 'info');
+        addLog('Click "Connect" to test WebSocket connection', 'info');
+    </script>
+</body>
+</html>

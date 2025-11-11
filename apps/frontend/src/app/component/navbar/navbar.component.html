@@ -8,12 +8,13 @@
     
     <!-- Logo/Brand -->
     <div class="navbar__brand" (click)="navigateTo('/')">
-      <img
-        class="navbar__logo-wordmark"
-        src="/assets/img/branding_logo-txt.png"
-        alt="VictoryLine"
-        [ngStyle]="{ filter: logoFilter }"
-      />
+      <app-logo 
+        variant="primary" 
+        size="navbar" 
+        [showText]="false"
+        altText="Crickzen Live Cricket"
+        containerClass="navbar__brand-container"
+      ></app-logo>
     </div>
     
     <!-- Desktop Navigation -->
