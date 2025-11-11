@@ -12,6 +12,22 @@
 
 crickzen.com, www.crickzen.com {
   encode gzip
+  
+  # WebSocket endpoint - must come before general proxy to take precedence
+  @websocket {
+    path /api/ws/*
+  }
+  reverse_proxy @websocket frontend:80 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+    header_up Upgrade {http.request.header.Upgrade}
+    header_up Connection {http.request.header.Connection}
+    # Increase timeout for long-lived WebSocket connections
+    flush_interval -1
+  }
+  
   # Serve frontend Angular app proxied from internal container
   reverse_proxy frontend:80 {
     header_up Host {host}
