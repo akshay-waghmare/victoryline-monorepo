@@ -187,6 +187,29 @@ Each application includes Dockerfile for containerization:
 docker-compose up --build
 ```
 
+### Redis for SEO cache (optional)
+
+To enable Redis-backed SEO caching locally:
+
+```powershell
+# Start Redis locally (detached)
+docker compose -f .\docker-compose.redis.yml up -d
+
+# Verify Redis is healthy
+docker ps --filter "name=crickzen-redis"
+
+# (Optional) Set env vars for backend if not using defaults
+$env:SPRING_REDIS_HOST = "localhost"
+$env:SPRING_REDIS_PORT = "6379"
+
+# Run backend tests/build (Redis is optional; app falls back to in-memory cache)
+mvn -q -DskipTests package -f "apps/backend/spring-security-jwt/pom.xml"
+```
+
+Notes:
+- The backend defaults to `localhost:6379` via `application.properties`. If Redis is unavailable, the cache falls back to an in-memory map.
+- Public sitemap endpoints still work without Redis; caching improves stability during bursts.
+
 ## 🌿 Branch Strategy
 
 - **Frontend**: `adv` branch contains latest stable code

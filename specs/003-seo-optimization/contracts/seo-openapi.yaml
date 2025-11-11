@@ -1,0 +1,128 @@
+openapi: 3.0.3
+info:
+  title: Crickzen SEO API
+  version: 1.0.0
+  description: Endpoints supporting SEO artifacts and diagnostics
+servers:
+  - url: https://www.crickzen.com
+paths:
+  /sitemap.xml:
+    get:
+      summary: Public sitemap index (gzipped)
+      responses:
+        '200':
+          description: Gzipped XML sitemap index
+          headers:
+            Content-Type:
+              schema:
+                type: string
+              description: application/x-gzip
+          content:
+            application/x-gzip:
+              schema:
+                type: string
+                format: binary
+  /sitemaps/{name}.xml.gz:
+    get:
+      summary: Public sitemap partition (gzipped)
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+          description: Partition filename stem (e.g., sitemap-matches-0001)
+      responses:
+        '200':
+          description: Gzipped XML sitemap partition
+          content:
+            application/x-gzip:
+              schema:
+                type: string
+                format: binary
+  /api/v1/seo/sitemap:
+    get:
+      summary: Get sitemap index or partition
+      parameters:
+        - in: query
+          name: part
+          schema:
+            type: integer
+          description: Optional sitemap partition number
+      responses:
+        '200':
+          description: XML sitemap
+          content:
+            application/xml:
+              schema:
+                type: string
+  /api/v1/seo/robots:
+    get:
+      summary: Get robots.txt
+      responses:
+        '200':
+          description: robots.txt content
+          content:
+            text/plain:
+              schema:
+                type: string
+  /api/v1/seo/metadata:
+    get:
+      summary: Compute metadata for a given path (admin/debug)
+      parameters:
+        - in: query
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  title: { type: string }
+                  description: { type: string }
+                  canonicalUrl: { type: string }
+                  robots: { type: string }
+                  ogImageUrl: { type: string }
+  /api/v1/seo/og-image:
+    post:
+      summary: Regenerate OG image for an entity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, id]
+              properties:
+                type: { type: string, enum: [match, player, team] }
+                id: { type: string }
+      responses:
+        '202':
+          description: Regeneration scheduled
+  /api/v1/seo/structured-data/{type}/{id}:
+    get:
+      summary: Get JSON-LD structured data for testing
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+            enum: [match, player, team]
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: JSON-LD
+          content:
+            application/ld+json:
+              schema:
+                type: object

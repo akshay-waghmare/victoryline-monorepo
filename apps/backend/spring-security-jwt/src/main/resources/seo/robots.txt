@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /*?*
+Allow: /$ 
+Sitemap: https://www.crickzen.com/sitemap.xml

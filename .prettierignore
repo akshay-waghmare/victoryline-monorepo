@@ -1,0 +1,10 @@
+dist/
+build/
+coverage/
+node_modules/
+*.min.js
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.specify/
+specs/003-seo-optimization/contracts/seo-openapi.yaml
