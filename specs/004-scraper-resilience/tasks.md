@@ -1,15 +1,18 @@
 # Tasks: 004-scraper-resilience
 
 **Input**: Design documents from `/specs/004-scraper-resilience/` (plan.md, spec.md, research.md, data-model.md, contracts/)  
-**Purpose**: Break the plan into concrete, testable tasks organized by user story and phase. Tasks are actionable, include file paths, ownership hints, and acceptance criteria.
+**Purpose**: Break the plan into concrete, testable tasks organized by user story and phase. Tasks are actionable, include file paths, ownership hints, and acceptance criteria.  
+**Profiles**: Tasks support both Standard Profile (8GB+ RAM, 10+ scrapers) and Tiny Profile (4GB RAM, 1-2 scrapers)
 
 ## Conventions
 
 - Format: `T### [P?] [US#] Short description (owner) — estimate`
   - `[P]` = Can run in parallel
   - `US#` = User Story number from `spec.md` (US1..US5)
+  - `[OPS-TINY]` = Specific to Tiny Profile deployment
 - Estimates: S/M/L (small/medium/large) — approximate engineering points
 - Acceptance criteria included on each task line after `--`
+- Profile-specific adjustments noted inline (e.g., "standard / tiny")
 
 ---
 
@@ -21,8 +24,8 @@ T001 [P] [FOUNDATION] Create feature branch `004-scraper-resilience` and commit 
 T002 [P] [FOUNDATION] Add pinned Playwright and new dependencies to `apps/scraper/crex_scraper_python/requirements.txt` — S
   -- Add: `playwright==1.40.0`, `psutil`, `prometheus-client`, `structlog`, `pytest-playwright`; CI installs succeed
 
-T003 [P] [FOUNDATION] Add Dockerfile changes and `docker-compose.prod.yml` resource limits (memory: 2560M) for scraper service — S
-  -- Container builds; `docker run` respects memory limit; compose passes `SCRAPER_MAX_LIFETIME_HOURS` env
+T003 [P] [FOUNDATION] Add Dockerfile changes and `docker-compose.prod.yml` resource limits (memory: 2560M standard / 800M tiny) for scraper service — S
+  -- Container builds; `docker run` respects memory limit; compose passes `SCRAPER_MAX_LIFETIME_HOURS` env; docker-compose.tiny.yml override created
 
 T004 [P] [FOUNDATION] Configure linting and formatting for Python (black/isort/flake8) in `apps/scraper/` — S
   -- Pre-commit hook added; `make lint` passes
@@ -47,7 +50,7 @@ T009 [FOUNDATION] Implement `db_pool.py` SQLite connection pool in `apps/scraper
   -- Thread-safe pool; contextmanager `get_connection()`; tests for concurrent usage
 
 T010 [FOUNDATION] Implement `BatchWriter` for batched DB writes in `apps/scraper/crex_scraper_python/persistence/batch_writer.py` — M
-  -- Batch size default 20; critical events bypass batching; flush interval 5s; metrics emitted
+  -- Batch size default 20 (standard profile) / 15 (tiny profile); critical events bypass batching; flush interval 5s; metrics emitted
 
 T011 [FOUNDATION] Add health endpoint scaffold to `apps/scraper/crex_scraper_python/crex_main_url.py` returning `HealthResponse` per `contracts/health-api.yaml` — M
   -- GET /health returns fields and responds <100ms in local tests
@@ -79,7 +82,7 @@ T102 [US1] Integrate Playwright lifecycle with context managers in `crex_scraper
 T103 [US1] Implement network retry flows using `retry_utils` around network calls and Playwright navigation — M
   -- Retries with delays [1,2,4,8,16] and jitter; metrics incremented on each retry attempt
 
-T104 [US1] Implement soft-memory detection and graceful restart in `ScraperContext` (trigger at 1.5GB) — M
+T104 [US1] Implement soft-memory detection and graceful restart in `ScraperContext` (trigger at 1.5GB standard / 650MB tiny) — M
   -- When memory threshold met: complete cycle, save state snapshot, restart within 60s; acceptance test simulates memory growth
 
 T105 [US1] Implement state snapshot save/load for seamless restart in `scraper_state.py` — M
@@ -97,7 +100,7 @@ Goal: Detect and recover from failures with minimal human intervention.
 T201 [US2] Wire up `CircuitBreaker` to protected operations in `crex_scraper.py` and `cricket_data_service.py` — M
   -- Circuit opens after 5 consecutive failures, HALF_OPEN probe logic implemented
 
-T202 [US2] Implement orphaned Chromium process scanner & terminator in `monitoring/cleanup_orphans.py` (runs every 30m) — M
+T202 [US2] Implement orphaned Chromium process scanner & terminator in `monitoring/cleanup_orphans.py` (runs every 30m standard / 60m tiny) — M
   -- Orphans terminated, actions logged with PID and memory
 
 T203 [US2] Implement token refresh flow in `auth.py` that calls backend `/token/generate-token` on 401/403 — M
@@ -118,17 +121,17 @@ Goal: Provide real-time visibility and alerting for scraper health and data fres
 T301 [US3] Implement `/metrics` exposition (Prometheus) using `prometheus_client` in `monitoring.py` — M
   -- Metrics available on :9090 and scrapeable by Prometheus; unit test verifies metrics endpoint
 
-T302 [US3] Create Prometheus scrape config `monitoring/prometheus.yml` and docker-compose monitoring stack — S
-  -- Prometheus scrapes scraper:9090 and backend:8080; local compose brings up grafana and alertmanager
+T302 [US3] Create Prometheus scrape config `monitoring/prometheus.yml` and docker-compose monitoring stack (48h retention for tiny profile) — S
+  -- Prometheus scrapes scraper:9090 and backend:8080; local compose brings up monitoring stack (Grafana optional for tiny); scrape interval 15s standard / 30s tiny
 
-T303 [US3] Implement Grafana dashboards (`monitoring/grafana/dashboards/`) including RSS per-scraper and data freshness — M
-  -- Dashboards imported and render metrics from local Prometheus instance
+T303 [US3] Implement Grafana dashboards (`monitoring/grafana/dashboards/`) including RSS per-scraper and data freshness (optional for tiny profile) — M
+  -- Dashboards imported and render metrics from local Prometheus instance; Prometheus UI acceptable alternative for tiny profile
 
 T304 [US3] Implement Alertmanager rules and inhibit rules in `monitoring/alertmanager.yml` grouped by `match_id` — S
   -- Alerts group by match_id; inhibit rules configured to silence warnings when critical present
 
-T305 [US3] Add Prometheus alerting rules (data stale 5m, error rate >10/min, memory >80% soft limit) in `monitoring/prometheus.rules.yml` — M
-  -- Alerts fire in simulated degraded conditions during integration tests
+T305 [US3] Add Prometheus alerting rules (data stale 5m, error rate >10/min standard or >6/min tiny, memory >80% soft limit) in `monitoring/prometheus.rules.yml` — M
+  -- Alerts fire in simulated degraded conditions during integration tests; thresholds adjusted per deployment profile
 
 T306 [US3] Implement clock skew metric `clock_skew_seconds` and require NTP in quickstart and infra docs — S
   -- Metric available, test verifies skew <500ms in staging
@@ -137,7 +140,7 @@ T306 [US3] Implement clock skew metric `clock_skew_seconds` and require NTP in q
 
 ## US4: Resource Management and Efficiency (Priority: P2)
 
-Goal: Efficient resource usage enabling 10+ concurrent scrapers.
+Goal: Efficient resource usage enabling 10+ concurrent scrapers (standard) or 1-2 scrapers (tiny profile).
 
 T401 [US4] Integrate `db_pool.py` and `BatchWriter` into persistence flow (`persistence/*`) — M
   -- Batch writes operate correctly; critical events persisted immediately
@@ -151,8 +154,8 @@ T403 [US4] Implement per-scraper memory monitoring using `psutil` and export `sc
 T404 [US4] Add lifecycle watchdog that enforces Docker memory policy and reports when host low memory prevents new scrapers from starting — S
   -- Host refuses new scraper starts when available memory <500MB and queues start request
 
-T405 [US4] Load test: 10 concurrent scrapers for 12 hours (CI or staging) and record KPIs — L
-  -- Memory per-scraper <1GB avg, total <10GB, no monotonic growth; runbook for failures documented
+T405 [US4] Load test: 10 concurrent scrapers for 12 hours (standard) or 2 scrapers for 6-8 hours (tiny) in staging and record KPIs — L
+  -- Standard: Memory per-scraper <1GB avg, total <10GB, no monotonic growth; Tiny: Memory per-scraper <700MB avg, total <2GB, system free RAM >1GB; runbook for failures documented
 
 ---
 
@@ -160,8 +163,8 @@ T405 [US4] Load test: 10 concurrent scrapers for 12 hours (CI or staging) and re
 
 Goal: Adjust scraper behavior dynamically based on observed conditions.
 
-T501 [US5] Implement `AdaptivePoller` in `crex_scraper_python/adaptive.py` (adjust intervals and timeouts) — M
-  -- Behavior matches acceptance scenarios (2s/2.5s/5s/10s/20s/30s) according to recent error/change rates
+T501 [US5] Implement `AdaptivePoller` in `crex_scraper_python/adaptive.py` (adjust intervals and timeouts per profile) — M
+  -- Behavior matches acceptance scenarios: Standard (2s/2.5s/5s/10s/20s/30s) or Tiny (3s/5s/10s/20s/30s) according to recent error/change rates
 
 T502 [US5] Add logic to increase timeouts by 50% under high-latency observations and decrease when stable — M
   -- Page timeout adapts from 30s → 45s and back; tests simulate latency profiles
@@ -191,6 +194,21 @@ T705 [P] [OPS] Update CI/CD pipeline to run acceptance tests in staging on each 
 T706 [P] [OPS] Create runbook for OOM conditions and automatic remediation steps (restart sequence, alert, rollback) — S
   -- Runbook checked into `docs/ops/runbooks/scraper-oom.md`
 
+T707 [P] [OPS-TINY] Add Chromium optimization flags to Playwright launch config in `run_server.py` — S
+  -- Flags added: --disable-dev-shm-usage, --disable-gpu, --no-sandbox, --disable-extensions, --mute-audio, --single-process; memory savings validated (200-300MB)
+
+T708 [P] [OPS-TINY] Create docker-compose.tiny.yml override file with 4GB RAM VPS configuration — S
+  -- Override file created with 800M memory limits, adjusted env vars, Chromium flags; docker-compose -f docker-compose.yml -f docker-compose.tiny.yml validates
+
+T709 [P] [OPS-TINY] Document tiny profile deployment in `quickstart.md` with RAM constraints and setup instructions — M
+  -- Tiny profile section added with resource allocation strategy, phased deployment plan, trade-offs documented
+
+T710 [P] [OPS-TINY] Set up zram swap on VPS host (optional but recommended for tiny profile) — S
+  -- zram configured with 2GB compressed swap; documented in infra setup guide
+
+T711 [P] [OPS-TINY] Create monitoring runbook for tiny profile (free RAM checks, OOM handling, single-scraper recovery) — M
+  -- Runbook covers: memory pressure detection, graceful degradation to 1 scraper, resource monitoring commands
+
 ---
 
 ## Polish & Release
@@ -210,13 +228,38 @@ T903 [P] Final Acceptance: Run full acceptance suite and get signoff from Produc
 
 - Critical path (Phase 2 Foundational + US1 + US2): ~3-4 weeks (with 2 engineers)  
 - Full feature rollout with optimizations (Phases 3-6): ~8 weeks total as described in plan.md
+- **Tiny Profile**: Skip or defer Phase 6 optimization tasks; focus on Phases 1-5 (~6 weeks)
+
+## Deployment Profile Selection
+
+**Standard Profile (8GB+ RAM)**:
+- All tasks apply as written
+- Target: 10+ concurrent scrapers
+- Full monitoring stack: Prometheus + Grafana + Alertmanager
+
+**Tiny Profile (4GB RAM VPS)**:
+- Additional tasks: T707-T711 (Chromium optimization, docker-compose.tiny.yml, zram, docs)
+- Modified tasks: T003, T010, T104, T202, T302, T303, T305, T405, T501 (see adjustments above)
+- Target: 1-2 concurrent scrapers maximum
+- Lightweight monitoring: Prometheus + Alertmanager (Grafana optional)
+- Phased deployment: 1 scraper (Week 1) → 2 scrapers if stable (Week 2) → monitoring (Week 3)
 
 ## How to use
 
+**Standard Profile**:
 1. Start with Foundational tasks (T005..T015). These block all user story work.  
 2. Parallelize US1 and US2 tasks after foundational completion.  
 3. Run T705 to wire acceptance tests into CI and gate merges.  
 4. Use T401/T405 load tests and dashboards (T702) to tune memory/disk/container limits.
+
+**Tiny Profile**:
+1. Complete T001-T004 with docker-compose.tiny.yml (T708)
+2. Add Chromium optimization flags (T707) before Foundational tasks
+3. Complete Foundational tasks (T005..T015) with tiny profile batch sizes
+4. Implement US1 and US2 with adjusted memory thresholds
+5. Deploy single scraper first (Week 1), validate 24h stability before scaling to 2
+6. Monitor system free RAM; if consistently <1GB, remain at 1 scraper
+7. Skip or defer US5 (Adaptive Performance) and Phase 6 (Optimization) initially
 
 ---
 
