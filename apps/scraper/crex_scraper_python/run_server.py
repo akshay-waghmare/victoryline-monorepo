@@ -3,6 +3,8 @@
 Startup script for the Cricket Scraper Service with structured logging.
 """
 
+import atexit
+import signal
 import sys
 import os
 import threading
@@ -15,36 +17,81 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, current_dir)
 sys.path.insert(0, parent_dir)
 
-from src.crex_main_url import app, initialize_database, job
+from src.crex_main_url import (
+    SERVICE_SHUTDOWN_EVENT,
+    app,
+    initialize_database,
+    job,
+    shutdown_active_scrapes,
+)
+from src.config import get_settings
+from src.monitoring import ensure_metrics_server
 
-def auto_start_periodic_job():
-    """
-    Auto-starts the periodic scraping job after a short delay.
-    This ensures:
-    1. Backend can mark old matches for deletion if no live matches exist
-    2. New matches are automatically detected and scraped
-    3. System works correctly even after server restarts
-    """
-    time.sleep(5)  # Wait 5 seconds for server to fully start
+def auto_start_periodic_job(stop_event: threading.Event | None = None) -> None:
+    """Auto-start the periodic scraping job after a brief delay."""
+
+    shutdown_event = stop_event or SERVICE_SHUTDOWN_EVENT
+    if shutdown_event.wait(5):  # Wait for server to warm up unless shutting down
+        return
+
     print("\n🚀 Auto-starting periodic scraping job...")
     print("   - Will check for live matches every 60 seconds")
     print("   - Backend will clean up old/finished matches")
     print("   - New matches will be automatically scraped\n")
-    job()  # Start the infinite loop
+    job(stop_event=shutdown_event)
 
 if __name__ == "__main__":
     print("Starting Cricket Scraper Service...")
     print("Initializing database...")
     initialize_database()
     print("Database initialized successfully")
+
+    settings = get_settings()
+    if settings.enable_prometheus_metrics:
+        try:
+            ensure_metrics_server(settings)
+            print(
+                f"Metrics available on http://{settings.prometheus_host}:{settings.prometheus_port}/metrics"
+            )
+        except OSError as exc:
+            print(f"Warning: failed to start metrics server ({exc})", file=sys.stderr)
     
-    # Start periodic job in background thread
-    scraping_thread = threading.Thread(target=auto_start_periodic_job)
-    scraping_thread.daemon = True
-    scraping_thread.start()
-    
+    SERVICE_SHUTDOWN_EVENT.clear()
+
+    periodic_thread = threading.Thread(
+        target=auto_start_periodic_job,
+        kwargs={"stop_event": SERVICE_SHUTDOWN_EVENT},
+        daemon=True,
+    )
+    periodic_thread.start()
+
+    shutdown_once = threading.Event()
+
+    def initiate_shutdown(source: str) -> None:
+        if shutdown_once.is_set():
+            return
+        shutdown_once.set()
+        print(f"\n⚠️  Initiating scraper shutdown ({source})...")
+        SERVICE_SHUTDOWN_EVENT.set()
+        shutdown_active_scrapes(timeout_seconds=settings.graceful_shutdown_timeout_seconds)
+        if periodic_thread.is_alive():
+            periodic_thread.join(timeout=settings.graceful_shutdown_timeout_seconds)
+        print("✅ Scraper shutdown complete.\n")
+
+    def handle_signal(signum, _frame) -> None:
+        initiate_shutdown(f"signal {signum}")
+
+    signal.signal(signal.SIGINT, handle_signal)
+    signal.signal(signal.SIGTERM, handle_signal)
+    atexit.register(lambda: initiate_shutdown("process exit"))
+
     print("\nServer starting on http://0.0.0.0:5000")
     print("Periodic scraping will auto-start in 5 seconds...")
     print("Press CTRL+C to quit\n")
-    
-    app.run(host="0.0.0.0", port=5000, debug=False)
+
+    try:
+        app.run(host="0.0.0.0", port=5000, debug=False)
+    except KeyboardInterrupt:
+        initiate_shutdown("keyboard interrupt")
+    finally:
+        initiate_shutdown("server stopped")

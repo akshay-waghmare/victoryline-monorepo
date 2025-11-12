@@ -47,6 +47,8 @@ def test_configure_logging_produces_json():
     assert "timestamp" in log_entry
     assert "correlation_id" in log_entry
     assert log_entry["metadata"]["key"] == "value"
+    assert log_entry["scraper_id"] == "unknown"
+    assert log_entry["match_id"] == "unbound"
 
 
 def test_correlation_id_binding():

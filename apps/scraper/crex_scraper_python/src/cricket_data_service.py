@@ -1,8 +1,13 @@
 import requests
 import os
 from src.logging.adapters import get_logger
+from src.core.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
 logger = get_logger(component="cricket_data_service")
+
+# Circuit breakers for external dependencies
+_auth_breaker = CircuitBreaker.from_settings("backend_auth")
+_api_breaker = CircuitBreaker.from_settings("backend_api")
 
 class CricketDataService:
     BASE_URL = os.getenv('BACKEND_URL', 'http://127.0.0.1:8099')
@@ -18,12 +23,18 @@ class CricketDataService:
             "password": os.getenv('BACKEND_PASSWORD', 'tanmay')
         }
         
-        try:
-            response = requests.post(CricketDataService.TOKEN_URL, json=credentials)
+        def _fetch_token():
+            response = requests.post(CricketDataService.TOKEN_URL, json=credentials, timeout=2)
             response.raise_for_status()
-            token = response.json().get("token")
+            return response.json().get("token")
+        
+        try:
+            token = _auth_breaker.call(_fetch_token)
             logger.info("auth.token.success")
             return token
+        except CircuitBreakerOpenError:
+            logger.warning("auth.token.circuit_open", metadata={"breaker": "backend_auth"})
+            return None
         except Exception as e:
             logger.error("auth.token.error", metadata={"error": str(e)})
             return None  # Don't raise, just return None so scraping can continue
@@ -37,17 +48,19 @@ class CricketDataService:
         
         add_matches_url = os.getenv('ADD_LIVE_MATCHES_URL', 'http://127.0.0.1:8099/cricket-data/add-live-matches')
         
-        try:
-            headers = {
-                "Content-Type": "application/json"
-            }
-            # Add token only if provided (not required since endpoint is public)
+        def _post_matches():
+            headers = {"Content-Type": "application/json"}
             if token:
                 headers["Authorization"] = f"Bearer {token}"
-                
-            response = requests.post(add_matches_url, json=urls, headers=headers)
+            response = requests.post(add_matches_url, json=urls, headers=headers, timeout=2)
             response.raise_for_status()
+            return response
+        
+        try:
+            _api_breaker.call(_post_matches)
             logger.info("matches.add.success", metadata={"url_count": len(urls)})
+        except CircuitBreakerOpenError:
+            logger.warning("matches.add.circuit_open", metadata={"breaker": "backend_api"})
         except Exception as e:
             logger.error("matches.add.error", metadata={"error": str(e), "url": add_matches_url})
             # Don't raise - allow scraping to continue even if backend sync fails

@@ -10,10 +10,11 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.logging.adapters import configure_logging, get_logger
+from crex_scraper_python.logging_config import setup_logging
+from src.logging.adapters import get_logger
 from src.logging.diagnostics import prune_expired_artifacts
 
-configure_logging()
+setup_logging()
 logger = get_logger(component="artifact_cleanup")
 
 def main():

@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.9.1
+    hooks:
+      - id: black
+        language_version: python3
+        files: ^apps/scraper/.*\.py$
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (scraper)
+        files: ^apps/scraper/.*\.py$
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
+    hooks:
+      - id: flake8
+        name: flake8 (scraper)
+        files: ^apps/scraper/.*\.py$

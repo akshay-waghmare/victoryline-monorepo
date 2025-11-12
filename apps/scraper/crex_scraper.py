@@ -7,7 +7,8 @@ import sys
 import concurrent.futures
 import threading
 import requests
-import cricket_data_service
+# Use batched version for better performance
+import cricket_data_service_batched as cricket_data_service
 from playwright.sync_api import sync_playwright
 import json
 import logging
@@ -731,17 +732,20 @@ def printUpdatedText(updatedTexts, token, url):
         cricket_data_service.send_cricket_data_to_service(score_update, token, url)
         scraper_logger.info(score_update)
 
-def fetchData(url):
+def fetchData(url, context=None):
     """
     Fetches data from a given URL using Playwright library.
     
     Args:
         url (str): The URL to fetch data from.
+        context: Optional ScraperContext for monitoring and restart management.
     
     Returns:
         None
     """
     scraper_logger.info(f"Starting fetchData for URL: {url}")
+    if context:
+        scraper_logger.info(f"ScraperContext provided for {url}, restart logic enabled")
     
     # Create a new data store for this thread
     data_store = {
@@ -791,11 +795,22 @@ def fetchData(url):
                     '--disable-dev-shm-usage',
                     '--disable-gpu',
                     '--no-first-run',
-                    '--disable-infobars'
+                    '--disable-infobars',
+                    '--disable-extensions',  # Disable browser extensions
+                    '--disable-plugins',     # Disable plugins
+                    '--disable-images',      # Disable image loading for performance
+                    '--disable-javascript-harmony-shipping',  # Disable experimental JS features
+                    '--disable-background-networking',  # Disable background network requests
+                    '--disable-default-apps',  # Disable default apps
+                    '--disable-sync',  # Disable Chrome sync
+                    '--metrics-recording-only',  # Reduce overhead
+                    '--mute-audio',  # No audio needed
+                    '--disable-web-security',  # Can help with CORS but use cautiously
+                    '--disable-features=IsolateOrigins,site-per-process',  # Reduce process isolation overhead
                 ]
             )
-            scraper_logger.info("Browser launched successfully")
-            context = browser.new_context(
+            scraper_logger.info("Browser launched successfully with optimized resource usage")
+            browser_context = browser.new_context(
                 user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
                 extra_http_headers={
                     'sec-ch-ua': '"Chromium";v="128", "Not;A=Brand";v="24", "Google Chrome";v="128"',
@@ -803,7 +818,7 @@ def fetchData(url):
                     'sec-ch-ua-platform': '"Windows"',
                 }
             )
-            page = context.new_page()
+            page = browser_context.new_page()
             page.route("**/*", block_unnecessary_resources)
 
             scraper_logger.info("Browser context and page created")
@@ -813,7 +828,7 @@ def fetchData(url):
             scraper_logger.info(f"Opening scorecard URL in a new tab: {scorecard_url}")
             
             try:
-                scorecard_page = context.new_page()
+                scorecard_page = browser_context.new_page()
                 scorecard_page.route("**/*", block_unnecessary_resources)
                 scraper_logger.info(f"Attempting to navigate to: {scorecard_url}")
                 response = scorecard_page.goto(scorecard_url, timeout=30000, wait_until="domcontentloaded")
@@ -825,7 +840,7 @@ def fetchData(url):
                 scorecard_page = None
             
             # **Step 2: Extract cookies from the browser context**
-            cookies = context.cookies()
+            cookies = browser_context.cookies()
             scraper_logger.debug(f"Extracted cookies: {cookies}")
             
             # Close the scorecard tab if it was opened successfully
@@ -881,11 +896,19 @@ def fetchData(url):
                 scraper_logger.info("Not a test match, skipping Odds View button click.")
 
             # Start the observation loop in the main thread
-            observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_retries, data_store, is_test_match)
+            observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_retries, data_store, is_test_match, context)
 
         except Exception as e:
             scraper_logger.error(f"Uncaught error: {e}", exc_info=True)
         finally:
+            # Flush any pending batched data before closing
+            try:
+                batch_service = cricket_data_service.get_batch_service()
+                batch_service.flush_all()
+                scraper_logger.info("Flushed all pending batched data")
+            except Exception as e:
+                scraper_logger.warning(f"Error flushing batched data: {e}")
+            
             browser.close()
             scraper_logger.info("Browser closed.")
             executor.shutdown(wait=True)
@@ -920,7 +943,7 @@ def search_and_click_odds_button(page):
         scraper_logger.error(f"Odds View button not found within the specified timeout period: {e}")
         return False
 
-def observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_retries, data_store, is_test_match):
+def observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_retries, data_store, is_test_match, context=None):
     """
     Observes text changes on a web page and sends updated data to the backend.
     
@@ -933,18 +956,37 @@ def observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_ret
         max_retries (int): Maximum number of retries allowed.
         data_store (dict): Shared data storage for scraped data.
         is_test_match (bool): Flag indicating if the match is a test match.
+        context: Optional ScraperContext for monitoring and restart management.
     
     Returns:
         None
     """
     scraper_logger.info("Starting observation of text changes")
+    if context:
+        scraper_logger.info(f"Context monitoring enabled for {url}")
 
     try:
         running = True
         previousTexts = set()
         previousData = []
         previousScore = []
+        iteration_count = 0
+        
         while running:
+            iteration_count += 1
+            
+            # Check if context requests restart (memory/age/errors exceeded)
+            if context and context.should_restart():
+                scraper_logger.warning(
+                    f"Context requesting restart for {url}: "
+                    f"reason={context.restart_reason}, "
+                    f"uptime={context.uptime_seconds()}s, "
+                    f"memory_mb={context.memory_mb:.1f}, "
+                    f"errors={context.error_count}"
+                )
+                running = False
+                break
+            
             # Check if the task is marked for stopping
             if scraping_tasks.get(url, {}).get('status') == 'stopping':
                 scraper_logger.info(f'Stopping scraping task for url: {url}')
@@ -1179,6 +1221,22 @@ def observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_ret
 
             except Exception as e:
                 scraper_logger.error(f"Error during DOM manipulation: {e}", exc_info=True)
+                # Record error in context if available
+                if context:
+                    context.record_error()
+
+            # Update resource usage periodically (every 10 iterations ~25 seconds)
+            if context and iteration_count % 10 == 0:
+                try:
+                    context.update_resource_usage()
+                    scraper_logger.debug(
+                        f"Resource update: memory={context.memory_mb:.1f}MB, "
+                        f"cpu={context.cpu_percent:.1f}%, "
+                        f"uptime={context.uptime_seconds()}s, "
+                        f"errors={context.error_count}"
+                    )
+                except Exception as e:
+                    scraper_logger.warning(f"Failed to update resource usage: {e}")
 
             # Wait for 2.5 seconds before the next iteration
             try:

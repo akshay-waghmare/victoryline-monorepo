@@ -33,11 +33,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Set the working directory in the container
 WORKDIR /app
 
+# Ensure deterministic Python runtime behaviour
+ENV PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
 # Copy requirements file first for better caching
 COPY crex_scraper_python/requirements.txt ./
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && \
+  pip install --no-cache-dir -r requirements.txt
 
 # Ensure Playwright installs browsers in a shared location baked into the image
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
