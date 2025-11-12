@@ -33,7 +33,7 @@ services:
   #     start_period: 30s
 
   backend:
-    image: "${BACKEND_IMAGE:-victoryline-monorepo-backend:v1.0.0}"
+    image: "${BACKEND_IMAGE:-macubex/victoryline-backend:v1.0.0}"
     container_name: victoryline-backend
     restart: unless-stopped
     ports:
@@ -66,7 +66,7 @@ services:
       start_period: 60s
 
   scraper:
-    image: "${SCRAPER_IMAGE:-victoryline-monorepo-scraper:v1.0.0}"
+    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.0.0}"
     container_name: victoryline-scraper
     restart: unless-stopped
     ports:
@@ -96,7 +96,7 @@ services:
       start_period: 45s
 
   prerender:
-    image: "${PRERENDER_IMAGE:-victoryline-monorepo-prerender:v1.0.0}"
+    image: "${PRERENDER_IMAGE:-macubex/victoryline-prerender:v1.0.0}"
     container_name: victoryline-prerender
     restart: unless-stopped
     ports:
@@ -113,7 +113,7 @@ services:
       start_period: 20s
 
   frontend:
-    image: "${FRONTEND_IMAGE:-victoryline-monorepo-frontend:v1.0.0}"
+    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:v1.0.0}"
     container_name: victoryline-frontend
     restart: unless-stopped
     # No external port mapping - accessed via Caddy reverse proxy only
