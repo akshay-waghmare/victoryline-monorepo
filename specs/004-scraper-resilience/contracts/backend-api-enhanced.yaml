@@ -1,0 +1,351 @@
+openapi: 3.0.3
+info:
+  title: Backend Match Data API (Enhanced)
+  description: |
+    Enhanced match data API with data freshness metadata and API authentication.
+    Extends existing backend API with resilience features from 004-scraper-resilience.
+  version: 2.0.0
+  contact:
+    name: VictoryLine API Team
+    email: ops-team@victoryline.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+  - url: http://backend:8080/api/v1
+    description: Docker internal network
+  - url: https://api.victoryline.com/api/v1
+    description: Production
+
+tags:
+  - name: Matches
+    description: Match data endpoints with freshness metadata
+  - name: Authentication
+    description: JWT token generation and management
+
+security:
+  - bearerAuth: []
+
+paths:
+  /matches/{id}:
+    get:
+      summary: Get match information
+      description: |
+        Retrieve detailed match information with data freshness metadata.
+        Response includes custom headers indicating data age for client-side staleness detection.
+      tags:
+        - Matches
+      operationId: getMatchInfo
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: Unique match identifier
+          example: 12345
+      responses:
+        '200':
+          description: Match data successfully retrieved
+          headers:
+            X-Data-Freshness:
+              schema:
+                type: string
+                format: date-time
+              description: ISO 8601 timestamp of last scraper update
+              example: "2025-11-12T10:30:45.123Z"
+            X-Data-Age-Seconds:
+              schema:
+                type: integer
+              description: Seconds since last scraper update
+              example: 8
+            X-Rate-Limit-Limit:
+              schema:
+                type: integer
+              description: Rate limit per minute for this API consumer
+              example: 100
+            X-Rate-Limit-Remaining:
+              schema:
+                type: integer
+              description: Remaining requests in current minute
+              example: 87
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchInfoResponse'
+              example:
+                success: true
+                data:
+                  id: 12345
+                  name: "India vs Australia"
+                  venue: "Melbourne Cricket Ground"
+                  match_type: "T20"
+                  status: "live"
+                  current_score:
+                    team: "India"
+                    runs: 156
+                    wickets: 4
+                    overs: 15.3
+                  last_updated: "2025-11-12T10:30:45.123Z"
+                error: null
+                timestamp: "2025-11-12T10:30:53.456Z"
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                data: null
+                error:
+                  code: "UNAUTHORIZED"
+                  message: "Invalid or expired JWT token"
+                timestamp: "2025-11-12T10:30:53.456Z"
+        '404':
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                data: null
+                error:
+                  code: "NOT_FOUND"
+                  message: "Match with ID 12345 not found"
+                timestamp: "2025-11-12T10:30:53.456Z"
+        '429':
+          description: Rate limit exceeded
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying
+              example: 60
+            X-Rate-Limit-Limit:
+              schema:
+                type: integer
+              description: Rate limit per minute
+              example: 100
+            X-Rate-Limit-Remaining:
+              schema:
+                type: integer
+              description: Remaining requests (always 0 when rate limited)
+              example: 0
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                data: null
+                error:
+                  code: "RATE_LIMIT_EXCEEDED"
+                  message: "Rate limit of 100 requests per minute exceeded"
+                timestamp: "2025-11-12T10:30:53.456Z"
+
+  /token/generate-token:
+    post:
+      summary: Generate JWT authentication token
+      description: |
+        Generate a JWT token for API authentication using API key credentials.
+        Token expires after 24 hours. Include in subsequent requests as Bearer token.
+      tags:
+        - Authentication
+      operationId: generateToken
+      security: []  # Public endpoint, no auth required
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - api_key
+                - api_secret
+              properties:
+                api_key:
+                  type: string
+                  description: API key identifier
+                  example: "vl_live_1234567890abcdef"
+                api_secret:
+                  type: string
+                  format: password
+                  description: API secret for authentication
+                  example: "secret_abcdefghijklmnop1234567890"
+      responses:
+        '200':
+          description: Token generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        description: JWT token (valid for 24 hours)
+                        example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      expires_at:
+                        type: string
+                        format: date-time
+                        description: Token expiration timestamp
+                        example: "2025-11-13T10:30:53.456Z"
+                      tier:
+                        type: string
+                        enum: [standard, premium]
+                        description: API tier determining rate limits
+                        example: "standard"
+                      rate_limit:
+                        type: integer
+                        description: Requests per minute allowed
+                        example: 100
+                  error:
+                    type: object
+                    nullable: true
+                  timestamp:
+                    type: string
+                    format: date-time
+        '401':
+          description: Invalid API credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                data: null
+                error:
+                  code: "INVALID_CREDENTIALS"
+                  message: "Invalid API key or secret"
+                timestamp: "2025-11-12T10:30:53.456Z"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token obtained from /token/generate-token endpoint.
+        Include in Authorization header: `Authorization: Bearer <token>`
+
+  schemas:
+    MatchInfoResponse:
+      type: object
+      required:
+        - success
+        - data
+        - error
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          description: Whether request was successful
+        data:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              format: int64
+              description: Match identifier
+            name:
+              type: string
+              description: Match name (teams)
+              example: "India vs Australia"
+            venue:
+              type: string
+              description: Match venue
+              example: "Melbourne Cricket Ground"
+            match_type:
+              type: string
+              enum: [Test, ODI, T20, T10]
+              description: Format of the match
+            status:
+              type: string
+              enum: [scheduled, live, completed, abandoned]
+              description: Current match status
+            current_score:
+              type: object
+              description: Current score (for live matches)
+              properties:
+                team:
+                  type: string
+                  description: Batting team name
+                runs:
+                  type: integer
+                  minimum: 0
+                  description: Total runs scored
+                wickets:
+                  type: integer
+                  minimum: 0
+                  maximum: 10
+                  description: Wickets lost
+                overs:
+                  type: number
+                  format: float
+                  minimum: 0
+                  description: Overs completed
+            last_updated:
+              type: string
+              format: date-time
+              description: Timestamp of last data update from scraper
+              example: "2025-11-12T10:30:45.123Z"
+        error:
+          type: object
+          nullable: true
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            field:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+          description: Response generation timestamp
+    
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - data
+        - error
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        data:
+          type: object
+          nullable: true
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              description: Human-readable error message
+              example: "Match ID must be positive integer"
+            field:
+              type: string
+              description: Field name if validation error
+              example: "matchId"
+        timestamp:
+          type: string
+          format: date-time
+          description: Error occurrence timestamp
