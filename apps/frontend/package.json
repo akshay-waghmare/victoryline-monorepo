@@ -9,6 +9,8 @@
     "lint": "ng lint",
     "e2e": "ng e2e",
     "prerender": "node scripts/prerender.js",
+    "scully": "npx scully",
+    "scully:serve": "npx scully serve",
     "ssr:dev": "ts-node --project tsconfig.server.json ./server.ts",
     "ssr:start": "node dist/server.js"
   },
@@ -42,9 +44,14 @@
     "zone.js": "~0.8.26",
     "express": "^4.18.3",
     "helmet": "^7.1.0",
-    "axios": "^1.7.7"
+    "axios": "^1.7.7",
+    "marked": "^4.0.0",
+    "dompurify": "^2.4.0",
+    "@types/dompurify": "^2.4.0"
   },
   "devDependencies": {
+    "@scullyio/scully": "^2.1.41",
+    "@scullyio/scully-plugin-puppeteer": "^2.1.41",
     "@angular-devkit/build-angular": "~0.8.0",
     "@angular/cli": "~6.2.3",
     "@angular/compiler-cli": "^7.2.16",

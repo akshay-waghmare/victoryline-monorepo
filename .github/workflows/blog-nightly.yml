@@ -1,0 +1,230 @@
+name: Blog Nightly Build & SEO
+
+on:
+  schedule:
+    # Run at 2 AM UTC daily
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  NODE_VERSION: '18'
+  STRAPI_API_URL: ${{ secrets.STRAPI_API_URL || 'http://localhost:1337/api' }}
+  SITE_URL: ${{ secrets.SITE_URL || 'https://yourdomain.com' }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+      
+      - name: Install frontend dependencies
+        working-directory: apps/frontend
+        run: npm ci
+      
+      - name: Install TypeScript and build tools
+        working-directory: apps/frontend
+        run: npm install --no-save ts-node @types/node
+      
+      - name: Build Angular app (Production)
+        working-directory: apps/frontend
+        env:
+          NODE_ENV: production
+        run: npm run build -- --configuration production
+      
+      - name: Run Scully pre-render
+        working-directory: apps/frontend
+        env:
+          STRAPI_API_URL: ${{ env.STRAPI_API_URL }}
+        run: npm run scully -- --scanRoutes
+      
+      - name: Install axe-core CLI
+        working-directory: apps/frontend
+        run: npm install --no-save @axe-core/cli
+      
+      - name: Run accessibility audit with axe-core
+        working-directory: apps/frontend
+        continue-on-error: false
+        run: |
+          echo "🔍 Running accessibility audit with axe-core..."
+          
+          # Start a simple HTTP server for testing
+          npx http-server dist/static -p 8080 -s &
+          HTTP_SERVER_PID=$!
+          
+          # Wait for server to start
+          sleep 3
+          
+          # Run axe-core tests on key pages
+          PAGES=(
+            "http://localhost:8080"
+            "http://localhost:8080/blog"
+            "http://localhost:8080/matches"
+          )
+          
+          ALL_PASSED=true
+          
+          for PAGE in "${PAGES[@]}"; do
+            echo "Testing: $PAGE"
+            
+            # Run axe and capture output
+            if npx axe "$PAGE" --exit --tags wcag2a,wcag2aa,wcag21a,wcag21aa; then
+              echo "✅ $PAGE passed accessibility audit"
+            else
+              echo "❌ $PAGE failed accessibility audit"
+              ALL_PASSED=false
+            fi
+            echo "---"
+          done
+          
+          # Kill the HTTP server
+          kill $HTTP_SERVER_PID || true
+          
+          # Generate summary report
+          echo "" >> axe-report.txt
+          echo "📊 Accessibility Audit Summary" >> axe-report.txt
+          echo "==============================" >> axe-report.txt
+          echo "Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> axe-report.txt
+          echo "Pages tested: ${#PAGES[@]}" >> axe-report.txt
+          echo "Standards: WCAG 2.0 Level A, AA; WCAG 2.1 Level A, AA" >> axe-report.txt
+          
+          if [ "$ALL_PASSED" = true ]; then
+            echo "Status: ✅ All pages passed" >> axe-report.txt
+            cat axe-report.txt
+          else
+            echo "Status: ❌ Some pages failed" >> axe-report.txt
+            cat axe-report.txt
+            echo "::error::Accessibility audit failed. Fix critical issues before deployment."
+            exit 1
+          fi
+      
+      - name: Generate sitemap
+        working-directory: apps/frontend
+        env:
+          STRAPI_API_URL: ${{ env.STRAPI_API_URL }}
+          SITE_URL: ${{ env.SITE_URL }}
+          SITEMAP_OUTPUT: ./dist/static/sitemap.xml
+        run: npx ts-node scripts/generate-sitemap.ts
+      
+      - name: Copy robots.txt to dist
+        working-directory: apps/frontend
+        run: |
+          cp src/robots.txt dist/static/robots.txt
+          # Update domain placeholder in robots.txt
+          sed -i "s|https://yourdomain.com|${{ env.SITE_URL }}|g" dist/static/robots.txt
+          echo "✅ robots.txt copied and updated"
+      
+      - name: Validate sitemap
+        working-directory: apps/frontend
+        run: |
+          if [ -f "dist/static/sitemap.xml" ]; then
+            echo "✅ Sitemap generated successfully"
+            echo "Sitemap size: $(du -h dist/static/sitemap.xml | cut -f1)"
+            echo "URL count: $(grep -c '<loc>' dist/static/sitemap.xml || echo 0)"
+          else
+            echo "❌ Sitemap not found!"
+            exit 1
+          fi
+      
+      - name: Generate deployment report
+        working-directory: apps/frontend
+        run: |
+          echo "📊 Deployment Report" > deploy-report.txt
+          echo "===================" >> deploy-report.txt
+          echo "Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> deploy-report.txt
+          echo "Commit: ${{ github.sha }}" >> deploy-report.txt
+          echo "Branch: ${{ github.ref_name }}" >> deploy-report.txt
+          echo "" >> deploy-report.txt
+          echo "Static Files:" >> deploy-report.txt
+          echo "- Total size: $(du -sh dist/static | cut -f1)" >> deploy-report.txt
+          echo "- File count: $(find dist/static -type f | wc -l)" >> deploy-report.txt
+          echo "- Sitemap URLs: $(grep -c '<loc>' dist/static/sitemap.xml || echo 0)" >> deploy-report.txt
+          cat deploy-report.txt
+      
+      - name: Deploy static files to server
+        working-directory: apps/frontend
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/var/www/crickzen/blog' }}
+        run: |
+          if [ -n "$SSH_PRIVATE_KEY" ]; then
+            echo "🚀 Deploying to $DEPLOY_HOST..."
+            mkdir -p ~/.ssh
+            echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+            chmod 600 ~/.ssh/deploy_key
+            
+            # Use rsync to sync files
+            rsync -avz --delete \
+              -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+              dist/static/ \
+              $DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/
+            
+            echo "✅ Deployment completed"
+          else
+            echo "⚠️  Skipping deployment (SSH_PRIVATE_KEY not configured)"
+            echo "Static files ready in dist/static/"
+          fi
+      
+      - name: Ping Google
+        continue-on-error: true
+        run: |
+          echo "📡 Pinging Google..."
+          RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null \
+            "https://www.google.com/ping?sitemap=${{ env.SITE_URL }}/sitemap.xml")
+          if [ "$RESPONSE" -eq 200 ]; then
+            echo "✅ Google notified successfully"
+          else
+            echo "⚠️  Google ping returned status: $RESPONSE"
+          fi
+      
+      - name: Ping Bing
+        continue-on-error: true
+        run: |
+          echo "📡 Pinging Bing..."
+          RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null \
+            "https://www.bing.com/ping?sitemap=${{ env.SITE_URL }}/sitemap.xml")
+          if [ "$RESPONSE" -eq 200 ]; then
+            echo "✅ Bing notified successfully"
+          else
+            echo "⚠️  Bing ping returned status: $RESPONSE"
+          fi
+      
+      - name: Notify Slack (Optional)
+        if: always()
+        continue-on-error: true
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            STATUS_EMOJI=$([ "${{ job.status }}" == "success" ] && echo "✅" || echo "❌")
+            curl -X POST "$SLACK_WEBHOOK" \
+              -H 'Content-Type: application/json' \
+              -d "{
+                \"text\": \"${STATUS_EMOJI} Blog Nightly Build - ${{ job.status }}\",
+                \"blocks\": [{
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Blog Nightly Build*\nStatus: ${{ job.status }}\nCommit: \`${{ github.sha }}\`\nTime: $(date -u +'%Y-%m-%d %H:%M UTC')\"
+                  }
+                }]
+              }"
+          fi
+      
+      - name: Report final status
+        if: always()
+        run: |
+          echo "::notice::Nightly build completed with status: ${{ job.status }}"
+          echo "Workflow run: ${{ github.run_number }}"
+          echo "Triggered by: ${{ github.event_name }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"

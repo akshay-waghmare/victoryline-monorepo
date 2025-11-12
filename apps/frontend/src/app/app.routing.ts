@@ -4,10 +4,15 @@ import { NgModule } from '@angular/core';
 
 import {AdminLayoutsComponent} from './layouts/admin-layouts/admin-layouts.component';
 import { LoginComponent } from './login/login.component';
+import { LiveMatchComponent } from './live/live-match.component';
 import { from } from 'rxjs';
 import { RouterModule, Routes } from '@angular/router';
 
 const routes: Routes = [
+  {
+    path: 'live/matches/:matchId',
+    component: LiveMatchComponent
+  },
   {
     path: '',
     component: AdminLayoutsComponent,

@@ -1,0 +1,162 @@
+openapi: 3.0.3
+info:
+  title: Crickzen Blog & Live Updates API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /api/v1/blog/posts:
+    get:
+      summary: List published blog posts (optional Spring proxy)
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 0, default: 0 }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeBlogList'
+  /api/v1/blog/posts/{slug}:
+    get:
+      summary: Get blog post by slug (optional Spring proxy)
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeBlogPost'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeError'
+  /api/v1/live/matches/{matchId}/stream:
+    get:
+      summary: Server-Sent Events stream for a match
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK (SSE stream)
+          content:
+            text/event-stream:
+              schema:
+                type: string
+  /api/v1/live/matches/{matchId}/events:
+    post:
+      summary: Push a live event (ROLE_BLOG_EDITOR)
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LiveEventInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeOk'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeError'
+components:
+  schemas:
+    EnvelopeOk:
+      type: object
+      properties:
+        success: { type: boolean, example: true }
+        data: { type: object, nullable: true }
+        error: { type: object, nullable: true }
+        timestamp: { type: string, format: date-time }
+    EnvelopeError:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        data: { type: object, nullable: true }
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            field: { type: string, nullable: true }
+        timestamp: { type: string, format: date-time }
+    BlogPost:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        slug: { type: string }
+        excerpt: { type: string }
+        content: { type: string, description: 'markdown content' }
+        publishedAt: { type: string, format: date-time }
+        seoTitle: { type: string }
+        seoDescription: { type: string }
+        ogImageUrl: { type: string }
+        tags:
+          type: array
+          items: { type: string }
+    BlogPostList:
+      type: object
+      properties:
+        total: { type: integer }
+        page: { type: integer }
+        size: { type: integer }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/BlogPost' }
+    EnvelopeBlogList:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeOk'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BlogPostList'
+    EnvelopeBlogPost:
+      allOf:
+        - $ref: '#/components/schemas/EnvelopeOk'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/BlogPost'
+    LiveEventInput:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string, maxLength: 500 }
+        eventType:
+          type: string
+          enum: [ball, wicket, four, six, info, milestone]
+        over: { type: string }
+        innings: { type: string }

@@ -38,6 +38,7 @@ import { CustomReuseStrategy } from './custom-reuse-strategy';
 import { environment } from 'src/environments/environment';
 import { LogoutFormComponent } from './logout-form/logout-form.component';
 import { LazyMediaService } from './seo/lazy-media.service';
+import { LiveMatchComponent } from './live/live-match.component';
 //import { HomeComponent } from './home/home.component';
 
 
@@ -62,6 +63,7 @@ const stompConfig: StompConfig = {
     LoginComponent,
     LoaderComponent,
     ElapsedTimePipe,
+    LiveMatchComponent,
     
     
         

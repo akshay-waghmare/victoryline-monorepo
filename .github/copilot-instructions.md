@@ -35,4 +35,5 @@ TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties
 
 
 <!-- MANUAL ADDITIONS START -->
+ - 004-live-cricket-blog: Angular 8 + Scully (pre-rendered /blog), Strapi CMS (markdown + upload-time image optimization), Spring Boot 3.x SSE for /live/:matchId, Redis cache for hybrid delivery, Nginx static deploy, GitHub Actions (nightly SSG, webhook light job).
 <!-- MANUAL ADDITIONS END -->

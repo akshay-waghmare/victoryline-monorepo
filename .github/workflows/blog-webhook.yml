@@ -1,0 +1,58 @@
+name: Blog Webhook (Cache Invalidation)
+
+on:
+  repository_dispatch:
+    types: [blog-post-published, blog-post-unpublished, blog-post-updated]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  invalidate-cache:
+    runs-on: ubuntu-latest
+    
+    env:
+      REDIS_HOST: ${{ secrets.REDIS_HOST || 'localhost' }}
+      REDIS_PORT: ${{ secrets.REDIS_PORT || '6379' }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: apps/frontend
+        run: npm ci
+      
+      - name: Install ts-node for script execution
+        working-directory: apps/frontend
+        run: npm install --no-save ts-node @types/node redis
+      
+      - name: Invalidate Redis cache
+        working-directory: apps/frontend
+        run: npx ts-node scripts/invalidate-blog-cache.ts --all
+      
+      - name: Regenerate sitemap
+        working-directory: apps/frontend
+        run: npx ts-node scripts/generate-sitemap.ts
+      
+      - name: Ping search engines
+        env:
+          SITE_URL: ${{ secrets.SITE_URL || 'https://yourdomain.com' }}
+        run: |
+          echo "Pinging search engines with sitemap: ${SITE_URL}/sitemap.xml"
+          curl -s "https://www.google.com/ping?sitemap=${SITE_URL}/sitemap.xml" || true
+          curl -s "https://www.bing.com/ping?sitemap=${SITE_URL}/sitemap.xml" || true
+          echo "Search engines notified"
+      
+      - name: Report status
+        if: always()
+        run: |
+          echo "::notice::Webhook job completed with status: ${{ job.status }}"
+          echo "Triggered by: ${{ github.event.action }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"

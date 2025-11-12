@@ -1,0 +1,63 @@
+<div class="blog-list-container">
+  <div class="container">
+    <h1 class="page-title">Cricket Blog</h1>
+    <p class="page-subtitle">Latest news, match updates, and expert analysis</p>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading blog posts...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !loading" class="error-state">
+      <p class="error-message">{{ error }}</p>
+      <button (click)="loadPosts()" class="btn btn-primary">Retry</button>
+    </div>
+
+    <!-- Blog Posts Grid -->
+    <div *ngIf="!loading && !error && posts.length > 0" class="blog-grid">
+      <article *ngFor="let post of posts" class="blog-card">
+        <a [routerLink]="['/blog', post.slug]" class="card-link">
+          <div class="card-image" *ngIf="post.ogImageUrl">
+            <img [src]="post.ogImageUrl" [alt]="post.title" loading="lazy">
+          </div>
+          <div class="card-content">
+            <h2 class="card-title">{{ post.title }}</h2>
+            <p class="card-excerpt">{{ post.excerpt }}</p>
+            <div class="card-meta">
+              <span class="publish-date">{{ post.publishedAt | date:'MMM d, y' }}</span>
+              <span *ngIf="post.tags && post.tags.length > 0" class="tags">
+                <span *ngFor="let tag of post.tags.slice(0, 3)" class="tag">{{ tag }}</span>
+              </span>
+            </div>
+          </div>
+        </a>
+      </article>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && !error && posts.length === 0" class="empty-state">
+      <p>No blog posts available yet. Check back soon!</p>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalPages > 1" class="pagination">
+      <button 
+        (click)="prevPage()" 
+        [disabled]="currentPage === 0"
+        class="btn btn-secondary"
+        aria-label="Previous page">
+        Previous
+      </button>
+      <span class="page-info">Page {{ currentPage + 1 }} of {{ totalPages }}</span>
+      <button 
+        (click)="nextPage()" 
+        [disabled]="currentPage >= totalPages - 1"
+        class="btn btn-secondary"
+        aria-label="Next page">
+        Next
+      </button>
+    </div>
+  </div>
+</div>
