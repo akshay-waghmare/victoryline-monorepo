@@ -8,11 +8,27 @@
   # Uncomment to use staging (avoid rate limits while DNS propagates):
   # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
   # debug
+  
+  # Disable automatic HTTPS for local testing
+  auto_https off
 }
 
-crickzen.com, www.crickzen.com {
+# For production with domain, use: crickzen.com, www.crickzen.com
+# For local testing, use: http://localhost
+http://localhost, http://localhost:80 {
   encode gzip
   
+  # SEO endpoints - proxy to backend
+  @seo {
+    path /sitemap.xml /sitemaps/* /robots.txt
+  }
+  reverse_proxy @seo backend:8099 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
   # WebSocket endpoint - must come before general proxy to take precedence
   @websocket {
     path /api/ws/*
