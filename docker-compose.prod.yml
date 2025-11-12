@@ -101,6 +101,8 @@ services:
     restart: unless-stopped
     ports:
       - "${PRERENDER_PORT:-9100}:9100"
+    volumes:
+      - prerender_html:/shared-html/prerender
     networks:
       - victoryline-network
     healthcheck:
@@ -119,6 +121,8 @@ services:
     # No external port mapping - accessed via Caddy reverse proxy only
     expose:
       - "80"
+    volumes:
+      - prerender_html:/usr/share/nginx/html/prerender
     environment:
       API_URL: "${API_URL:-http://backend:8099}"
     depends_on:
@@ -166,6 +170,8 @@ volumes:
   backend_data:
     driver: local
   scraper_data:
+    driver: local
+  prerender_html:
     driver: local
   caddy_data:
     driver: local
