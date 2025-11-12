@@ -1,0 +1,84 @@
+# Caddy reverse proxy configuration for PRODUCTION
+# This file enables automatic HTTPS via Let's Encrypt for crickzen.com
+# IMPORTANT: Ensure DNS A records for crickzen.com and www.crickzen.com 
+#            point to this server's public IP before deploying
+
+{
+  # Global ACME email for Let's Encrypt notifications
+  email akshay.d.waghmare@gmail.com
+  
+  # Uncomment below to use Let's Encrypt staging (avoid rate limits during testing):
+  # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+  
+  # Uncomment for verbose logging:
+  # debug
+}
+
+# Production domain configuration with automatic HTTPS
+crickzen.com, www.crickzen.com {
+  encode gzip
+  
+  # SEO endpoints - proxy to backend
+  # These are critical for search engine indexing
+  @seo {
+    path /sitemap.xml /sitemaps/* /robots.txt
+  }
+  reverse_proxy @seo backend:8099 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+  
+  # WebSocket endpoint - must come before general proxy to take precedence
+  @websocket {
+    path /api/ws/*
+  }
+  reverse_proxy @websocket frontend:80 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+    header_up Upgrade {http.request.header.Upgrade}
+    header_up Connection {http.request.header.Connection}
+    # Increase timeout for long-lived WebSocket connections
+    flush_interval -1
+  }
+  
+  # Serve frontend Angular app proxied from internal container
+  # Nginx inside frontend container handles /api/* routing to backend
+  reverse_proxy frontend:80 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  # Optional: health endpoint
+  @health path /health
+  respond @health "ok" 200
+
+  # Production security headers
+  header {
+    # HSTS with preload for 1 year
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    # CSP allowing WebSocket connections (wss: for production)
+    Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:; connect-src 'self' wss: https:;"
+  }
+  
+  # Log successful requests (errors are logged by default)
+  log {
+    output file /var/log/caddy/access.log
+    format json
+  }
+}
+
+# Optional: Redirect www to non-www (or vice versa)
+# Uncomment if you prefer non-www as canonical:
+# www.crickzen.com {
+#   redir https://crickzen.com{uri} permanent
+# }

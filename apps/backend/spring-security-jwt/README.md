@@ -20,3 +20,25 @@ You may be interested in other spring security articles:
 [Spring Boot Security Hibernate Login](http://www.devglan.com/spring-security/spring-boot-security-hibernate-login-example)
 
 [Securing Actuator Endpoints with Spring Security](http://www.devglan.com/spring-security/securing-spring-boot-actuator-endpoints-with-spring-security)
+
+## SEO sitemap endpoints (project-specific)
+
+This branch includes project-specific SEO endpoints for robots/sitemap.
+
+- Public endpoints:
+	- `/sitemap.xml` (gzipped sitemap index)
+	- `/sitemaps/sitemap-matches-0001.xml` (plain XML partition; gzip handled by edge)
+- API endpoint used by tests: `/api/v1/seo/sitemap?part=1` (XML)
+
+Testing with H2:
+
+- Repository-backed tests use an embedded H2 and rely on Hibernate `create-drop` schema.
+- If your application properties enable schema/data SQL imports (e.g., `schema.sql`, `import_*.sql`), disable them in tests to avoid conflicts:
+
+	- `spring.datasource.initialization-mode=never`
+	- `spring.datasource.schema=` (empty)
+	- `spring.datasource.data=` (empty)
+	- `spring.jpa.hibernate.ddl-auto=create-drop`
+	- `spring.jpa.properties.hibernate.hbm2ddl.import_files=` (empty)
+
+See `src/test/java/com/devglan/seo/SitemapRepositoryBackedTest.java` for a working example.

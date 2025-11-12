@@ -112,6 +112,29 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    volumes:
+      - frontend_html:/usr/share/nginx/html
+
+  # Prerender Sidecar (periodic + webhook trigger)
+  prerender:
+    build:
+      context: ./apps/frontend
+      dockerfile: ./prerender-sidecar/Dockerfile
+    container_name: victoryline-prerender
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://backend:8099
+      PRERENDER_INTERVAL_MINUTES: ${PRERENDER_INTERVAL_MINUTES:-3}
+      PRERENDER_OUT_DIR: /shared-html/prerender
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - victoryline-network
+    volumes:
+      - frontend_html:/shared-html
+    ports:
+      - "${PRERENDER_PORT:-9100}:9100"
 
 networks:
   victoryline-network:
@@ -128,3 +151,6 @@ volumes:
   scraper_data:
     driver: local
     name: victoryline-scraper-data
+  frontend_html:
+    driver: local
+    name: victoryline-frontend-html

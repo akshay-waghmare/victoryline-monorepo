@@ -93,6 +93,13 @@
 			<artifactId>spring-boot-starter-websocket</artifactId>
 		</dependency>
 
+		<!-- Redis (optional). If not configured, code falls back to in-memory cache. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+			<!-- Version inherited from Spring Boot parent -->
+		</dependency>
+
 		<dependency>
 			<groupId>io.projectreactor.ipc</groupId>
 			<artifactId>reactor-netty</artifactId>
@@ -123,6 +130,13 @@
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
 			<version>1.16.1</version> <!-- Use the latest version -->
+		</dependency>
+		
+		<!-- Flyway for database migrations -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+			<version>5.2.4</version>
 		</dependency>
 		
 		<!-- Spring Security OAuth2 Client -->

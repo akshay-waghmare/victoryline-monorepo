@@ -20,6 +20,12 @@
     "build:all": "npm run frontend:build && npm run backend:build",
     "test:all": "npm run frontend:test && npm run backend:test && npm run scraper:test"
   },
+  "devDependencies": {
+    "@types/jasmine": "^5.1.4",
+    "@types/node": "^20.12.7",
+    "axe-core": "^4.9.1",
+    "jsdom": "21.1.2"
+  },
   "_workspaces_disabled": [
     "apps/*",
     "packages/*"

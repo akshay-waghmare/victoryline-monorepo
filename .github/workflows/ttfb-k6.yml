@@ -1,0 +1,181 @@
+name: TTFB Performance Check
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/frontend/**'
+      - 'apps/backend/**'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/frontend/**'
+      - 'apps/backend/**'
+
+jobs:
+  ttfb-performance:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+          
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+          
+      - name: Install k6
+        run: |
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+          
+      - name: Install dependencies
+        run: |
+          cd apps/frontend
+          npm ci --legacy-peer-deps
+          cd ../backend/spring-security-jwt
+          mvn clean install -DskipTests
+          
+      - name: Start backend
+        run: |
+          cd apps/backend/spring-security-jwt
+          mvn spring-boot:run &
+          echo "Backend PID: $!"
+          echo "Waiting for backend to start..."
+          sleep 30
+          
+          # Wait for backend to be ready
+          for i in {1..30}; do
+            if curl -s http://localhost:8099/actuator/health > /dev/null; then
+              echo "Backend is ready"
+              break
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 2
+          done
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          
+      - name: Build and start SSR
+        run: |
+          cd apps/frontend
+          npm run build:ssr
+          npm run serve:ssr &
+          echo "SSR PID: $!"
+          echo "Waiting for SSR server to start..."
+          sleep 15
+          
+          # Wait for SSR server to be ready
+          for i in {1..20}; do
+            if curl -s http://localhost:4000/ > /dev/null; then
+              echo "SSR server is ready"
+              break
+            fi
+            echo "Waiting for SSR server... ($i/20)"
+            sleep 2
+          done
+        env:
+          NODE_ENV: production
+          
+      - name: Create k6 performance test script
+        run: |
+          cat > ttfb-test.js << 'EOF'
+          import http from 'k6/http';
+          import { check, sleep } from 'k6';
+          import { Rate, Trend } from 'k6/metrics';
+          import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.4/index.js';
+
+          export let options = {
+            stages: [
+              { duration: '10s', target: 5 },   // Ramp up to 5 VUs
+              { duration: '30s', target: 5 },   // Stay at 5 VUs
+              { duration: '10s', target: 10 },  // Ramp up to 10 VUs
+              { duration: '30s', target: 10 },  // Stay at 10 VUs
+              { duration: '10s', target: 0 },   // Ramp down
+            ],
+            thresholds: {
+              'ttfb': ['p(95)<600'],  // 95th percentile TTFB should be < 600ms
+              'http_req_duration': ['p(95)<2000'], // 95th percentile total time < 2s
+              'http_req_failed': ['rate<0.1'], // Error rate < 10%
+            },
+          };
+
+          let ttfbMetric = new Trend('ttfb');
+          let errorRate = new Rate('errors');
+
+          const BASE_URL = 'http://localhost:4000';
+          
+          const testUrls = [
+            '/',
+            '/match/ipl/2023/mumbai-indians-vs-chennai-super-kings/t20/2023-05-29',
+            '/team/mumbai-indians', 
+            '/player/virat-kohli'
+          ];
+
+          export default function () {
+            const url = BASE_URL + testUrls[Math.floor(Math.random() * testUrls.length)];
+            
+            let response = http.get(url, {
+              headers: {
+                'User-Agent': 'k6-performance-test',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              },
+            });
+
+            // Calculate TTFB (Time to First Byte)
+            ttfbMetric.add(response.timings.waiting);
+            
+            let success = check(response, {
+              'status is 200': (r) => r.status === 200,
+              'response time < 2000ms': (r) => r.timings.duration < 2000,
+              'TTFB < 600ms': (r) => r.timings.waiting < 600,
+              'content contains html': (r) => r.body.includes('<html'),
+            });
+
+            if (!success) {
+              errorRate.add(1);
+              console.error(`Failed request to ${url}: status=${response.status}, ttfb=${response.timings.waiting}ms`);
+            } else {
+              errorRate.add(0);
+            }
+
+            sleep(1);
+          }
+          
+          export function handleSummary(data) {
+            return {
+              'stdout': textSummary(data, { indent: ' ', enableColors: true }),
+            };
+          }
+          EOF
+          
+      - name: Run TTFB performance tests
+        run: |
+          echo "Running TTFB performance tests..."
+          k6 run ttfb-test.js
+          
+      - name: Check if performance thresholds passed
+        run: |
+          echo "Performance test completed. Check the output above for threshold results."
+          echo "Key metrics to review:"
+          echo "- TTFB p95 should be < 600ms"
+          echo "- Total request duration p95 should be < 2000ms"  
+          echo "- Error rate should be < 10%"

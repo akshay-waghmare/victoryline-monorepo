@@ -33,7 +33,7 @@ services:
   #     start_period: 30s
 
   backend:
-    image: "${BACKEND_IMAGE:-macubex/victoryline-backend:prod}"
+    image: "${BACKEND_IMAGE:-macubex/victoryline-backend:v1.0.0}"
     container_name: victoryline-backend
     restart: unless-stopped
     ports:
@@ -66,7 +66,7 @@ services:
       start_period: 60s
 
   scraper:
-    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:prod}"
+    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.0.0}"
     container_name: victoryline-scraper
     restart: unless-stopped
     ports:
@@ -95,12 +95,34 @@ services:
       retries: 3
       start_period: 45s
 
-  frontend:
-    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:prod}"
-    container_name: victoryline-frontend
+  prerender:
+    image: "${PRERENDER_IMAGE:-macubex/victoryline-prerender:v1.0.0}"
+    container_name: victoryline-prerender
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-4007}:80"
+      - "${PRERENDER_PORT:-9100}:9100"
+    volumes:
+      - prerender_html:/shared-html/prerender
+    networks:
+      - victoryline-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "wget -q --spider http://localhost:9100/health || exit 1"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:v1.0.0}"
+    container_name: victoryline-frontend
+    restart: unless-stopped
+    # No external port mapping - accessed via Caddy reverse proxy only
+    expose:
+      - "80"
+    volumes:
+      - prerender_html:/usr/share/nginx/html/prerender
     environment:
       API_URL: "${API_URL:-http://backend:8099}"
     depends_on:
@@ -129,9 +151,10 @@ services:
     environment:
       # Optional but recommended for Let's Encrypt notifications
       - ACME_AGREE=true
-      - EMAIL=${LETSENCRYPT_EMAIL:-}
+      - EMAIL=${LETSENCRYPT_EMAIL:-akshay.d.waghmare@gmail.com}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Use production Caddyfile for automatic HTTPS with Let's Encrypt
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
@@ -147,6 +170,8 @@ volumes:
   backend_data:
     driver: local
   scraper_data:
+    driver: local
+  prerender_html:
     driver: local
   caddy_data:
     driver: local

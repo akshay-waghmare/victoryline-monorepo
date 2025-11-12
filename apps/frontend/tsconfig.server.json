@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "outDir": "./dist-server",
+    "module": "commonjs",
+    "target": "es2018",
+    "types": ["node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "server.ts",
+    "src/app/seo/**/*.ts"
+  ]
+}

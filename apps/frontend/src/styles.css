@@ -1,6 +1,29 @@
 
 @import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
 
+/* Aspect ratio utilities to reserve layout space for deferred media */
+.aspect-16-9 {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-4-3 {
+  aspect-ratio: 4 / 3;
+}
+
+.aspect-1-1 {
+  aspect-ratio: 1;
+}
+
+img.aspect-16-9,
+img.aspect-4-3,
+img.aspect-1-1,
+img[data-aspect] {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
 /* Smooth theme transitions (T049) - Scoped to interactive elements for performance */
 button,
 a,
@@ -184,13 +207,15 @@ body {
 
 .sidebar .nav li a, .sidebar .nav li .dropdown-menu a {
   margin: 10px 15px 0;
-  border-radius: 3px;
+  border-radius: 6px;
   color: #3C4858;
-  padding-left: 10px;
-  padding-right: 10px;
   text-transform: capitalize;
   font-size: 13px;
-  padding: 10px 15px;
+  padding: 12px 18px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
   cursor: pointer;
 }
 
@@ -619,6 +644,15 @@ body, html {
   height: 100%;
   width: 100%;
   font-family: 'Poppins', sans-serif;
+  font-size: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 100%;
+  }
 }
 
 .wrapper {
@@ -658,14 +692,19 @@ body, html {
 }
 
 .sidebar-toggle-button {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   position: fixed;
   top: 10px;
   left: 10px;
   background-color: #343a40;
   color: white;
   border: none;
-  padding: 10px;
+  padding: 0.75rem 1rem;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 8px;
   cursor: pointer;
   z-index: 1001; /* Ensure the button is on top of everything */
 }

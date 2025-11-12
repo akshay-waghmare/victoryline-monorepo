@@ -1,0 +1,47 @@
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://www.crickzen.com/sitemap.xml
+
+# Explicitly allow important pages for crawling
+Allow: /
+Allow: /matches
+Allow: /matches/
+Allow: /cric-live/
+Allow: /blog
+Allow: /blog/
+
+# Block crawling of internal API endpoints
+Disallow: /api/
+Disallow: /admin/
+Disallow: /auth/
+Disallow: /private/
+Disallow: /h2-console/
+
+# Block crawling of pagination pages to consolidate authority  
+Disallow: /*?page=
+Disallow: /*&page=
+
+# Block crawling of filter/facet URLs
+Disallow: /*?filter=
+Disallow: /*&filter=
+Disallow: /*?sort=
+Disallow: /*&sort=
+
+# Block crawling of search result pages
+Disallow: /search?*
+
+# Allow access to important static resources
+Allow: /robots.txt
+Allow: /sitemap.xml
+Allow: /sitemaps/
+Allow: /*.css
+Allow: /*.js
+Allow: /*.png
+Allow: /*.jpg
+Allow: /*.gif
+Allow: /*.ico
+
+# Crawl delay to be respectful
+Crawl-delay: 1

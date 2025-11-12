@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -21,6 +22,7 @@ import com.devglan.dao.CricketDataDTO;
 import com.devglan.model.LiveMatch;
 import com.devglan.repository.LiveMatchRepository;
 import com.devglan.service.LiveMatchService;
+import com.devglan.service.seo.events.SeoContentChangeEvent;
 import com.devglan.websocket.service.CricketDataService;
 
 @Service
@@ -31,16 +33,18 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	private final LiveMatchRepository liveMatchRepository;
 	private final CricketDataService cricketDataService;
 	private final RestTemplate restTemplate;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Value("${stop.scrape.url:http://localhost:5000/stop-scrape}")
 	private String stopScrapeUrl;
 
 	@Autowired
 	public LiveMatchServiceImpl(LiveMatchRepository liveMatchRepository, CricketDataService cricketDataService,
-			RestTemplate restTemplate) {
+		RestTemplate restTemplate, ApplicationEventPublisher eventPublisher) {
 		this.liveMatchRepository = liveMatchRepository;
 		this.cricketDataService = cricketDataService;
 		this.restTemplate = restTemplate;
+		this.eventPublisher = eventPublisher;
 	}
 
 	public void syncLiveMatches(String[] urls) {
@@ -111,6 +115,26 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
 	private void notifyMatchStatusChange(String url, String status) {
 		cricketDataService.notifyMatchStatusChange(url, status);
+		publishSeoEvent(status, url);
+	}
+
+	private void publishSeoEvent(String status, String url) {
+		SeoContentChangeEvent event;
+		if (status == null) {
+			event = SeoContentChangeEvent.matchUpdated(url);
+		} else {
+			switch (status.toLowerCase()) {
+				case "added":
+					event = SeoContentChangeEvent.matchPublished(url);
+					break;
+				case "deleted":
+					event = SeoContentChangeEvent.matchCompleted(url);
+					break;
+				default:
+					event = SeoContentChangeEvent.matchUpdated(url);
+			}
+		}
+		eventPublisher.publishEvent(event);
 	}
 
 	public List<LiveMatch> findAll() {

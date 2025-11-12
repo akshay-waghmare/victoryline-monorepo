@@ -123,10 +123,41 @@
   box-sizing: border-box;
 }
 
+// Reserve predictable space for deferred media to reduce CLS.
+.aspect-16-9 {
+  aspect-ratio: 16 / 9;
+}
+
+.aspect-4-3 {
+  aspect-ratio: 4 / 3;
+}
+
+.aspect-1-1 {
+  aspect-ratio: 1;
+}
+
+img.aspect-16-9,
+img.aspect-4-3,
+img.aspect-1-1,
+img[data-aspect] {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 100%;
+  min-height: 100%;
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 100%;
+  }
 }
 
 body {
@@ -145,6 +176,30 @@ body {
   padding-right: var(--safe-area-inset-right);
   padding-bottom: var(--safe-area-inset-bottom);
   padding-left: var(--safe-area-inset-left);
+}
+
+// Ensure interactive controls meet recommended touch target sizing on mobile.
+.tap-target,
+button,
+[role="button"],
+a.nav-link,
+.sidebar-toggle-button {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tap-target,
+a.nav-link,
+.sidebar-toggle-button,
+button {
+  padding: 0.75rem 1rem;
+}
+
+.tap-target--icon {
+  padding: 0.5rem;
 }
 
 // ============================================================================

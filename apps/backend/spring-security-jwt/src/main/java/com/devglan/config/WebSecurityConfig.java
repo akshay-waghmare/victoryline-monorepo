@@ -61,6 +61,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 				.authorizeRequests()
 				.antMatchers(
 						"/api/**",
+						// Public SEO and infrastructure endpoints
+						"/robots.txt", "/sitemap.xml", "/sitemaps/**",
+						"/api/v1/seo/**",
+						"/actuator/health",
 						"/vote/**",
 				        "/users/search", "/users/search/**", 
 				        "/ws/*", "/ws/**", 
@@ -93,7 +97,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		        "/h2-console/**", 
 		        "/ws/*", "/ws/**", 
 		        "/token", "/token/*", 
-		        "/cricket-data/update-winning-team", "/cricket-data/update-winning-team/**"
+		        "/cricket-data/update-winning-team", "/cricket-data/update-winning-team/**",
+		        // Ignore static public SEO endpoints entirely from security filter chain
+		        "/robots.txt", "/sitemap.xml", "/sitemaps/**",
+		        "/actuator/health"
 		);
 	}
 

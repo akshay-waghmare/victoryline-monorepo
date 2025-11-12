@@ -1,0 +1,59 @@
+# Caddy reverse proxy configuration for LOCAL DEVELOPMENT
+# This file is for localhost testing without HTTPS/Let's Encrypt
+
+{
+  # Disable automatic HTTPS for local testing
+  auto_https off
+  # debug
+}
+
+# Localhost configuration - HTTP only
+http://localhost, http://localhost:80 {
+  encode gzip
+  
+  # SEO endpoints - proxy to backend
+  @seo {
+    path /sitemap.xml /sitemaps/* /robots.txt
+  }
+  reverse_proxy @seo backend:8099 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+  
+  # WebSocket endpoint - must come before general proxy to take precedence
+  @websocket {
+    path /api/ws/*
+  }
+  reverse_proxy @websocket frontend:80 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+    header_up Upgrade {http.request.header.Upgrade}
+    header_up Connection {http.request.header.Connection}
+    # Increase timeout for long-lived WebSocket connections
+    flush_interval -1
+  }
+  
+  # Serve frontend Angular app proxied from internal container
+  reverse_proxy frontend:80 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  # Optional: health endpoint
+  @health path /health
+  respond @health "ok" 200
+
+  # Security headers (relaxed for local development)
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    # Allow WebSocket connections for local development
+    Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https: http:; connect-src 'self' ws: wss: http: https:;"
+  }
+}

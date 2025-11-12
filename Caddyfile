@@ -1,18 +1,31 @@
-# Caddy reverse proxy configuration for crickzen.com
-# This file enables automatic HTTPS via Let's Encrypt.
-# Ensure DNS A record for crickzen.com (and optionally www.crickzen.com) points to this server's public IP before starting.
+# Caddy reverse proxy configuration for LOCAL DEVELOPMENT
+# This file is for localhost testing without HTTPS/Let's Encrypt
+# 
+# For production deployment, use Caddyfile.prod instead:
+#   docker compose -f docker-compose.prod.yml up -d
+#   (Ensure caddy service mounts Caddyfile.prod as /etc/caddy/Caddyfile)
 
 {
-  # Global ACME email for Let's Encrypt notifications (updated per user request)
-  email akshay.d.waghmare@gmail.com
-  # Uncomment to use staging (avoid rate limits while DNS propagates):
-  # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+  # Disable automatic HTTPS for local testing
+  auto_https off
   # debug
 }
 
-crickzen.com, www.crickzen.com {
+# Localhost configuration - HTTP only
+http://localhost, http://localhost:80 {
   encode gzip
   
+  # SEO endpoints - proxy to backend
+  @seo {
+    path /sitemap.xml /sitemaps/* /robots.txt
+  }
+  reverse_proxy @seo backend:8099 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
   # WebSocket endpoint - must come before general proxy to take precedence
   @websocket {
     path /api/ws/*
@@ -42,16 +55,11 @@ crickzen.com, www.crickzen.com {
 
   # Redirect plain / to index.html is handled by Angular; Caddy just proxies.
 
-  # Security headers
+  # Security headers (relaxed for local development)
   header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     X-Content-Type-Options "nosniff"
     X-Frame-Options "SAMEORIGIN"
-    Referrer-Policy "strict-origin-when-cross-origin"
-    Permissions-Policy "geolocation=(), microphone=(), camera=()"
-    # Updated CSP to allow WebSocket connections (wss: for production, ws: for development)
-    Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https:; connect-src 'self' ws: wss: https:;"
+    # Allow WebSocket connections for local development
+    Content-Security-Policy "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: https: http:; connect-src 'self' ws: wss: http: https:;"
   }
 }
-
-# Optional: redirect bare HTTP to HTTPS if separate site block needed (Caddy auto-handles HTTPS issuance)
