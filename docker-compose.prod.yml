@@ -147,9 +147,10 @@ services:
     environment:
       # Optional but recommended for Let's Encrypt notifications
       - ACME_AGREE=true
-      - EMAIL=${LETSENCRYPT_EMAIL:-}
+      - EMAIL=${LETSENCRYPT_EMAIL:-akshay.d.waghmare@gmail.com}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Use production Caddyfile for automatic HTTPS with Let's Encrypt
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:

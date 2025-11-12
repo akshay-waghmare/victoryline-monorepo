@@ -1,9 +1,5 @@
 # Caddy reverse proxy configuration for LOCAL DEVELOPMENT
 # This file is for localhost testing without HTTPS/Let's Encrypt
-# 
-# For production deployment, use Caddyfile.prod instead:
-#   docker compose -f docker-compose.prod.yml up -d
-#   (Ensure caddy service mounts Caddyfile.prod as /etc/caddy/Caddyfile)
 
 {
   # Disable automatic HTTPS for local testing
@@ -25,7 +21,7 @@ http://localhost, http://localhost:80 {
     header_up X-Forwarded-For {remote}
     header_up X-Forwarded-Proto {scheme}
   }
-
+  
   # WebSocket endpoint - must come before general proxy to take precedence
   @websocket {
     path /api/ws/*
@@ -52,8 +48,6 @@ http://localhost, http://localhost:80 {
   # Optional: health endpoint
   @health path /health
   respond @health "ok" 200
-
-  # Redirect plain / to index.html is handled by Angular; Caddy just proxies.
 
   # Security headers (relaxed for local development)
   header {
