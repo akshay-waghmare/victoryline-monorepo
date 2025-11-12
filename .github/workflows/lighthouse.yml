@@ -1,0 +1,95 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/frontend/**'
+      - '.lighthouserc.json'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/frontend/**'
+      - '.lighthouserc.json'
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+          
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+          
+      - name: Install frontend dependencies
+        run: |
+          cd apps/frontend
+          npm ci --legacy-peer-deps
+          
+      - name: Install backend dependencies
+        run: |
+          cd apps/backend/spring-security-jwt
+          mvn clean install -DskipTests
+          
+      - name: Start backend
+        run: |
+          cd apps/backend/spring-security-jwt
+          mvn spring-boot:run &
+          echo "Waiting for backend to start..."
+          sleep 30
+        env:
+          SPRING_PROFILES_ACTIVE: test
+          
+      - name: Build SSR app
+        run: |
+          cd apps/frontend
+          npm run build:ssr
+          
+      - name: Validate quickstart guide
+        run: |
+          echo "Validating quickstart.md structure..."
+          if [ ! -f specs/003-seo-optimization/quickstart.md ]; then
+            echo "❌ quickstart.md not found"
+            exit 1
+          fi
+          
+          # Check for required sections
+          grep -q "## Prerequisites" specs/003-seo-optimization/quickstart.md || (echo "❌ Missing Prerequisites section" && exit 1)
+          grep -q "## Quick Start" specs/003-seo-optimization/quickstart.md || (echo "❌ Missing Quick Start section" && exit 1)
+          grep -q "## Validation" specs/003-seo-optimization/quickstart.md || (echo "❌ Missing Validation section" && exit 1)
+          
+          echo "✅ quickstart.md validation passed"
+          
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli@0.12.x
+          cd apps/frontend
+          lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: lighthouse-results
+          path: apps/frontend/.lighthouseci/

@@ -31426,3 +31426,7 @@ insert into matches (match_id, away_team_name, competition, home_team_name, loca
 2025-11-11 18:57:23 jdbc[4]: exception
 org.h2.jdbc.JdbcSQLException: Table "MATCHES" not found; SQL statement:
 insert into matches (match_id, away_team_name, competition, home_team_name, location, match_date, match_link, match_status, odd, result, sport_type, visibility) values (null, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) [42102-197]
+2025-11-12 05:51:54 jdbc[4]: exception
+org.h2.jdbc.JdbcSQLException: Table "ROLE" not found; SQL statement:
+-- Seed users and roles (idempotent for H2 using MERGE; adjust for MySQL later)
+MERGE INTO role KEY(id) VALUES (4, 'Admin role', 'ADMIN') [42102-197]

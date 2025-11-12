@@ -1,4 +1,4 @@
-# Victory Line - Cricket Live Scores
+# Crickzen - Cricket Live Scores
 
 Modern cricket live scores application with real-time updates, responsive design, and dark/light theme support.
 
@@ -253,8 +253,8 @@ ng build --prod --output-path=dist
 npm run build:analyze
 
 # Docker build
-docker build -t victoryline-frontend .
-docker run -p 80:80 victoryline-frontend
+docker build -t crickzen-frontend .
+docker run -p 80:80 crickzen-frontend
 ```
 
 ## 🔧 Configuration

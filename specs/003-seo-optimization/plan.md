@@ -130,7 +130,7 @@ Artifacts to produce:
 
 Public file endpoints (served via backend or CDN):
 - GET /sitemap.xml → sitemap index (gzipped), with <loc> using https://www.crickzen.com and <lastmod> ISO 8601
-- GET /sitemaps/sitemap-matches-0001.xml.gz (and similar partitions)
+- GET /sitemaps/sitemap-matches-0001.xml (and similar partitions; gzip supplied by edge proxy)
 
 ### Data Integrity & States
 Match states: scheduled → live → completed → archived (affects indexing priority & TTL). PageMetadata caches vary by state; Completed becomes stable with longer TTL; Archived may be excluded.

@@ -165,7 +165,7 @@
 
   <!-- ===== BLOG POSTS SECTION (UNCHANGED) ===== -->
   <div *ngFor="let blogPost of blogPosts" class="news-item" (click)="openNews(blogPost.link)">
-    <img [src]="blogPost.imgUrl" alt="{{ blogPost.title }}" class="news-image" loading="lazy" />
+  <img [src]="blogPost.imgUrl" alt="{{ blogPost.title }}" class="news-image aspect-4-3" loading="lazy" />
     <div class="news-content">
       <h3 class="news-heading">{{ blogPost.title }}</h3>
       <p class="news-description">{{ blogPost.description | slice:0:400 }}...</p>

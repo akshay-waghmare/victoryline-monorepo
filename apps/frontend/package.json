@@ -8,7 +8,8 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
-  "ssr:dev": "ts-node --project tsconfig.server.json ./server.ts",
+    "prerender": "node scripts/prerender.js",
+    "ssr:dev": "ts-node --project tsconfig.server.json ./server.ts",
     "ssr:start": "node dist/server.js"
   },
   "private": true,
@@ -40,7 +41,8 @@
     "underscore": "^1.13.1",
     "zone.js": "~0.8.26",
     "express": "^4.18.3",
-    "helmet": "^7.1.0"
+    "helmet": "^7.1.0",
+    "axios": "^1.7.7"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.8.0",

@@ -1,6 +1,6 @@
-# victoryline-monorepo Development Guidelines
+# Crickzen Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-11-06
+Auto-generated from feature plans. Last updated: 2025-11-12
 
 ## Active Technologies
 - Frontend: Angular (CLI ~6.x/7.x), TypeScript ~3.2; Backend: Spring Boot (2.x, Java 8/11) [NEEDS CLARIFICATION]; Scraper: Python 3.x (Flask) + Angular, RxJS; Backend REST API (Spring); Scraper Flask API; axe-core (CI audit) [NEEDS CLARIFICATION on tooling integration] (002-match-details-ux)

@@ -1,0 +1,2 @@
+# SEO Service Package  
+This directory contains Spring Boot services for SEO functionality including sitemap generation, metadata caching, and robots.txt management.

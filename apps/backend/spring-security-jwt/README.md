@@ -27,7 +27,7 @@ This branch includes project-specific SEO endpoints for robots/sitemap.
 
 - Public endpoints:
 	- `/sitemap.xml` (gzipped sitemap index)
-	- `/sitemaps/sitemap-matches-0001.xml.gz` (gzipped partition example)
+	- `/sitemaps/sitemap-matches-0001.xml` (plain XML partition; gzip handled by edge)
 - API endpoint used by tests: `/api/v1/seo/sitemap?part=1` (XML)
 
 Testing with H2:

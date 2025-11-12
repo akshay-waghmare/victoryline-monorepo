@@ -1,4 +1,4 @@
-# VictoryLine - Live Cricket Score Application
+# Crickzen - Live Cricket Score Application
 
 A comprehensive live cricket score application built with a modern tech stack, combining real-time data scraping, secure backend APIs, and an interactive frontend.
 
@@ -9,7 +9,7 @@ A comprehensive live cricket score application built with a modern tech stack, c
 This monorepo contains three main applications that work together:
 
 ```
-victoryline-monorepo/
+crickzen-monorepo/
 ├── apps/
 │   ├── frontend/     # Angular-based web application
 │   ├── backend/      # Spring Boot REST API with JWT authentication
@@ -63,8 +63,8 @@ victoryline-monorepo/
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/akshay-waghmare/victoryline-monorepo.git
-cd victoryline-monorepo
+git clone https://github.com/akshay-waghmare/crickzen-monorepo.git
+cd crickzen-monorepo
 ```
 
 2. **Install all dependencies**
@@ -226,6 +226,19 @@ Notes:
 | `npm run build:all` | Build all applications |
 | `npm run test:all` | Run all tests |
 | `npm run install:all` | Install all dependencies |
+
+## 📚 API Documentation
+
+The backend exposes a RESTful API documented with OpenAPI/Swagger:
+
+- **Swagger UI**: [http://localhost:8099/swagger-ui.html](http://localhost:8099/swagger-ui.html) (when backend is running)
+- **OpenAPI Spec**: [http://localhost:8099/v3/api-docs](http://localhost:8099/v3/api-docs)
+
+Key API endpoints:
+- `/api/matches` - Match data and live scores
+- `/api/sitemap.xml` - SEO sitemap (paginated)
+- `/api/teams` - Team information
+- `/api/players` - Player statistics
 
 ## 🤝 Contributing
 

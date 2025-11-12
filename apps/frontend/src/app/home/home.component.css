@@ -589,7 +589,7 @@
 
 .news-image {
   width: 200px;
-  height: 150px; /* The image will fill the container height */
+  height: auto;
   object-fit: cover; /* Ensures the image scales without being cut off */
   border-radius: 12px 0 0 12px;
   /* margin-right: 80px; */

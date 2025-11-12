@@ -1,6 +1,6 @@
 import { RouteReuseStrategy, RouterModule } from '@angular/router';
 import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
+import { NgModule, APP_INITIALIZER } from '@angular/core';
 
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from '../app/app.routing';
@@ -37,6 +37,7 @@ import { ElapsedTimePipe } from './utils/elapsed-time.pipe';
 import { CustomReuseStrategy } from './custom-reuse-strategy';
 import { environment } from 'src/environments/environment';
 import { LogoutFormComponent } from './logout-form/logout-form.component';
+import { LazyMediaService } from './seo/lazy-media.service';
 //import { HomeComponent } from './home/home.component';
 
 
@@ -93,6 +94,12 @@ const stompConfig: StompConfig = {
     LoaderService,
     HttpClientModule,
     StompConfig,
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (lazyMediaService: LazyMediaService) => () => lazyMediaService.init(),
+      deps: [LazyMediaService],
+      multi: true
+    },
     {provide: RouteReuseStrategy, useClass: CustomReuseStrategy },
     { provide: HTTP_INTERCEPTORS,useValue: stompConfig, useClass: LoaderInterceptor, multi: true }],
   bootstrap: [AppComponent],

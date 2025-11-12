@@ -28,12 +28,12 @@ Note: If SSR isn’t wired yet, you can still verify API outputs (sitemap, robot
   - Expected:
     - Disallow facets/filters as per policy.
     - Crawl-delay if configured (optional).
-    - Sitemap: https://www.crickzen.com/sitemap.xml (gzipped index) pointing to partition files like https://www.crickzen.com/sitemaps/sitemap-matches-0001.xml.gz.
+  - Sitemap: https://www.crickzen.com/sitemap.xml (served as plain XML; gzip handled by Nginx) pointing to partition files like https://www.crickzen.com/sitemaps/sitemap-matches-0001.xml.
 
 ## Verify Sitemaps (FR-038..FR-040)
 - URLs:
   - Public index: https://www.crickzen.com/sitemap.xml (Content-Type: application/x-gzip)
-  - Public partitions: https://www.crickzen.com/sitemaps/sitemap-matches-0001.xml.gz (and others)
+  - Public partitions: https://www.crickzen.com/sitemaps/sitemap-matches-0001.xml (and others)
   - Admin/API: /api/v1/seo/sitemap and /api/v1/seo/sitemap?part=1,2,... (XML)
 - Expectations:
   - <loc> uses the canonical host https://www.crickzen.com for all entries.

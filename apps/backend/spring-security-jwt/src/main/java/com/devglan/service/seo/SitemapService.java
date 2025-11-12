@@ -2,11 +2,16 @@ package com.devglan.service.seo;
 
 import com.devglan.dao.MatchRepository;
 import com.devglan.model.Matches;
+import com.devglan.service.seo.events.SeoContentChangeEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
@@ -14,6 +19,8 @@ import java.util.List;
 
 @Service
 public class SitemapService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SitemapService.class);
+
     // Timestamp formatting handled inside SitemapWriter
 
     // Debounce and burst tracking
@@ -22,12 +29,17 @@ public class SitemapService {
     // Simple in-memory cache (can be replaced by Redis later)
     private volatile String cachedIndexXml = null;
     private volatile long cachedIndexLastGen = 0;
+    private volatile boolean sitemapDirty = false;
+    private volatile long lastRefreshEvent = 0;
+    private final Object cacheLock = new Object();
 
     private final SeoCache seoCache;
+    private final LiveMatchesService liveMatchesService;
     private MatchRepository matchRepository; // optional; may be null in tests
 
-    public SitemapService(SeoCache seoCache) {
+    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService) {
         this.seoCache = seoCache;
+        this.liveMatchesService = liveMatchesService;
     }
 
     // Setter injection keeps tests working while allowing Spring to wire repository in app
@@ -44,12 +56,18 @@ public class SitemapService {
             cachedIndexXml = fromCache;
         }
 
-        if (shouldRegenerate(now, cachedIndexLastGen) || cachedIndexXml == null) {
-            cachedIndexXml = buildIndexXml();
-            cachedIndexLastGen = now;
-            recordWrite(now);
-            // persist to cache
-            seoCache.putSitemapIndex(cachedIndexXml);
+        synchronized (cacheLock) {
+            boolean needsRebuild = (cachedIndexXml == null) || sitemapDirty;
+            if (needsRebuild && canRegenerate(now)) {
+                cachedIndexXml = buildIndexXml();
+                cachedIndexLastGen = now;
+                sitemapDirty = false;
+                recordWrite(now);
+                seoCache.putSitemapIndex(cachedIndexXml);
+            } else if (needsRebuild && LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Skipping sitemap rebuild due to debounce/burst controls (dirty={}, cachedAt={}, now={})",
+                        sitemapDirty, cachedIndexLastGen, now);
+            }
         }
         return cachedIndexXml;
     }
@@ -71,21 +89,28 @@ public class SitemapService {
         }
     }
 
-    private boolean shouldRegenerate(long now, long lastGen) {
-        if (isBurstExceeded(now)) return false;
-        return (now - lastGen) >= SeoConstants.SITEMAP_DEBOUNCE_SECONDS;
-    }
-
     private boolean isBurstExceeded(long now) {
-        // Drop timestamps older than 60s
-        while (!writeTimestamps.isEmpty() && (now - writeTimestamps.peekFirst()) > 60) {
-            writeTimestamps.removeFirst();
-        }
+        cleanupOldWrites(now);
         return writeTimestamps.size() >= SeoConstants.SITEMAP_MAX_WRITES_PER_MINUTE;
     }
 
     private void recordWrite(long now) {
+        cleanupOldWrites(now);
         writeTimestamps.addLast(now);
+    }
+
+    @EventListener
+    public void handleContentChange(SeoContentChangeEvent event) {
+        long now = epochSeconds();
+        lastRefreshEvent = now;
+        synchronized (cacheLock) {
+            sitemapDirty = true;
+        }
+        seoCache.evictSitemapIndex();
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("SEO content change detected ({}), reference={}, occurredAt={}.",
+                    event.getChangeType(), event.getReference(), event.getOccurredAt());
+        }
     }
 
     private String buildIndexXml() {
@@ -94,15 +119,41 @@ public class SitemapService {
         java.util.ArrayList<String> partitions = new java.util.ArrayList<>();
         for (int i = 1; i <= count; i++) {
             String partName = formatPartitionName(i);
-            partitions.add(SeoConstants.SITEMAP_PARTITION_PREFIX + partName + ".xml.gz");
+            // Serve plain XML endpoints (no gzip) for simplicity/compatibility
+            partitions.add(SeoConstants.SITEMAP_PARTITION_PREFIX + partName + ".xml");
         }
         return writer.buildIndex(partitions);
     }
 
     private String buildPartitionXml(int part) {
         SitemapWriter writer = new SitemapWriter();
-        // Prefer real data if repository available
-        if (matchRepository != null) {
+        
+        // Build complete URL list from all sources
+        ArrayList<SitemapWriter.SitemapUrl> allUrls = new ArrayList<>();
+        
+        // Always add static pages to partition 1
+        if (part == 1) {
+            allUrls.add(writer.url("/", "hourly", 1.0));
+            allUrls.add(writer.url("/matches", "hourly", 0.9));
+            allUrls.add(writer.url("/blog", "daily", 0.7));
+        }
+        
+        // Try to get live matches from the API
+        List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
+        if (liveMatches != null && !liveMatches.isEmpty()) {
+            for (LiveMatchesService.LiveMatchEntry match : liveMatches) {
+                String slug = liveMatchesService.extractSlugFromUrl(match.getUrl());
+                if (slug != null && !slug.isEmpty()) {
+                    String path = "/cric-live/" + slug;
+                    String changefreq = match.isLive() ? "hourly" : "daily";
+                    double priority = match.isLive() ? 0.9 : 0.8;
+                    allUrls.add(writer.url(path, changefreq, priority));
+                }
+            }
+        }
+        
+        // Fallback: try database if repository available and no live matches
+        if ((liveMatches == null || liveMatches.isEmpty()) && matchRepository != null) {
             List<Matches> allVisible = safeGetVisibleMatches();
             if (allVisible != null && !allVisible.isEmpty()) {
                 // Sort by most recent first (null-safe)
@@ -115,42 +166,60 @@ public class SitemapService {
                         return b.getMatchDate().compareTo(a.getMatchDate());
                     }
                 });
-                int urlsPerPart = Math.max(1, SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
-                int start = Math.max(0, (part - 1) * urlsPerPart);
-                int endExclusive = Math.min(allVisible.size(), start + urlsPerPart);
-                List<Matches> slice = start < endExclusive ? allVisible.subList(start, endExclusive) : java.util.Collections.<Matches>emptyList();
-
-                java.util.ArrayList<SitemapWriter.SitemapUrl> urls = new java.util.ArrayList<>();
-                for (Matches m : slice) {
+                
+                for (Matches m : allVisible) {
                     String path = deriveMatchPath(m);
                     String changefreq = deriveChangeFreq(m);
                     double priority = derivePriority(m);
-                    String lastmod = new SitemapWriter().isoFromDate(m.getMatchDate());
-                    urls.add(writer.urlWithLastMod(path, lastmod, changefreq, priority));
+                    String lastmod = writer.isoFromDate(m.getMatchDate());
+                    allUrls.add(writer.urlWithLastMod(path, lastmod, changefreq, priority));
                 }
-                return writer.buildPartition(urls);
             }
         }
-
-        // Fallback to sample URLs (keeps tests stable without DB)
-        int urlsPerPart = Math.max(1, SeoConstants.SITEMAP_SAMPLE_URLS_PER_PARTITION);
-        java.util.ArrayList<SitemapWriter.SitemapUrl> urls = new java.util.ArrayList<>();
-        for (int i = 1; i <= urlsPerPart; i++) {
-            urls.add(writer.url("/matches/sample-" + part + "-" + i, "daily", 0.8));
+        
+        // Apply partition slicing
+        int urlsPerPart = Math.max(1, SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
+        int start = Math.max(0, (part - 1) * urlsPerPart);
+        int endExclusive = Math.min(allUrls.size(), start + urlsPerPart);
+        
+        // Return slice for this partition
+        if (start < endExclusive) {
+            List<SitemapWriter.SitemapUrl> slice = allUrls.subList(start, endExclusive);
+            return writer.buildPartition(slice);
         }
-        return writer.buildPartition(urls);
+        
+        // If partition number exceeds available URLs, return empty valid sitemap
+        return writer.buildPartition(new ArrayList<SitemapWriter.SitemapUrl>());
     }
 
     private int determinePartitionCount() {
-        if (matchRepository == null) return Math.max(1, SeoConstants.SITEMAP_PARTITIONS);
         try {
-            List<Matches> allVisible = safeGetVisibleMatches();
-            int total = allVisible != null ? Math.min(allVisible.size(), SeoConstants.SITEMAP_MAX_URLS_TOTAL) : 0;
+            int total = 3; // home, matches, blog (static pages)
+            
+            // Count live matches from API
+            List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
+            if (liveMatches != null && !liveMatches.isEmpty()) {
+                total += liveMatches.size();
+            } else if (matchRepository != null) {
+                // Fallback: count database matches if no live matches
+                List<Matches> allVisible = safeGetVisibleMatches();
+                if (allVisible != null) {
+                    total += allVisible.size();
+                }
+            }
+            
+            // Cap total to avoid excessive memory/processing
+            if (total > SeoConstants.SITEMAP_MAX_URLS_TOTAL) {
+                total = SeoConstants.SITEMAP_MAX_URLS_TOTAL;
+            }
+            
+            // Calculate partitions needed based on max URLs per partition
             int per = Math.max(1, SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
-            int count = (total + per - 1) / per;
+            int count = (total + per - 1) / per; // Ceiling division
             return Math.max(1, count);
         } catch (Exception e) {
-            return Math.max(1, SeoConstants.SITEMAP_PARTITIONS);
+            LOGGER.error("Error determining partition count", e);
+            return 1; // Safe default
         }
     }
 
@@ -221,4 +290,22 @@ public class SitemapService {
     }
 
     // kept for future hooks; currently using SitemapWriter for timestamps
+
+    private void cleanupOldWrites(long now) {
+        while (!writeTimestamps.isEmpty() && (now - writeTimestamps.peekFirst()) > 60) {
+            writeTimestamps.removeFirst();
+        }
+    }
+
+    private boolean canRegenerate(long now) {
+        if (cachedIndexXml == null) {
+            return !isBurstExceeded(now);
+        }
+        long secondsSinceLastGen = now - cachedIndexLastGen;
+        if (secondsSinceLastGen < SeoConstants.SITEMAP_DEBOUNCE_SECONDS) {
+            return false;
+        }
+        return !isBurstExceeded(now);
+    }
+
 }

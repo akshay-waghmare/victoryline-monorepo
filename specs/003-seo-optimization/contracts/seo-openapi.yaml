@@ -8,23 +8,18 @@ servers:
 paths:
   /sitemap.xml:
     get:
-      summary: Public sitemap index (gzipped)
+      summary: Public sitemap index (XML)
       responses:
         '200':
-          description: Gzipped XML sitemap index
-          headers:
-            Content-Type:
-              schema:
-                type: string
-              description: application/x-gzip
+          description: XML sitemap index (edge handles gzip)
           content:
-            application/x-gzip:
+            application/xml:
               schema:
                 type: string
                 format: binary
-  /sitemaps/{name}.xml.gz:
+  /sitemaps/{name}.xml:
     get:
-      summary: Public sitemap partition (gzipped)
+      summary: Public sitemap partition (XML)
       parameters:
         - in: path
           name: name
@@ -34,9 +29,9 @@ paths:
           description: Partition filename stem (e.g., sitemap-matches-0001)
       responses:
         '200':
-          description: Gzipped XML sitemap partition
+          description: XML sitemap partition (edge handles gzip)
           content:
-            application/x-gzip:
+            application/xml:
               schema:
                 type: string
                 format: binary

@@ -20,17 +20,12 @@ import org.springframework.test.context.TestPropertySource;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
-import java.util.zip.GZIPInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -65,7 +60,8 @@ public class SitemapRepositoryBackedTest {
         seedMatch("Hidden", "TeamX", daysAgo(2), "live", false, "https://ext.example.com/matches/hidden-slug/live"); // invisible
 
         SeoCache cache = new SeoCache();
-        SitemapService service = new SitemapService(cache);
+        com.devglan.service.seo.LiveMatchesService liveMatchesService = new com.devglan.service.seo.LiveMatchesService();
+        SitemapService service = new SitemapService(cache, liveMatchesService);
         // Wire repository manually since we're using standalone MockMvc
         service.setMatchRepository(matchRepository);
         SitemapController api = new SitemapController(service);
@@ -99,14 +95,14 @@ public class SitemapRepositoryBackedTest {
     }
 
     @Test
-    public void public_gzipped_partition_has_real_urls() throws Exception {
+    public void public_partition_has_real_urls() throws Exception {
         // Public endpoint mapping chooses a partition name; we request first partition name explicitly
-        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/sitemaps/sitemap-matches-0001.xml.gz"))
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/sitemaps/sitemap-matches-0001.xml"))
             .andExpect(status().isOk())
-            .andExpect(header().string("Content-Type", "application/x-gzip"))
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_XML))
             .andReturn();
 
-        String xml = ungzip(result.getResponse().getContentAsByteArray());
+        String xml = result.getResponse().getContentAsString();
         assertThat(xml).contains("/cric-live/slug-one");
         // Sanity on metadata fields too
         assertThat(xml).contains("<lastmod>");
@@ -129,17 +125,5 @@ public class SitemapRepositoryBackedTest {
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         cal.add(Calendar.DAY_OF_YEAR, -d);
         return cal.getTime();
-    }
-
-    private String ungzip(byte[] gz) throws Exception {
-        try (InputStream in = new GZIPInputStream(new ByteArrayInputStream(gz))) {
-            byte[] buf = new byte[4096];
-            int read;
-            StringBuilder sb = new StringBuilder();
-            while ((read = in.read(buf)) != -1) {
-                sb.append(new String(buf, 0, read, StandardCharsets.UTF_8));
-            }
-            return sb.toString();
-        }
     }
 }

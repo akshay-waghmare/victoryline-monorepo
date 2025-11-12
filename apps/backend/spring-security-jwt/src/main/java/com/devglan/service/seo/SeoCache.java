@@ -32,6 +32,11 @@ public class SeoCache {
         writeRedis(KEY_SITEMAP_INDEX, xml, Duration.ofMinutes(10));
     }
 
+    public void evictSitemapIndex() {
+        localCache.remove(KEY_SITEMAP_INDEX);
+        deleteRedis(KEY_SITEMAP_INDEX);
+    }
+
     private String readRedis(String key) {
         if (redisTemplate == null) return null;
         try {
@@ -48,6 +53,15 @@ public class SeoCache {
             redisTemplate.opsForValue().set(key, value, seconds, TimeUnit.SECONDS);
         } catch (Exception ignored) {
             // Fallback already written to local map
+        }
+    }
+
+    private void deleteRedis(String key) {
+        if (redisTemplate == null) return;
+        try {
+            redisTemplate.delete(key);
+        } catch (Exception ignored) {
+            // Swallow errors so local eviction still succeeds
         }
     }
 }
