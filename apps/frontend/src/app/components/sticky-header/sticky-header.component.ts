@@ -1,4 +1,5 @@
-import { Component, Input, OnInit, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, HostListener, ChangeDetectionStrategy, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 
 /**
  * Team interface for sticky header display
@@ -47,9 +48,22 @@ export interface CurrentScore {
   selector: 'app-sticky-header',
   templateUrl: './sticky-header.component.html',
   styleUrls: ['./sticky-header.component.css'],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  animations: [
+    /**
+     * Score update pulse animation
+     * Triggered when score changes to provide visual feedback
+     * Subtle scale+color pulse to indicate live update without jarring jump
+     */
+    trigger('scorePulse', [
+      state('inactive', style({ transform: 'scale(1)', color: 'inherit' })),
+      state('active', style({ transform: 'scale(1.05)', color: 'var(--primary-color, #2196F3)' })),
+      transition('inactive => active', animate('200ms ease-out')),
+      transition('active => inactive', animate('300ms ease-in'))
+    ])
+  ]
 })
-export class StickyHeaderComponent implements OnInit, OnDestroy {
+export class StickyHeaderComponent implements OnInit, OnDestroy, OnChanges {
   /**
    * Home team information
    * @required
@@ -86,6 +100,17 @@ export class StickyHeaderComponent implements OnInit, OnDestroy {
   isSticky: boolean = false;
   
   /**
+   * Score pulse animation state for visual feedback on updates
+   */
+  scorePulseState: 'inactive' | 'active' = 'inactive';
+  
+  /**
+   * Previous score values for change detection
+   */
+  private previousHomeScore: string = '';
+  private previousAwayScore: string = '';
+  
+  /**
    * Throttle timer for scroll listener
    */
   private scrollThrottle: any = null;
@@ -95,6 +120,37 @@ export class StickyHeaderComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Initial check in case page is already scrolled
     this.checkStickyState();
+    // Store initial scores
+    if (this.currentScore) {
+      this.previousHomeScore = this.currentScore.homeScore;
+      this.previousAwayScore = this.currentScore.awayScore;
+    }
+  }
+  
+  /**
+   * Detect score changes and trigger pulse animation
+   */
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['currentScore'] && !changes['currentScore'].firstChange) {
+      const newScore = changes['currentScore'].currentValue as CurrentScore;
+      
+      // Check if score actually changed
+      if (newScore.homeScore !== this.previousHomeScore || 
+          newScore.awayScore !== this.previousAwayScore) {
+        // Trigger pulse animation
+        this.scorePulseState = 'active';
+        
+        // Reset after animation completes
+        setTimeout(() => {
+          this.scorePulseState = 'inactive';
+          this.cdr.markForCheck();
+        }, 500);
+        
+        // Update previous scores
+        this.previousHomeScore = newScore.homeScore;
+        this.previousAwayScore = newScore.awayScore;
+      }
+    }
   }
 
   ngOnDestroy(): void {

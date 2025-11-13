@@ -9,6 +9,7 @@
   <div *ngIf="!isLoading && commentaryEntries.length > 0" class="commentary-list">
     <div
       *ngFor="let entry of commentaryEntries; trackBy: trackByEntryId"
+      [@fadeIn]
       [class]="getEntryClass(entry)"
       class="commentary-item"
       role="article"

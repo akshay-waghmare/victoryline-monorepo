@@ -438,3 +438,31 @@
     box-shadow: none;
   }
 }
+
+
+
+/* ============================================
+   ANIMATIONS - Smooth real-time updates
+   ============================================ */
+
+/**
+ * Respect reduced motion preference
+ * Disable animations for users who prefer reduced motion
+ */
+@media (prefers-reduced-motion: reduce) {
+  .commentary-item {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/**
+ * Smooth fade-in for new commentary entries (handled by Angular animation)
+ * Fallback for browsers without animation support
+ */
+.commentary-item {
+  animation-duration: 0.3s;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+

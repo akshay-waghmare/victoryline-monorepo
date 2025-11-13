@@ -19,7 +19,7 @@
       <span class="team-name" [title]="homeTeam.name">
         {{ homeTeam.shortName || homeTeam.name }}
       </span>
-      <span class="team-score" *ngIf="currentScore.homeScore">
+      <span class="team-score" *ngIf="currentScore.homeScore" [@scorePulse]="scorePulseState">
         {{ currentScore.homeScore }}
       </span>
     </div>
@@ -34,7 +34,7 @@
     
     <!-- Away Team -->
     <div class="sticky-header__team sticky-header__team--away">
-      <span class="team-score" *ngIf="currentScore.awayScore">
+      <span class="team-score" *ngIf="currentScore.awayScore" [@scorePulse]="scorePulseState">
         {{ currentScore.awayScore }}
       </span>
       <span class="team-name" [title]="awayTeam.name">

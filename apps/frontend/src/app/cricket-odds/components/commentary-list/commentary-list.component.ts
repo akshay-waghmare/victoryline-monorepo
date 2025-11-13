@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Subscription } from 'rxjs';
 import { CommentaryEntry, CommentaryType, CommentaryPage } from '../../../shared/models/match.models';
 import { MatchLiveFacade } from '../../match-live.facade';
@@ -8,7 +9,21 @@ import { AnalyticsService } from '../../analytics.service';
 @Component({
   selector: 'app-commentary-list',
   templateUrl: './commentary-list.component.html',
-  styleUrls: ['./commentary-list.component.css']
+  styleUrls: ['./commentary-list.component.css'],
+  animations: [
+    /**
+     * Fade-in animation for new commentary entries
+     * Triggered when new balls are added via live updates
+     * Duration: 300ms ease-out
+     * Respects prefers-reduced-motion via CSS
+     */
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(-8px)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ]
 })
 export class CommentaryListComponent implements OnInit, OnDestroy {
   @Input() matchId!: string;
