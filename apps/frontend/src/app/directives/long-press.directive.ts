@@ -71,6 +71,9 @@ export class LongPressDirective {
     // Prevent default context menu on long-press
     event.preventDefault();
     
+    // T073: Trigger haptic feedback on long-press (if supported)
+    this.triggerHapticFeedback();
+    
     // Emit long-press event with coordinates
     this.longPress.emit({
       center: event.center,
@@ -78,6 +81,23 @@ export class LongPressDirective {
     });
     
     console.log('[LongPress] Detected at:', event.center);
+  }
+
+  /**
+   * T073: Trigger haptic feedback using Vibration API
+   * Pattern: 50ms vibration (subtle confirmation)
+   */
+  private triggerHapticFeedback(): void {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        // Short vibration (50ms) for subtle feedback
+        navigator.vibrate(50);
+        console.log('[Haptic] Long-press vibration triggered');
+      } catch (error) {
+        // Vibration API not supported or failed - silent fail
+        console.log('[Haptic] Vibration not available');
+      }
+    }
   }
 
   /**

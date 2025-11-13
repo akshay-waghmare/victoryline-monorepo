@@ -202,6 +202,9 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
    */
   private onPanEnd(event: HammerInput): void {
     if (this.pullDistance >= this.THRESHOLD && !this.isRefreshing) {
+      // T073: Trigger haptic feedback when refresh threshold reached
+      this.triggerHapticFeedback();
+      
       // Trigger refresh
       this.isRefreshing = true;
       this.refresh.emit();
@@ -246,6 +249,23 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
     if (spinner) {
       this.renderer.setStyle(spinner, 'opacity', '0');
       this.renderer.setStyle(spinner, 'animation', 'none');
+    }
+  }
+
+  /**
+   * T073: Trigger haptic feedback using Vibration API
+   * Pattern: 30ms vibration (subtle confirmation)
+   */
+  private triggerHapticFeedback(): void {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        // Short vibration (30ms) for pull-to-refresh threshold
+        navigator.vibrate(30);
+        console.log('[Haptic] Pull-to-refresh vibration triggered');
+      } catch (error) {
+        // Vibration API not supported or failed - silent fail
+        console.log('[Haptic] Vibration not available');
+      }
     }
   }
 }
