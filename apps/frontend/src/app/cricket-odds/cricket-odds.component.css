@@ -2339,3 +2339,68 @@ p {
      } 
  }  
  
+
+/* ============================================
+   ORIENTATION CHANGE HANDLING - T056
+   ============================================ */
+
+/**
+ * Portrait orientation (default mobile view)
+ * Optimized for vertical scrolling with stacked content
+ */
+@media (orientation: portrait) {
+  .match-info-container {
+    /* Single column layout for portrait */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Tab content adapts to narrow viewport */
+  ::ng-deep .mat-tab-body-wrapper {
+    min-height: calc(100vh - 200px);
+  }
+}
+
+/**
+ * Landscape orientation
+ * Utilize horizontal space for wider content display
+ */
+@media (orientation: landscape) and (max-width: 896px) {
+  /* Landscape mobile (e.g., iPhone in landscape) */
+  
+  .match-info-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-4, 16px);
+  }
+
+  /* Reduce vertical spacing in landscape to fit more content */
+  .commentary-list,
+  .scorecard-container {
+    padding: var(--space-2, 8px);
+  }
+
+  /* Tab labels can be smaller in landscape to fit more */
+  ::ng-deep .mat-tab-label {
+    font-size: 13px;
+    min-width: 80px;
+  }
+
+  /* Sticky header height reduced in landscape */
+  ::ng-deep .sticky-header {
+    min-height: 48px;
+    padding: var(--space-1, 4px) var(--space-2, 8px);
+  }
+}
+
+/**
+ * Smooth transitions during orientation change
+ * Prevents jarring layout shifts
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .match-info-container,
+  ::ng-deep .mat-tab-body-wrapper {
+    transition: all 0.2s ease-out;
+  }
+}
+

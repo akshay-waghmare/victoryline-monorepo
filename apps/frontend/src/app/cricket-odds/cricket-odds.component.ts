@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, HostListener } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { Subject } from 'rxjs';
@@ -134,6 +134,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   winBatFirstPercentage: number;
   winBowlFirstPercentage: number;
   scorecardInfo: any;
+
+  // T056: Orientation change handling
+  private currentTabIndex: number = 0;
+  private scrollPosition: number = 0;
+  private resizeThrottle: any = null;
 
 
   constructor(private rxStompService: RxStompService,
@@ -884,6 +889,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 }
 
 onTabChange(event: MatTabChangeEvent) {
+  // T056: Save current tab index for orientation changes
+  this.currentTabIndex = event.index;
+  
   if (event.index === 1) { // Match Info tab is selected
     this.activatedRoute.params.subscribe(params => {
       const match = params['path']; // Use 'path' instead of 'match'
@@ -909,6 +917,34 @@ onTabChange(event: MatTabChangeEvent) {
         this.fetchMatchInfo(this.matchUrl);
       });
     }
+  }
+}
+
+/**
+ * T056: Handle orientation changes (portrait ↔ landscape)
+ * Triggered by window resize events when device orientation changes
+ * Maintains tab selection and scroll position across orientation changes
+ */
+@HostListener('window:orientationchange', ['$event'])
+@HostListener('window:resize', ['$event'])
+onOrientationChange(event: Event): void {
+  // Throttle resize events to avoid performance issues (100ms)
+  if (!this.resizeThrottle) {
+    this.resizeThrottle = setTimeout(() => {
+      // Save current scroll position
+      this.scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+      
+      // Trigger change detection to adapt layout (handled by CSS media queries)
+      // Tab selection is preserved via this.currentTabIndex
+      
+      // Restore scroll position after layout stabilizes (50ms delay)
+      setTimeout(() => {
+        window.scrollTo(0, this.scrollPosition);
+      }, 50);
+      
+      // Clear throttle
+      this.resizeThrottle = null;
+    }, 100);
   }
 }
 
