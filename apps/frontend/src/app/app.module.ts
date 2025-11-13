@@ -47,6 +47,8 @@ import { LoadingSkeletonComponent } from './components/loading-skeleton/loading-
 import { MatchCardComponent } from './components/match-card/match-card.component';
 import { StickyHeaderComponent } from './components/sticky-header/sticky-header.component';
 import { TouchFeedbackDirective } from './directives/touch-feedback.directive';
+import { SwipeGestureDirective } from './directives/swipe-gesture.directive';
+import { PullToRefreshDirective } from './directives/pull-to-refresh.directive';
 //import { HomeComponent } from './home/home.component';
 
 
@@ -78,6 +80,8 @@ const stompConfig: StompConfig = {
     MatchCardComponent,
     StickyHeaderComponent,
     TouchFeedbackDirective,
+    SwipeGestureDirective,
+    PullToRefreshDirective,
     
         
   ],

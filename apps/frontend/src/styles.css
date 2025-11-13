@@ -779,3 +779,41 @@ body, html {
     display: block;
   }
 }
+
+
+/* ============================================
+   PULL-TO-REFRESH ANIMATIONS
+   ============================================ */
+
+/**
+ * Spinner rotation animation for pull-to-refresh indicator
+ * Used by PullToRefreshDirective
+ */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/**
+ * Pull-to-refresh indicator styles
+ * Applied dynamically by PullToRefreshDirective
+ */
+.pull-to-refresh-indicator {
+  color: var(--primary-color, #2196F3);
+}
+
+.pull-to-refresh-spinner {
+  will-change: transform, opacity;
+}
+
+/**
+ * Respect reduced motion preference
+ */
+@media (prefers-reduced-motion: reduce) {
+  .pull-to-refresh-indicator,
+  .pull-to-refresh-spinner {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
