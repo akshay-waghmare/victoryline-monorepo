@@ -9,6 +9,7 @@ import sys
 import os
 import threading
 import time
+from typing import Optional
 
 # Add both current directory and parent directory to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,7 +28,7 @@ from src.crex_main_url import (
 from src.config import get_settings
 from src.monitoring import ensure_metrics_server
 
-def auto_start_periodic_job(stop_event: threading.Event | None = None) -> None:
+def auto_start_periodic_job(stop_event: Optional[threading.Event] = None) -> None:
     """Auto-start the periodic scraping job after a brief delay."""
 
     shutdown_event = stop_event or SERVICE_SHUTDOWN_EVENT

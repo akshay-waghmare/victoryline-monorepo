@@ -13,7 +13,7 @@ import time
 import sqlite3
 import sys
 import os
-from crex_scraper_python import logging_config
+import logging_config
 from src import monitoring
 from src.config import get_settings
 from src.core.scraper_context import (
