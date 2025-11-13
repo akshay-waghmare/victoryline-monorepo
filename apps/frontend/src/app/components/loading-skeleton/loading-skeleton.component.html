@@ -1,0 +1,47 @@
+<div class="skeleton-container" [class]="customClass">
+  
+  <!-- Text skeleton -->
+  <div *ngIf="type === 'text'" class="skeleton-text-container">
+    <div *ngFor="let line of lineArray; let last = last"
+         class="skeleton skeleton-line"
+         [class.skeleton-line-short]="last"
+         [style.width]="last ? '70%' : '100%'">
+    </div>
+  </div>
+
+  <!-- Circle skeleton -->
+  <div *ngIf="type === 'circle'"
+       class="skeleton skeleton-circle"
+       [ngStyle]="getSkeletonStyle()">
+  </div>
+
+  <!-- Rectangle skeleton -->
+  <div *ngIf="type === 'rectangle'"
+       class="skeleton skeleton-rectangle"
+       [ngStyle]="getSkeletonStyle()">
+  </div>
+
+  <!-- Card skeleton (match card preset) -->
+  <div *ngIf="type === 'card'" class="skeleton-card">
+    <!-- Card header with logos and vs text -->
+    <div class="skeleton-card-header">
+      <div class="skeleton skeleton-circle" style="width: 40px; height: 40px;"></div>
+      <div class="skeleton-card-vs">
+        <div class="skeleton skeleton-line" style="width: 30px; height: 16px;"></div>
+      </div>
+      <div class="skeleton skeleton-circle" style="width: 40px; height: 40px;"></div>
+    </div>
+
+    <!-- Card body with team names and score -->
+    <div class="skeleton-card-body">
+      <div class="skeleton skeleton-line" style="width: 80%; height: 18px; margin-bottom: 8px;"></div>
+      <div class="skeleton skeleton-line" style="width: 60%; height: 24px;"></div>
+    </div>
+
+    <!-- Card footer with match info -->
+    <div class="skeleton-card-footer">
+      <div class="skeleton skeleton-line" style="width: 40%; height: 14px;"></div>
+      <div class="skeleton skeleton-line" style="width: 30%; height: 14px;"></div>
+    </div>
+  </div>
+</div>

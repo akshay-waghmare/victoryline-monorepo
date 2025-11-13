@@ -1,0 +1,232 @@
+/* Responsive Breakpoints - Mobile-First Media Queries
+ * Purpose: Define mobile-first breakpoints for responsive design
+ * Usage: Import in components or use in global styles
+ */
+
+/* ===================================================================
+ * MOBILE-FIRST APPROACH
+ * Base styles are for mobile (320px+)
+ * Use min-width media queries to enhance for larger screens
+ * =================================================================== */
+
+/* === Extra Small Devices (320px+) === */
+/* Base styles - no media query needed */
+/* Target: iPhone SE, small Android phones */
+
+/* === Small Devices (375px+) === */
+@media (min-width: 375px) {
+  /* Medium phones: iPhone 12 mini, iPhone 13 mini, standard Android */
+  .container-responsive {
+    padding-left: var(--space-2);
+    padding-right: var(--space-2);
+  }
+}
+
+/* === Medium Devices (428px+) === */
+@media (min-width: 428px) {
+  /* Large phones: iPhone 14 Pro Max, Samsung Galaxy S23 Ultra */
+  .container-responsive {
+    max-width: var(--breakpoint-md);
+  }
+}
+
+/* === Large Devices (640px+) === */
+@media (min-width: 640px) {
+  /* Small tablets, landscape phones */
+  .container-responsive {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+    max-width: var(--breakpoint-lg);
+  }
+
+  /* Show desktop-optimized layouts */
+  .mobile-only {
+    display: none;
+  }
+
+  .desktop-visible {
+    display: block;
+  }
+}
+
+/* === Extra Large Devices (768px+) === */
+@media (min-width: 768px) {
+  /* Tablets: iPad, Android tablets */
+  .container-responsive {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+    max-width: var(--breakpoint-xl);
+  }
+
+  /* Hamburger menu → Full navigation */
+  .hamburger-menu {
+    display: none;
+  }
+
+  .desktop-nav {
+    display: flex;
+  }
+}
+
+/* === 2X Large Devices (1024px+) === */
+@media (min-width: 1024px) {
+  /* Desktop: Laptops, desktops */
+  .container-responsive {
+    max-width: var(--breakpoint-2xl);
+  }
+}
+
+/* === 3X Large Devices (1280px+) === */
+@media (min-width: 1280px) {
+  /* Large desktop: Widescreen monitors */
+  .container-responsive {
+    max-width: var(--breakpoint-3xl);
+  }
+}
+
+/* ===================================================================
+ * UTILITY CLASSES FOR RESPONSIVE VISIBILITY
+ * =================================================================== */
+
+/* Hide on mobile, show on tablet+ */
+.hidden-mobile {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .hidden-mobile {
+    display: block;
+  }
+}
+
+/* Show on mobile only, hide on tablet+ */
+.visible-mobile {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .visible-mobile {
+    display: none;
+  }
+}
+
+/* Hide on tablet, show on desktop */
+.hidden-tablet {
+  display: block;
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .hidden-tablet {
+    display: none;
+  }
+}
+
+/* ===================================================================
+ * RESPONSIVE GRID SYSTEM (Mobile-First)
+ * =================================================================== */
+
+.grid-responsive {
+  display: grid;
+  gap: var(--space-2);
+  
+  /* Mobile: 1 column */
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .grid-responsive {
+    /* Tablet: 2 columns */
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    /* Desktop: 3 columns */
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+/* Responsive grid with auto-fit (cards, match listings) */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .grid-auto-fit {
+    gap: var(--space-3);
+  }
+}
+
+/* ===================================================================
+ * RESPONSIVE FLEXBOX UTILITIES
+ * =================================================================== */
+
+.flex-responsive {
+  display: flex;
+  flex-direction: column; /* Mobile: stack vertically */
+  gap: var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .flex-responsive {
+    flex-direction: row; /* Tablet+: horizontal */
+    gap: var(--space-3);
+  }
+}
+
+/* ===================================================================
+ * ORIENTATION-SPECIFIC STYLES
+ * =================================================================== */
+
+@media (orientation: landscape) and (max-width: 767px) {
+  /* Landscape phone adjustments */
+  .landscape-adjust {
+    padding-top: var(--space-1);
+    padding-bottom: var(--space-1);
+  }
+
+  /* Reduce sticky header height in landscape */
+  .sticky-header {
+    height: 48px;
+  }
+}
+
+/* ===================================================================
+ * HIGH-DPI SCREENS (Retina displays)
+ * =================================================================== */
+
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Use higher quality images for retina displays */
+  .retina-image {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* ===================================================================
+ * PRINT STYLES (Mobile-friendly printing)
+ * =================================================================== */
+
+@media print {
+  /* Remove unnecessary elements when printing */
+  .no-print,
+  .hamburger-menu,
+  .bottom-nav,
+  .fab-back-to-top {
+    display: none !important;
+  }
+
+  /* Ensure content fits on page */
+  body {
+    font-size: 12pt;
+  }
+
+  .container-responsive {
+    max-width: 100%;
+    padding: 0;
+  }
+}

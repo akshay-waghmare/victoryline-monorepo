@@ -1,0 +1,33 @@
+<div class="lazy-image-container" 
+     [class.loading]="imageState === 'loading'"
+     [class.loaded]="imageState === 'loaded'"
+     [class.error]="imageState === 'error'"
+     [style.aspect-ratio]="aspectRatio">
+  
+  <!-- Loading placeholder -->
+  <div *ngIf="imageState === 'loading'" class="lazy-image-placeholder">
+    <div class="skeleton animate-shimmer"></div>
+  </div>
+
+  <!-- Loaded image -->
+  <img #imageElement
+       *ngIf="imageState === 'loaded'"
+       [src]="loadedSrc"
+       [srcset]="srcset"
+       [alt]="alt"
+       [width]="width"
+       [height]="height"
+       [class]="imageClass"
+       class="lazy-image"
+       loading="lazy">
+
+  <!-- Error state -->
+  <div *ngIf="imageState === 'error'" class="lazy-image-error">
+    <svg class="error-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="12" y1="8" x2="12" y2="12"></line>
+      <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+    <span class="error-text">Image unavailable</span>
+  </div>
+</div>

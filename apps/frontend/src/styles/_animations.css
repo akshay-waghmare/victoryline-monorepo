@@ -1,0 +1,519 @@
+/* Animation Standards - 60fps Mobile-Optimized Animations
+ * Purpose: Consistent, performant animations with reduced-motion support
+ * Usage: Import in components or apply animation classes
+ */
+
+/* ===================================================================
+ * ANIMATION PRINCIPLES
+ * 1. Use transform and opacity for 60fps (GPU-accelerated)
+ * 2. Avoid animating width, height, top, left (causes reflow)
+ * 3. Keep animations under 300ms for mobile
+ * 4. Always provide reduced-motion alternatives
+ * =================================================================== */
+
+/* ===================================================================
+ * KEYFRAME ANIMATIONS
+ * =================================================================== */
+
+/* Fade In */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Fade Out */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Slide In from Bottom (for modals, sheets) */
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Slide In from Top (for sticky headers) */
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Slide In from Right (for side panels) */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Slide In from Left (for side panels) */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Scale In (for dialogs, tooltips) */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Pulse (for LIVE indicators) */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Ripple Effect (Material Design touch feedback) */
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* Spin (for loading spinners) */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Shimmer (for skeleton loaders) */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Bounce (for confirmation feedback) */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Shake (for error feedback) */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+/* ===================================================================
+ * ANIMATION UTILITY CLASSES
+ * =================================================================== */
+
+/* Fade animations */
+.animate-fade-in {
+  animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+
+.animate-fade-out {
+  animation: fadeOut var(--duration-normal) var(--ease-in);
+}
+
+/* Slide animations */
+.animate-slide-in-up {
+  animation: slideInUp var(--duration-normal) var(--ease-out);
+}
+
+.animate-slide-in-down {
+  animation: slideInDown var(--duration-normal) var(--ease-out);
+}
+
+.animate-slide-in-right {
+  animation: slideInRight var(--duration-normal) var(--ease-out);
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft var(--duration-normal) var(--ease-out);
+}
+
+/* Scale animations */
+.animate-scale-in {
+  animation: scaleIn var(--duration-fast) var(--ease-out);
+}
+
+/* Pulse animation */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Spin animation */
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Shimmer animation (skeleton loaders) */
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--background-color) 0%,
+    var(--muted-color) 50%,
+    var(--background-color) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Bounce animation */
+.animate-bounce {
+  animation: bounce 0.5s var(--ease-bounce);
+}
+
+/* Shake animation */
+.animate-shake {
+  animation: shake 0.5s var(--ease-in-out);
+}
+
+/* ===================================================================
+ * TRANSITION MIXINS (apply to elements)
+ * =================================================================== */
+
+.transition-fast {
+  transition: all var(--duration-fast) var(--ease-in-out);
+}
+
+.transition-normal {
+  transition: all var(--duration-normal) var(--ease-in-out);
+}
+
+.transition-slow {
+  transition: all var(--duration-slow) var(--ease-in-out);
+}
+
+/* Specific property transitions (better performance) */
+.transition-opacity {
+  transition: opacity var(--duration-fast) var(--ease-in-out);
+}
+
+.transition-transform {
+  transition: transform var(--duration-fast) var(--ease-in-out);
+}
+
+.transition-colors {
+  transition: background-color var(--duration-fast) var(--ease-in-out),
+              color var(--duration-fast) var(--ease-in-out),
+              border-color var(--duration-fast) var(--ease-in-out);
+}
+
+/* ===================================================================
+ * TOUCH FEEDBACK ANIMATIONS
+ * =================================================================== */
+
+.touch-feedback {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-feedback::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width var(--duration-instant) var(--ease-out),
+              height var(--duration-instant) var(--ease-out),
+              opacity var(--duration-fast) var(--ease-out);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.touch-feedback:active::after {
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  transition: width var(--duration-instant) var(--ease-out),
+              height var(--duration-instant) var(--ease-out);
+}
+
+/* Touch feedback directive ripple */
+.touch-feedback-ripple {
+  position: absolute;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: touch-ripple 0.6s ease-out;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+@keyframes touch-ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* ===================================================================
+ * LOADING STATES
+ * =================================================================== */
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--muted-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.spinner-lg {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e0e0e0 25%,
+    #f0f0f0 50%,
+    #e0e0e0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+.skeleton-text {
+  height: 1em;
+  margin-bottom: var(--space-1);
+}
+
+.skeleton-circle {
+  border-radius: 50%;
+}
+
+/* ===================================================================
+ * SCROLL ANIMATIONS (for content appearing on scroll)
+ * =================================================================== */
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
+
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ===================================================================
+ * PERFORMANCE OPTIMIZATIONS
+ * =================================================================== */
+
+/* Enable GPU acceleration for animated elements */
+.gpu-accelerate {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Use for elements that will be animated */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* Remove will-change after animation completes */
+.will-change-auto {
+  will-change: auto;
+}
+
+/* ===================================================================
+ * REDUCED MOTION SUPPORT
+ * Respects user's prefers-reduced-motion setting
+ * =================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Disable pulse animations for reduced motion */
+  .animate-pulse {
+    animation: none;
+  }
+
+  /* Simplify skeleton loaders */
+  .animate-shimmer,
+  .skeleton {
+    animation: none;
+    background: var(--muted-color);
+  }
+
+  /* Disable scroll reveal */
+  .scroll-reveal {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ===================================================================
+ * LIVE MATCH INDICATORS
+ * =================================================================== */
+
+.live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--live-color);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Respect reduced motion for live indicator */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot {
+    animation: none;
+  }
+}
+
+/* ===================================================================
+ * PAGE TRANSITIONS (for route changes)
+ * =================================================================== */
+
+.page-enter {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
+
+.page-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.page-exit-active {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity var(--duration-fast) var(--ease-in),
+              transform var(--duration-fast) var(--ease-in);
+}
+
+/* ===================================================================
+ * SWIPE GESTURE FEEDBACK
+ * =================================================================== */
+
+.swipe-feedback {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.swipe-feedback.swiping {
+  transition: none;
+}
+
+/* ===================================================================
+ * PULL-TO-REFRESH INDICATOR
+ * =================================================================== */
+
+.pull-to-refresh {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.pull-to-refresh.pulling {
+  transform: translateX(-50%) translateY(0);
+}
+
+.pull-to-refresh.refreshing {
+  transform: translateX(-50%) translateY(0);
+}
+
+.pull-to-refresh-spinner {
+  animation: spin 1s linear infinite;
+}

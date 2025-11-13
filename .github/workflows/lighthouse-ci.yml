@@ -1,0 +1,104 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'apps/frontend/**'
+      - '.github/workflows/lighthouse-ci.yml'
+
+jobs:
+  lighthouse:
+    name: Run Lighthouse CI
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+          
+      - name: Install dependencies
+        working-directory: apps/frontend
+        run: npm ci --legacy-peer-deps
+        
+      - name: Build production
+        working-directory: apps/frontend
+        run: npm run build -- --prod
+        
+      - name: Install Lighthouse CI
+        run: npm install -g @lhci/cli@0.12.x
+        
+      - name: Run Lighthouse CI
+        working-directory: apps/frontend
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+          
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: lighthouse-results
+          path: |
+            apps/frontend/.lighthouseci
+          retention-days: 30
+          
+      - name: Comment PR with Lighthouse scores
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Read manifest
+            const manifestPath = path.join(process.cwd(), 'apps/frontend/.lighthouseci/manifest.json');
+            if (!fs.existsSync(manifestPath)) {
+              console.log('No Lighthouse results found');
+              return;
+            }
+            
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            const results = manifest.map(result => {
+              const lhr = JSON.parse(fs.readFileSync(result.jsonPath, 'utf8'));
+              return {
+                url: lhr.finalUrl,
+                scores: lhr.categories
+              };
+            });
+            
+            // Format comment
+            let comment = '## 🔦 Lighthouse CI Results\n\n';
+            
+            results.forEach(result => {
+              const url = new URL(result.url);
+              comment += `### ${url.pathname || '/'}\n\n`;
+              comment += '| Category | Score |\n';
+              comment += '|----------|-------|\n';
+              
+              Object.entries(result.scores).forEach(([key, category]) => {
+                const score = Math.round(category.score * 100);
+                const emoji = score >= 90 ? '🟢' : score >= 50 ? '🟠' : '🔴';
+                comment += `| ${emoji} ${category.title} | ${score} |\n`;
+              });
+              
+              comment += '\n';
+            });
+            
+            comment += '\n📊 [View full report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})\n';
+            
+            // Post comment
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

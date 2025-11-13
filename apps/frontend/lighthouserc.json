@@ -1,0 +1,63 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npm run start",
+      "startServerReadyPattern": "Compiled successfully",
+      "startServerReadyTimeout": 60000,
+      "url": [
+        "http://localhost:4200",
+        "http://localhost:4200/home",
+        "http://localhost:4200/match-details/1"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "preset": "desktop",
+        "onlyCategories": [
+          "performance",
+          "accessibility",
+          "best-practices",
+          "seo"
+        ],
+        "skipAudits": [
+          "uses-http2",
+          "redirects-http"
+        ]
+      }
+    },
+    "assert": {
+      "preset": "lighthouse:recommended",
+      "assertions": {
+        "categories:performance": ["error", {"minScore": 0.7}],
+        "categories:accessibility": ["error", {"minScore": 0.9}],
+        "categories:best-practices": ["error", {"minScore": 0.8}],
+        "categories:seo": ["error", {"minScore": 0.8}],
+        "first-contentful-paint": ["warn", {"maxNumericValue": 2000}],
+        "largest-contentful-paint": ["warn", {"maxNumericValue": 2500}],
+        "cumulative-layout-shift": ["error", {"maxNumericValue": 0.1}],
+        "total-blocking-time": ["warn", {"maxNumericValue": 300}],
+        "speed-index": ["warn", {"maxNumericValue": 3500}],
+        "interactive": ["warn", {"maxNumericValue": 3500}],
+        "max-potential-fid": ["warn", {"maxNumericValue": 130}],
+        "uses-responsive-images": "off",
+        "offscreen-images": "warn",
+        "render-blocking-resources": "warn",
+        "unminified-css": "error",
+        "unminified-javascript": "error",
+        "unused-css-rules": "warn",
+        "unused-javascript": "warn",
+        "modern-image-formats": "warn",
+        "uses-optimized-images": "warn",
+        "uses-text-compression": "error",
+        "uses-rel-preconnect": "warn",
+        "font-display": "warn",
+        "resource-summary:script:size": ["warn", {"maxNumericValue": 500000}],
+        "resource-summary:stylesheet:size": ["warn", {"maxNumericValue": 100000}],
+        "resource-summary:image:size": ["warn", {"maxNumericValue": 1000000}],
+        "resource-summary:total:size": ["warn", {"maxNumericValue": 2000000}]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

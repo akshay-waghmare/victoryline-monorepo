@@ -1,5 +1,5 @@
 import { RouteReuseStrategy, RouterModule } from '@angular/router';
-import { BrowserModule } from '@angular/platform-browser';
+import { BrowserModule, HAMMER_GESTURE_CONFIG } from '@angular/platform-browser';
 import { NgModule, APP_INITIALIZER } from '@angular/core';
 
 import { AppComponent } from './app.component';
@@ -9,6 +9,7 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 import { SidebarComponent } from './component/sidebar/sidebar.component';
 import {ComponentsModule} from '../app/component/components.module';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { CustomHammerConfig } from './hammer-config';
 
 
 import 'hammerjs';
@@ -38,6 +39,13 @@ import { CustomReuseStrategy } from './custom-reuse-strategy';
 import { environment } from 'src/environments/environment';
 import { LogoutFormComponent } from './logout-form/logout-form.component';
 import { LazyMediaService } from './seo/lazy-media.service';
+
+// Mobile-first components
+import { ViewportService } from './services/viewport.service';
+import { LazyImageComponent } from './components/lazy-image/lazy-image.component';
+import { LoadingSkeletonComponent } from './components/loading-skeleton/loading-skeleton.component';
+import { MatchCardComponent } from './components/match-card/match-card.component';
+import { TouchFeedbackDirective } from './directives/touch-feedback.directive';
 //import { HomeComponent } from './home/home.component';
 
 
@@ -63,6 +71,11 @@ const stompConfig: StompConfig = {
     LoaderComponent,
     ElapsedTimePipe,
     
+    // Mobile-first components
+    LazyImageComponent,
+    LoadingSkeletonComponent,
+    MatchCardComponent,
+    TouchFeedbackDirective,
     
         
   ],
@@ -101,7 +114,8 @@ const stompConfig: StompConfig = {
       multi: true
     },
     {provide: RouteReuseStrategy, useClass: CustomReuseStrategy },
-    { provide: HTTP_INTERCEPTORS,useValue: stompConfig, useClass: LoaderInterceptor, multi: true }],
+    { provide: HTTP_INTERCEPTORS,useValue: stompConfig, useClass: LoaderInterceptor, multi: true },
+    { provide: HAMMER_GESTURE_CONFIG, useClass: CustomHammerConfig }],
   bootstrap: [AppComponent],
   
   // exports: [SidebarComponent]

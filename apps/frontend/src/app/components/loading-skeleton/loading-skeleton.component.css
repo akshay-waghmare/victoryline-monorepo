@@ -1,0 +1,136 @@
+/* Loading Skeleton Component Styles */
+
+.skeleton-container {
+  display: block;
+  width: 100%;
+}
+
+/* Base skeleton styles */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #e0e0e0 25%,
+    #f0f0f0 50%,
+    #e0e0e0 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Text skeleton */
+.skeleton-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.skeleton-line {
+  height: 1em;
+  width: 100%;
+}
+
+.skeleton-line-short {
+  width: 70%;
+}
+
+/* Circle skeleton */
+.skeleton-circle {
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Rectangle skeleton */
+.skeleton-rectangle {
+  display: block;
+}
+
+/* Card skeleton (match card preset) */
+.skeleton-card {
+  padding: var(--space-2);
+  background-color: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.skeleton-card-vs {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.skeleton-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.skeleton-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-1);
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #2a2a2a 25%,
+      #3a3a3a 50%,
+      #2a2a2a 75%
+    );
+  }
+
+  .skeleton-card {
+    background-color: #1a1a1a;
+  }
+
+  .skeleton-card-footer {
+    border-top-color: #3a3a3a;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+    background: #e0e0e0;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .skeleton {
+      background: #2a2a2a;
+    }
+  }
+}
+
+/* Responsive adjustments */
+@media (min-width: 640px) {
+  .skeleton-card {
+    padding: var(--space-3);
+  }
+}

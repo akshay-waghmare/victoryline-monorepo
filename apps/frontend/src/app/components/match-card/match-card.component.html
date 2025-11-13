@@ -1,0 +1,90 @@
+<div 
+  class="match-card" 
+  [class.match-card--compact]="layout === 'compact'"
+  [class.match-card--expanded]="layout === 'expanded'"
+  [class.match-card--clickable]="clickable"
+  [attr.role]="clickable ? 'button' : null"
+  [attr.tabindex]="clickable ? 0 : null"
+  [attr.aria-label]="getAriaLabel()"
+  (click)="onCardClick()"
+  (keydown)="onKeyPress($event)"
+  appTouchFeedback>
+  
+  <!-- Status Badge -->
+  <div 
+    *ngIf="showStatus" 
+    class="match-card__status"
+    [class]="getStatusClass()">
+    <span class="status-dot" *ngIf="match.isLive"></span>
+    <span class="status-label">{{ getStatusLabel() }}</span>
+  </div>
+  
+  <!-- Teams and Score Container -->
+  <div class="match-card__content">
+    
+    <!-- Team 1 -->
+    <div class="match-card__team match-card__team--home">
+      <app-lazy-image
+        [src]="match.team1.logoUrl"
+        [alt]="match.team1.name + ' logo'"
+        [fallback]="''"
+        [width]="'40'"
+        [height]="'40'"
+        imageClass="team-logo">
+        <!-- Fallback: show abbreviation if image fails -->
+        <div class="team-logo-fallback">
+          {{ match.team1.shortName }}
+        </div>
+      </app-lazy-image>
+      <div class="team-info">
+        <div class="team-name">{{ match.team1.name }}</div>
+        <div class="team-score" *ngIf="match.team1.score">
+          {{ match.team1.score.displayText }}
+        </div>
+      </div>
+    </div>
+    
+    <!-- VS Separator / Match Info -->
+    <div class="match-card__separator">
+      <span class="vs-text">vs</span>
+      <div class="match-time" *ngIf="!match.isLive">
+        {{ getMatchDateTime() }}
+      </div>
+      <div class="match-overs" *ngIf="match.isLive && match.team1.score">
+        {{ match.team1.score.overs }} overs
+      </div>
+    </div>
+    
+    <!-- Team 2 -->
+    <div class="match-card__team match-card__team--away">
+      <app-lazy-image
+        [src]="match.team2.logoUrl"
+        [alt]="match.team2.name + ' logo'"
+        [fallback]="''"
+        [width]="'40'"
+        [height]="'40'"
+        imageClass="team-logo">
+        <!-- Fallback: show abbreviation if image fails -->
+        <div class="team-logo-fallback">
+          {{ match.team2.shortName }}
+        </div>
+      </app-lazy-image>
+      <div class="team-info">
+        <div class="team-name">{{ match.team2.name }}</div>
+        <div class="team-score" *ngIf="match.team2.score">
+          {{ match.team2.score.displayText }}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Match Venue -->
+  <div class="match-card__footer">
+    <div class="venue">
+      <svg class="venue-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+      </svg>
+      <span class="venue-text">{{ match.venue }}</span>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,145 @@
+/* Mobile-First CSS Variables
+ * Extended from existing variables in styles.css
+ * Purpose: 8px grid system, mobile breakpoints, touch-optimized spacing
+ */
+
+:root {
+  /* === Existing Variables (preserved from styles.css) === */
+  /* Color Palette */
+  --primary-color: #1e3a8a;
+  --secondary-color: #ffffff;
+  --accent-color: #f59e0b;
+  --muted-color: #6b7280;
+  --background-color: #f3f4f6;
+
+  /* Typography */
+  --font-family-primary: 'Poppins', sans-serif;
+  --font-family-secondary: 'Roboto', sans-serif;
+  --font-size-small: 0.875rem;
+  --font-size-medium: 1rem;
+  --font-size-large: 1.25rem;
+
+  /* Additional Colors */
+  --primary-dark: #163e7a;
+  --primary-darker: #0f2e63;
+  --text-color: #333333;
+
+  /* === NEW: 8px Grid System Spacing Tokens === */
+  --space-1: 8px;    /* 1 unit */
+  --space-2: 16px;   /* 2 units */
+  --space-3: 24px;   /* 3 units */
+  --space-4: 32px;   /* 4 units */
+  --space-5: 40px;   /* 5 units */
+  --space-6: 48px;   /* 6 units */
+  --space-7: 56px;   /* 7 units */
+  --space-8: 64px;   /* 8 units */
+
+  /* Half-unit spacing for fine-tuning */
+  --space-0-5: 4px;  /* 0.5 unit */
+  --space-1-5: 12px; /* 1.5 units */
+  --space-2-5: 20px; /* 2.5 units */
+
+  /* === NEW: Mobile Breakpoints === */
+  --breakpoint-xs: 320px;  /* Small phone (iPhone SE) */
+  --breakpoint-sm: 375px;  /* Medium phone (iPhone 12/13 mini) */
+  --breakpoint-md: 428px;  /* Large phone (iPhone 14 Pro Max) */
+  --breakpoint-lg: 640px;  /* Small tablet / landscape phone */
+  --breakpoint-xl: 768px;  /* Tablet */
+  --breakpoint-2xl: 1024px; /* Desktop */
+  --breakpoint-3xl: 1280px; /* Large desktop */
+
+  /* === NEW: Mobile Typography === */
+  --font-size-xs: 0.75rem;    /* 12px - secondary text, labels */
+  --font-size-base: 0.875rem; /* 14px - body text (mobile minimum) */
+  --font-size-md: 1rem;       /* 16px - headings, emphasized text */
+  --font-size-lg: 1.125rem;   /* 18px - section headers */
+  --font-size-xl: 1.25rem;    /* 20px - scores, prominent data */
+  --font-size-2xl: 1.5rem;    /* 24px - page titles */
+  
+  /* Fluid Typography (mobile to desktop) */
+  --fluid-type-sm: clamp(0.75rem, 1.2vw, 0.875rem);   /* 12px → 14px */
+  --fluid-type-base: clamp(0.875rem, 1.5vw, 1rem);    /* 14px → 16px */
+  --fluid-type-md: clamp(1rem, 1.8vw, 1.125rem);      /* 16px → 18px */
+  --fluid-type-lg: clamp(1.125rem, 2vw, 1.25rem);     /* 18px → 20px */
+  --fluid-type-xl: clamp(1.25rem, 2.5vw, 1.5rem);     /* 20px → 24px */
+
+  /* === NEW: Touch Target Sizes === */
+  --touch-target-min: 44px;   /* WCAG 2.1 AA minimum */
+  --touch-target-comfortable: 48px; /* Recommended size */
+  --touch-target-large: 56px; /* Large interactive elements */
+
+  /* === NEW: Border Radius (mobile-optimized) === */
+  --radius-sm: 4px;   /* Small elements */
+  --radius-md: 8px;   /* Cards, buttons */
+  --radius-lg: 12px;  /* Modals, large cards */
+  --radius-xl: 16px;  /* Hero elements */
+  --radius-full: 9999px; /* Circular elements */
+
+  /* === NEW: Shadows (mobile-optimized for performance) === */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 4px 8px 0 rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+
+  /* === NEW: Z-Index Scale === */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+
+  /* === NEW: Animation Durations === */
+  --duration-instant: 100ms;  /* Touch feedback */
+  --duration-fast: 200ms;     /* Transitions, hovers */
+  --duration-normal: 300ms;   /* Standard animations */
+  --duration-slow: 500ms;     /* Complex animations */
+
+  /* === NEW: Animation Easing === */
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* === NEW: Mobile-Specific Colors === */
+  --success-color: #10b981;   /* Green for positive states */
+  --warning-color: #f59e0b;   /* Amber for warnings */
+  --error-color: #ef4444;     /* Red for errors */
+  --info-color: #3b82f6;      /* Blue for info */
+  
+  /* Live match status colors */
+  --live-color: #dc2626;      /* Red for LIVE indicator */
+  --upcoming-color: #3b82f6;  /* Blue for upcoming */
+  --completed-color: #6b7280; /* Gray for completed */
+
+  /* === NEW: Content Width Constraints === */
+  --content-max-width-sm: 640px;
+  --content-max-width-md: 768px;
+  --content-max-width-lg: 1024px;
+  --content-max-width-xl: 1280px;
+
+  /* === NEW: Mobile Page Padding === */
+  --page-padding-mobile: var(--space-2);    /* 16px */
+  --page-padding-tablet: var(--space-3);    /* 24px */
+  --page-padding-desktop: var(--space-4);   /* 32px */
+}
+
+/* Dark Mode Variables (optional - for future enhancement) */
+[data-theme="dark"] {
+  --primary-color: #3b82f6;
+  --secondary-color: #1f2937;
+  --background-color: #111827;
+  --text-color: #f3f4f6;
+  --muted-color: #9ca3af;
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+  }
+}
