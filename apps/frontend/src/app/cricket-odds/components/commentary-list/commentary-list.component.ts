@@ -125,4 +125,53 @@ export class CommentaryListComponent implements OnInit, OnDestroy {
   get shouldVirtualize(): boolean {
     return this.commentaryEntries.length > 200;
   }
+
+  /**
+   * TrackBy function for *ngFor performance optimization
+   * @param index Array index
+   * @param entry Commentary entry
+   * @returns Unique identifier for entry
+   */
+  trackByEntryId(index: number, entry: CommentaryEntry): string {
+    return entry.id;
+  }
+
+  /**
+   * Get ARIA label for commentary entry
+   * @param entry Commentary entry
+   * @returns Descriptive label for screen readers
+   */
+  getAriaLabel(entry: CommentaryEntry): string {
+    const ballInfo = `Over ${entry.overBall}`;
+    const typeLabel = entry.type === CommentaryType.WICKET ? 'Wicket' :
+                      entry.type === CommentaryType.BOUNDARY ? 'Boundary' :
+                      entry.type === CommentaryType.OVER_SUMMARY ? 'Over summary' :
+                      'Ball';
+    return `${typeLabel} - ${ballInfo}: ${entry.text}`;
+  }
+
+  /**
+   * Get relative time string from timestamp
+   * @param timestamp ISO 8601 timestamp
+   * @returns Relative time string (e.g., "2m ago")
+   */
+  getRelativeTime(timestamp: string): string {
+    const now = Date.now();
+    const then = new Date(timestamp).getTime();
+    const diffMs = now - then;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffSeconds < 60) {
+      return 'Just now';
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes}m ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    } else {
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays}d ago`;
+    }
+  }
 }

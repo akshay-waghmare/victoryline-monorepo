@@ -1,0 +1,65 @@
+<div class="commentary-container" role="region" aria-label="Ball-by-ball commentary">
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="commentary-loading" role="status" aria-live="polite">
+    <div class="loading-spinner"></div>
+    <p>Loading commentary...</p>
+  </div>
+
+  <!-- Commentary list -->
+  <div *ngIf="!isLoading && commentaryEntries.length > 0" class="commentary-list">
+    <div
+      *ngFor="let entry of commentaryEntries; trackBy: trackByEntryId"
+      [class]="getEntryClass(entry)"
+      class="commentary-item"
+      role="article"
+      [attr.aria-label]="getAriaLabel(entry)">
+      
+      <!-- Ball identifier (over.ball) -->
+      <div class="commentary-item__header">
+        <span class="over-ball-number">{{ entry.overBall }}</span>
+        <span *ngIf="entry.type !== 'BALL'" class="commentary-icon" [attr.aria-hidden]="true">
+          {{ getEntryIcon(entry) }}
+        </span>
+      </div>
+
+      <!-- Commentary text -->
+      <div class="commentary-item__body">
+        <p class="commentary-text">{{ entry.text }}</p>
+        
+        <!-- Highlights (boundaries, wickets) -->
+        <div *ngIf="entry.highlights && entry.highlights.length > 0" class="commentary-highlights">
+          <span
+            *ngFor="let highlight of entry.highlights"
+            class="highlight-badge"
+            [class.highlight-badge--boundary]="highlight === 'BOUNDARY'"
+            [class.highlight-badge--six]="highlight === 'SIX'"
+            [class.highlight-badge--wicket]="highlight === 'WICKET'">
+            {{ highlight }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Metadata (timestamp, players) -->
+      <div class="commentary-item__meta">
+        <span class="timestamp" *ngIf="entry.timestamp">{{ getRelativeTime(entry.timestamp) }}</span>
+      </div>
+    </div>
+
+    <!-- Load more button -->
+    <div class="load-more-container" *ngIf="hasMore">
+      <button
+        class="btn-load-more"
+        (click)="loadMore()"
+        [disabled]="loadingMore"
+        [attr.aria-busy]="loadingMore">
+        <span *ngIf="!loadingMore">Load more commentary</span>
+        <span *ngIf="loadingMore">Loading...</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && commentaryEntries.length === 0" class="commentary-empty" role="status">
+    <p>No commentary available yet</p>
+  </div>
+</div>

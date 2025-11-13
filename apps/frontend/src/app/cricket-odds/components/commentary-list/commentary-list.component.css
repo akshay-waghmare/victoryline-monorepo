@@ -1,28 +1,440 @@
-/* Commentary List Component Styles */
+/**
+ * Commentary list component styles
+ * Mobile-first design with clear ball separation and color coding
+ * Optimized for vertical scrolling and readability
+ */
 
 .commentary-container {
-  padding: 1rem;
+  padding: var(--space-4, 16px);
+  background-color: var(--surface-color, #ffffff);
 }
 
-.commentary-entry {
-  margin-bottom: 1rem;
-  padding: 0.75rem;
-  border-radius: 4px;
-  background-color: #f8f9fa;
+/* Loading state */
+.commentary-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12, 48px) var(--space-6, 24px);
+  gap: var(--space-4, 16px);
 }
 
 .loading-spinner {
-  text-align: center;
-  padding: 2rem;
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #e5e7eb);
+  border-top-color: var(--primary-color, #1e3a8a);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
-.load-more-btn {
-  width: 100%;
-  margin-top: 1rem;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.no-commentary {
-  text-align: center;
-  padding: 2rem;
-  color: #6c757d;
+.commentary-loading p {
+  color: var(--muted-color, #6b7280);
+  font-style: italic;
+  margin: 0;
+}
+
+/* Commentary list */
+.commentary-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px); /* Clear separation between balls */
+}
+
+/* Commentary item (individual ball) */
+.commentary-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  padding: var(--space-3, 12px);
+  background-color: var(--surface-color, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-left: 3px solid var(--border-color, #e5e7eb); /* Default border */
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: background-color 0.2s ease;
+}
+
+/* Commentary item types - color coded borders */
+.commentary-ball {
+  border-left-color: var(--border-color, #e5e7eb); /* Default gray */
+}
+
+.commentary-boundary {
+  border-left-color: var(--success-color, #10b981); /* Green for 4s */
+  background-color: #f0fdf4; /* Light green tint */
+}
+
+.commentary-wicket {
+  border-left-color: var(--error-color, #ef4444); /* Red for wickets */
+  background-color: #fef2f2; /* Light red tint */
+}
+
+.commentary-over-summary {
+  border-left-color: var(--accent-color, #f59e0b); /* Orange for over summaries */
+  background-color: #fffbeb; /* Light orange tint */
+}
+
+/* Header (over.ball + icon) */
+.commentary-item__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 8px);
+}
+
+.over-ball-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  font-size: 0.75rem; /* 12px */
+  font-weight: 600;
+  color: var(--text-color, #111827);
+  background-color: var(--muted-bg, #f3f4f6);
+  border-radius: var(--radius-sm, 4px);
+  line-height: 1;
+}
+
+.commentary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-color, #111827);
+  background-color: var(--surface-hover, #f9fafb);
+  border-radius: 50%;
+}
+
+.commentary-wicket .commentary-icon {
+  background-color: var(--error-color, #ef4444);
+  color: white;
+}
+
+.commentary-boundary .commentary-icon {
+  background-color: var(--success-color, #10b981);
+  color: white;
+}
+
+/* Body (commentary text + highlights) */
+.commentary-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.commentary-text {
+  font-size: 0.875rem; /* 14px - minimum mobile typography */
+  line-height: 1.5;
+  color: var(--text-color, #111827);
+  margin: 0;
+}
+
+/* Highlights (BOUNDARY, SIX, WICKET badges) */
+.commentary-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1-5, 6px);
+}
+
+.highlight-badge {
+  display: inline-block;
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border-radius: var(--radius-sm, 4px);
+  background-color: var(--muted-bg, #f3f4f6);
+  color: var(--muted-color, #6b7280);
+}
+
+.highlight-badge--boundary {
+  background-color: #dcfce7; /* Light green */
+  color: var(--success-color, #10b981);
+}
+
+.highlight-badge--six {
+  background-color: #dbeafe; /* Light blue */
+  color: #3b82f6; /* Blue */
+}
+
+.highlight-badge--wicket {
+  background-color: #fee2e2; /* Light red */
+  color: var(--error-color, #ef4444);
+}
+
+/* Metadata (timestamp) */
+.commentary-item__meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2, 8px);
+}
+
+.timestamp {
+  font-size: 0.75rem; /* 12px */
+  color: var(--muted-color, #6b7280);
+  font-style: italic;
+}
+
+/* Load more button */
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-6, 24px) 0;
+}
+
+.btn-load-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px; /* iOS minimum touch target */
+  min-width: 200px;
+  padding: var(--space-3, 12px) var(--space-6, 24px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-color, #1e3a8a);
+  background-color: transparent;
+  border: 2px solid var(--primary-color, #1e3a8a);
+  border-radius: var(--radius-md, 8px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-load-more:hover:not(:disabled) {
+  background-color: var(--primary-color, #1e3a8a);
+  color: white;
+}
+
+.btn-load-more:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-load-more:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-load-more:focus-visible {
+  outline: 2px solid var(--primary-color, #1e3a8a);
+  outline-offset: 2px;
+}
+
+/* Empty state */
+.commentary-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12, 48px) var(--space-6, 24px);
+}
+
+.commentary-empty p {
+  color: var(--muted-color, #6b7280);
+  font-style: italic;
+  margin: 0;
+}
+
+/* Small mobile (320px-374px) - Tighter spacing */
+@media (max-width: 374px) {
+  .commentary-container {
+    padding: var(--space-3, 12px);
+  }
+
+  .commentary-list {
+    gap: var(--space-2, 8px);
+  }
+
+  .commentary-item {
+    padding: var(--space-2, 8px);
+  }
+
+  .commentary-text {
+    font-size: 0.8125rem; /* 13px */
+  }
+
+  .over-ball-number {
+    min-width: 40px;
+    font-size: 0.6875rem; /* 11px */
+  }
+}
+
+/* Medium mobile (375px-427px) - Optimal for iPhone */
+@media (min-width: 375px) and (max-width: 427px) {
+  .commentary-container {
+    padding: var(--space-4, 16px);
+  }
+}
+
+/* Large mobile (428px-639px) - More breathing room */
+@media (min-width: 428px) and (max-width: 639px) {
+  .commentary-container {
+    padding: var(--space-5, 20px);
+  }
+
+  .commentary-list {
+    gap: var(--space-4, 16px);
+  }
+
+  .commentary-item {
+    padding: var(--space-4, 16px);
+  }
+
+  .commentary-text {
+    font-size: 0.9375rem; /* 15px */
+  }
+}
+
+/* Tablet (640px+) - Wider layout */
+@media (min-width: 640px) {
+  .commentary-container {
+    padding: var(--space-6, 24px);
+  }
+
+  .commentary-list {
+    gap: var(--space-4, 16px);
+  }
+
+  .commentary-item {
+    padding: var(--space-4, 16px);
+  }
+
+  .commentary-text {
+    font-size: 0.9375rem; /* 15px */
+  }
+}
+
+/* Desktop (768px+) - Max width container */
+@media (min-width: 768px) {
+  .commentary-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--space-8, 32px);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .commentary-container {
+    background-color: var(--dark-surface, #111827);
+  }
+
+  .commentary-item {
+    background-color: var(--dark-surface, #1f2937);
+    border-color: var(--dark-border, #374151);
+  }
+
+  .commentary-ball {
+    border-left-color: var(--dark-border, #374151);
+  }
+
+  .commentary-boundary {
+    background-color: #064e3b; /* Dark green tint */
+  }
+
+  .commentary-wicket {
+    background-color: #7f1d1d; /* Dark red tint */
+  }
+
+  .commentary-over-summary {
+    background-color: #451a03; /* Dark orange tint */
+  }
+
+  .over-ball-number {
+    background-color: var(--dark-surface-hover, #374151);
+    color: var(--dark-text, #f9fafb);
+  }
+
+  .commentary-text {
+    color: var(--dark-text, #f9fafb);
+  }
+
+  .commentary-icon {
+    background-color: var(--dark-surface-hover, #1f2937);
+    color: var(--dark-text, #f9fafb);
+  }
+
+  .highlight-badge {
+    background-color: var(--dark-surface-hover, #374151);
+    color: var(--dark-muted, #9ca3af);
+  }
+
+  .highlight-badge--boundary {
+    background-color: #064e3b;
+    color: #6ee7b7;
+  }
+
+  .highlight-badge--six {
+    background-color: #1e3a8a;
+    color: #93c5fd;
+  }
+
+  .highlight-badge--wicket {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+  }
+
+  .timestamp {
+    color: var(--dark-muted, #9ca3af);
+  }
+
+  .btn-load-more {
+    color: var(--dark-primary, #60a5fa);
+    border-color: var(--dark-primary, #60a5fa);
+  }
+
+  .btn-load-more:hover:not(:disabled) {
+    background-color: var(--dark-primary, #60a5fa);
+    color: var(--dark-surface, #111827);
+  }
+
+  .loading-spinner {
+    border-color: var(--dark-border, #374151);
+    border-top-color: var(--dark-primary, #60a5fa);
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .commentary-item,
+  .btn-load-more,
+  .loading-spinner {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .commentary-item {
+    border-width: 2px;
+  }
+
+  .commentary-ball,
+  .commentary-boundary,
+  .commentary-wicket,
+  .commentary-over-summary {
+    border-left-width: 4px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .load-more-container,
+  .commentary-loading {
+    display: none;
+  }
+
+  .commentary-item {
+    page-break-inside: avoid;
+    box-shadow: none;
+  }
 }
