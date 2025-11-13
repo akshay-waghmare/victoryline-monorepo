@@ -7,40 +7,56 @@
   </header>
   
   <!-- ===== LIVE MATCHES SECTION ===== -->
-  <section class="home__section home__section--live" *ngIf="!isLoadingMatches && liveMatches.length > 0">
+  <section 
+    class="home__section home__section--live" 
+    *ngIf="!isLoadingMatches && liveMatches.length > 0"
+    role="region"
+    aria-labelledby="live-matches-heading">
     <div class="home__section-header">
       <div class="home__section-title-wrapper">
-        <span class="live-indicator"></span>
-        <h2 class="home__section-title">Live Now</h2>
+        <span class="live-indicator" aria-hidden="true"></span>
+        <h2 id="live-matches-heading" class="home__section-title">Live Now</h2>
       </div>
       <div class="home__section-actions">
+        <!-- Desktop carousel controls - hidden on mobile -->
         <button 
-          class="carousel-btn carousel-btn--left" 
+          class="carousel-btn carousel-btn--left hidden-mobile" 
           (click)="scrollLeft('live-matches-grid')"
           [disabled]="!canScrollLeft('live-matches-grid')"
-          aria-label="Scroll left">
-          <i class="material-icons">chevron_left</i>
+          aria-label="Scroll left through live matches">
+          <i class="material-icons" aria-hidden="true">chevron_left</i>
         </button>
         <button 
-          class="carousel-btn carousel-btn--right" 
+          class="carousel-btn carousel-btn--right hidden-mobile" 
           (click)="scrollRight('live-matches-grid')"
           [disabled]="!canScrollRight('live-matches-grid')"
-          aria-label="Scroll right">
-          <i class="material-icons">chevron_right</i>
+          aria-label="Scroll right through live matches">
+          <i class="material-icons" aria-hidden="true">chevron_right</i>
         </button>
-        <a routerLink="/matches" class="home__section-link">
+        <a routerLink="/matches" class="home__section-link" aria-label="View all live matches">
           View All
-          <i class="material-icons">arrow_forward</i>
+          <i class="material-icons" aria-hidden="true">arrow_forward</i>
         </a>
       </div>
     </div>
-    <div class="matches-grid-wrapper">
-      <div class="matches-grid matches-grid--carousel" id="live-matches-grid">
+    <!-- Mobile: Vertical stacked layout -->
+    <div class="matches-grid-wrapper matches-grid-wrapper--mobile">
+      <div class="matches-grid matches-grid--mobile" id="live-matches-grid">
+        <!-- Use mobile-optimized match card on mobile, existing card on desktop -->
+        <app-mobile-match-card
+          *ngFor="let match of liveMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [showStatus]="true"
+          [clickable]="true"
+          class="visible-mobile"
+          (cardClick)="onMobileMatchClick($event)"
+        ></app-mobile-match-card>
         <app-match-card
           *ngFor="let match of liveMatches; trackBy: trackByMatchId"
           [match]="match"
           [enableAnimations]="true"
           [showDetailsButton]="true"
+          class="hidden-mobile"
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
@@ -49,40 +65,53 @@
   </section>
   
   <!-- ===== UPCOMING MATCHES SECTION ===== -->
-  <section class="home__section home__section--upcoming" *ngIf="!isLoadingMatches && upcomingMatches.length > 0">
+  <section 
+    class="home__section home__section--upcoming" 
+    *ngIf="!isLoadingMatches && upcomingMatches.length > 0"
+    role="region"
+    aria-labelledby="upcoming-matches-heading">
     <div class="home__section-header">
       <div class="home__section-title-wrapper">
-        <i class="material-icons home__section-icon">schedule</i>
-        <h2 class="home__section-title">Upcoming Matches</h2>
+        <i class="material-icons home__section-icon" aria-hidden="true">schedule</i>
+        <h2 id="upcoming-matches-heading" class="home__section-title">Upcoming Matches</h2>
       </div>
       <div class="home__section-actions">
         <button 
-          class="carousel-btn carousel-btn--left" 
+          class="carousel-btn carousel-btn--left hidden-mobile" 
           (click)="scrollLeft('upcoming-matches-grid')"
           [disabled]="!canScrollLeft('upcoming-matches-grid')"
-          aria-label="Scroll left">
-          <i class="material-icons">chevron_left</i>
+          aria-label="Scroll left through upcoming matches">
+          <i class="material-icons" aria-hidden="true">chevron_left</i>
         </button>
         <button 
-          class="carousel-btn carousel-btn--right" 
+          class="carousel-btn carousel-btn--right hidden-mobile" 
           (click)="scrollRight('upcoming-matches-grid')"
           [disabled]="!canScrollRight('upcoming-matches-grid')"
-          aria-label="Scroll right">
-          <i class="material-icons">chevron_right</i>
+          aria-label="Scroll right through upcoming matches">
+          <i class="material-icons" aria-hidden="true">chevron_right</i>
         </button>
-        <a routerLink="/matches" class="home__section-link">
+        <a routerLink="/matches" class="home__section-link" aria-label="View all upcoming matches">
           View All
-          <i class="material-icons">arrow_forward</i>
+          <i class="material-icons" aria-hidden="true">arrow_forward</i>
         </a>
       </div>
     </div>
-    <div class="matches-grid-wrapper">
-      <div class="matches-grid matches-grid--carousel" id="upcoming-matches-grid">
+    <div class="matches-grid-wrapper matches-grid-wrapper--mobile">
+      <div class="matches-grid matches-grid--mobile" id="upcoming-matches-grid">
+        <app-mobile-match-card
+          *ngFor="let match of upcomingMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [showStatus]="true"
+          [clickable]="true"
+          class="visible-mobile"
+          (cardClick)="onMobileMatchClick($event)"
+        ></app-mobile-match-card>
         <app-match-card
           *ngFor="let match of upcomingMatches; trackBy: trackByMatchId"
           [match]="match"
           [enableAnimations]="false"
           [showDetailsButton]="true"
+          class="hidden-mobile"
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
@@ -91,40 +120,53 @@
   </section>
   
   <!-- ===== RECENT RESULTS SECTION ===== -->
-  <section class="home__section home__section--recent" *ngIf="!isLoadingMatches && recentMatches.length > 0">
+  <section 
+    class="home__section home__section--recent" 
+    *ngIf="!isLoadingMatches && recentMatches.length > 0"
+    role="region"
+    aria-labelledby="recent-matches-heading">
     <div class="home__section-header">
       <div class="home__section-title-wrapper">
-        <i class="material-icons home__section-icon">check_circle</i>
-        <h2 class="home__section-title">Recent Results</h2>
+        <i class="material-icons home__section-icon" aria-hidden="true">check_circle</i>
+        <h2 id="recent-matches-heading" class="home__section-title">Recent Results</h2>
       </div>
       <div class="home__section-actions">
         <button 
-          class="carousel-btn carousel-btn--left" 
+          class="carousel-btn carousel-btn--left hidden-mobile" 
           (click)="scrollLeft('recent-matches-grid')"
           [disabled]="!canScrollLeft('recent-matches-grid')"
-          aria-label="Scroll left">
-          <i class="material-icons">chevron_left</i>
+          aria-label="Scroll left through recent matches">
+          <i class="material-icons" aria-hidden="true">chevron_left</i>
         </button>
         <button 
-          class="carousel-btn carousel-btn--right" 
+          class="carousel-btn carousel-btn--right hidden-mobile" 
           (click)="scrollRight('recent-matches-grid')"
           [disabled]="!canScrollRight('recent-matches-grid')"
-          aria-label="Scroll right">
-          <i class="material-icons">chevron_right</i>
+          aria-label="Scroll right through recent matches">
+          <i class="material-icons" aria-hidden="true">chevron_right</i>
         </button>
-        <a routerLink="/matches" class="home__section-link">
+        <a routerLink="/matches" class="home__section-link" aria-label="View all recent matches">
           View All
-          <i class="material-icons">arrow_forward</i>
+          <i class="material-icons" aria-hidden="true">arrow_forward</i>
         </a>
       </div>
     </div>
-    <div class="matches-grid-wrapper">
-      <div class="matches-grid matches-grid--carousel" id="recent-matches-grid">
+    <div class="matches-grid-wrapper matches-grid-wrapper--mobile">
+      <div class="matches-grid matches-grid--mobile" id="recent-matches-grid">
+        <app-mobile-match-card
+          *ngFor="let match of recentMatches; trackBy: trackByMatchId"
+          [match]="match"
+          [showStatus]="true"
+          [clickable]="true"
+          class="visible-mobile"
+          (cardClick)="onMobileMatchClick($event)"
+        ></app-mobile-match-card>
         <app-match-card
           *ngFor="let match of recentMatches; trackBy: trackByMatchId"
           [match]="match"
           [enableAnimations]="false"
           [showDetailsButton]="true"
+          class="hidden-mobile"
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
@@ -133,10 +175,21 @@
   </section>
   
   <!-- ===== LOADING STATE ===== -->
-  <section class="matches-section" *ngIf="isLoadingMatches">
-    <h2 class="section-header">Loading Matches...</h2>
-    <div class="matches-grid">
-      <app-skeleton-card [count]="3"></app-skeleton-card>
+  <section 
+    class="home__section" 
+    *ngIf="isLoadingMatches"
+    role="status"
+    aria-live="polite"
+    aria-label="Loading cricket matches">
+    <div class="home__section-header">
+      <h2 class="home__section-title">Loading Matches...</h2>
+    </div>
+    <div class="matches-grid matches-grid--mobile">
+      <app-loading-skeleton 
+        *ngFor="let i of [1, 2, 3]"
+        type="card"
+        [customClass]="'match-skeleton'"
+      ></app-loading-skeleton>
     </div>
   </section>
   

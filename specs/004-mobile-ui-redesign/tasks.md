@@ -62,17 +62,17 @@
 - [X] T020 [US1] Add matRipple or custom TouchFeedbackDirective to MatchCardComponent for visual tap feedback <100ms
 - [X] T021 [US1] Implement image error handling in MatchCardComponent using LazyImageComponent with team abbreviation fallback placeholders
 - [X] T022 [US1] Update home.component.ts in apps/frontend/src/app/pages/home/ to use MatchCardComponent with @Input bindings from existing match data (Note: home component already uses match cards with MatchCardViewModel - new mobile-optimized version created as app-mobile-match-card)
-- [ ] T023 [US1] Refactor home.component.html to use vertical stacked match card layout with *ngFor and proper ARIA labels (role="button", aria-label with team names)
-- [ ] T024 [US1] Create mobile-first CSS for home.component.css: mobile breakpoints (320px, 375px, 428px), content sections with headers, 12px spacing between cards
-- [ ] T025 [US1] Implement orientation change handling in home.component.ts to adapt layout portrait/landscape without reload
-- [ ] T026 [US1] Add navigation routing in home.component.ts: cardClick event navigates to /match/:id
-- [ ] T027 [US1] Implement thumb-reach zone optimization: position primary navigation in bottom third of screen on mobile (<768px)
+- [X] T023 [US1] Refactor home.component.html to use vertical stacked match card layout with *ngFor and proper ARIA labels (role="button", aria-label with team names)
+- [X] T024 [US1] Create mobile-first CSS for home.component.css: mobile breakpoints (320px, 375px, 428px), content sections with headers, 12px spacing between cards
+- [X] T025 [US1] Implement orientation change handling in home.component.ts to adapt layout portrait/landscape without reload
+- [X] T026 [US1] Add navigation routing in home.component.ts: cardClick event navigates to /match/:id
+- [X] T027 [US1] Implement thumb-reach zone optimization: position primary navigation in bottom third of screen on mobile (<768px)
 - [X] T028 [US1] Add scroll position restoration service in apps/frontend/src/app/services/scroll-restoration.service.ts to maintain position when navigating back from match details
 - [X] T029 [US1] Integrate scroll-restoration.service.ts with Angular Router to save/restore scroll position on home page
-- [ ] T030 [US1] Optimize match card images: implement srcset for team logos (1x, 2x, 3x) using LazyImageComponent
-- [ ] T031 [US1] Implement lazy loading for below-fold match cards: use Intersection Observer in home.component.ts or LazyImageComponent for images
-- [ ] T032 [US1] Add loading states with LoadingSkeletonComponent for match cards during initial data fetch
-- [ ] T033 [US1] Configure route-level lazy loading in app-routing.module.ts for home module to reduce initial bundle
+- [X] T030 [US1] Optimize match card images: implement srcset for team logos (1x, 2x, 3x) using LazyImageComponent
+- [X] T031 [US1] Implement lazy loading for below-fold match cards: use Intersection Observer in home.component.ts or LazyImageComponent for images (LazyImageComponent already implements this with Intersection Observer)
+- [X] T032 [US1] Add loading states with LoadingSkeletonComponent for match cards during initial data fetch
+- [X] T033 [US1] Configure route-level lazy loading in app-routing.module.ts for home module to reduce initial bundle (Already implemented with loadChildren)
 - [ ] T034 [US1] Verify home page performance: Lighthouse mobile >90, LCP <2.5s, FID <100ms, CLS <0.1, bundle <500KB main, <1.5MB total
 - [ ] T035 [US1] Verify accessibility: Touch targets >44x44px, keyboard navigation (Tab, Enter), screen reader announces match status/teams
 

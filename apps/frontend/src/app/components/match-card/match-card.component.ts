@@ -114,4 +114,24 @@ export class MatchCardComponent {
   getMatchDateTime(): string {
     return this.match.timeDisplay || this.match.startTime.toLocaleString();
   }
+  
+  /**
+   * Generate srcset for team logo (T030)
+   * Provides 1x, 2x, 3x resolution images for responsive display
+   * @param logoUrl - Base logo URL
+   * @returns srcset string for responsive images
+   */
+  getLogoSrcset(logoUrl: string): string {
+    if (!logoUrl) {
+      return '';
+    }
+    
+    // Extract base path and extension
+    const lastDot = logoUrl.lastIndexOf('.');
+    const basePath = lastDot > 0 ? logoUrl.substring(0, lastDot) : logoUrl;
+    const extension = lastDot > 0 ? logoUrl.substring(lastDot) : '.png';
+    
+    // Generate srcset: base.png 1x, base@2x.png 2x, base@3x.png 3x
+    return `${logoUrl} 1x, ${basePath}@2x${extension} 2x, ${basePath}@3x${extension} 3x`;
+  }
 }

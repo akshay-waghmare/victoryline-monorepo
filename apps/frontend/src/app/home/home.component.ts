@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, HostListener } from '@angular/core';
 import { EventListService } from '../component/event-list.service';
 import { Router } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
@@ -7,6 +7,7 @@ import { MatchesService } from '../features/matches/services/matches.service';
 import { MatchCardViewModel, MatchStatus } from '../features/matches/models/match-card.models';
 import { filterLiveMatches, filterUpcomingMatches, filterCompletedMatches } from '../core/utils/match-utils';
 import { Subscription } from 'rxjs';
+import { ViewportService } from '../services/viewport.service';
 
 
 @Component({
@@ -25,8 +26,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   isLoadingMatches = true;
   hasMatchError = false;
   
+  // Mobile layout state
+  isMobileView = false;
+  currentOrientation: 'portrait' | 'landscape' = 'portrait';
+  
   // Subscription for auto-refresh
   private matchSubscription?: Subscription;
+  private viewportSubscription?: Subscription;
   
   // Existing: Blog posts
   blogPosts: BlogPost[];
@@ -34,6 +40,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   constructor(
     private eventListService: EventListService,
     private matchesService: MatchesService, // New: Matches service
+    private viewportService: ViewportService, // New: Viewport service for responsive behavior
     private router: Router,
     private metaService: Meta,
     private titleService: Title,
@@ -49,6 +56,19 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     // Load matches using new MatchesService
     this.loadMatches();
+    
+    // Subscribe to viewport changes for responsive behavior (T025)
+    this.viewportSubscription = this.viewportService.isMobile$.subscribe(isMobile => {
+      this.isMobileView = isMobile;
+      console.log('Mobile view:', isMobile);
+    });
+    
+    // Subscribe to orientation changes (T025)
+    this.viewportService.orientation$.subscribe(orientation => {
+      this.currentOrientation = orientation;
+      console.log('Orientation changed:', orientation);
+      this.handleOrientationChange(orientation);
+    });
   }
   
   /**
@@ -90,8 +110,45 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.matchSubscription.unsubscribe();
     }
     
+    // Unsubscribe from viewport updates
+    if (this.viewportSubscription) {
+      this.viewportSubscription.unsubscribe();
+    }
+    
     // Stop auto-refresh timer
     this.matchesService.stopAutoRefresh();
+  }
+  
+  /**
+   * Handle mobile match card click (T026)
+   * Navigate to match details page
+   */
+  onMobileMatchClick(matchId: string): void {
+    const match = [...this.liveMatches, ...this.upcomingMatches, ...this.recentMatches]
+      .find(m => m.id === matchId);
+    
+    if (match) {
+      this.onMatchClick(match);
+    }
+  }
+  
+  /**
+   * Handle orientation change (T025)
+   * Adapt layout without page reload
+   */
+  handleOrientationChange(orientation: 'portrait' | 'landscape'): void {
+    console.log(`Orientation changed to ${orientation}`);
+    
+    // Update CSS classes or layout properties if needed
+    // The CSS media queries will handle most of the layout changes
+    // This method is here for any JavaScript-specific adjustments
+    
+    // Force reflow to ensure smooth transition
+    if (this.scrollContainer && this.scrollContainer.nativeElement) {
+      const element = this.scrollContainer.nativeElement;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _ = element.offsetHeight; // Trigger reflow
+    }
   }
   
   /**

@@ -26,6 +26,7 @@
     <div class="match-card__team match-card__team--home">
       <app-lazy-image
         [src]="match.team1.logoUrl"
+        [srcset]="getLogoSrcset(match.team1.logoUrl)"
         [alt]="match.team1.name + ' logo'"
         [fallback]="''"
         [width]="'40'"
@@ -59,6 +60,7 @@
     <div class="match-card__team match-card__team--away">
       <app-lazy-image
         [src]="match.team2.logoUrl"
+        [srcset]="getLogoSrcset(match.team2.logoUrl)"
         [alt]="match.team2.name + ' logo'"
         [fallback]="''"
         [width]="'40'"

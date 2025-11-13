@@ -2,7 +2,77 @@
  * Home Component Styles
  * Modern homepage with clear visual hierarchy and section separation
  * Implements User Story 4: Navigation & Homepage Redesign (T078-T080)
+ * Mobile-first redesign (T023-T027): Vertical stacked layout, touch optimization, thumb-reach zones
  */
+
+/* ============================================================================
+   MOBILE-FIRST BASE STYLES (T024)
+   ============================================================================ */
+
+/* Container padding for mobile safe areas */
+.container {
+  padding-top: var(--safe-area-inset-top, var(--space-3));
+  padding-bottom: calc(var(--safe-area-inset-bottom, var(--space-3)) + var(--space-4)); /* Extra space for thumb zone */
+  padding-left: var(--safe-area-inset-left, var(--space-3));
+  padding-right: var(--safe-area-inset-right, var(--space-3));
+}
+
+/* ============================================================================
+   MOBILE MATCH GRID LAYOUT (T023)
+   ============================================================================ */
+
+/* Mobile: Vertical stacked layout with proper spacing */
+.matches-grid--mobile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3); /* 12px spacing between cards per spec */
+  width: 100%;
+}
+
+.matches-grid-wrapper--mobile {
+  width: 100%;
+  overflow: visible; /* No horizontal scroll on mobile */
+}
+
+/* Desktop: Horizontal carousel (preserved from original) */
+@media (min-width: 768px) {
+  .matches-grid--mobile {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+/* Skeleton loading state */
+.match-skeleton {
+  margin-bottom: var(--space-3);
+}
+
+/* ============================================================================
+   RESPONSIVE VISIBILITY (T023)
+   ============================================================================ */
+
+/* Mobile: Hide desktop carousel controls */
+@media (max-width: 767px) {
+  .hidden-mobile {
+    display: none !important;
+  }
+  
+  .visible-mobile {
+    display: block;
+  }
+}
+
+/* Desktop: Hide mobile components */
+@media (min-width: 768px) {
+  .visible-mobile {
+    display: none !important;
+  }
+  
+  .hidden-mobile {
+    display: flex;
+  }
+}
 
 /* ============================================================================
    PAGE HEADER
@@ -141,6 +211,107 @@
   .home__section {
     margin-bottom: var(--spacing-xl);
     padding: var(--spacing-lg);
+  }
+}
+
+/* Mobile breakpoint optimizations (T024) */
+/* 320px - Small mobile devices */
+@media (min-width: 320px) {
+  .home__section {
+    padding: var(--space-2);
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+  
+  .home__section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+  
+  .home__section-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* 375px - iPhone SE, iPhone 12 Mini */
+@media (min-width: 375px) {
+  .home__section {
+    padding: var(--space-3);
+  }
+  
+  .home__section-header {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* 428px - iPhone 14 Plus */
+@media (min-width: 428px) {
+  .home__section {
+    padding: var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+}
+
+/* Tablet and desktop - restore original layout */
+@media (min-width: 768px) {
+  .home__section {
+    padding: var(--space-6);
+    margin-bottom: var(--space-8);
+  }
+}
+
+/* ============================================================================
+   THUMB-REACH ZONE OPTIMIZATION (T027)
+   Bottom third of screen on mobile for easy one-handed navigation
+   ============================================================================ */
+
+/* Primary navigation positioned in thumb-reach zone on mobile */
+@media (max-width: 767px) {
+  /* Reserve space at bottom for thumb-reach navigation */
+  .container {
+    padding-bottom: calc(var(--safe-area-inset-bottom, 16px) + 80px);
+  }
+  
+  /* Section links in thumb-reach zone */
+  .home__section-link {
+    position: fixed;
+    bottom: calc(var(--safe-area-inset-bottom, 16px) + 16px);
+    right: 16px;
+    z-index: var(--z-fab, 50);
+    padding: var(--space-3) var(--space-4);
+    background: var(--color-primary);
+    color: white;
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-lg);
+    font-weight: var(--font-weight-semibold);
+  }
+  
+  .home__section-link:hover,
+  .home__section-link:active {
+    background: var(--color-primary-dark);
+    transform: scale(1.05);
+  }
+  
+  /* Touch feedback for section links */
+  .home__section-link:active {
+    box-shadow: var(--shadow-md);
+    transform: scale(0.98);
+  }
+}
+
+/* Landscape mode: Adjust thumb zones */
+@media (max-width: 767px) and (orientation: landscape) {
+  .container {
+    padding-bottom: calc(var(--safe-area-inset-bottom, 8px) + 60px);
+  }
+  
+  .home__section-link {
+    bottom: calc(var(--safe-area-inset-bottom, 8px) + 12px);
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
   }
 }
 
