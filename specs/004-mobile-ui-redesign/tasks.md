@@ -160,9 +160,12 @@
   **Completed**: Integration already exists. RxStompService configured globally in admin-layouts.module.ts. Pull-to-refresh triggers fetchCricketData() which re-subscribes to rxStompService.watch(`/topic/cricket.${match}.*`), effectively reconnecting WebSocket. Manual refresh serves as fallback when WebSocket disconnected.
 - [X] T068 [US3] Apply TouchFeedbackDirective to all interactive elements: match cards, buttons, tabs, player cards with ripple effect <100ms  
   **Completed**: Applied appTouchFeedback directive to all interactive elements in home.component.html (match cards, carousel buttons, "View All" links for live/upcoming/recent sections) and cricket-odds.component.html (betting buttons: Cancel, Clear, quick stakes, Place Bet). TouchFeedbackDirective already existed and registered in app.module.ts. Zero errors.
-- [ ] T069 [US3] Implement long-press context menu on match cards in MatchCardComponent: HammerJS press event (500ms hold), show share/favorite actions
-- [ ] T070 [US3] Create context menu component in apps/frontend/src/app/components/context-menu/: overlay menu with share, favorite, open in new tab options
-- [ ] T071 [US3] Style context-menu.component.css: mobile-friendly menu (44x44px touch targets), backdrop overlay, slide-up animation
+- [X] T069 [US3] Implement long-press context menu on match cards in MatchCardComponent: HammerJS press event (500ms hold), show share/favorite actions  
+  **Completed**: Created LongPressDirective with HammerJS Press recognizer (500ms hold, 10px movement threshold). Applied appLongPress to live match cards. Implemented onMatchLongPress() handler in home.component.ts to show context menu with match details and coordinates.
+- [X] T070 [US3] Create context menu component in apps/frontend/src/app/components/context-menu/: overlay menu with share, favorite, open in new tab options  
+  **Completed**: Created ContextMenuComponent with 3 actions: Share (Web Share API + clipboard fallback), Favorite (localStorage placeholder), Open in New Tab. Inputs: visible, position {x,y}, matchId, matchTitle, matchUrl. Outputs: share, favorite, openInNewTab, close. Registered in app.module.ts.
+- [X] T071 [US3] Style context-menu.component.css: mobile-friendly menu (44x44px touch targets), backdrop overlay, slide-up animation  
+  **Completed**: Styled with rgba(0,0,0,0.5) backdrop overlay, white rounded menu (8px), 44x44px touch targets (WCAG AAA). Animations: fadeIn 200ms backdrop, slideUp 300ms menu. Mobile: fixed bottom-center position. Dark mode support. Respects prefers-reduced-motion. Zero errors.
 - [ ] T072 [US3] Implement tap cancellation: track touchstart/touchmove/touchend, cancel action if finger moves >10px before release
 - [ ] T073 [US3] Add haptic feedback (if supported) for touch interactions: vibrate API on long-press, pull-to-refresh threshold
 - [ ] T074 [US3] Verify gesture performance: swipe recognition <100ms, smooth 60fps transitions, no scroll conflicts, respects reduced-motion
