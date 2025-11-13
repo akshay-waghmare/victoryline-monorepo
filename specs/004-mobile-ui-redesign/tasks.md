@@ -152,8 +152,10 @@
   **Completed**: Applied appSwipeGesture directive to mat-tab-group in cricket-odds.component.html. Implemented onSwipeLeft() and onSwipeRight() handlers. Added @ViewChild('tabGroup') for programmatic tab access. Swipe left: next tab (0→1→2→3), swipe right: previous tab (3→2→1→0). Boundary checks prevent overflow.
 - [X] T064 [US3] Implement tab transition animations in match-details.component.css: slide-in from left/right (300ms ease-out), respect prefers-reduced-motion  
   **Completed**: Added tab slide animations to cricket-odds.component.css (60 lines). mat-tab-body-wrapper: 300ms cubic-bezier transition, mat-tab-body-content: 200ms opacity. will-change: transform, opacity for GPU. Respects prefers-reduced-motion (disables all animations). Mobile optimization: 250ms on <640px.
-- [ ] T065 [US3] Apply PullToRefreshDirective to home page in home.component.html: pull from top triggers match data refresh
-- [ ] T066 [US3] Apply PullToRefreshDirective to match details page in match-details.component.html: pull from top triggers live score refresh
+- [X] T065 [US3] Apply PullToRefreshDirective to home page in home.component.html: pull from top triggers match data refresh  
+  **Completed**: Applied appPullToRefresh directive to div.container in home.component.html with (refresh)="onRefreshHome()". Implemented onRefreshHome() handler to reload matches via loadMatches() and blog posts. Zero errors.
+- [X] T066 [US3] Apply PullToRefreshDirective to match details page in match-details.component.html: pull from top triggers live score refresh  
+  **Completed**: Applied appPullToRefresh to div.courses-panel in cricket-odds.component.html with (refresh)="onRefreshMatchDetails()". Implemented tab-aware refresh: Tab 0 (Live) calls fetchCricketData(), Tab 1 (Info) calls fetchMatchInfo(), Tab 2 (Scorecard) calls fetchScorecardInfo(), Tab 3 (Lineups) calls fetchMatchInfo() if needed.
 - [ ] T067 [US3] Integrate pull-to-refresh with existing WebSocket reconnection logic in websocket.service.ts: manual refresh as fallback
 - [ ] T068 [US3] Apply TouchFeedbackDirective to all interactive elements: match cards, buttons, tabs, player cards with ripple effect <100ms
 - [ ] T069 [US3] Implement long-press context menu on match cards in MatchCardComponent: HammerJS press event (500ms hold), show share/favorite actions
