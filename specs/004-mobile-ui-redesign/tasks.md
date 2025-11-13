@@ -158,7 +158,8 @@
   **Completed**: Applied appPullToRefresh to div.courses-panel in cricket-odds.component.html with (refresh)="onRefreshMatchDetails()". Implemented tab-aware refresh: Tab 0 (Live) calls fetchCricketData(), Tab 1 (Info) calls fetchMatchInfo(), Tab 2 (Scorecard) calls fetchScorecardInfo(), Tab 3 (Lineups) calls fetchMatchInfo() if needed.
 - [X] T067 [US3] Integrate pull-to-refresh with existing WebSocket reconnection logic in websocket.service.ts: manual refresh as fallback  
   **Completed**: Integration already exists. RxStompService configured globally in admin-layouts.module.ts. Pull-to-refresh triggers fetchCricketData() which re-subscribes to rxStompService.watch(`/topic/cricket.${match}.*`), effectively reconnecting WebSocket. Manual refresh serves as fallback when WebSocket disconnected.
-- [ ] T068 [US3] Apply TouchFeedbackDirective to all interactive elements: match cards, buttons, tabs, player cards with ripple effect <100ms
+- [X] T068 [US3] Apply TouchFeedbackDirective to all interactive elements: match cards, buttons, tabs, player cards with ripple effect <100ms  
+  **Completed**: Applied appTouchFeedback directive to all interactive elements in home.component.html (match cards, carousel buttons, "View All" links for live/upcoming/recent sections) and cricket-odds.component.html (betting buttons: Cancel, Clear, quick stakes, Place Bet). TouchFeedbackDirective already existed and registered in app.module.ts. Zero errors.
 - [ ] T069 [US3] Implement long-press context menu on match cards in MatchCardComponent: HammerJS press event (500ms hold), show share/favorite actions
 - [ ] T070 [US3] Create context menu component in apps/frontend/src/app/components/context-menu/: overlay menu with share, favorite, open in new tab options
 - [ ] T071 [US3] Style context-menu.component.css: mobile-friendly menu (44x44px touch targets), backdrop overlay, slide-up animation
