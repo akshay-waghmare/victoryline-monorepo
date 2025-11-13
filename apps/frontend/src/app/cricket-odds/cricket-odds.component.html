@@ -1,4 +1,15 @@
 <div class="courses-panel" style="margin-top: 170px;">
+  
+  <!-- T041: Sticky Header for Mobile (appears on scroll) -->
+  <app-sticky-header
+    *ngIf="stickyHeaderData"
+    [homeTeam]="stickyHeaderData.homeTeam"
+    [awayTeam]="stickyHeaderData.awayTeam"
+    [currentScore]="stickyHeaderData.currentScore"
+    [status]="stickyHeaderData.status"
+    [scrollThreshold]="150">
+  </app-sticky-header>
+  
   <mat-card>
     <!-- ARIA landmark: header region for snapshot (T009) -->
     <header role="banner" aria-label="Match snapshot header">

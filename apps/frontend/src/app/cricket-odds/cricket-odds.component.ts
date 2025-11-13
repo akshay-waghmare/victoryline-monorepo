@@ -115,6 +115,14 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   matchId: string | null = null;
   currentMatch: any = null; // Hold full match object if available
 
+  // T040: Sticky header data for mobile match details
+  stickyHeaderData: {
+    homeTeam: { name: string; shortName: string; logoUrl?: string };
+    awayTeam: { name: string; shortName: string; logoUrl?: string };
+    currentScore: { homeScore: string; awayScore: string; overs?: string };
+    status: 'live' | 'completed' | 'upcoming';
+  } | null = null;
+
 
 
   teamComparisonKeys: string[] = [];
@@ -490,9 +498,41 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         }
         console.log("Favorite Team:", favTeamValue);
       }
+
+      // T040: Update sticky header data after processing cricket data
+      this.updateStickyHeaderData();
     } else {
       console.log("No cricket data received.");
     }
+  }
+
+  /**
+   * T040: Update sticky header data for mobile match details
+   * Prepares team names, scores, and match status for the sticky header component
+   */
+  private updateStickyHeaderData(): void {
+    // Determine match status (check if match is live)
+    const isLive = this.liveScoreUpdate && this.liveScoreUpdate !== 'Wait for Score';
+    const status: 'live' | 'completed' | 'upcoming' = isLive ? 'live' : 'upcoming';
+
+    this.stickyHeaderData = {
+      homeTeam: {
+        name: this.team1Name || 'Team 1',
+        shortName: this.generateTeamCode(this.team1Name || 'Team 1'),
+        logoUrl: undefined // Add logo URL if available in data
+      },
+      awayTeam: {
+        name: this.team2Name || 'Team 2',
+        shortName: this.generateTeamCode(this.team2Name || 'Team 2'),
+        logoUrl: undefined // Add logo URL if available in data
+      },
+      currentScore: {
+        homeScore: this.team1Score !== 'NA' ? this.team1Score : '-',
+        awayScore: this.team2Score !== 'NA' ? this.team2Score : '-',
+        overs: this.team1Overs !== 'NA' ? this.team1Overs : undefined
+      },
+      status: status
+    };
   }
 
   // Function to show betting options

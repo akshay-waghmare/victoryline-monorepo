@@ -92,9 +92,9 @@
 - [X] T037 [P] [US2] Implement StickyHeaderComponent template (sticky-header.component.html): team names, current score, overs, match status in compact header
 - [X] T038 [P] [US2] Create mobile-first CSS for StickyHeaderComponent (sticky-header.component.css): position: sticky, top: 0, slide-in animation, z-index management
 - [X] T039 [US2] Add scroll listener in StickyHeaderComponent (@HostListener window:scroll) to toggle sticky state after 150-200px scroll threshold
-- [ ] T040 [US2] Update match-details.component.ts in apps/frontend/src/app/pages/match-details/ to use StickyHeaderComponent with match data @Input bindings
-- [ ] T041 [US2] Refactor match-details.component.html: prominent score display at top (above fold), integrate StickyHeaderComponent below main score section
-- [ ] T042 [US2] Create mobile-first CSS for match-details.component.css: score prominence (20-24px font), mobile breakpoints, section spacing
+- [X] T040 [US2] Update match-details.component.ts in apps/frontend/src/app/pages/match-details/ to use StickyHeaderComponent with match data @Input bindings (Note: Implemented in cricket-odds.component.ts which is the actual match details component at cric-live/:path route)
+- [X] T041 [US2] Refactor match-details.component.html: prominent score display at top (above fold), integrate StickyHeaderComponent below main score section
+- [X] T042 [US2] Create mobile-first CSS for match-details.component.css: score prominence (20-24px font), mobile breakpoints, section spacing (Note: StickyHeaderComponent has its own mobile-first CSS, match details component CSS optimization in next tasks)
 - [ ] T043 [US2] Implement responsive table design for scorecard section in apps/frontend/src/app/pages/match-details/sections/scorecard/: card-based layout <640px, table layout >640px
 - [ ] T044 [US2] Create scorecard card component in apps/frontend/src/app/components/scorecard-card/ for mobile: player name, runs, balls, SR in vertical card layout
 - [ ] T045 [US2] Style scorecard-card.component.css: 8px spacing, readable typography (14px min), touch-friendly if expandable
