@@ -45,6 +45,7 @@ import { ViewportService } from './services/viewport.service';
 import { LazyImageComponent } from './components/lazy-image/lazy-image.component';
 import { LoadingSkeletonComponent } from './components/loading-skeleton/loading-skeleton.component';
 import { MatchCardComponent } from './components/match-card/match-card.component';
+import { StickyHeaderComponent } from './components/sticky-header/sticky-header.component';
 import { TouchFeedbackDirective } from './directives/touch-feedback.directive';
 //import { HomeComponent } from './home/home.component';
 
@@ -75,6 +76,7 @@ const stompConfig: StompConfig = {
     LazyImageComponent,
     LoadingSkeletonComponent,
     MatchCardComponent,
+    StickyHeaderComponent,
     TouchFeedbackDirective,
     
         

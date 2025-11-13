@@ -1,0 +1,50 @@
+<header 
+  class="sticky-header" 
+  [class.sticky-header--active]="isSticky"
+  [class.sticky-header--live]="isLive()"
+  role="banner"
+  [attr.aria-label]="getAriaLabel()">
+  
+  <!-- Status Badge (Live indicator) -->
+  <div *ngIf="isLive()" class="sticky-header__status">
+    <span class="live-indicator"></span>
+    <span class="status-text">LIVE</span>
+  </div>
+  
+  <!-- Teams and Score Container -->
+  <div class="sticky-header__content">
+    
+    <!-- Home Team -->
+    <div class="sticky-header__team sticky-header__team--home">
+      <span class="team-name" [title]="homeTeam.name">
+        {{ homeTeam.shortName || homeTeam.name }}
+      </span>
+      <span class="team-score" *ngIf="currentScore.homeScore">
+        {{ currentScore.homeScore }}
+      </span>
+    </div>
+    
+    <!-- VS Separator / Overs -->
+    <div class="sticky-header__separator">
+      <span class="vs-text">vs</span>
+      <div class="overs-info" *ngIf="currentScore.overs && isLive()">
+        {{ currentScore.overs }}
+      </div>
+    </div>
+    
+    <!-- Away Team -->
+    <div class="sticky-header__team sticky-header__team--away">
+      <span class="team-score" *ngIf="currentScore.awayScore">
+        {{ currentScore.awayScore }}
+      </span>
+      <span class="team-name" [title]="awayTeam.name">
+        {{ awayTeam.shortName || awayTeam.name }}
+      </span>
+    </div>
+  </div>
+  
+  <!-- Status Badge (for completed/upcoming matches) -->
+  <div *ngIf="!isLive()" [class]="getStatusClass()">
+    {{ getStatusLabel() }}
+  </div>
+</header>
