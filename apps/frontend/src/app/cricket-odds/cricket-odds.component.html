@@ -339,7 +339,14 @@
             <!-- Match Overview Section -->
             <section class="match-overview">
               <div class="overview-header">
-                <!-- <img src="assets/icons/series.png" alt="Series Logo" class="series-logo"> -->
+                <app-lazy-image
+                  [src]="'assets/icons/series.png'"
+                  [alt]="matchInfo.series_name + ' Logo'"
+                  [fallback]="getTeamLogoFallback()"
+                  [width]="48"
+                  [height]="48"
+                  imageClass="series-logo">
+                </app-lazy-image>
                 <div class="match-details">
                   <h2>{{ matchInfo.match_name }}</h2>
                   <p class="series-name">{{ matchInfo.series_name }}</p>
@@ -373,7 +380,15 @@
                   <!-- Left Team Header -->
                   <div class="team-header left-team">
                     <div class="team-logo-name">
-                      <!-- <img [src]="getTeamLogo(teamComparisonKeys[0])" alt="{{ teamComparisonKeys[0] }} Logo" class="team-logo"> -->
+                      <app-lazy-image
+                        [src]="getTeamLogo(teamComparisonKeys[0])"
+                        [srcset]="getTeamLogoSrcset(teamComparisonKeys[0])"
+                        [alt]="teamComparisonKeys[0] + ' Logo'"
+                        [fallback]="getTeamLogoFallback()"
+                        [width]="40"
+                        [height]="40"
+                        imageClass="team-logo">
+                      </app-lazy-image>
                       <h3 class="team-name">{{ teamComparisonKeys[0] }}</h3>
                     </div>
                   </div>
@@ -386,7 +401,15 @@
                   <!-- Right Team Header -->
                   <div class="team-header right-team">
                     <div class="team-logo-name">
-                      <!-- <img [src]="getTeamLogo(teamComparisonKeys[1])" alt="{{ teamComparisonKeys[1] }} Logo" class="team-logo"> -->
+                      <app-lazy-image
+                        [src]="getTeamLogo(teamComparisonKeys[1])"
+                        [srcset]="getTeamLogoSrcset(teamComparisonKeys[1])"
+                        [alt]="teamComparisonKeys[1] + ' Logo'"
+                        [fallback]="getTeamLogoFallback()"
+                        [width]="40"
+                        [height]="40"
+                        imageClass="team-logo">
+                      </app-lazy-image>
                       <h3 class="team-name">{{ teamComparisonKeys[1] }}</h3>
                     </div>
                   </div>
@@ -506,7 +529,15 @@
               <div class="team-form-cards">
                 <div class="team-form-card" *ngFor="let team of teamFormKeys">
                   <div class="team-form-header">
-                    <!-- <img [src]="getTeamLogo(team)" alt="{{ team }} Logo" class="team-logo"> -->
+                    <app-lazy-image
+                      [src]="getTeamLogo(team)"
+                      [srcset]="getTeamLogoSrcset(team)"
+                      [alt]="team + ' Logo'"
+                      [fallback]="getTeamLogoFallback()"
+                      [width]="40"
+                      [height]="40"
+                      imageClass="team-logo">
+                    </app-lazy-image>
                     <h4>{{ team }}</h4>
                   </div>
                   <div class="match-results">

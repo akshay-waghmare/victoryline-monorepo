@@ -995,6 +995,24 @@ getTeamLogo(team: string): string {
   return `assets/team-logos/${team.toLowerCase()}.png`;
 }
 
+/**
+ * Generate srcset for responsive team logos
+ * @param team - Team name
+ * @returns srcset string with 1x, 2x, 3x densities
+ */
+getTeamLogoSrcset(team: string): string {
+  const basePath = `assets/team-logos/${team.toLowerCase()}`;
+  return `${basePath}.png 1x, ${basePath}@2x.png 2x, ${basePath}@3x.png 3x`;
+}
+
+/**
+ * Get fallback logo (generic cricket logo)
+ * @returns Fallback logo path
+ */
+getTeamLogoFallback(): string {
+  return 'assets/images/cricket-logo.png';
+}
+
 getResultClass(result: string): string {
   switch (result) {
     case 'W':
