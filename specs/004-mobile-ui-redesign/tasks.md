@@ -148,8 +148,10 @@
   **Completed**: Created PullToRefreshDirective (pull-to-refresh.directive.ts, 240 lines) with HammerJS Pan recognizer. Features: dynamic indicator creation with Renderer2, spinner animation, resistance curve, scroll-top detection (scrollTop === 0).
 - [X] T062 [P] [US3] Implement pull-to-refresh UI: visual indicator (spinner or arrow), threshold detection (>80px pull), refresh on release, smooth animation  
   **Completed**: Pull-to-refresh UI implemented in PullToRefreshDirective. Visual: 40x40px spinner indicator, dynamically positioned at top. Thresholds: 80px trigger, 120px max pull. Animations: smooth transform transitions (0.2s ease-out), spinner rotation based on pull distance, spin animation on refresh. Global styles added to styles.css with reduced-motion support. Registered in app.module.ts.
-- [ ] T063 [US3] Apply SwipeGestureDirective to match details tabs in match-details.component.html: swipe left/right switches to adjacent tab with slide transition
-- [ ] T064 [US3] Implement tab transition animations in match-details.component.css: slide-in from left/right (300ms ease-out), respect prefers-reduced-motion
+- [X] T063 [US3] Apply SwipeGestureDirective to match details tabs in match-details.component.html: swipe left/right switches to adjacent tab with slide transition  
+  **Completed**: Applied appSwipeGesture directive to mat-tab-group in cricket-odds.component.html. Implemented onSwipeLeft() and onSwipeRight() handlers. Added @ViewChild('tabGroup') for programmatic tab access. Swipe left: next tab (0→1→2→3), swipe right: previous tab (3→2→1→0). Boundary checks prevent overflow.
+- [X] T064 [US3] Implement tab transition animations in match-details.component.css: slide-in from left/right (300ms ease-out), respect prefers-reduced-motion  
+  **Completed**: Added tab slide animations to cricket-odds.component.css (60 lines). mat-tab-body-wrapper: 300ms cubic-bezier transition, mat-tab-body-content: 200ms opacity. will-change: transform, opacity for GPU. Respects prefers-reduced-motion (disables all animations). Mobile optimization: 250ms on <640px.
 - [ ] T065 [US3] Apply PullToRefreshDirective to home page in home.component.html: pull from top triggers match data refresh
 - [ ] T066 [US3] Apply PullToRefreshDirective to match details page in match-details.component.html: pull from top triggers live score refresh
 - [ ] T067 [US3] Integrate pull-to-refresh with existing WebSocket reconnection logic in websocket.service.ts: manual refresh as fallback
