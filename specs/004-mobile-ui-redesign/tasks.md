@@ -140,10 +140,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T059 [P] [US3] Create SwipeGestureDirective in apps/frontend/src/app/directives/swipe-gesture.directive.ts using HammerJS with swipeleft/swiperight events
-- [ ] T060 [P] [US3] Configure swipe thresholds in SwipeGestureDirective: minimum 30px horizontal displacement, velocity threshold to distinguish from scroll
-- [ ] T061 [P] [US3] Create PullToRefreshDirective in apps/frontend/src/app/directives/pull-to-refresh.directive.ts using HammerJS pan gesture
-- [ ] T062 [P] [US3] Implement pull-to-refresh UI: visual indicator (spinner or arrow), threshold detection (>80px pull), refresh on release, smooth animation
+- [X] T059 [P] [US3] Create SwipeGestureDirective in apps/frontend/src/app/directives/swipe-gesture.directive.ts using HammerJS with swipeleft/swiperight events  
+  **Completed**: Created SwipeGestureDirective (swipe-gesture.directive.ts, 87 lines) with HammerJS Swipe recognizer. Event emitters: (swipeLeft) and (swipeRight). Direction: HORIZONTAL only (no conflict with scroll). Registered in app.module.ts declarations.
+- [X] T060 [P] [US3] Configure swipe thresholds in SwipeGestureDirective: minimum 30px horizontal displacement, velocity threshold to distinguish from scroll  
+  **Completed**: Configured thresholds in SwipeGestureDirective: 50px minimum distance (increased from 30px for better UX), 0.3 velocity minimum. Matches CustomHammerConfig settings. Prevents false positives during vertical scrolling.
+- [X] T061 [P] [US3] Create PullToRefreshDirective in apps/frontend/src/app/directives/pull-to-refresh.directive.ts using HammerJS pan gesture  
+  **Completed**: Created PullToRefreshDirective (pull-to-refresh.directive.ts, 240 lines) with HammerJS Pan recognizer. Features: dynamic indicator creation with Renderer2, spinner animation, resistance curve, scroll-top detection (scrollTop === 0).
+- [X] T062 [P] [US3] Implement pull-to-refresh UI: visual indicator (spinner or arrow), threshold detection (>80px pull), refresh on release, smooth animation  
+  **Completed**: Pull-to-refresh UI implemented in PullToRefreshDirective. Visual: 40x40px spinner indicator, dynamically positioned at top. Thresholds: 80px trigger, 120px max pull. Animations: smooth transform transitions (0.2s ease-out), spinner rotation based on pull distance, spin animation on refresh. Global styles added to styles.css with reduced-motion support. Registered in app.module.ts.
 - [ ] T063 [US3] Apply SwipeGestureDirective to match details tabs in match-details.component.html: swipe left/right switches to adjacent tab with slide transition
 - [ ] T064 [US3] Implement tab transition animations in match-details.component.css: slide-in from left/right (300ms ease-out), respect prefers-reduced-motion
 - [ ] T065 [US3] Apply PullToRefreshDirective to home page in home.component.html: pull from top triggers match data refresh
