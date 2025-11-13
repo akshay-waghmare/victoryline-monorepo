@@ -30,6 +30,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   isMobileView = false;
   currentOrientation: 'portrait' | 'landscape' = 'portrait';
   
+  // T069: Context menu state
+  showContextMenu = false;
+  contextMenuPosition = { x: 0, y: 0 };
+  selectedMatchId = '';
+  selectedMatchTitle = '';
+  selectedMatchUrl = '';
+  
   // Subscription for auto-refresh
   private matchSubscription?: Subscription;
   private viewportSubscription?: Subscription;
@@ -406,5 +413,82 @@ extractTeams(matchString: string): { team1: string, team2: string } | null {
 openNews(url: string): void {
   window.open(url, '_blank');
 }
+
+  /**
+   * T069: Handle long-press on match card
+   * Show context menu with match actions
+   */
+  onMatchLongPress(event: any, matchId: string): void {
+    const match = [...this.liveMatches, ...this.upcomingMatches, ...this.recentMatches]
+      .find(m => m.id === matchId);
+    
+    if (!match) return;
+    
+    // Set context menu state
+    this.selectedMatchId = matchId;
+    this.selectedMatchTitle = `${match.team1} vs ${match.team2}`;
+    this.selectedMatchUrl = `/match/${matchId}`;
+    
+    // Position menu at touch point
+    this.contextMenuPosition = {
+      x: event.center?.x || event.clientX || 0,
+      y: event.center?.y || event.clientY || 0
+    };
+    
+    this.showContextMenu = true;
+    console.log('[LongPress] Context menu shown for match:', matchId);
+  }
+
+  /**
+   * T069: Close context menu
+   */
+  onCloseContextMenu(): void {
+    this.showContextMenu = false;
+  }
+
+  /**
+   * T069: Handle share match action
+   */
+  onShareMatch(matchId: string): void {
+    const match = [...this.liveMatches, ...this.upcomingMatches, ...this.recentMatches]
+      .find(m => m.id === matchId);
+    
+    if (!match) return;
+    
+    const url = `${window.location.origin}/match/${matchId}`;
+    const title = `${match.team1} vs ${match.team2}`;
+    
+    // Use Web Share API if available
+    if (navigator.share) {
+      navigator.share({
+        title: title,
+        text: `Watch ${title} live on Crickzen`,
+        url: url
+      }).catch(err => console.log('Share cancelled:', err));
+    } else {
+      // Fallback: Copy to clipboard
+      navigator.clipboard.writeText(url).then(() => {
+        alert('Match link copied to clipboard!');
+      });
+    }
+  }
+
+  /**
+   * T069: Handle favorite match action
+   */
+  onFavoriteMatch(matchId: string): void {
+    // TODO: Implement favorite functionality with backend
+    console.log('[Favorite] Match added to favorites:', matchId);
+    // For now, just log - would save to localStorage or backend
+    alert('Match added to favorites!');
+  }
+
+  /**
+   * T069: Handle open in new tab action
+   */
+  onOpenInNewTab(matchId: string): void {
+    const url = `/match/${matchId}`;
+    window.open(url, '_blank');
+  }
 
 }

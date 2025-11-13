@@ -54,6 +54,8 @@
           [clickable]="true"
           class="visible-mobile"
           appTouchFeedback
+          appLongPress
+          (longPress)="onMatchLongPress($event, match.id)"
           (cardClick)="onMobileMatchClick($event)"
         ></app-mobile-match-card>
         <app-match-card
@@ -63,6 +65,8 @@
           [showDetailsButton]="true"
           class="hidden-mobile"
           appTouchFeedback
+          appLongPress
+          (longPress)="onMatchLongPress($event, match.id)"
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
@@ -238,3 +242,16 @@
   
   <hr class="news-hr" *ngFor="let blogPost of blogPosts" />
 </div>
+
+<!-- T069-T071: Context Menu -->
+<app-context-menu
+  [visible]="showContextMenu"
+  [position]="contextMenuPosition"
+  [matchId]="selectedMatchId"
+  [matchTitle]="selectedMatchTitle"
+  [matchUrl]="selectedMatchUrl"
+  (share)="onShareMatch($event)"
+  (favorite)="onFavoriteMatch($event)"
+  (openInNewTab)="onOpenInNewTab($event)"
+  (close)="onCloseContextMenu()"
+></app-context-menu>

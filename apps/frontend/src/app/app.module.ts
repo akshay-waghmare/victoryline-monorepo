@@ -49,6 +49,8 @@ import { StickyHeaderComponent } from './components/sticky-header/sticky-header.
 import { TouchFeedbackDirective } from './directives/touch-feedback.directive';
 import { SwipeGestureDirective } from './directives/swipe-gesture.directive';
 import { PullToRefreshDirective } from './directives/pull-to-refresh.directive';
+import { LongPressDirective } from './directives/long-press.directive';
+import { ContextMenuComponent } from './components/context-menu/context-menu.component';
 //import { HomeComponent } from './home/home.component';
 
 
@@ -82,6 +84,8 @@ const stompConfig: StompConfig = {
     TouchFeedbackDirective,
     SwipeGestureDirective,
     PullToRefreshDirective,
+    LongPressDirective,
+    ContextMenuComponent,
     
         
   ],

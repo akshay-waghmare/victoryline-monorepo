@@ -1,0 +1,44 @@
+<!-- T070: Context Menu Overlay -->
+<div 
+  class="context-menu-backdrop" 
+  *ngIf="visible"
+  (click)="onBackdropClick()">
+  <div 
+    class="context-menu" 
+    [style.left.px]="position.x"
+    [style.top.px]="position.y"
+    (click)="onMenuClick($event)"
+    role="menu"
+    aria-label="Match actions menu">
+    
+    <button 
+      class="context-menu__item"
+      (click)="onShare()"
+      appTouchFeedback
+      role="menuitem"
+      aria-label="Share match">
+      <i class="material-icons" aria-hidden="true">share</i>
+      <span>Share</span>
+    </button>
+    
+    <button 
+      class="context-menu__item"
+      (click)="onFavorite()"
+      appTouchFeedback
+      role="menuitem"
+      aria-label="Add to favorites">
+      <i class="material-icons" aria-hidden="true">star_border</i>
+      <span>Favorite</span>
+    </button>
+    
+    <button 
+      class="context-menu__item"
+      (click)="onOpenInNewTab()"
+      appTouchFeedback
+      role="menuitem"
+      aria-label="Open in new tab">
+      <i class="material-icons" aria-hidden="true">open_in_new</i>
+      <span>Open in New Tab</span>
+    </button>
+  </div>
+</div>
