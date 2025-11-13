@@ -974,6 +974,36 @@ onSwipeRight(): void {
   }
 }
 
+/**
+ * T066: Handle pull-to-refresh for match details page
+ * Refreshes live score and match data from WebSocket/API
+ */
+onRefreshMatchDetails(): void {
+  // Trigger manual data refresh based on current tab
+  if (this.matchUrl) {
+    // Refresh current tab data based on selectedIndex
+    switch (this.currentTabIndex) {
+      case 0: // Live Match tab
+        // Re-fetch latest cricket data (triggers WebSocket subscription)
+        this.fetchCricketData();
+        break;
+      case 1: // Match Info tab
+        this.fetchMatchInfo(this.matchUrl);
+        break;
+      case 2: // Scorecard tab
+        this.fetchScorecardInfo(this.matchUrl);
+        break;
+      case 3: // Lineups tab
+        if (!this.matchInfo) {
+          this.fetchMatchInfo(this.matchUrl);
+        }
+        break;
+    }
+    
+    console.log('[PullToRefresh] Match details refreshed for tab:', this.currentTabIndex);
+  }
+}
+
 fetchScorecardInfo(matchUrl:string){
 
   this.cricketService.getScorecardInfo(matchUrl).subscribe(

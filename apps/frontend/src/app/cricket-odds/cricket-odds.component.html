@@ -1,4 +1,7 @@
-<div class="courses-panel" style="margin-top: 170px;">
+<div class="courses-panel" 
+     style="margin-top: 170px;"
+     appPullToRefresh
+     (refresh)="onRefreshMatchDetails()">
   
   <!-- T041: Sticky Header for Mobile (appears on scroll) -->
   <app-sticky-header

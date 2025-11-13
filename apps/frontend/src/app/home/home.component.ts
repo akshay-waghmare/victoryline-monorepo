@@ -120,6 +120,25 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
   
   /**
+   * T065: Handle pull-to-refresh for home page
+   * Refreshes match list and blog posts
+   */
+  onRefreshHome(): void {
+    console.log('[PullToRefresh] Home page refreshed');
+    // Reload matches (will trigger auto-refresh subscription)
+    this.loadMatches();
+    // Optionally reload blog posts
+    this.blogListService.getBlogPosts().subscribe(
+      (data) => {
+        this.blogPosts = data;
+      },
+      (error) => {
+        console.error('Error refreshing blog posts:', error);
+      }
+    );
+  }
+  
+  /**
    * Handle mobile match card click (T026)
    * Navigate to match details page
    */
