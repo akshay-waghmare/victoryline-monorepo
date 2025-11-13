@@ -2404,3 +2404,66 @@ p {
   }
 }
 
+
+
+/* ============================================
+   T064: TAB TRANSITION ANIMATIONS
+   Slide-in animations for swipe navigation
+   ============================================ */
+
+/**
+ * Tab slide animations for swipe gesture navigation
+ * Triggered when user swipes left/right to change tabs
+ * Duration: 300ms ease-out for smooth transitions
+ */
+::ng-deep .mat-tab-body-wrapper {
+  /* Enable smooth sliding between tabs */
+  transition: transform 300ms cubic-bezier(0.35, 0, 0.25, 1);
+}
+
+::ng-deep .mat-tab-body-content {
+  /* Smooth content transitions */
+  transition: opacity 200ms ease-out;
+}
+
+::ng-deep .mat-tab-body-active .mat-tab-body-content {
+  opacity: 1;
+}
+
+::ng-deep .mat-tab-body.mat-tab-body-active {
+  /* Active tab fully visible */
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/**
+ * Slide direction based on tab position
+ * Left tabs slide in from left, right tabs from right
+ */
+::ng-deep .mat-tab-body {
+  will-change: transform, opacity;
+}
+
+/**
+ * Respect reduced motion preference
+ * Disable slide animations for accessibility
+ */
+@media (prefers-reduced-motion: reduce) {
+  ::ng-deep .mat-tab-body-wrapper,
+  ::ng-deep .mat-tab-body-content,
+  ::ng-deep .mat-tab-body {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/**
+ * Mobile-specific optimizations
+ * Faster transitions on smaller screens
+ */
+@media (max-width: 640px) {
+  ::ng-deep .mat-tab-body-wrapper {
+    transition: transform 250ms cubic-bezier(0.35, 0, 0.25, 1);
+  }
+}
+

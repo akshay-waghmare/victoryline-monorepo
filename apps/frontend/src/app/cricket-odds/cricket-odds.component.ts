@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, HostListener } from '@angular/core';
+import { Component, OnDestroy, OnInit, HostListener, ViewChild } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { Subject } from 'rxjs';
@@ -8,7 +8,7 @@ import { TokenStorage } from '../token.storage';
 import { EventListService } from '../component/event-list.service';
 import { AuthService } from '../auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTabChangeEvent } from '@angular/material/tabs';
+import { MatTabChangeEvent, MatTabGroup } from '@angular/material/tabs';
 
 interface FormattedExposure {
   win: number;
@@ -139,6 +139,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private currentTabIndex: number = 0;
   private scrollPosition: number = 0;
   private resizeThrottle: any = null;
+
+  // T063: Swipe gesture for tab navigation
+  @ViewChild('tabGroup') tabGroup: MatTabGroup;
+  private readonly TOTAL_TABS: number = 4; // Live Match, Match Info, Scorecard, Lineups
 
 
   constructor(private rxStompService: RxStompService,
@@ -945,6 +949,28 @@ onOrientationChange(event: Event): void {
       // Clear throttle
       this.resizeThrottle = null;
     }, 100);
+  }
+}
+
+/**
+ * T063: Handle swipe left gesture - navigate to next tab
+ * Triggered by SwipeGestureDirective on mat-tab-group
+ */
+onSwipeLeft(): void {
+  if (this.tabGroup && this.currentTabIndex < this.TOTAL_TABS - 1) {
+    // Navigate to next tab (right)
+    this.tabGroup.selectedIndex = this.currentTabIndex + 1;
+  }
+}
+
+/**
+ * T063: Handle swipe right gesture - navigate to previous tab
+ * Triggered by SwipeGestureDirective on mat-tab-group
+ */
+onSwipeRight(): void {
+  if (this.tabGroup && this.currentTabIndex > 0) {
+    // Navigate to previous tab (left)
+    this.tabGroup.selectedIndex = this.currentTabIndex - 1;
   }
 }
 

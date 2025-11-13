@@ -29,7 +29,12 @@
     <main role="main" aria-label="Match details content">
       <mat-card-content>
        
-      <mat-tab-group (selectedTabChange)="onTabChange($event)">
+      <mat-tab-group 
+        appSwipeGesture
+        (swipeLeft)="onSwipeLeft()"
+        (swipeRight)="onSwipeRight()"
+        (selectedTabChange)="onTabChange($event)"
+        #tabGroup>
         <!-- First Tab: Live Match -->
         <mat-tab label="Live Match">
           <!-- Existing Live Match Content -->
