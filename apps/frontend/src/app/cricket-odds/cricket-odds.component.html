@@ -139,8 +139,8 @@
                   <div class="betting-options" [class.lay-active]="layButtonActive"
                     *ngIf="showBetting && (showBettingFor === 'teamSectionBackOdds' || showBettingFor === 'layOdds' )">
                     <div class="button-row">
-                      <button mat-button class="cancel-bet" (click)="cancelBet()">Cancel</button>
-                      <button mat-button class="clear-bet" (click)="clearStake()">Clear</button> <!-- Clear button -->
+                      <button mat-button class="cancel-bet" appTouchFeedback (click)="cancelBet()">Cancel</button>
+                      <button mat-button class="clear-bet" appTouchFeedback (click)="clearStake()">Clear</button> <!-- Clear button -->
                     </div>
     
                     <div class="odds-amount">
@@ -155,11 +155,11 @@
                       </div>
                     </div>
                     <div class="quick-stakes">
-                      <button *ngFor="let amount of quickStakeAmounts" (click)="setStake(amount)">
+                      <button *ngFor="let amount of quickStakeAmounts" appTouchFeedback (click)="setStake(amount)">
                         + {{ amount }}
                       </button>
                     </div>
-                    <button mat-raised-button class="place-bet" color="primary" (click)="placeBet()">Place Bet</button>
+                    <button mat-raised-button class="place-bet" color="primary" appTouchFeedback (click)="placeBet()">Place Bet</button>
                   </div>
                 </div>
         

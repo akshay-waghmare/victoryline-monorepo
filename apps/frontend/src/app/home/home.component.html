@@ -25,6 +25,7 @@
           class="carousel-btn carousel-btn--left hidden-mobile" 
           (click)="scrollLeft('live-matches-grid')"
           [disabled]="!canScrollLeft('live-matches-grid')"
+          appTouchFeedback
           aria-label="Scroll left through live matches">
           <i class="material-icons" aria-hidden="true">chevron_left</i>
         </button>
@@ -32,10 +33,11 @@
           class="carousel-btn carousel-btn--right hidden-mobile" 
           (click)="scrollRight('live-matches-grid')"
           [disabled]="!canScrollRight('live-matches-grid')"
+          appTouchFeedback
           aria-label="Scroll right through live matches">
           <i class="material-icons" aria-hidden="true">chevron_right</i>
         </button>
-        <a routerLink="/matches" class="home__section-link" aria-label="View all live matches">
+        <a routerLink="/matches" class="home__section-link" appTouchFeedback aria-label="View all live matches">
           View All
           <i class="material-icons" aria-hidden="true">arrow_forward</i>
         </a>
@@ -51,6 +53,7 @@
           [showStatus]="true"
           [clickable]="true"
           class="visible-mobile"
+          appTouchFeedback
           (cardClick)="onMobileMatchClick($event)"
         ></app-mobile-match-card>
         <app-match-card
@@ -59,6 +62,7 @@
           [enableAnimations]="true"
           [showDetailsButton]="true"
           class="hidden-mobile"
+          appTouchFeedback
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
@@ -106,6 +110,7 @@
           [showStatus]="true"
           [clickable]="true"
           class="visible-mobile"
+          appTouchFeedback
           (cardClick)="onMobileMatchClick($event)"
         ></app-mobile-match-card>
         <app-match-card
@@ -114,6 +119,7 @@
           [enableAnimations]="false"
           [showDetailsButton]="true"
           class="hidden-mobile"
+          appTouchFeedback
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
@@ -161,6 +167,7 @@
           [showStatus]="true"
           [clickable]="true"
           class="visible-mobile"
+          appTouchFeedback
           (cardClick)="onMobileMatchClick($event)"
         ></app-mobile-match-card>
         <app-match-card
@@ -169,6 +176,7 @@
           [enableAnimations]="false"
           [showDetailsButton]="true"
           class="hidden-mobile"
+          appTouchFeedback
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
