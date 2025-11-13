@@ -75,6 +75,7 @@ import { StalenessIndicatorComponent } from 'src/app/shared/components/staleness
 // 002-match-details-ux: Cricket odds feature components
 import { SnapshotHeaderComponent } from 'src/app/cricket-odds/components/snapshot-header/snapshot-header.component';
 import { ScorecardComponent as MatchDetailsScorecardComponent } from 'src/app/cricket-odds/components/scorecard/scorecard.component';
+import { ScorecardCardComponent } from 'src/app/cricket-odds/components/scorecard-card/scorecard-card.component';
 import { LineupsComponent } from 'src/app/cricket-odds/components/lineups/lineups.component';
 import { MatchDetailsInfoComponent } from 'src/app/cricket-odds/components/match-info/match-info.component';
 
@@ -168,6 +169,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     // 002-match-details-ux: Cricket odds feature components
     SnapshotHeaderComponent,
     MatchDetailsScorecardComponent,
+    ScorecardCardComponent,
     LineupsComponent,
     MatchDetailsInfoComponent,
     

@@ -1,0 +1,248 @@
+/**
+ * Mobile-first styles for scorecard card component
+ * Card-based layout for <640px screens
+ * Optimized for touch interaction and readability
+ */
+
+.scorecard-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+  padding: var(--space-3, 12px);
+  background-color: var(--surface-color, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+  min-height: 44px; /* iOS minimum touch target */
+}
+
+.scorecard-card:active {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Header Section (Player name + Primary stat) */
+.scorecard-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+}
+
+.player-name {
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+}
+
+.player-name strong {
+  display: block;
+  font-size: 0.875rem; /* 14px - minimum mobile typography */
+  font-weight: 600;
+  color: var(--text-color, #111827);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.not-out-badge {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--success-color, #10b981);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.primary-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.stat-value--primary {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 700;
+  color: var(--primary-color, #1e3a8a);
+  line-height: 1;
+}
+
+/* Dismissal Section (Batting only) */
+.scorecard-card__dismissal {
+  padding: var(--space-2, 8px);
+  background-color: var(--muted-bg, #f9fafb);
+  border-radius: var(--radius-sm, 4px);
+  border-left: 3px solid var(--accent-color, #f59e0b);
+}
+
+.dismissal-text {
+  display: block;
+  font-size: 0.8125rem; /* 13px */
+  font-style: italic;
+  color: var(--muted-color, #6b7280);
+  line-height: 1.3;
+}
+
+/* Stats Grid */
+.scorecard-card__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2, 8px);
+  padding-top: var(--space-1, 4px);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 0.6875rem; /* 11px */
+  font-weight: 500;
+  color: var(--muted-color, #6b7280);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.stat-value {
+  font-size: 0.875rem; /* 14px - minimum mobile typography */
+  font-weight: 600;
+  color: var(--text-color, #111827);
+  line-height: 1;
+}
+
+/* Batting-specific styles */
+.scorecard-card--batting {
+  border-left: 3px solid var(--primary-color, #1e3a8a);
+}
+
+/* Bowling-specific styles */
+.scorecard-card--bowling {
+  border-left: 3px solid var(--accent-color, #f59e0b);
+}
+
+/* Touch feedback for mobile */
+@media (hover: none) and (pointer: coarse) {
+  .scorecard-card:active {
+    background-color: var(--surface-hover, #f9fafb);
+  }
+}
+
+/* Small mobile (320px) - Tighter spacing */
+@media (max-width: 374px) {
+  .scorecard-card {
+    padding: var(--space-2, 8px);
+    gap: var(--space-1-5, 6px);
+  }
+
+  .player-name strong {
+    font-size: 0.8125rem; /* 13px */
+  }
+
+  .stat-value--primary {
+    font-size: 1.125rem; /* 18px */
+  }
+
+  .stat-label {
+    font-size: 0.625rem; /* 10px */
+  }
+
+  .stat-value {
+    font-size: 0.8125rem; /* 13px */
+  }
+}
+
+/* Medium mobile (375px - 427px) - Optimal for iPhone */
+@media (min-width: 375px) and (max-width: 427px) {
+  .scorecard-card {
+    padding: var(--space-3, 12px);
+  }
+}
+
+/* Large mobile (428px - 639px) - More breathing room */
+@media (min-width: 428px) and (max-width: 639px) {
+  .scorecard-card {
+    padding: var(--space-4, 16px);
+    gap: var(--space-3, 12px);
+  }
+
+  .player-name strong {
+    font-size: 0.9375rem; /* 15px */
+  }
+
+  .stat-value--primary {
+    font-size: 1.375rem; /* 22px */
+  }
+}
+
+/* Tablet breakpoint (640px+) - Hide cards, show table */
+@media (min-width: 640px) {
+  .scorecard-card {
+    display: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .scorecard-card {
+    background-color: var(--dark-surface, #1f2937);
+    border-color: var(--dark-border, #374151);
+  }
+
+  .player-name strong {
+    color: var(--dark-text, #f9fafb);
+  }
+
+  .stat-value {
+    color: var(--dark-text, #f9fafb);
+  }
+
+  .scorecard-card__dismissal {
+    background-color: var(--dark-muted-bg, #111827);
+  }
+
+  .dismissal-text {
+    color: var(--dark-muted, #9ca3af);
+  }
+
+  .stat-label {
+    color: var(--dark-muted, #9ca3af);
+  }
+
+  .scorecard-card:active {
+    background-color: var(--dark-surface-hover, #111827);
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .scorecard-card {
+    transition: none !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .scorecard-card {
+    border-width: 2px;
+  }
+
+  .scorecard-card--batting {
+    border-left-width: 4px;
+  }
+
+  .scorecard-card--bowling {
+    border-left-width: 4px;
+  }
+}
+
+/* Print styles - Hide cards in print */
+@media print {
+  .scorecard-card {
+    display: none;
+  }
+}

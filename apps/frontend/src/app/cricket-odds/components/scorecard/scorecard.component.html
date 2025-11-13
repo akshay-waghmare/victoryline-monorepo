@@ -26,9 +26,21 @@
       <h3>{{ selectedInnings.runs }}/{{ selectedInnings.wickets }} ({{ formatOvers(selectedInnings.overs) }} Ov)</h3>
     </div>
 
-    <!-- Batting table -->
+    <!-- Batting section -->
     <div class="batting-section">
       <h4>Batting</h4>
+      
+      <!-- Mobile Card Layout (<640px) -->
+      <div class="scorecard-cards" role="list" aria-label="Batting scorecard">
+        <app-scorecard-card
+          *ngFor="let batsman of selectedInnings.batting"
+          [player]="batsman"
+          [type]="'batting'"
+          role="listitem">
+        </app-scorecard-card>
+      </div>
+
+      <!-- Desktop Table Layout (>=640px) -->
       <table class="scorecard-table" role="table">
         <thead>
           <tr>
@@ -79,9 +91,21 @@
       </ol>
     </div>
 
-    <!-- Bowling table -->
+    <!-- Bowling section -->
     <div class="bowling-section">
       <h4>Bowling</h4>
+      
+      <!-- Mobile Card Layout (<640px) -->
+      <div class="scorecard-cards" role="list" aria-label="Bowling scorecard">
+        <app-scorecard-card
+          *ngFor="let bowler of selectedInnings.bowling"
+          [player]="bowler"
+          [type]="'bowling'"
+          role="listitem">
+        </app-scorecard-card>
+      </div>
+
+      <!-- Desktop Table Layout (>=640px) -->
       <table class="scorecard-table" role="table">
         <thead>
           <tr>

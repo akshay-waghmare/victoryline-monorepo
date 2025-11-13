@@ -1,0 +1,83 @@
+<!-- Batting Card Layout (Mobile) -->
+<div 
+  *ngIf="type === 'batting'" 
+  class="scorecard-card scorecard-card--batting"
+  role="article"
+  [attr.aria-label]="getAriaLabel()">
+  
+  <!-- Player Name Row -->
+  <div class="scorecard-card__header">
+    <div class="player-name">
+      <strong>{{ player.name }}</strong>
+      <span *ngIf="!player.isOut" class="not-out-badge" aria-label="Not out">*</span>
+    </div>
+    <div class="primary-stats">
+      <span class="stat-value stat-value--primary">{{ player.runs }}</span>
+      <span class="stat-label">runs</span>
+    </div>
+  </div>
+
+  <!-- Dismissal Info (if out) -->
+  <div class="scorecard-card__dismissal" *ngIf="player.isOut && player.dismissal">
+    <span class="dismissal-text">{{ player.dismissal }}</span>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="scorecard-card__stats">
+    <div class="stat-item">
+      <span class="stat-label">Balls</span>
+      <span class="stat-value">{{ player.balls }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">4s</span>
+      <span class="stat-value">{{ player.fours }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">6s</span>
+      <span class="stat-value">{{ player.sixes }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">SR</span>
+      <span class="stat-value">{{ calculateStrikeRate(player.runs, player.balls) }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Bowling Card Layout (Mobile) -->
+<div 
+  *ngIf="type === 'bowling'" 
+  class="scorecard-card scorecard-card--bowling"
+  role="article"
+  [attr.aria-label]="getAriaLabel()">
+  
+  <!-- Player Name Row -->
+  <div class="scorecard-card__header">
+    <div class="player-name">
+      <strong>{{ player.name }}</strong>
+    </div>
+    <div class="primary-stats">
+      <span class="stat-value stat-value--primary">{{ player.wickets }}</span>
+      <span class="stat-label">wickets</span>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="scorecard-card__stats">
+    <div class="stat-item">
+      <span class="stat-label">Overs</span>
+      <span class="stat-value">{{ formatOvers(player.overs) }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Maidens</span>
+      <span class="stat-value">{{ player.maidens }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Runs</span>
+      <span class="stat-value">{{ player.runs }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Econ</span>
+      <span class="stat-value">{{ calculateEconomy(player.runs, player.overs) }}</span>
+    </div>
+  </div>
+</div>
