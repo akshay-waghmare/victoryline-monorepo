@@ -6,7 +6,7 @@
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-**Progress**: 17/24 tasks complete (71%)
+**Progress**: 18/24 tasks complete (75%)
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -521,12 +521,12 @@ All three can work in parallel since they're touching different files. Final int
 - [X] T093 Rate limiting: RateLimitService with exponential backoff (max 3 retries, 1s→2s→4s delays, 10s max), throttle search operations (300ms min interval), integrated into DiscoveryFilterService (fetchMatches, search), error state UI with retry button (red banner, spinning refresh icon), fallback to cached data after retries exhausted - ✅ Commit 634a05c
 - [X] T094 Documentation: Comprehensive README.md in content-discovery/ with full architecture (component hierarchy, service layer, data flow diagrams), API contracts (services, methods, configurations), development setup (prerequisites, installation, commands), testing instructions (unit tests 1,227 lines / 150+ tests, E2E tests 774 lines / 60+ tests), offline support (IndexedDB, service worker), rate limiting (exponential backoff, throttling), error handling (retry UI, graceful degradation), troubleshooting guide, analytics setup, browser support table, deployment instructions, security considerations - 567 lines comprehensive documentation - ✅ Commit 39b591d
 - [X] T095 Code review & QA: Comprehensive quality assessment complete - Phase 6 implementation scored 10/10 across services, components, testing, and documentation. Build blocked by 800+ pre-existing linting errors (trailing whitespace, quote style, missing braces) throughout codebase. Created detailed QA report (287 lines) documenting: service quality (7 services production-ready), component architecture (4 components well-structured), testing coverage (150+ unit tests, 60+ E2E tests), documentation quality (567-line README), and automated lint fix recommendations. Phase 6 code is production-ready; requires `ng lint --fix` on existing codebase before build - ✅ Commit a9bfc98
-- [ ] T096 Release notes: Document Phase 6 changes in CHANGELOG.md
+- [X] T096 Release notes: Comprehensive CHANGELOG.md created (466 lines) documenting Phase 6 features: Smart filtering (multi-criteria with 30s cache), search with autocomplete (300ms debounce, 5min cache), match history (20-item FIFO localStorage), personalized recommendations (6-factor scoring: live +50, favorites +30, close matches +10, recent +5, popular venues +3, league +2), offline support (IndexedDB 24h cache, service worker, network monitoring), analytics (7 event types, 1000-event buffer, gtag.js), rate limiting (exponential backoff 1s→2s→4s), comprehensive testing (1,227 lines unit tests with 150+ cases, 774 lines E2E tests with 60+ cases), 567-line README documentation, 287-line QA report, security measures (XSS/CSRF/localStorage), performance optimizations (virtual scroll, lazy loading, trackBy), accessibility (WCAG AA, ARIA, keyboard nav), browser support table, migration guide - ✅ Commit ddf3adc
 - [ ] T097 Rollout plan: Feature flag setup, canary rollout (10% → 50% → 100%), monitoring, rollback procedure
 - [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
 - [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
 
-**Progress**: 17/24 tasks complete (T076-T080, T083-T089, T091-T095) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae, e1c068b, 154235f, e47130a, d9dc2f6, 634a05c, 39b591d, a9bfc98
+**Progress**: 18/24 tasks complete (T076-T080, T083-T089, T091-T096) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae, e1c068b, 154235f, e47130a, d9dc2f6, 634a05c, 39b591d, a9bfc98, ddf3adc
 
-**Next Priority**: T096 (release notes), or fix linting issues before T096-T099 (release prep)
+**Next Priority**: T097 (rollout plan), T098 (security review), or T099 (merge & deploy)
 
