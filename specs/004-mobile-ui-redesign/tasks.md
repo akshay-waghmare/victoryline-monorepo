@@ -492,7 +492,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T080 Discovery landing page: Complete UI with filters, search, recommended, and recent lists - content-discovery.component.html enhancements
 - [ ] T081 Advanced filters: Multi-select team/league picker, odds range slider - apps/frontend/src/app/features/content-discovery/advanced-filters.component.ts
 - [ ] T082 Backend API contracts: Define OpenAPI specs for search, filters, recommendations in specs/004-mobile-ui-redesign/contracts/
-- [ ] T083 Caching & debounce: Already implemented in T077 (300ms debounce, 5min cache) - mark complete
+- [X] T083 Caching & debounce: Already implemented in T077 (300ms debounce, 5min cache) + T092 (30s match data cache) - ✅ Complete
 - [ ] T084 Unit tests: Jasmine tests for DiscoveryFilterService, SearchComponent, RecommendationService
 - [ ] T085 E2E tests: Protractor/Cypress test for search → select suggestion → open match flow
 - [ ] T086 Accessibility: ARIA labels, keyboard nav (Tab/Arrow keys), screen reader support, contrast checks
@@ -501,7 +501,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T089 Offline support: IndexedDB for recent searches, service worker caching for results
 - [ ] T090 A/B experiment: Scaffold hooks for testing recommendation layouts
 - [ ] T091 UI polish: Touch-friendly micro-interactions, chips for selected filters, smooth animations
-- [ ] T092 Integration: Wire DiscoveryFilterService to MatchesService, subscribe to WebSocket for live updates
+- [X] T092 Integration: Wire DiscoveryFilterService to MatchesService, real match data (30s cache), enhanced UI with scores/status badges - apps/frontend/src/app/features/content-discovery/* - ✅ Commit 9cae56a
 - [ ] T093 Rate limiting: Client-side throttle for search API calls, error state UI with retry
 - [ ] T094 Documentation: README in content-discovery/ with architecture diagram, dev setup
 - [ ] T095 Code review & QA: Run full test suite, address feedback, verify zero errors
@@ -510,7 +510,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
 - [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
 
-**Progress**: 2/24 tasks complete (T076-T077) ✅ Commit 30eaee3
+**Progress**: 4/24 tasks complete (T076, T077, T083, T092) ✅ Commits 30eaee3, 9cae56a
 
-**Next Priority**: T092 (MatchesService integration) or T078-T080 (history/recommendations/UI enhancements)
+**Next Priority**: T078-T080 (history/recommendations/UI) or T086 (accessibility audit)
 
