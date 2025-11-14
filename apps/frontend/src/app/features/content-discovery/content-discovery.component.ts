@@ -5,6 +5,8 @@ import { MatchCardViewModel } from '../matches/models/match-card.models';
 import { MatchHistoryService } from './match-history.service';
 import { RecommendationService } from './recommendation.service';
 import { AnalyticsService } from './analytics.service';
+import { OfflineCacheService } from './offline-cache.service';
+import { NetworkStatusService } from '../../core/services/network-status.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -29,14 +31,27 @@ export class ContentDiscoveryComponent implements OnInit {
   loading = false;
   showRecentSection = true;
   showRecommendedSection = true;
+  isOnline = true;
+  usingCachedData = false;
 
   constructor(
     private discoveryService: DiscoveryFilterService,
     private historyService: MatchHistoryService,
     private recommendationService: RecommendationService,
     private analytics: AnalyticsService,
+    private offlineCache: OfflineCacheService,
+    private networkStatus: NetworkStatusService,
     private router: Router
-  ) {}
+  ) {
+    // Monitor network status
+    this.networkStatus.online$.subscribe(online => {
+      this.isOnline = online;
+      if (online && this.usingCachedData) {
+        // Refresh data when coming back online
+        this.loadInitial();
+      }
+    });
+  }
 
   ngOnInit() {
     this.loadInitial();
@@ -45,14 +60,30 @@ export class ContentDiscoveryComponent implements OnInit {
 
   loadInitial() {
     this.loading = true;
-    // Use the discovery service to fetch initial matches (now using real MatchesService data)
+    this.usingCachedData = false;
+
+    // Try to load from network first
     this.discoveryService.getInitialMatches().then(result => {
       this.matches = result;
       this.loading = false;
       
+      // Cache the results for offline use
+      if (this.isOnline) {
+        this.offlineCache.cacheSearchResults('initial', this.filters, result).subscribe();
+      }
+      
       // Generate recommendations based on all matches
       this.loadRecommendations(result);
-    }).catch(() => this.loading = false);
+    }).catch(error => {
+      console.error('Failed to load matches from network:', error);
+      
+      // Fall back to cached data if offline
+      if (!this.isOnline) {
+        this.loadFromCache('initial');
+      } else {
+        this.loading = false;
+      }
+    });
   }
 
   loadRecentlyViewed() {
@@ -63,11 +94,33 @@ export class ContentDiscoveryComponent implements OnInit {
     this.recommended = this.recommendationService.getRecommendations(allMatches, 5);
   }
 
+  /**
+   * Load data from offline cache when network is unavailable
+   */
+  private loadFromCache(query: string) {
+    this.offlineCache.getCachedSearchResults(query, this.filters).subscribe(cachedResults => {
+      if (cachedResults && cachedResults.length > 0) {
+        this.matches = cachedResults;
+        this.usingCachedData = true;
+        this.loadRecommendations(cachedResults);
+        console.log('Loaded matches from offline cache');
+      }
+      this.loading = false;
+    });
+  }
+
   applyFilters() {
     this.loading = true;
+    this.usingCachedData = false;
+
     this.discoveryService.filterMatches(this.filters).then(result => {
       this.matches = result;
       this.loading = false;
+      
+      // Cache filtered results
+      if (this.isOnline) {
+        this.offlineCache.cacheSearchResults('filter', this.filters, result).subscribe();
+      }
       
       // Track filter change
       this.analytics.trackFilterChange(
@@ -75,19 +128,44 @@ export class ContentDiscoveryComponent implements OnInit {
         this.filters.type || 'all',
         result.length
       );
-    }).catch(() => this.loading = false);
+    }).catch(error => {
+      console.error('Failed to apply filters:', error);
+      
+      // Fall back to cached data if offline
+      if (!this.isOnline) {
+        this.loadFromCache('filter');
+      } else {
+        this.loading = false;
+      }
+    });
   }
 
   onSearch(query: string) {
     if (!query || query.length < 2) { return; }
     this.loading = true;
+    this.usingCachedData = false;
+
     this.discoveryService.search(query).then(result => {
       this.matches = result;
       this.loading = false;
       
+      // Cache search results
+      if (this.isOnline) {
+        this.offlineCache.cacheSearchResults(query, this.filters, result).subscribe();
+      }
+      
       // Track search
       this.analytics.trackSearch(query, result.length);
-    }).catch(() => this.loading = false);
+    }).catch(error => {
+      console.error('Failed to search:', error);
+      
+      // Fall back to cached data if offline
+      if (!this.isOnline) {
+        this.loadFromCache(query);
+      } else {
+        this.loading = false;
+      }
+    });
   }
 
   onSuggestionSelected(item: MatchCardViewModel) {
