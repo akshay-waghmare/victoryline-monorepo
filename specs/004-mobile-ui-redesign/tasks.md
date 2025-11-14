@@ -472,3 +472,45 @@ All three can work in parallel since they're touching different files. Final int
 **Independent Test Criteria Met**: Each user story has clear independent test criteria and delivers standalone value
 
 **Suggested MVP Scope**: Phases 1-4 (User Stories 1 and 2) - 58 tasks, 2-3 weeks timeline
+
+---
+
+## Phase 6 (ACTUAL): Content Discovery - Advanced Features
+
+**Note**: This phase was implemented after MVP completion (Phases 1-5). Tasks differ from original Phase 6 spec above.
+
+**Goal**: Smart filtering, search with autocomplete, match history tracking, and personalized recommendations
+
+**Files**: `apps/frontend/src/app/features/content-discovery/`
+
+### Implementation Tasks
+
+- [X] T076 Smart filtering scaffold: DiscoveryFilterService with stubbed data, basic filter UI (All/Live/Upcoming/Completed, League selector) - apps/frontend/src/app/features/content-discovery/discovery-filter.service.ts, content-discovery.component.ts/.html/.css - ✅ Commit 30eaee3
+- [X] T077 Search with autocomplete: SearchComponent with RxJS debounce (300ms), dropdown suggestions, 5-minute cache TTL - apps/frontend/src/app/features/content-discovery/search.component.ts - ✅ Commit 30eaee3
+- [ ] T078 Match history tracking: Persist viewed matches in localStorage, expose 'Recently Viewed' API - apps/frontend/src/app/features/content-discovery/match-history.service.ts
+- [ ] T079 Personalized recommendations: Simple engine using recently viewed + popularity score - apps/frontend/src/app/features/content-discovery/recommendation.service.ts
+- [ ] T080 Discovery landing page: Complete UI with filters, search, recommended, and recent lists - content-discovery.component.html enhancements
+- [ ] T081 Advanced filters: Multi-select team/league picker, odds range slider - apps/frontend/src/app/features/content-discovery/advanced-filters.component.ts
+- [ ] T082 Backend API contracts: Define OpenAPI specs for search, filters, recommendations in specs/004-mobile-ui-redesign/contracts/
+- [ ] T083 Caching & debounce: Already implemented in T077 (300ms debounce, 5min cache) - mark complete
+- [ ] T084 Unit tests: Jasmine tests for DiscoveryFilterService, SearchComponent, RecommendationService
+- [ ] T085 E2E tests: Protractor/Cypress test for search → select suggestion → open match flow
+- [ ] T086 Accessibility: ARIA labels, keyboard nav (Tab/Arrow keys), screen reader support, contrast checks
+- [ ] T087 Performance: Virtualization for long lists (cdk-virtual-scroll), lazy-load images in results
+- [ ] T088 Analytics: Emit events for search queries, filter changes, recommendation clicks
+- [ ] T089 Offline support: IndexedDB for recent searches, service worker caching for results
+- [ ] T090 A/B experiment: Scaffold hooks for testing recommendation layouts
+- [ ] T091 UI polish: Touch-friendly micro-interactions, chips for selected filters, smooth animations
+- [ ] T092 Integration: Wire DiscoveryFilterService to MatchesService, subscribe to WebSocket for live updates
+- [ ] T093 Rate limiting: Client-side throttle for search API calls, error state UI with retry
+- [ ] T094 Documentation: README in content-discovery/ with architecture diagram, dev setup
+- [ ] T095 Code review & QA: Run full test suite, address feedback, verify zero errors
+- [ ] T096 Release notes: Document Phase 6 changes in CHANGELOG.md
+- [ ] T097 Rollout plan: Feature flag setup, canary rollout (10% → 50% → 100%), monitoring, rollback procedure
+- [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
+- [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
+
+**Progress**: 2/24 tasks complete (T076-T077) ✅ Commit 30eaee3
+
+**Next Priority**: T092 (MatchesService integration) or T078-T080 (history/recommendations/UI enhancements)
+
