@@ -493,7 +493,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T081 Advanced filters: Multi-select team/league picker, odds range slider - apps/frontend/src/app/features/content-discovery/advanced-filters.component.ts
 - [ ] T082 Backend API contracts: Define OpenAPI specs for search, filters, recommendations in specs/004-mobile-ui-redesign/contracts/
 - [X] T083 Caching & debounce: Already implemented in T077 (300ms debounce, 5min cache) + T092 (30s match data cache) - ✅ Complete
-- [ ] T084 Unit tests: Jasmine tests for DiscoveryFilterService, SearchComponent, RecommendationService
+- [X] T084 Unit tests: Jasmine tests for OfflineCacheService (cache key generation, expiry logic, IndexedDB mocking, API contract), NetworkStatusService (online/offline events, connection quality, metered detection, SSR safety), AnalyticsService (7 event types, 1000-item buffer, FIFO cleanup, metadata preservation), MatchHistoryService (localStorage persistence, 20-item limit, favorite teams, duplicate handling), ContentDiscoveryComponent (initialization, filters, search, offline fallback, analytics tracking, error handling) - 5 test files, 150+ test cases - ✅ Commit e47130a
 - [ ] T085 E2E tests: Protractor/Cypress test for search → select suggestion → open match flow
 - [X] T086 Accessibility: ARIA labels (role='main', aria-labelledby, aria-live), keyboard nav (Tab/Enter/Space, :focus-visible), screen reader support (detailed aria-labels for scores), WCAG AA contrast (4.5:1 - updated status colors in _variables.css) - ✅ Commit caafda1
 - [X] T087 Performance: CDK Virtual Scroll for All Matches (cdk-virtual-scroll-viewport, 140px items, 600px viewport), LazyLoadDirective (Intersection Observer, 200px buffer, fade-in animation), trackBy functions (trackByMatchId for *ngFor optimization) - ✅ Commit 196abae
@@ -510,7 +510,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
 - [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
 
-**Progress**: 12/24 tasks complete (T076-T080, T083, T086-T089, T091-T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae, e1c068b, 154235f
+**Progress**: 13/24 tasks complete (T076-T080, T083-T084, T086-T089, T091-T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae, e1c068b, 154235f, e47130a
 
-**Next Priority**: T090 (A/B experiment hooks) or T084-T085 (testing)
+**Next Priority**: T085 (E2E tests) or T081 (advanced filters)
 
