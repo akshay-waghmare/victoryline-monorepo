@@ -33,6 +33,8 @@ export class ContentDiscoveryComponent implements OnInit {
   showRecommendedSection = true;
   isOnline = true;
   usingCachedData = false;
+  error: string | null = null;
+  canRetry = false;
 
   constructor(
     private discoveryService: DiscoveryFilterService,
@@ -61,11 +63,14 @@ export class ContentDiscoveryComponent implements OnInit {
   loadInitial() {
     this.loading = true;
     this.usingCachedData = false;
+    this.error = null;
+    this.canRetry = false;
 
     // Try to load from network first
     this.discoveryService.getInitialMatches().then(result => {
       this.matches = result;
       this.loading = false;
+      this.error = null;
       
       // Cache the results for offline use
       if (this.isOnline) {
@@ -82,8 +87,19 @@ export class ContentDiscoveryComponent implements OnInit {
         this.loadFromCache('initial');
       } else {
         this.loading = false;
+        this.error = 'Failed to load matches. Please try again.';
+        this.canRetry = true;
       }
     });
+  }
+
+  /**
+   * Retry loading data after an error
+   */
+  retry() {
+    if (this.canRetry) {
+      this.loadInitial();
+    }
   }
 
   loadRecentlyViewed() {
