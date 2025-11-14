@@ -495,7 +495,7 @@ All three can work in parallel since they're touching different files. Final int
 - [X] T083 Caching & debounce: Already implemented in T077 (300ms debounce, 5min cache) + T092 (30s match data cache) - ✅ Complete
 - [ ] T084 Unit tests: Jasmine tests for DiscoveryFilterService, SearchComponent, RecommendationService
 - [ ] T085 E2E tests: Protractor/Cypress test for search → select suggestion → open match flow
-- [ ] T086 Accessibility: ARIA labels, keyboard nav (Tab/Arrow keys), screen reader support, contrast checks
+- [X] T086 Accessibility: ARIA labels (role='main', aria-labelledby, aria-live), keyboard nav (Tab/Enter/Space, :focus-visible), screen reader support (detailed aria-labels for scores), WCAG AA contrast (4.5:1 - updated status colors in _variables.css) - ✅ Commit caafda1
 - [ ] T087 Performance: Virtualization for long lists (cdk-virtual-scroll), lazy-load images in results
 - [ ] T088 Analytics: Emit events for search queries, filter changes, recommendation clicks
 - [ ] T089 Offline support: IndexedDB for recent searches, service worker caching for results
@@ -510,7 +510,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
 - [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
 
-**Progress**: 7/24 tasks complete (T076-T080, T083, T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e
+**Progress**: 8/24 tasks complete (T076-T080, T083, T086, T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1
 
-**Next Priority**: T086 (accessibility audit) or T091 (UI polish)
+**Next Priority**: T091 (UI polish - touch interactions, animations) or T084-T085 (testing)
 
