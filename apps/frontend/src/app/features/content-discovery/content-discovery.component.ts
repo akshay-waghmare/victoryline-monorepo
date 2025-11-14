@@ -4,6 +4,7 @@ import { DiscoveryFilterService, MatchFilter } from './discovery-filter.service'
 import { MatchCardViewModel } from '../matches/models/match-card.models';
 import { MatchHistoryService } from './match-history.service';
 import { RecommendationService } from './recommendation.service';
+import { AnalyticsService } from './analytics.service';
 import { Router } from '@angular/router';
 
 @Component({
@@ -33,6 +34,7 @@ export class ContentDiscoveryComponent implements OnInit {
     private discoveryService: DiscoveryFilterService,
     private historyService: MatchHistoryService,
     private recommendationService: RecommendationService,
+    private analytics: AnalyticsService,
     private router: Router
   ) {}
 
@@ -66,6 +68,13 @@ export class ContentDiscoveryComponent implements OnInit {
     this.discoveryService.filterMatches(this.filters).then(result => {
       this.matches = result;
       this.loading = false;
+      
+      // Track filter change
+      this.analytics.trackFilterChange(
+        'type',
+        this.filters.type || 'all',
+        result.length
+      );
     }).catch(() => this.loading = false);
   }
 
@@ -75,6 +84,9 @@ export class ContentDiscoveryComponent implements OnInit {
     this.discoveryService.search(query).then(result => {
       this.matches = result;
       this.loading = false;
+      
+      // Track search
+      this.analytics.trackSearch(query, result.length);
     }).catch(() => this.loading = false);
   }
 
@@ -84,11 +96,25 @@ export class ContentDiscoveryComponent implements OnInit {
     // Record the view
     this.historyService.recordView(item);
     this.loadRecentlyViewed();
+    
+    // Track autocomplete selection
+    const matchTitle = `${item.team1?.name} vs ${item.team2?.name}`;
+    this.analytics.trackAutocompleteSelection(item.id, matchTitle, 0);
   }
 
-  onMatchClick(match: MatchCardViewModel) {
+  onMatchClick(match: MatchCardViewModel, source: 'all_matches' | 'recently_viewed' | 'recommended' = 'all_matches', position?: number) {
     // Record view in history
     this.historyService.recordView(match);
+    
+    // Track the click based on source
+    const matchTitle = `${match.team1?.name} vs ${match.team2?.name}`;
+    if (source === 'recently_viewed' && position !== undefined) {
+      this.analytics.trackRecentlyViewedClick(match.id, matchTitle, position);
+    } else if (source === 'recommended' && position !== undefined) {
+      this.analytics.trackRecommendationClick(match.id, matchTitle, position);
+    } else {
+      this.analytics.trackMatchClick(match.id, matchTitle, 'all_matches');
+    }
     
     // Navigate to match details
     if (match.matchUrl) {
@@ -101,8 +127,12 @@ export class ContentDiscoveryComponent implements OnInit {
 
   clearHistory() {
     if (confirm('Clear all viewing history?')) {
+      const itemCount = this.recentlyViewed.length;
       this.historyService.clearHistory();
       this.loadRecentlyViewed();
+      
+      // Track history clear
+      this.analytics.trackHistoryClear(itemCount);
     }
   }
 

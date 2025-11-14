@@ -60,9 +60,9 @@
       <li 
         *ngFor="let m of recentlyViewed; let i = index; trackBy: trackByMatchId" 
         class="match-item compact" 
-        (click)="onMatchClick(m)"
-        (keydown.enter)="onMatchClick(m)"
-        (keydown.space)="onMatchClick(m); $event.preventDefault()"
+        (click)="onMatchClick(m, 'recently_viewed', i)"
+        (keydown.enter)="onMatchClick(m, 'recently_viewed', i)"
+        (keydown.space)="onMatchClick(m, 'recently_viewed', i); $event.preventDefault()"
         role="listitem"
         tabindex="0"
         [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus"
@@ -106,12 +106,12 @@
     <!-- Loaded state -->
     <ul class="match-list" *ngIf="!loading && recommended.length > 0" role="list" aria-label="Recommended matches based on your viewing history">
       <li 
-        *ngFor="let m of recommended; trackBy: trackByMatchId" 
+        *ngFor="let m of recommended; let i = index; trackBy: trackByMatchId" 
         class="match-item" 
         [class.live]="m.isLive" 
-        (click)="onMatchClick(m)"
-        (keydown.enter)="onMatchClick(m)"
-        (keydown.space)="onMatchClick(m); $event.preventDefault()"
+        (click)="onMatchClick(m, 'recommended', i)"
+        (keydown.enter)="onMatchClick(m, 'recommended', i)"
+        (keydown.space)="onMatchClick(m, 'recommended', i); $event.preventDefault()"
         role="listitem"
         tabindex="0"
         [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus + ', ' + m.venue"
