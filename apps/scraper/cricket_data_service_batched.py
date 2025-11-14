@@ -291,7 +291,7 @@ def send_data_to_api_endpoint(data, bearer_token, url, api_endpoint=None):
             json_payload['url'] = url
         else:
             logging.error("Data should be a dictionary.")
-            return
+            return False
         
         json_payload_str = json.dumps(json_payload)
         logging.debug(f"Serialized JSON payload: {json_payload_str}")
@@ -301,7 +301,10 @@ def send_data_to_api_endpoint(data, bearer_token, url, api_endpoint=None):
         
         if 200 <= response.status_code < 300:
             logging.info("Data sent successfully to the API endpoint.")
+            return True
         else:
-            logging.error(f"Failed to send data. Status code: {response.status_code}")
+            logging.error(f"Failed to send data. Status code: {response.status_code}, Response: {response.text}")
+            return False
     except Exception as e:
-        logging.error(f"An error occurred while sending data: {str(e)}")
+        logging.error(f"An error occurred while sending data: {str(e)}", exc_info=True)
+        return False

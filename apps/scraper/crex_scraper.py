@@ -982,8 +982,8 @@ def observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_ret
                 scraper_logger.warning(
                     f"Context requesting restart for {url}: "
                     f"reason={context.restart_reason}, "
-                    f"uptime={context.uptime_seconds()}s, "
-                    f"memory_mb={context.memory_mb:.1f}, "
+                    f"uptime={context.uptime_seconds}s, "
+                    f"memory_mb={context.memory_bytes / (1024 * 1024):.1f}, "
                     f"errors={context.error_count}"
                 )
                 running = False
