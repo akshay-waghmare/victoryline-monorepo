@@ -85,6 +85,8 @@ import { MatchApiService } from 'src/app/cricket-odds/match-api.service';
 import { AnalyticsService } from 'src/app/cricket-odds/analytics.service';
 import { MatchFallbackService } from 'src/app/cricket-odds/match-fallback.service';
 
+// Phase 6: Content Discovery
+import { ContentDiscoveryModule } from 'src/app/features/content-discovery/content-discovery.module';
 
 
 const myRxStompConfig: InjectableRxStompConfig = {
@@ -135,6 +137,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     ComponentsModule,
     MatSnackBarModule, // Import MatSnackBarModule
     MatTooltipModule, // Import MatTooltipModule for navbar tooltips (T046)
+    ContentDiscoveryModule, // Phase 6: Content Discovery
     
   
   ],

@@ -1,0 +1,43 @@
+.discovery-root {
+  padding: 12px;
+}
+.discovery-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.25rem;
+}
+.search-row input[type="search"] {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+.filters-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0;
+}
+.apply-btn {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--primary-color, #1976d2);
+  color: white;
+  border: none;
+}
+.match-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.match-item {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+.match-item .title {
+  font-weight: 600;
+}
+.match-item .meta {
+  font-size: 0.85rem;
+  color: #666;
+}
+.empty { color: #777; padding: 8px 0; }

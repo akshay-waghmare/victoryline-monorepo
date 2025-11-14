@@ -1,0 +1,33 @@
+<div class="discovery-root">
+  <div class="discovery-header">
+    <h2>Discover Matches</h2>
+    <app-search 
+      (search)="onSearch($event)"
+      (suggestionSelected)="onSuggestionSelected($event)"
+    ></app-search>
+  </div>
+
+  <div class="filters-row">
+    <label>
+      <select [(ngModel)]="filters.type">
+        <option value="all">All</option>
+        <option value="live">Live</option>
+        <option value="upcoming">Upcoming</option>
+        <option value="completed">Completed</option>
+      </select>
+    </label>
+    <button (click)="applyFilters()" class="apply-btn">Apply</button>
+  </div>
+
+  <div class="results" *ngIf="!loading">
+    <div *ngIf="matches.length === 0" class="empty">No matches found</div>
+    <ul class="match-list">
+      <li *ngFor="let m of matches" class="match-item">
+        <div class="title">{{m.title}}</div>
+        <div class="meta">{{m.league}} • {{m.status}}</div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="loading" *ngIf="loading">Loading…</div>
+</div>
