@@ -496,7 +496,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T084 Unit tests: Jasmine tests for DiscoveryFilterService, SearchComponent, RecommendationService
 - [ ] T085 E2E tests: Protractor/Cypress test for search → select suggestion → open match flow
 - [X] T086 Accessibility: ARIA labels (role='main', aria-labelledby, aria-live), keyboard nav (Tab/Enter/Space, :focus-visible), screen reader support (detailed aria-labels for scores), WCAG AA contrast (4.5:1 - updated status colors in _variables.css) - ✅ Commit caafda1
-- [ ] T087 Performance: Virtualization for long lists (cdk-virtual-scroll), lazy-load images in results
+- [X] T087 Performance: CDK Virtual Scroll for All Matches (cdk-virtual-scroll-viewport, 140px items, 600px viewport), LazyLoadDirective (Intersection Observer, 200px buffer, fade-in animation), trackBy functions (trackByMatchId for *ngFor optimization) - ✅ Commit 196abae
 - [ ] T088 Analytics: Emit events for search queries, filter changes, recommendation clicks
 - [ ] T089 Offline support: IndexedDB for recent searches, service worker caching for results
 - [ ] T090 A/B experiment: Scaffold hooks for testing recommendation layouts
@@ -510,7 +510,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
 - [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
 
-**Progress**: 9/24 tasks complete (T076-T080, T083, T086, T091-T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb
+**Progress**: 10/24 tasks complete (T076-T080, T083, T086-T087, T091-T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae
 
-**Next Priority**: T087 (performance - virtualization) or T084-T085 (testing)
+**Next Priority**: T088 (analytics events) or T084-T085 (testing)
 
