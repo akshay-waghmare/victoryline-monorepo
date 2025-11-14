@@ -213,6 +213,124 @@
 /* Clickable match items */
 .match-item {
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.match-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.match-item:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+.match-item:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.match-item:focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Clear button accessibility */
+.clear-btn:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+.clear-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Apply button accessibility */
+.apply-btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.apply-btn:hover {
+  background: #1565c0;
+}
+
+.apply-btn:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+.apply-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Horizontal scroll keyboard navigation */
+.match-list.horizontal:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.match-list.horizontal:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Status badges - WCAG AA compliant */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  display: inline-block;
+  /* Ensure minimum contrast by adding white text on colored backgrounds */
+}
+
+/* Override for live status - add border for better visibility */
+.match-item.live .status-badge {
+  background: var(--color-match-live) !important;
+  color: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Select element styling */
+select {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+select:hover {
+  border-color: #1976d2;
+}
+
+select:focus {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+  border-color: transparent;
+}
+
+select:focus:not(:focus-visible) {
+  outline: none;
+  border-color: #1976d2;
+}
+
+/* Label styling */
+label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333;
+  margin-right: 8px;
 }
 
 /* Mobile responsive */

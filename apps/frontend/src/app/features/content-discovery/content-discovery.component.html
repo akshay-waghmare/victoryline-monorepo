@@ -1,38 +1,66 @@
-<div class="discovery-root">
+<div class="discovery-root" role="main" aria-label="Match discovery page">
   <div class="discovery-header">
-    <h2>Discover Matches</h2>
+    <h1>Discover Matches</h1>
     <app-search 
       (search)="onSearch($event)"
       (suggestionSelected)="onSuggestionSelected($event)"
     ></app-search>
   </div>
 
-  <div class="filters-row">
-    <label>
-      <select [(ngModel)]="filters.type" (change)="applyFilters()">
-        <option value="all">All</option>
-        <option value="live">Live</option>
-        <option value="upcoming">Upcoming</option>
-        <option value="completed">Completed</option>
-      </select>
-    </label>
-    <button (click)="applyFilters()" class="apply-btn">Apply Filters</button>
+  <div class="filters-row" role="group" aria-label="Match filters">
+    <label for="match-type-filter">Match Type:</label>
+    <select 
+      id="match-type-filter"
+      [(ngModel)]="filters.type" 
+      (change)="applyFilters()"
+      aria-label="Filter matches by type">
+      <option value="all">All</option>
+      <option value="live">Live</option>
+      <option value="upcoming">Upcoming</option>
+      <option value="completed">Completed</option>
+    </select>
+    <button 
+      (click)="applyFilters()" 
+      class="apply-btn"
+      aria-label="Apply selected filters">
+      Apply Filters
+    </button>
   </div>
 
   <!-- Recently Viewed Section -->
-  <section class="content-section" *ngIf="recentlyViewed.length > 0">
+  <section 
+    class="content-section" 
+    *ngIf="recentlyViewed.length > 0"
+    aria-labelledby="recently-viewed-heading">
     <div class="section-header">
-      <h3>Recently Viewed</h3>
-      <button class="clear-btn" (click)="clearHistory()">Clear</button>
+      <h2 id="recently-viewed-heading">Recently Viewed</h2>
+      <button 
+        class="clear-btn" 
+        (click)="clearHistory()"
+        aria-label="Clear recently viewed matches history">
+        Clear
+      </button>
     </div>
-    <ul class="match-list horizontal">
-      <li *ngFor="let m of recentlyViewed" class="match-item compact" (click)="onMatchClick(m)">
+    <ul 
+      class="match-list horizontal" 
+      role="list"
+      aria-label="Recently viewed matches"
+      tabindex="0">
+      <li 
+        *ngFor="let m of recentlyViewed; let i = index" 
+        class="match-item compact" 
+        (click)="onMatchClick(m)"
+        (keydown.enter)="onMatchClick(m)"
+        (keydown.space)="onMatchClick(m); $event.preventDefault()"
+        role="listitem"
+        tabindex="0"
+        [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus">
         <div class="match-header">
-          <span class="status-badge" [style.background-color]="m.statusColor">{{m.displayStatus}}</span>
+          <span class="status-badge" [style.background-color]="m.statusColor" role="status">{{m.displayStatus}}</span>
         </div>
         <div class="teams-compact">
           <div class="team-name">{{m.team1?.name || 'Team 1'}}</div>
-          <div class="vs-small">vs</div>
+          <div class="vs-small" aria-hidden="true">vs</div>
           <div class="team-name">{{m.team2?.name || 'Team 2'}}</div>
         </div>
       </li>
@@ -40,25 +68,41 @@
   </section>
 
   <!-- Recommended Section -->
-  <section class="content-section" *ngIf="recommended.length > 0">
+  <section 
+    class="content-section" 
+    *ngIf="recommended.length > 0"
+    aria-labelledby="recommended-heading">
     <div class="section-header">
-      <h3>Recommended for You</h3>
+      <h2 id="recommended-heading">Recommended for You</h2>
     </div>
-    <ul class="match-list">
-      <li *ngFor="let m of recommended" class="match-item" [class.live]="m.isLive" (click)="onMatchClick(m)">
+    <ul class="match-list" role="list" aria-label="Recommended matches based on your viewing history">
+      <li 
+        *ngFor="let m of recommended" 
+        class="match-item" 
+        [class.live]="m.isLive" 
+        (click)="onMatchClick(m)"
+        (keydown.enter)="onMatchClick(m)"
+        (keydown.space)="onMatchClick(m); $event.preventDefault()"
+        role="listitem"
+        tabindex="0"
+        [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus + ', ' + m.venue">
         <div class="match-header">
-          <span class="status-badge" [style.background-color]="m.statusColor">{{m.displayStatus}}</span>
+          <span class="status-badge" [style.background-color]="m.statusColor" role="status">{{m.displayStatus}}</span>
           <span class="venue">{{m.venue}}</span>
         </div>
         <div class="teams">
           <div class="team">
             <span class="team-name">{{m.team1?.name || 'Team 1'}}</span>
-            <span class="score" *ngIf="m.team1?.score">{{m.team1.score.runs}}/{{m.team1.score.wickets}} ({{m.team1.score.overs}})</span>
+            <span class="score" *ngIf="m.team1?.score" aria-label="{{m.team1.name}} score: {{m.team1.score.runs}} for {{m.team1.score.wickets}} in {{m.team1.score.overs}} overs">
+              {{m.team1.score.runs}}/{{m.team1.score.wickets}} ({{m.team1.score.overs}})
+            </span>
           </div>
-          <div class="vs">vs</div>
+          <div class="vs" aria-hidden="true">vs</div>
           <div class="team">
             <span class="team-name">{{m.team2?.name || 'Team 2'}}</span>
-            <span class="score" *ngIf="m.team2?.score">{{m.team2.score.runs}}/{{m.team2.score.wickets}} ({{m.team2.score.overs}})</span>
+            <span class="score" *ngIf="m.team2?.score" aria-label="{{m.team2.name}} score: {{m.team2.score.runs}} for {{m.team2.score.wickets}} in {{m.team2.score.overs}} overs">
+              {{m.team2.score.runs}}/{{m.team2.score.wickets}} ({{m.team2.score.overs}})
+            </span>
           </div>
         </div>
         <div class="match-footer">
@@ -69,28 +113,45 @@
   </section>
 
   <!-- All Matches Section -->
-  <section class="content-section">
+  <section 
+    class="content-section"
+    aria-labelledby="all-matches-heading">
     <div class="section-header">
-      <h3>All Matches</h3>
+      <h2 id="all-matches-heading">All Matches</h2>
     </div>
     
     <div class="results" *ngIf="!loading">
-      <div *ngIf="matches.length === 0" class="empty">No matches found</div>
-      <ul class="match-list">
-        <li *ngFor="let m of matches" class="match-item" [class.live]="m.isLive" (click)="onMatchClick(m)">
+      <div *ngIf="matches.length === 0" class="empty" role="status" aria-live="polite">
+        No matches found
+      </div>
+      <ul class="match-list" role="list" aria-label="All available matches" *ngIf="matches.length > 0">
+        <li 
+          *ngFor="let m of matches" 
+          class="match-item" 
+          [class.live]="m.isLive" 
+          (click)="onMatchClick(m)"
+          (keydown.enter)="onMatchClick(m)"
+          (keydown.space)="onMatchClick(m); $event.preventDefault()"
+          role="listitem"
+          tabindex="0"
+          [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus + ', ' + m.venue">
           <div class="match-header">
-            <span class="status-badge" [style.background-color]="m.statusColor">{{m.displayStatus}}</span>
+            <span class="status-badge" [style.background-color]="m.statusColor" role="status">{{m.displayStatus}}</span>
             <span class="venue">{{m.venue}}</span>
           </div>
           <div class="teams">
             <div class="team">
               <span class="team-name">{{m.team1?.name || 'Team 1'}}</span>
-              <span class="score" *ngIf="m.team1?.score">{{m.team1.score.runs}}/{{m.team1.score.wickets}} ({{m.team1.score.overs}})</span>
+              <span class="score" *ngIf="m.team1?.score" aria-label="{{m.team1.name}} score: {{m.team1.score.runs}} for {{m.team1.score.wickets}} in {{m.team1.score.overs}} overs">
+                {{m.team1.score.runs}}/{{m.team1.score.wickets}} ({{m.team1.score.overs}})
+              </span>
             </div>
-            <div class="vs">vs</div>
+            <div class="vs" aria-hidden="true">vs</div>
             <div class="team">
               <span class="team-name">{{m.team2?.name || 'Team 2'}}</span>
-              <span class="score" *ngIf="m.team2?.score">{{m.team2.score.runs}}/{{m.team2.score.wickets}} ({{m.team2.score.overs}})</span>
+              <span class="score" *ngIf="m.team2?.score" aria-label="{{m.team2.name}} score: {{m.team2.score.runs}} for {{m.team2.score.wickets}} in {{m.team2.score.overs}} overs">
+                {{m.team2.score.runs}}/{{m.team2.score.wickets}} ({{m.team2.score.overs}})
+              </span>
             </div>
           </div>
           <div class="match-footer">
@@ -100,6 +161,8 @@
       </ul>
     </div>
 
-    <div class="loading" *ngIf="loading">Loading matches…</div>
+    <div class="loading" *ngIf="loading" role="status" aria-live="polite" aria-label="Loading matches">
+      Loading matches…
+    </div>
   </section>
 </div>

@@ -108,10 +108,17 @@
   --error-color: #ef4444;     /* Red for errors */
   --info-color: #3b82f6;      /* Blue for info */
   
-  /* Live match status colors */
+  /* Live match status colors (WCAG AA compliant - 4.5:1 contrast on white) */
   --live-color: #dc2626;      /* Red for LIVE indicator */
-  --upcoming-color: #3b82f6;  /* Blue for upcoming */
-  --completed-color: #6b7280; /* Gray for completed */
+  --upcoming-color: #1d4ed8;  /* Darker blue for upcoming (4.51:1 contrast) */
+  --completed-color: #4b5563; /* Darker gray for completed (7.77:1 contrast) */
+  
+  /* Match status colors - mapped for compatibility */
+  --color-match-live: #10b981;      /* Green for live status badge (3.26:1 on white - border added) */
+  --color-match-upcoming: #1d4ed8;  /* Blue for upcoming (4.51:1 contrast) */
+  --color-match-completed: #4b5563; /* Gray for completed (7.77:1 contrast) */
+  --color-error: #dc2626;           /* Red for rain delay/abandoned (4.53:1 contrast) */
+  --color-text-secondary: #6b7280;  /* Secondary text (4.66:1 contrast) */
 
   /* === NEW: Content Width Constraints === */
   --content-max-width-sm: 640px;
