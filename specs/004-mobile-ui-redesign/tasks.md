@@ -487,9 +487,9 @@ All three can work in parallel since they're touching different files. Final int
 
 - [X] T076 Smart filtering scaffold: DiscoveryFilterService with stubbed data, basic filter UI (All/Live/Upcoming/Completed, League selector) - apps/frontend/src/app/features/content-discovery/discovery-filter.service.ts, content-discovery.component.ts/.html/.css - ✅ Commit 30eaee3
 - [X] T077 Search with autocomplete: SearchComponent with RxJS debounce (300ms), dropdown suggestions, 5-minute cache TTL - apps/frontend/src/app/features/content-discovery/search.component.ts - ✅ Commit 30eaee3
-- [ ] T078 Match history tracking: Persist viewed matches in localStorage, expose 'Recently Viewed' API - apps/frontend/src/app/features/content-discovery/match-history.service.ts
-- [ ] T079 Personalized recommendations: Simple engine using recently viewed + popularity score - apps/frontend/src/app/features/content-discovery/recommendation.service.ts
-- [ ] T080 Discovery landing page: Complete UI with filters, search, recommended, and recent lists - content-discovery.component.html enhancements
+- [X] T078 Match history tracking: MatchHistoryService with localStorage persistence (20-item limit), favorite teams analysis, recently viewed API - apps/frontend/src/app/features/content-discovery/match-history.service.ts - ✅ Commit c6ea38e
+- [X] T079 Personalized recommendations: RecommendationService with 6-factor scoring algorithm (live +50, favorite teams +30, close matches +10) - apps/frontend/src/app/features/content-discovery/recommendation.service.ts - ✅ Commit c6ea38e
+- [X] T080 Enhanced discovery UI: 3-section layout (Recently Viewed horizontal scroll, Recommended personalized, All Matches filtered), click navigation to match details - content-discovery.component.ts/.html/.css - ✅ Commit c6ea38e
 - [ ] T081 Advanced filters: Multi-select team/league picker, odds range slider - apps/frontend/src/app/features/content-discovery/advanced-filters.component.ts
 - [ ] T082 Backend API contracts: Define OpenAPI specs for search, filters, recommendations in specs/004-mobile-ui-redesign/contracts/
 - [X] T083 Caching & debounce: Already implemented in T077 (300ms debounce, 5min cache) + T092 (30s match data cache) - ✅ Complete
@@ -510,7 +510,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
 - [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
 
-**Progress**: 4/24 tasks complete (T076, T077, T083, T092) ✅ Commits 30eaee3, 9cae56a
+**Progress**: 7/24 tasks complete (T076-T080, T083, T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e
 
-**Next Priority**: T078-T080 (history/recommendations/UI) or T086 (accessibility audit)
+**Next Priority**: T086 (accessibility audit) or T091 (UI polish)
 
