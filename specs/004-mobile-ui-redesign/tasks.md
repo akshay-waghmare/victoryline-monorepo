@@ -494,7 +494,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T082 Backend API contracts: Define OpenAPI specs for search, filters, recommendations in specs/004-mobile-ui-redesign/contracts/
 - [X] T083 Caching & debounce: Already implemented in T077 (300ms debounce, 5min cache) + T092 (30s match data cache) - ✅ Complete
 - [X] T084 Unit tests: Jasmine tests for OfflineCacheService (cache key generation, expiry logic, IndexedDB mocking, API contract), NetworkStatusService (online/offline events, connection quality, metered detection, SSR safety), AnalyticsService (7 event types, 1000-item buffer, FIFO cleanup, metadata preservation), MatchHistoryService (localStorage persistence, 20-item limit, favorite teams, duplicate handling), ContentDiscoveryComponent (initialization, filters, search, offline fallback, analytics tracking, error handling) - 5 test files, 150+ test cases - ✅ Commit e47130a
-- [ ] T085 E2E tests: Protractor/Cypress test for search → select suggestion → open match flow
+- [X] T085 E2E tests: Protractor tests for 5 critical user journeys (search→suggestion→match, filter→click→details, view→return→recently viewed, browse recommendations, clear history), ContentDiscoveryPage object with 40+ helper methods, comprehensive smoke tests covering search, filters, autocomplete, recently viewed, recommended, accessibility, offline state, performance - 3 files (main spec 330 lines, smoke tests 120 lines, page object 324 lines) - ✅ Commit d9dc2f6
 - [X] T086 Accessibility: ARIA labels (role='main', aria-labelledby, aria-live), keyboard nav (Tab/Enter/Space, :focus-visible), screen reader support (detailed aria-labels for scores), WCAG AA contrast (4.5:1 - updated status colors in _variables.css) - ✅ Commit caafda1
 - [X] T087 Performance: CDK Virtual Scroll for All Matches (cdk-virtual-scroll-viewport, 140px items, 600px viewport), LazyLoadDirective (Intersection Observer, 200px buffer, fade-in animation), trackBy functions (trackByMatchId for *ngFor optimization) - ✅ Commit 196abae
 - [X] T088 Analytics: AnalyticsService tracks 7 event types (search, autocomplete, filter, recommendation click, recently viewed click, match click, history clear), integrates with Google Analytics gtag.js, stores 1000 events in memory, console logging in dev - ✅ Commit e1c068b
@@ -510,7 +510,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
 - [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
 
-**Progress**: 13/24 tasks complete (T076-T080, T083-T084, T086-T089, T091-T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae, e1c068b, 154235f, e47130a
+**Progress**: 14/24 tasks complete (T076-T080, T083-T089, T091-T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae, e1c068b, 154235f, e47130a, d9dc2f6
 
-**Next Priority**: T085 (E2E tests) or T081 (advanced filters)
+**Next Priority**: T081 (advanced filters), T090 (A/B hooks), or T093-T099 (release prep)
 
