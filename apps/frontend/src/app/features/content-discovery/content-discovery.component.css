@@ -401,3 +401,59 @@ label {
     max-width: 150px;
   }
 }
+
+/* Virtual scroll viewport */
+.match-viewport {
+  height: 600px;
+  width: 100%;
+  overflow-y: auto;
+}
+
+.match-viewport .match-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.match-viewport .match-item {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 640px) {
+  .match-viewport {
+    height: 500px;
+  }
+}
+
+/* Lazy-loading image states */
+img.lazy-loading {
+  filter: blur(5px);
+  transition: filter 0.3s ease-out;
+}
+
+img.lazy-loaded {
+  filter: blur(0);
+  animation: fadeIn 0.3s ease-out;
+}
+
+img.lazy-error {
+  opacity: 0.5;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  img.lazy-loading,
+  img.lazy-loaded {
+    filter: none;
+    animation: none;
+    transition: none;
+  }
+}

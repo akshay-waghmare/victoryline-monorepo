@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { DiscoveryFilterService, MatchFilter } from './discovery-filter.service';
 import { MatchCardViewModel } from '../matches/models/match-card.models';
@@ -10,6 +10,7 @@ import { Router } from '@angular/router';
   selector: 'app-content-discovery',
   templateUrl: './content-discovery.component.html',
   styleUrls: ['./content-discovery.component.css'],
+  changeDetection: ChangeDetectionStrategy.Default, // Keep Default for WebSocket updates
   animations: [
     trigger('fadeIn', [
       transition(':enter', [
@@ -103,5 +104,13 @@ export class ContentDiscoveryComponent implements OnInit {
       this.historyService.clearHistory();
       this.loadRecentlyViewed();
     }
+  }
+
+  /**
+   * TrackBy function for *ngFor performance optimization
+   * Angular will only re-render items that have changed
+   */
+  trackByMatchId(index: number, match: MatchCardViewModel): string {
+    return match.id || index.toString();
   }
 }
