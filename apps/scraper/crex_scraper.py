@@ -901,13 +901,8 @@ def fetchData(url, context=None):
         except Exception as e:
             scraper_logger.error(f"Uncaught error: {e}", exc_info=True)
         finally:
-            # Flush any pending batched data before closing
-            try:
-                batch_service = cricket_data_service.get_batch_service()
-                batch_service.flush_all()
-                scraper_logger.info("Flushed all pending batched data")
-            except Exception as e:
-                scraper_logger.warning(f"Error flushing batched data: {e}")
+            # NOTE: Batched data flushing removed - using non-batched service
+            # No pending data to flush since we send immediately
             
             browser.close()
             scraper_logger.info("Browser closed.")
@@ -1232,9 +1227,9 @@ def observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_ret
                 try:
                     context.update_resource_usage()
                     scraper_logger.debug(
-                        f"Resource update: memory={context.memory_mb:.1f}MB, "
+                        f"Resource update: memory={context.memory_bytes / (1024 * 1024):.1f}MB, "
                         f"cpu={context.cpu_percent:.1f}%, "
-                        f"uptime={context.uptime_seconds()}s, "
+                        f"uptime={context.uptime_seconds}s, "
                         f"errors={context.error_count}"
                     )
                 except Exception as e:
