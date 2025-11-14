@@ -122,6 +122,99 @@
   font-size: 1rem;
 }
 
+/* Content Sections */
+.content-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.clear-btn {
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: transparent;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.clear-btn:hover {
+  background: #1976d2;
+  color: white;
+}
+
+/* Horizontal scroll for recently viewed */
+.match-list.horizontal {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ddd transparent;
+  padding-bottom: 8px;
+}
+
+.match-list.horizontal::-webkit-scrollbar {
+  height: 6px;
+}
+
+.match-list.horizontal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.match-list.horizontal::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+.match-item.compact {
+  min-width: 180px;
+  max-width: 180px;
+  padding: 10px;
+  cursor: pointer;
+}
+
+.teams-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.teams-compact .team-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.vs-small {
+  font-size: 0.75rem;
+  color: #999;
+}
+
+/* Clickable match items */
+.match-item {
+  cursor: pointer;
+}
+
 /* Mobile responsive */
 @media (max-width: 640px) {
   .discovery-root {
@@ -136,5 +229,10 @@
   }
   .vs {
     align-self: center;
+  }
+  
+  .match-item.compact {
+    min-width: 150px;
+    max-width: 150px;
   }
 }
