@@ -498,7 +498,7 @@ All three can work in parallel since they're touching different files. Final int
 - [X] T086 Accessibility: ARIA labels (role='main', aria-labelledby, aria-live), keyboard nav (Tab/Enter/Space, :focus-visible), screen reader support (detailed aria-labels for scores), WCAG AA contrast (4.5:1 - updated status colors in _variables.css) - ✅ Commit caafda1
 - [X] T087 Performance: CDK Virtual Scroll for All Matches (cdk-virtual-scroll-viewport, 140px items, 600px viewport), LazyLoadDirective (Intersection Observer, 200px buffer, fade-in animation), trackBy functions (trackByMatchId for *ngFor optimization) - ✅ Commit 196abae
 - [X] T088 Analytics: AnalyticsService tracks 7 event types (search, autocomplete, filter, recommendation click, recently viewed click, match click, history clear), integrates with Google Analytics gtag.js, stores 1000 events in memory, console logging in dev - ✅ Commit e1c068b
-- [ ] T089 Offline support: IndexedDB for recent searches, service worker caching for results
+- [X] T089 Offline support: OfflineCacheService with IndexedDB (2 stores: searches + matches, 24h expiry, 50 search limit), NetworkStatusService monitors online/offline state + connection quality (Network Info API), ContentDiscoveryComponent falls back to cache when offline, offline/cached data UI banners with slide-down animation, service worker config (ngsw-config.json) for asset + API caching - ✅ Commit 154235f
 - [ ] T090 A/B experiment: Scaffold hooks for testing recommendation layouts
 - [X] T091 UI polish: Skeleton loading cards (MatchSkeletonComponent with pulse animation), empty states with SVG icons (EmptyStateComponent: no-results/no-history/no-recommendations), smooth animations (fadeIn trigger 300ms), ripple touch feedback (::before pseudo-element on :active), smooth scroll (scroll-behavior: smooth, -webkit-overflow-scrolling: touch), hover effects (translateY with shadow) - ✅ Commit d0505fb
 - [X] T092 Integration: Wire DiscoveryFilterService to MatchesService, real match data (30s cache), enhanced UI with scores/status badges - apps/frontend/src/app/features/content-discovery/* - ✅ Commit 9cae56a
@@ -510,7 +510,7 @@ All three can work in parallel since they're touching different files. Final int
 - [ ] T098 Security review: XSS prevention in search, CSRF tokens for mutations, secure localStorage
 - [ ] T099 Merge & deploy: PR to main/master, deploy to staging, smoke tests, production deployment
 
-**Progress**: 11/24 tasks complete (T076-T080, T083, T086-T088, T091-T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae, e1c068b
+**Progress**: 12/24 tasks complete (T076-T080, T083, T086-T089, T091-T092) ✅ Commits 30eaee3, 9cae56a, c6ea38e, caafda1, d0505fb, 196abae, e1c068b, 154235f
 
-**Next Priority**: T089 (offline support) or T084-T085 (testing)
+**Next Priority**: T090 (A/B experiment hooks) or T084-T085 (testing)
 
