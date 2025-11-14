@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { trigger, transition, style, animate } from '@angular/animations';
 import { DiscoveryFilterService, MatchFilter } from './discovery-filter.service';
 import { MatchCardViewModel } from '../matches/models/match-card.models';
 import { MatchHistoryService } from './match-history.service';
@@ -8,7 +9,15 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-content-discovery',
   templateUrl: './content-discovery.component.html',
-  styleUrls: ['./content-discovery.component.css']
+  styleUrls: ['./content-discovery.component.css'],
+  animations: [
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate('300ms ease-out', style({ opacity: 1, transform: 'translateY(0)' }))
+      ])
+    ])
+  ]
 })
 export class ContentDiscoveryComponent implements OnInit {
   filters: MatchFilter = { type: 'all', league: null, dateRange: null };

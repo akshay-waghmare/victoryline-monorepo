@@ -165,6 +165,8 @@
   scrollbar-width: thin;
   scrollbar-color: #ddd transparent;
   padding-bottom: 8px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .match-list.horizontal::-webkit-scrollbar {
@@ -178,13 +180,11 @@
 .match-list.horizontal::-webkit-scrollbar-thumb {
   background: #ddd;
   border-radius: 3px;
+  transition: background 0.2s;
 }
 
-.match-item.compact {
-  min-width: 180px;
-  max-width: 180px;
-  padding: 10px;
-  cursor: pointer;
+.match-list.horizontal::-webkit-scrollbar-thumb:hover {
+  background: #bbb;
 }
 
 .teams-compact {
@@ -214,11 +214,36 @@
 .match-item {
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.match-item::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(25, 118, 210, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.match-item:active::before {
+  width: 200%;
+  height: 200%;
 }
 
 .match-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.match-item:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .match-item:focus {
@@ -233,6 +258,28 @@
 .match-item:focus-visible {
   outline: 2px solid #1976d2;
   outline-offset: 2px;
+}
+
+/* Compact items - smaller ripple */
+.match-item.compact {
+  min-width: 180px;
+  max-width: 180px;
+  padding: 10px;
+}
+
+.match-item.compact:hover {
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-item,
+  .match-item::before {
+    transition: none;
+  }
+  
+  .match-item:hover {
+    transform: none;
+  }
 }
 
 /* Clear button accessibility */

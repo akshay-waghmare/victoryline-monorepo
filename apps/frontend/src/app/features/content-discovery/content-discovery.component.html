@@ -30,19 +30,30 @@
   <!-- Recently Viewed Section -->
   <section 
     class="content-section" 
-    *ngIf="recentlyViewed.length > 0"
+    *ngIf="recentlyViewed.length > 0 || showRecentSection"
     aria-labelledby="recently-viewed-heading">
     <div class="section-header">
       <h2 id="recently-viewed-heading">Recently Viewed</h2>
       <button 
         class="clear-btn" 
+        *ngIf="recentlyViewed.length > 0"
         (click)="clearHistory()"
         aria-label="Clear recently viewed matches history">
         Clear
       </button>
     </div>
+    
+    <!-- Loading state -->
+    <ul class="match-list horizontal" *ngIf="loading && recentlyViewed.length === 0">
+      <li *ngFor="let i of [1,2,3]">
+        <app-match-skeleton [compact]="true"></app-match-skeleton>
+      </li>
+    </ul>
+    
+    <!-- Loaded state -->
     <ul 
       class="match-list horizontal" 
+      *ngIf="!loading && recentlyViewed.length > 0"
       role="list"
       aria-label="Recently viewed matches"
       tabindex="0">
@@ -54,7 +65,8 @@
         (keydown.space)="onMatchClick(m); $event.preventDefault()"
         role="listitem"
         tabindex="0"
-        [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus">
+        [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus"
+        [@fadeIn]>
         <div class="match-header">
           <span class="status-badge" [style.background-color]="m.statusColor" role="status">{{m.displayStatus}}</span>
         </div>
@@ -65,17 +77,34 @@
         </div>
       </li>
     </ul>
+    
+    <!-- Empty state -->
+    <app-empty-state
+      *ngIf="!loading && recentlyViewed.length === 0"
+      type="no-history"
+      title="No viewing history yet"
+      message="Start exploring matches to see your recently viewed content here">
+    </app-empty-state>
   </section>
 
   <!-- Recommended Section -->
   <section 
     class="content-section" 
-    *ngIf="recommended.length > 0"
+    *ngIf="recommended.length > 0 || showRecommendedSection"
     aria-labelledby="recommended-heading">
     <div class="section-header">
       <h2 id="recommended-heading">Recommended for You</h2>
     </div>
-    <ul class="match-list" role="list" aria-label="Recommended matches based on your viewing history">
+    
+    <!-- Loading state -->
+    <ul class="match-list" *ngIf="loading && recommended.length === 0">
+      <li *ngFor="let i of [1,2,3]">
+        <app-match-skeleton></app-match-skeleton>
+      </li>
+    </ul>
+    
+    <!-- Loaded state -->
+    <ul class="match-list" *ngIf="!loading && recommended.length > 0" role="list" aria-label="Recommended matches based on your viewing history">
       <li 
         *ngFor="let m of recommended" 
         class="match-item" 
@@ -85,7 +114,8 @@
         (keydown.space)="onMatchClick(m); $event.preventDefault()"
         role="listitem"
         tabindex="0"
-        [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus + ', ' + m.venue">
+        [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus + ', ' + m.venue"
+        [@fadeIn]>
         <div class="match-header">
           <span class="status-badge" [style.background-color]="m.statusColor" role="status">{{m.displayStatus}}</span>
           <span class="venue">{{m.venue}}</span>
@@ -110,6 +140,14 @@
         </div>
       </li>
     </ul>
+    
+    <!-- Empty state -->
+    <app-empty-state
+      *ngIf="!loading && recommended.length === 0"
+      type="no-recommendations"
+      title="No recommendations yet"
+      message="View a few matches to get personalized recommendations">
+    </app-empty-state>
   </section>
 
   <!-- All Matches Section -->
@@ -121,9 +159,15 @@
     </div>
     
     <div class="results" *ngIf="!loading">
-      <div *ngIf="matches.length === 0" class="empty" role="status" aria-live="polite">
-        No matches found
-      </div>
+      <!-- Empty state -->
+      <app-empty-state
+        *ngIf="matches.length === 0"
+        type="no-results"
+        title="No matches found"
+        message="Try adjusting your filters or search query">
+      </app-empty-state>
+      
+      <!-- Loaded matches -->
       <ul class="match-list" role="list" aria-label="All available matches" *ngIf="matches.length > 0">
         <li 
           *ngFor="let m of matches" 
@@ -134,7 +178,8 @@
           (keydown.space)="onMatchClick(m); $event.preventDefault()"
           role="listitem"
           tabindex="0"
-          [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus + ', ' + m.venue">
+          [attr.aria-label]="m.team1?.name + ' vs ' + m.team2?.name + ', ' + m.displayStatus + ', ' + m.venue"
+          [@fadeIn]>
           <div class="match-header">
             <span class="status-badge" [style.background-color]="m.statusColor" role="status">{{m.displayStatus}}</span>
             <span class="venue">{{m.venue}}</span>
@@ -161,8 +206,13 @@
       </ul>
     </div>
 
-    <div class="loading" *ngIf="loading" role="status" aria-live="polite" aria-label="Loading matches">
-      Loading matches…
+    <!-- Loading state -->
+    <div *ngIf="loading">
+      <ul class="match-list">
+        <li *ngFor="let i of [1,2,3,4,5]">
+          <app-match-skeleton></app-match-skeleton>
+        </li>
+      </ul>
     </div>
   </section>
 </div>
