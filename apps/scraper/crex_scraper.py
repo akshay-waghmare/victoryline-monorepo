@@ -8,7 +8,7 @@ import concurrent.futures
 import threading
 import requests
 # Use batched version for better performance
-import cricket_data_service_batched as cricket_data_service
+import cricket_data_service
 from playwright.sync_api import sync_playwright
 import json
 import logging
