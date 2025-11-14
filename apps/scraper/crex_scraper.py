@@ -911,8 +911,10 @@ def fetchData(url, context=None):
             
             browser.close()
             scraper_logger.info("Browser closed.")
-            executor.shutdown(wait=True)
-            scraper_logger.info("ThreadPoolExecutor shutdown completed.")
+            # NOTE: Do NOT shutdown the global executor here - it's shared across all scraper instances
+            # The executor will be cleaned up when the Flask app shuts down
+            # executor.shutdown(wait=True)
+            # scraper_logger.info("ThreadPoolExecutor shutdown completed.")
 
 def search_and_click_odds_button(page):
     """
