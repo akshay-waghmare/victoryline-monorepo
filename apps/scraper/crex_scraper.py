@@ -981,6 +981,8 @@ def observeTextChanges(page, isButtonFoundFlag, token, url, retry_count, max_ret
                     f"memory_mb={context.memory_bytes / (1024 * 1024):.1f}, "
                     f"errors={context.error_count}"
                 )
+                # Request restart so _finalize_context will automatically restart the scraper
+                context.request_restart(reason=context.restart_reason or "automatic_lifetime_restart")
                 running = False
                 break
             
