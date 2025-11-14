@@ -18,6 +18,17 @@
 crickzen.com, www.crickzen.com {
   encode gzip
   
+  # Ghost CMS Admin Panel - proxy to Ghost container
+  @ghost_admin {
+    path /ghost/* /ghost
+  }
+  reverse_proxy @ghost_admin ghost:2368 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
   # SEO endpoints - proxy to backend
   # These are critical for search engine indexing
   @seo {

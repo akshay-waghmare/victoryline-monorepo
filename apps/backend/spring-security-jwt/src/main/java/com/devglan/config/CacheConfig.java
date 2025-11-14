@@ -29,10 +29,17 @@ public class CacheConfig {
                 )
                 .disableCachingNullValues();
 
+        RedisCacheConfiguration blogListConfig = config.entryTtl(Duration.ofMinutes(5));
+        RedisCacheConfiguration blogPostConfig = config.entryTtl(Duration.ofMinutes(10));
+        
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
-                .withCacheConfiguration("blog_list", config.entryTtl(Duration.ofMinutes(5)))
-                .withCacheConfiguration("blog_post", config.entryTtl(Duration.ofMinutes(10)))
+                .withInitialCacheConfigurations(
+                        java.util.Map.of(
+                                "blog_list", blogListConfig,
+                                "blog_post", blogPostConfig
+                        )
+                )
                 .build();
     }
 }

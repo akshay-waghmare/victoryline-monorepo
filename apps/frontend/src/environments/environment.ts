@@ -16,8 +16,8 @@ export const environment = {
   apiUrl: '/api',
   REST_API_URL: '/api/',
   REST_API_SCRAPING_URL: '/api/',
-  strapiApiUrl: 'http://localhost:1337/api',
-  strapiMediaUrl: 'http://localhost:1337'
+  ghostApiUrl: 'http://localhost:2368/ghost/api/content',
+  ghostApiKey: '17e5c1d7e5d34f09d1a9879db8'
 };
 
 /*

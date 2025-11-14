@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS live_event (
     event_type VARCHAR(16) NOT NULL,
     over_label VARCHAR(8) NULL,
     innings_label VARCHAR(8) NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_live_event_match_time (match_id, created_at DESC)
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create index separately for H2 compatibility
+CREATE INDEX IF NOT EXISTS idx_live_event_match_time ON live_event(match_id, created_at DESC);

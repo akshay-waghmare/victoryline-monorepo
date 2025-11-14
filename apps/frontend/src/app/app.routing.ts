@@ -10,6 +10,10 @@ import { RouterModule, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
+    path: 'blog',
+    loadChildren: './blog/blog.module#BlogModule'
+  },
+  {
     path: 'live/matches/:matchId',
     component: LiveMatchComponent
   },

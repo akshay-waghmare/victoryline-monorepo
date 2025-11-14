@@ -201,7 +201,7 @@ export class BlogSeoService {
         '@id': this.getCurrentUrl()
       },
       'articleSection': article.section || 'Cricket News',
-      'keywords': article.keywords?.join(', ') || ''
+      'keywords': article.keywords && article.keywords.join(', ') || ''
     };
 
     this.setJsonLd(jsonLd);

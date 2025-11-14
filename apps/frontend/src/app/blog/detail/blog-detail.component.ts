@@ -2,9 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { BlogApiService } from '../blog-api.service';
+import { BlogApiService, BlogPost } from '../blog-api.service';
 import { BlogSeoService } from '../blog-seo.service';
-import { BlogPost } from '../blog.types';
 
 @Component({
   selector: 'app-blog-detail',
@@ -73,7 +72,7 @@ export class BlogDetailComponent implements OnInit, OnDestroy {
     this.seoService.setTitle(`${post.title} | Cricket Blog`);
 
     // Set meta description
-    this.seoService.setMetaDescription(post.excerpt || post.metaDescription || '');
+    this.seoService.setMetaDescription(post.excerpt || post.seoDescription || '');
 
     // Set canonical URL
     this.seoService.setCanonicalUrl(`/blog/${post.slug}`);
@@ -83,10 +82,10 @@ export class BlogDetailComponent implements OnInit, OnDestroy {
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
       'headline': post.title,
-      'description': post.excerpt || post.metaDescription,
+      'description': post.excerpt || post.seoDescription,
       'image': post.ogImageUrl || '',
       'datePublished': post.publishedAt,
-      'dateModified': post.updatedAt || post.publishedAt,
+      'dateModified': post.publishedAt,
       'author': {
         '@type': 'Organization',
         'name': 'Crickzen'
@@ -104,14 +103,14 @@ export class BlogDetailComponent implements OnInit, OnDestroy {
     // Set Open Graph tags
     this.seoService.setMetaTag('og:type', 'article');
     this.seoService.setMetaTag('og:title', post.title);
-    this.seoService.setMetaTag('og:description', post.excerpt || post.metaDescription || '');
+    this.seoService.setMetaTag('og:description', post.excerpt || post.seoDescription || '');
     this.seoService.setMetaTag('og:image', post.ogImageUrl || '');
     this.seoService.setMetaTag('og:url', `https://yourdomain.com/blog/${post.slug}`);
 
     // Set Twitter Card tags
     this.seoService.setMetaTag('twitter:card', 'summary_large_image');
     this.seoService.setMetaTag('twitter:title', post.title);
-    this.seoService.setMetaTag('twitter:description', post.excerpt || post.metaDescription || '');
+    this.seoService.setMetaTag('twitter:description', post.excerpt || post.seoDescription || '');
     this.seoService.setMetaTag('twitter:image', post.ogImageUrl || '');
 
     // Set article tags
@@ -145,10 +144,19 @@ export class BlogDetailComponent implements OnInit, OnDestroy {
   copyLink(): void {
     if (!this.post) return;
     const url = `https://yourdomain.com/blog/${this.post.slug}`;
-    navigator.clipboard.writeText(url).then(() => {
+    // Create temporary textarea for copying
+    const textarea = document.createElement('textarea');
+    textarea.value = url;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
       alert('Link copied to clipboard!');
-    }).catch(err => {
+    } catch (err) {
       console.error('Failed to copy link:', err);
-    });
+    }
+    document.body.removeChild(textarea);
   }
 }

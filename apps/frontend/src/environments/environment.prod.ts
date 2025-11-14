@@ -9,5 +9,8 @@ export const environment = {
   // All API calls go through Nginx proxy at /api
   apiUrl: '/api',
   REST_API_URL: '/api/',
-  REST_API_SCRAPING_URL: '/api/'
+  REST_API_SCRAPING_URL: '/api/',
+  // Ghost CMS API through Caddy proxy
+  ghostApiUrl: `${window.location.origin}/ghost/api/content`,
+  ghostApiKey: '' // Set via environment variable or build-time config
 };

@@ -16,11 +16,15 @@ COPY . .
 
 # Build the application
 RUN npm run build \
+ && ls -la /app/dist/ \
  && mkdir -p prerender \
  && BACKEND_URL=${BACKEND_URL:-http://host.docker.internal:8099} npm run prerender || echo "Prerender failed or backend unavailable, continuing with fallback"
 
 # Stage 2: Serve the application with Nginx
 FROM nginx:alpine
+
+# Add build arg to bust cache
+ARG CACHEBUST=1
 
 # Copy built application from build stage
 COPY --from=build /app/dist/id-card-app /usr/share/nginx/html

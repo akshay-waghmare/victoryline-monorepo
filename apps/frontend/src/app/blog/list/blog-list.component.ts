@@ -40,7 +40,11 @@ export class BlogListComponent implements OnInit {
         this.loading = false;
       },
       (error) => {
-        this.error = 'Failed to load blog posts. Please try again later.';
+        if (error.status === 0) {
+          this.error = 'Blog CMS is not running. Please start Strapi CMS at localhost:1337 or configure mock data.';
+        } else {
+          this.error = 'Failed to load blog posts. Please try again later.';
+        }
         this.loading = false;
         console.error('Blog list error:', error);
       }

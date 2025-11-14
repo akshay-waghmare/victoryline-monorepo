@@ -160,6 +160,25 @@ services:
     networks:
       - victoryline-network
 
+  # Ghost CMS for Blog
+  ghost:
+    image: ghost:latest
+    container_name: victoryline-ghost
+    restart: unless-stopped
+    environment:
+      url: "${GHOST_URL:-https://yourdomain.com}"
+      NODE_ENV: production
+    volumes:
+      - ghost_data:/var/lib/ghost/content
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2368"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
 networks:
   victoryline-network:
     driver: bridge
@@ -176,4 +195,6 @@ volumes:
   caddy_data:
     driver: local
   caddy_config:
+    driver: local
+  ghost_data:
     driver: local
