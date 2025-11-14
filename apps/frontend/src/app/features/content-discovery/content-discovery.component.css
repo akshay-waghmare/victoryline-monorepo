@@ -1,15 +1,12 @@
 .discovery-root {
   padding: 12px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 .discovery-header h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.25rem;
-}
-.search-row input[type="search"] {
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
+  margin: 0 0 12px 0;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 .filters-row {
   display: flex;
@@ -17,12 +14,24 @@
   align-items: center;
   margin: 12px 0;
 }
+.filters-row select {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  font-size: 0.95rem;
+}
 .apply-btn {
-  padding: 8px 12px;
+  padding: 8px 16px;
   border-radius: 6px;
   background: var(--primary-color, #1976d2);
   color: white;
   border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.apply-btn:hover {
+  background: var(--primary-dark, #1565c0);
 }
 .match-list {
   list-style: none;
@@ -30,14 +39,102 @@
   margin: 0;
 }
 .match-item {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: white;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
-.match-item .title {
+.match-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+.match-item.live {
+  border-left: 4px solid #4caf50;
+}
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 600;
+  color: white;
+  text-transform: uppercase;
 }
-.match-item .meta {
+.venue {
   font-size: 0.85rem;
   color: #666;
 }
-.empty { color: #777; padding: 8px 0; }
+.teams {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+}
+.team {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.team-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+.score {
+  font-size: 0.9rem;
+  color: #333;
+  font-family: 'Courier New', monospace;
+}
+.vs {
+  font-size: 0.85rem;
+  color: #999;
+  font-weight: 500;
+}
+.match-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+.time-display {
+  font-size: 0.85rem;
+  color: #666;
+}
+.empty { 
+  color: #777; 
+  padding: 24px; 
+  text-align: center;
+  font-size: 1rem;
+}
+.loading {
+  text-align: center;
+  padding: 24px;
+  color: #999;
+  font-size: 1rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .discovery-root {
+    padding: 8px;
+  }
+  .teams {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .team {
+    width: 100%;
+  }
+  .vs {
+    align-self: center;
+  }
+}

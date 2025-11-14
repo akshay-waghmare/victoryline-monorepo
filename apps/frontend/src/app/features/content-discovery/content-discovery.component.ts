@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { DiscoveryFilterService, MatchFilter } from './discovery-filter.service';
+import { MatchCardViewModel } from '../matches/models/match-card.models';
 
 @Component({
   selector: 'app-content-discovery',
@@ -8,7 +9,7 @@ import { DiscoveryFilterService, MatchFilter } from './discovery-filter.service'
 })
 export class ContentDiscoveryComponent implements OnInit {
   filters: MatchFilter = { type: 'all', league: null, dateRange: null };
-  matches: any[] = [];
+  matches: MatchCardViewModel[] = [];
   loading = false;
 
   constructor(private discoveryService: DiscoveryFilterService) {}
@@ -19,7 +20,7 @@ export class ContentDiscoveryComponent implements OnInit {
 
   loadInitial() {
     this.loading = true;
-    // Use the discovery service to fetch initial matches (stubbed)
+    // Use the discovery service to fetch initial matches (now using real MatchesService data)
     this.discoveryService.getInitialMatches().then(result => {
       this.matches = result;
       this.loading = false;
@@ -43,7 +44,7 @@ export class ContentDiscoveryComponent implements OnInit {
     }).catch(() => this.loading = false);
   }
 
-  onSuggestionSelected(item: any) {
+  onSuggestionSelected(item: MatchCardViewModel) {
     // When user selects an autocomplete suggestion, show that match
     this.matches = [item];
     // In a real app, navigate to match details or show full info

@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
+import { MatchesService } from '../matches/services/matches.service';
+import { MatchCardViewModel, MatchStatus } from '../matches/models/match-card.models';
 
 export interface MatchFilter {
   type: 'all' | 'live' | 'upcoming' | 'completed';
@@ -8,45 +12,94 @@ export interface MatchFilter {
 
 @Injectable({ providedIn: 'root' })
 export class DiscoveryFilterService {
-  // Stubbed dataset for initial development. Replace with MatchesService integration.
-  private STUB_MATCHES = [
-    { id: 'm1', title: 'Ind vs Aus', status: 'live', league: 'IPL', startsAt: '2025-11-14T09:00:00Z' },
-    { id: 'm2', title: 'Eng vs NZ', status: 'upcoming', league: 'Test', startsAt: '2025-11-16T09:00:00Z' },
-    { id: 'm3', title: 'SL vs PAK', status: 'completed', league: 'ODI', startsAt: '2025-11-12T09:00:00Z' }
-  ];
+  private cachedMatches: MatchCardViewModel[] = [];
+  private lastFetchTime: number = 0;
+  private CACHE_TTL = 30000; // 30 seconds cache (matches auto-refresh interval)
 
-  constructor() {}
+  constructor(private matchesService: MatchesService) {}
 
-  getInitialMatches(): Promise<any[]> {
-    // Simulate async fetch
-    return new Promise(resolve => setTimeout(() => resolve(this.STUB_MATCHES.slice()), 200));
+  getInitialMatches(): Promise<MatchCardViewModel[]> {
+    return this.fetchMatches();
   }
 
-  filterMatches(filter: MatchFilter): Promise<any[]> {
-    return new Promise(resolve => {
-      const result = this.STUB_MATCHES.filter(m => {
+  private fetchMatches(): Promise<MatchCardViewModel[]> {
+    const now = Date.now();
+    
+    // Return cached data if still fresh
+    if (this.cachedMatches.length > 0 && (now - this.lastFetchTime) < this.CACHE_TTL) {
+      return Promise.resolve(this.cachedMatches);
+    }
+
+    // Fetch live matches from MatchesService
+    return this.matchesService.getLiveMatches().pipe(
+      map((matches: MatchCardViewModel[]) => {
+        this.cachedMatches = matches;
+        this.lastFetchTime = now;
+        return matches;
+      }),
+      catchError(error => {
+        console.error('Error fetching matches:', error);
+        return Promise.resolve([]);
+      })
+    ).toPromise();
+  }
+
+  filterMatches(filter: MatchFilter): Promise<MatchCardViewModel[]> {
+    return this.fetchMatches().then(matches => {
+      return matches.filter(m => {
+        // Filter by type (all/live/upcoming/completed)
         if (filter.type && filter.type !== 'all') {
-          if (filter.type === 'live' && m.status !== 'live') { return false; }
-          if (filter.type === 'upcoming' && m.status !== 'upcoming') { return false; }
-          if (filter.type === 'completed' && m.status !== 'completed') { return false; }
+          if (filter.type === 'live') {
+            if (m.status !== MatchStatus.LIVE && m.status !== MatchStatus.INNINGS_BREAK) {
+              return false;
+            }
+          } else if (filter.type === 'upcoming') {
+            if (m.status !== MatchStatus.UPCOMING) {
+              return false;
+            }
+          } else if (filter.type === 'completed') {
+            if (m.status !== MatchStatus.COMPLETED) {
+              return false;
+            }
+          }
         }
-        if (filter.league && filter.league.length > 0 && m.league !== filter.league) { return false; }
-        // dateRange handling omitted for stub
+
+        // Filter by league/tournament (venue field contains tournament info)
+        if (filter.league && filter.league.length > 0) {
+          const venueLower = (m.venue || '').toLowerCase();
+          const leagueLower = filter.league.toLowerCase();
+          if (!venueLower.includes(leagueLower)) {
+            return false;
+          }
+        }
+
+        // Date range filtering (future enhancement)
+        // if (filter.dateRange) { ... }
+
         return true;
       });
-      setTimeout(() => resolve(result), 150);
     });
   }
 
-  search(query: string): Promise<any[]> {
+  search(query: string): Promise<MatchCardViewModel[]> {
     const q = (query || '').toLowerCase();
-    return new Promise(resolve => setTimeout(() => resolve(this.STUB_MATCHES.filter(m => m.title.toLowerCase().includes(q))), 120));
+    return this.fetchMatches().then(matches => {
+      return matches.filter(m => {
+        const team1Name = (m.team1?.name || '').toLowerCase();
+        const team2Name = (m.team2?.name || '').toLowerCase();
+        const venue = (m.venue || '').toLowerCase();
+        
+        return team1Name.includes(q) || 
+               team2Name.includes(q) || 
+               venue.includes(q);
+      });
+    });
   }
 
   // New method for autocomplete suggestions with cached results
-  private cachedSuggestions = new Map<string, any[]>();
+  private cachedSuggestions = new Map<string, MatchCardViewModel[]>();
 
-  searchWithSuggestions(query: string): Promise<any[]> {
+  searchWithSuggestions(query: string): Promise<MatchCardViewModel[]> {
     const q = (query || '').toLowerCase();
     
     // Check cache first
@@ -54,20 +107,17 @@ export class DiscoveryFilterService {
       return Promise.resolve(this.cachedSuggestions.get(q)!);
     }
 
-    // Simulate async search with suggestions
-    return new Promise(resolve => {
-      const results = this.STUB_MATCHES.filter(m => 
-        m.title.toLowerCase().includes(q) || 
-        (m.league && m.league.toLowerCase().includes(q))
-      ).slice(0, 5); // Limit to top 5 suggestions
+    // Search matches
+    return this.search(query).then(results => {
+      const topResults = results.slice(0, 5); // Limit to top 5 suggestions
       
       // Cache the result
-      this.cachedSuggestions.set(q, results);
+      this.cachedSuggestions.set(q, topResults);
       
       // Clear cache after 5 minutes to avoid stale data
       setTimeout(() => this.cachedSuggestions.delete(q), 5 * 60 * 1000);
       
-      setTimeout(() => resolve(results), 120);
+      return topResults;
     });
   }
 }

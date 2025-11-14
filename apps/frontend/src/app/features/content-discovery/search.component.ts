@@ -2,6 +2,7 @@ import { Component, Output, EventEmitter, OnDestroy } from '@angular/core';
 import { Subject, Subscription } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { DiscoveryFilterService } from './discovery-filter.service';
+import { MatchCardViewModel } from '../matches/models/match-card.models';
 
 @Component({
   selector: 'app-search',
@@ -33,8 +34,10 @@ import { DiscoveryFilterService } from './discovery-filter.service';
           [attr.aria-selected]="selectedIndex === i"
           tabindex="-1"
         >
-          <span class="suggestion-title">{{ s.title }}</span>
-          <span class="suggestion-meta">{{ s.league || s.type }}</span>
+          <div class="suggestion-content">
+            <span class="suggestion-title">{{s.team1?.name}} vs {{s.team2?.name}}</span>
+            <span class="suggestion-meta">{{s.venue}} • {{s.displayStatus}}</span>
+          </div>
         </li>
       </ul>
       <div *ngIf="loading" class="search-loading">Searching...</div>
@@ -87,6 +90,12 @@ import { DiscoveryFilterService } from './discovery-filter.service';
     .suggestion-item[aria-selected="true"] {
       background: #f5f5f5;
     }
+    .suggestion-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+    }
     .suggestion-title {
       font-weight: 500;
       color: #333;
@@ -106,10 +115,10 @@ import { DiscoveryFilterService } from './discovery-filter.service';
 })
 export class SearchComponent implements OnDestroy {
   @Output() search = new EventEmitter<string>();
-  @Output() suggestionSelected = new EventEmitter<any>();
+  @Output() suggestionSelected = new EventEmitter<MatchCardViewModel>();
 
   query = '';
-  suggestions: any[] = [];
+  suggestions: MatchCardViewModel[] = [];
   showSuggestions = false;
   loading = false;
   selectedIndex = -1;
@@ -147,11 +156,11 @@ export class SearchComponent implements OnDestroy {
     this.searchSubject.next(value);
   }
 
-  selectSuggestion(item: any) {
-    this.query = item.title;
+  selectSuggestion(item: MatchCardViewModel) {
+    this.query = `${item.team1?.name} vs ${item.team2?.name}`;
     this.showSuggestions = false;
     this.suggestionSelected.emit(item);
-    this.search.emit(item.title);
+    this.search.emit(this.query);
   }
 
   onBlur() {

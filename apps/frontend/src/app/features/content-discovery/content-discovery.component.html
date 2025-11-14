@@ -9,25 +9,41 @@
 
   <div class="filters-row">
     <label>
-      <select [(ngModel)]="filters.type">
+      <select [(ngModel)]="filters.type" (change)="applyFilters()">
         <option value="all">All</option>
         <option value="live">Live</option>
         <option value="upcoming">Upcoming</option>
         <option value="completed">Completed</option>
       </select>
     </label>
-    <button (click)="applyFilters()" class="apply-btn">Apply</button>
+    <button (click)="applyFilters()" class="apply-btn">Apply Filters</button>
   </div>
 
   <div class="results" *ngIf="!loading">
     <div *ngIf="matches.length === 0" class="empty">No matches found</div>
     <ul class="match-list">
-      <li *ngFor="let m of matches" class="match-item">
-        <div class="title">{{m.title}}</div>
-        <div class="meta">{{m.league}} • {{m.status}}</div>
+      <li *ngFor="let m of matches" class="match-item" [class.live]="m.isLive">
+        <div class="match-header">
+          <span class="status-badge" [style.background-color]="m.statusColor">{{m.displayStatus}}</span>
+          <span class="venue">{{m.venue}}</span>
+        </div>
+        <div class="teams">
+          <div class="team">
+            <span class="team-name">{{m.team1?.name || 'Team 1'}}</span>
+            <span class="score" *ngIf="m.team1?.score">{{m.team1.score.runs}}/{{m.team1.score.wickets}} ({{m.team1.score.overs}})</span>
+          </div>
+          <div class="vs">vs</div>
+          <div class="team">
+            <span class="team-name">{{m.team2?.name || 'Team 2'}}</span>
+            <span class="score" *ngIf="m.team2?.score">{{m.team2.score.runs}}/{{m.team2.score.wickets}} ({{m.team2.score.overs}})</span>
+          </div>
+        </div>
+        <div class="match-footer">
+          <span class="time-display">{{m.timeDisplay}}</span>
+        </div>
       </li>
     </ul>
   </div>
 
-  <div class="loading" *ngIf="loading">Loading…</div>
+  <div class="loading" *ngIf="loading">Loading matches…</div>
 </div>
