@@ -51,19 +51,19 @@ describe('ContentDiscoveryComponent', () => {
     onlineSubject = new BehaviorSubject<boolean>(true);
 
     // Create mock services
-    mockDiscoveryService = jasmine.createSpyObj('DiscoveryFilterService', 
+    mockDiscoveryService = jasmine.createSpyObj('DiscoveryFilterService',
       ['getInitialMatches', 'filterMatches', 'search']);
-    mockHistoryService = jasmine.createSpyObj('MatchHistoryService', 
+    mockHistoryService = jasmine.createSpyObj('MatchHistoryService',
       ['getRecentlyViewed', 'recordMatchView', 'clearHistory']);
-    mockRecommendationService = jasmine.createSpyObj('RecommendationService', 
+    mockRecommendationService = jasmine.createSpyObj('RecommendationService',
       ['getRecommendations']);
-    mockAnalyticsService = jasmine.createSpyObj('AnalyticsService', 
-      ['trackSearch', 'trackFilterChange', 'trackAutocompleteSelection', 
-       'trackRecommendationClick', 'trackRecentlyViewedClick', 'trackMatchClick', 
+    mockAnalyticsService = jasmine.createSpyObj('AnalyticsService',
+      ['trackSearch', 'trackFilterChange', 'trackAutocompleteSelection',
+       'trackRecommendationClick', 'trackRecentlyViewedClick', 'trackMatchClick',
        'trackHistoryClear']);
-    mockOfflineCacheService = jasmine.createSpyObj('OfflineCacheService', 
+    mockOfflineCacheService = jasmine.createSpyObj('OfflineCacheService',
       ['cacheSearchResults', 'getCachedSearchResults']);
-    mockNetworkStatusService = jasmine.createSpyObj('NetworkStatusService', 
+    mockNetworkStatusService = jasmine.createSpyObj('NetworkStatusService',
       ['isOnline']);
     mockRouter = jasmine.createSpyObj('Router', ['navigate']);
 
@@ -111,14 +111,14 @@ describe('ContentDiscoveryComponent', () => {
     it('should load initial matches on ngOnInit', async () => {
       fixture.detectChanges(); // Triggers ngOnInit
       await fixture.whenStable();
-      
+
       expect(mockDiscoveryService.getInitialMatches).toHaveBeenCalled();
       expect(component.matches.length).toBe(2);
     });
 
     it('should load recently viewed on ngOnInit', () => {
       fixture.detectChanges();
-      
+
       expect(mockHistoryService.getRecentlyViewed).toHaveBeenCalledWith(5);
       expect(component.recentlyViewed.length).toBe(1);
     });
@@ -126,7 +126,7 @@ describe('ContentDiscoveryComponent', () => {
     it('should load recommendations after initial matches', async () => {
       fixture.detectChanges();
       await fixture.whenStable();
-      
+
       expect(mockRecommendationService.getRecommendations).toHaveBeenCalledWith(mockMatches, 5);
       expect(component.recommended.length).toBe(1);
     });
@@ -134,7 +134,7 @@ describe('ContentDiscoveryComponent', () => {
     it('should set loading to false after initial load', async () => {
       fixture.detectChanges();
       expect(component.loading).toBe(true);
-      
+
       await fixture.whenStable();
       expect(component.loading).toBe(false);
     });
@@ -150,7 +150,7 @@ describe('ContentDiscoveryComponent', () => {
       component.filters.type = 'live';
       component.applyFilters();
       await fixture.whenStable();
-      
+
       expect(mockDiscoveryService.filterMatches).toHaveBeenCalledWith(component.filters);
     });
 
@@ -158,7 +158,7 @@ describe('ContentDiscoveryComponent', () => {
       component.filters.type = 'upcoming';
       component.applyFilters();
       await fixture.whenStable();
-      
+
       expect(mockAnalyticsService.trackFilterChange).toHaveBeenCalledWith(
         'type', 'upcoming', mockMatches.length
       );
@@ -169,7 +169,7 @@ describe('ContentDiscoveryComponent', () => {
       component.filters.type = 'live';
       component.applyFilters();
       await fixture.whenStable();
-      
+
       expect(mockOfflineCacheService.cacheSearchResults).toHaveBeenCalled();
     });
 
@@ -188,14 +188,14 @@ describe('ContentDiscoveryComponent', () => {
     it('should search matches when query provided', async () => {
       component.onSearch('India');
       await fixture.whenStable();
-      
+
       expect(mockDiscoveryService.search).toHaveBeenCalledWith('India');
     });
 
     it('should track search with analytics', async () => {
       component.onSearch('Pakistan');
       await fixture.whenStable();
-      
+
       expect(mockAnalyticsService.trackSearch).toHaveBeenCalledWith('Pakistan', mockMatches.length);
     });
 
@@ -213,7 +213,7 @@ describe('ContentDiscoveryComponent', () => {
       component.isOnline = true;
       component.onSearch('test query');
       await fixture.whenStable();
-      
+
       expect(mockOfflineCacheService.cacheSearchResults).toHaveBeenCalled();
     });
   });
@@ -226,7 +226,7 @@ describe('ContentDiscoveryComponent', () => {
 
     it('should track match click from all matches section', () => {
       component.onMatchClick(mockMatches[0], 'all_matches');
-      
+
       expect(mockAnalyticsService.trackMatchClick).toHaveBeenCalledWith(
         'm1', 'India vs Pakistan', 'all_matches'
       );
@@ -234,7 +234,7 @@ describe('ContentDiscoveryComponent', () => {
 
     it('should track recently viewed click', () => {
       component.onMatchClick(mockMatches[0], 'recently_viewed', 0);
-      
+
       expect(mockAnalyticsService.trackRecentlyViewedClick).toHaveBeenCalledWith(
         'm1', 'India vs Pakistan', 0
       );
@@ -242,7 +242,7 @@ describe('ContentDiscoveryComponent', () => {
 
     it('should track recommendation click', () => {
       component.onMatchClick(mockMatches[1], 'recommended', 2);
-      
+
       expect(mockAnalyticsService.trackRecommendationClick).toHaveBeenCalledWith(
         'm2', 'England vs Australia', 2, undefined
       );
@@ -250,13 +250,13 @@ describe('ContentDiscoveryComponent', () => {
 
     it('should record match view in history', () => {
       component.onMatchClick(mockMatches[0], 'all_matches');
-      
+
       expect(mockHistoryService.recordMatchView).toHaveBeenCalledWith(mockMatches[0]);
     });
 
     it('should navigate to match details', () => {
       component.onMatchClick(mockMatches[0], 'all_matches');
-      
+
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/matches', 'm1']);
     });
   });
@@ -269,13 +269,13 @@ describe('ContentDiscoveryComponent', () => {
 
     it('should record view when suggestion selected', () => {
       component.onSuggestionSelected(mockMatches[0]);
-      
+
       expect(mockHistoryService.recordMatchView).toHaveBeenCalledWith(mockMatches[0]);
     });
 
     it('should track autocomplete selection', () => {
       component.onSuggestionSelected(mockMatches[0]);
-      
+
       expect(mockAnalyticsService.trackAutocompleteSelection).toHaveBeenCalledWith(
         'm1', 'India vs Pakistan', 0
       );
@@ -283,7 +283,7 @@ describe('ContentDiscoveryComponent', () => {
 
     it('should navigate to match', () => {
       component.onSuggestionSelected(mockMatches[0]);
-      
+
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/matches', 'm1']);
     });
   });
@@ -297,14 +297,14 @@ describe('ContentDiscoveryComponent', () => {
 
     it('should clear history when clearHistory() called', () => {
       component.clearHistory();
-      
+
       expect(mockHistoryService.clearHistory).toHaveBeenCalled();
       expect(component.recentlyViewed.length).toBe(0);
     });
 
     it('should track history clear with item count', () => {
       component.clearHistory();
-      
+
       expect(mockAnalyticsService.trackHistoryClear).toHaveBeenCalledWith(2);
     });
   });
@@ -318,24 +318,24 @@ describe('ContentDiscoveryComponent', () => {
     it('should detect when offline', () => {
       onlineSubject.next(false);
       fixture.detectChanges();
-      
+
       expect(component.isOnline).toBe(false);
     });
 
     it('should refresh data when coming back online', () => {
       component.usingCachedData = true;
       mockDiscoveryService.getInitialMatches.calls.reset();
-      
+
       onlineSubject.next(true);
       fixture.detectChanges();
-      
+
       expect(mockDiscoveryService.getInitialMatches).toHaveBeenCalled();
     });
 
     it('should show cached data indicator when using cache', () => {
       component.usingCachedData = true;
       fixture.detectChanges();
-      
+
       const compiled = fixture.nativeElement;
       expect(compiled.querySelector('.cached-banner')).toBeTruthy();
     });
@@ -343,7 +343,7 @@ describe('ContentDiscoveryComponent', () => {
     it('should show offline banner when offline', () => {
       component.isOnline = false;
       fixture.detectChanges();
-      
+
       const compiled = fixture.nativeElement;
       expect(compiled.querySelector('.offline-banner')).toBeTruthy();
     });
@@ -363,28 +363,28 @@ describe('ContentDiscoveryComponent', () => {
   describe('Error Handling', () => {
     it('should handle initial load errors', async () => {
       mockDiscoveryService.getInitialMatches.and.returnValue(Promise.reject('Error'));
-      
+
       fixture.detectChanges();
       await fixture.whenStable();
-      
+
       expect(component.loading).toBe(false);
     });
 
     it('should handle filter errors', async () => {
       mockDiscoveryService.filterMatches.and.returnValue(Promise.reject('Error'));
-      
+
       component.applyFilters();
       await fixture.whenStable();
-      
+
       expect(component.loading).toBe(false);
     });
 
     it('should handle search errors', async () => {
       mockDiscoveryService.search.and.returnValue(Promise.reject('Error'));
-      
+
       component.onSearch('test');
       await fixture.whenStable();
-      
+
       expect(component.loading).toBe(false);
     });
   });

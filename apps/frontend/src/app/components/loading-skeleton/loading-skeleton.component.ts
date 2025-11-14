@@ -2,27 +2,27 @@ import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 
 /**
  * LoadingSkeletonComponent
- * 
+ *
  * Displays animated skeleton loaders for content loading states.
  * Provides various skeleton types for different content patterns.
- * 
+ *
  * Features:
  * - Animated shimmer effect
  * - Multiple skeleton types (text, circle, rectangle, card)
  * - Configurable dimensions
  * - Respects prefers-reduced-motion
- * 
+ *
  * Usage:
  * ```html
  * <!-- Text skeleton -->
  * <app-loading-skeleton type="text" [lines]="3"></app-loading-skeleton>
- * 
+ *
  * <!-- Circle skeleton (avatar) -->
  * <app-loading-skeleton type="circle" [size]="48"></app-loading-skeleton>
- * 
+ *
  * <!-- Rectangle skeleton (image) -->
  * <app-loading-skeleton type="rectangle" width="100%" height="200px"></app-loading-skeleton>
- * 
+ *
  * <!-- Card skeleton (match card) -->
  * <app-loading-skeleton type="card"></app-loading-skeleton>
  * ```
@@ -47,27 +47,27 @@ export class LoadingSkeletonComponent {
    * Number of text lines to display (for type="text")
    * Default: 3
    */
-  @Input() lines: number = 3;
+  @Input() lines = 3;
 
   /**
    * Size for circular skeleton (diameter in px)
    * Default: 40px
    */
-  @Input() size: number = 40;
+  @Input() size = 40;
 
   /**
    * Width for rectangle/custom skeletons
    * Can be px, %, or other CSS units
    * Default: 100%
    */
-  @Input() width: string = '100%';
+  @Input() width = '100%';
 
   /**
    * Height for rectangle/custom skeletons
    * Can be px, %, or other CSS units
    * Default: 100px
    */
-  @Input() height: string = '100px';
+  @Input() height = '100px';
 
   /**
    * Border radius

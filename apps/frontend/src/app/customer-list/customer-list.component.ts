@@ -12,7 +12,7 @@ export class CustomerListComponent implements OnInit {
   private topicSubscription: Subscription;
   private cricetTopicSubscription: Subscription;
 
-  
+
   tickerMap = {
    get(ticker): any {
      return this[ticker];
@@ -21,7 +21,7 @@ export class CustomerListComponent implements OnInit {
      this[tickerObject.ticker] = tickerObject.price;
    }
  };
-  
+
  cricObj = {};
 
   constructor(private rxStompService: RxStompService) { }
@@ -36,13 +36,13 @@ export class CustomerListComponent implements OnInit {
     this.cricetTopicSubscription = this.rxStompService.watch('/topic/cricket.*').subscribe((data) => {
       console.log('subscribed to data..', data.body);
       this.cricObj = JSON.parse(data.body);
-      
+
     });
 
 
   }
 
-  ngOnDestroy(){
+  ngOnDestroy() {
     this.topicSubscription.unsubscribe();
   }
 

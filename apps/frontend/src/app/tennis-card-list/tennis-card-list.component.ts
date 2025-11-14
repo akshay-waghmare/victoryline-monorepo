@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, SimpleChanges } from '@angular/core';
-import * as _  from 'underscore' 
+import * as _  from 'underscore';
 
 @Component({
   selector: 'tennis-card-list',
@@ -10,24 +10,24 @@ export class TennisCardListComponent implements OnInit {
 
 
   @Input()
-  tennisData : any;
+  tennisData: any;
 
- 
+
   @Input()
-  selectedTabIndex : Number;
+  selectedTabIndex: Number;
 
-  ifBlink:Boolean;
-   
+  ifBlink: Boolean;
+
   constructor() { }
 
   ngOnInit() {
-    console.log("inside tennis-card-list component");
+    console.log('inside tennis-card-list component');
   //  console.log("printing tennisData : " , this.tennisData);
   }
 
-  isDataEmpty(){
+  isDataEmpty() {
   //  console.log("printing isempty " , _.isEmpty(this.tennisData));
-    
+
     return _.isEmpty(this.tennisData);
   }
 

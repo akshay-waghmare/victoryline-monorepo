@@ -18,7 +18,7 @@ export class TokenStorage {
     window.sessionStorage.clear();
   }
 
-  public saveToken(user:string,token: string) {
+  public saveToken(user: string, token: string) {
     window.sessionStorage.removeItem(TOKEN_KEY);
     window.sessionStorage.removeItem(USER_KEY);
     window.sessionStorage.setItem(TOKEN_KEY,  token);
@@ -33,10 +33,10 @@ export class TokenStorage {
   }
 
   public isTokenExpired(token: string): boolean {
-    if (!token) return true;
+    if (!token) { return true; }
 
     const decoded: any = jwtDecode(token);
-    if (!decoded.exp) return true;
+    if (!decoded.exp) { return true; }
 
     const expiryTime = decoded.exp * 1000;
     return expiryTime < Date.now();

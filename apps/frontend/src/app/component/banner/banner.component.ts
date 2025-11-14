@@ -14,7 +14,7 @@ export class BannerComponent implements OnInit {
 
 } */
 
-import { Component } from "@angular/core";
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'app-banner', // Ensure this matches what you're using in the template

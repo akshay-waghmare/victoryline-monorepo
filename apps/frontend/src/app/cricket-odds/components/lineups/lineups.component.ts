@@ -46,7 +46,7 @@ export class LineupsComponent implements OnInit {
 
   // Remove redundant role words appended to the player's name, since we show role separately
   private sanitizePlayerName(name: string): string {
-    if (!name) return name;
+    if (!name) { return name; }
     let s = String(name).trim();
     // Iteratively strip known role descriptors from the end
     const patterns = [
@@ -58,7 +58,7 @@ export class LineupsComponent implements OnInit {
     let prev: string;
     do {
       prev = s;
-      for (var i = 0; i < patterns.length; i++) {
+      for (let i = 0; i < patterns.length; i++) {
         s = s.replace(patterns[i], '');
       }
       s = s.replace(/\s{2,}/g, ' ').trim();
@@ -68,10 +68,10 @@ export class LineupsComponent implements OnInit {
 
   private mapRole(roleStr: string): PlayerRole {
     const normalized = (roleStr && roleStr.toUpperCase()) || '';
-    if (normalized.includes('BAT')) return PlayerRole.BATSMAN;
-    if (normalized.includes('BOWL')) return PlayerRole.BOWLER;
-    if (normalized.includes('ALL') || normalized.includes('ROUND')) return PlayerRole.ALL_ROUNDER;
-    if (normalized.includes('KEEP') || normalized.includes('WK')) return PlayerRole.WICKET_KEEPER;
+    if (normalized.includes('BAT')) { return PlayerRole.BATSMAN; }
+    if (normalized.includes('BOWL')) { return PlayerRole.BOWLER; }
+    if (normalized.includes('ALL') || normalized.includes('ROUND')) { return PlayerRole.ALL_ROUNDER; }
+    if (normalized.includes('KEEP') || normalized.includes('WK')) { return PlayerRole.WICKET_KEEPER; }
     return PlayerRole.UNKNOWN;
   }
 

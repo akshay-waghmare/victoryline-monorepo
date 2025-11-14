@@ -23,7 +23,7 @@ export class MatchService {
   }
 
   removeMatchTeam(matchTeam: any): void {
-    const currentMatchTeams = this.matchTeamsSubject.value.filter(team => 
+    const currentMatchTeams = this.matchTeamsSubject.value.filter(team =>
       team.url !== matchTeam.url && team.teamName !== matchTeam.teamName
     );
     this.matchTeamsSubject.next(currentMatchTeams);

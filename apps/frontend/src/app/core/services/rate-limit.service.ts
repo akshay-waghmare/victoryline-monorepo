@@ -29,7 +29,7 @@ export class RateLimitService {
 
   // Track retry counts per operation
   private retryAttempts = new Map<string, number>();
-  
+
   // Track when operations are in progress
   private inProgressOperations = new Set<string>();
 
@@ -45,34 +45,34 @@ export class RateLimitService {
     config: Partial<RateLimitConfig> = {}
   ): (source: Observable<T>) => Observable<T> {
     const finalConfig = { ...this.DEFAULT_CONFIG, ...config };
-    
+
     return (source: Observable<T>) => {
       // Mark operation as in progress
       this.inProgressOperations.add(operationId);
-      
+
       return source.pipe(
         retryWhen(errors => {
           return errors.pipe(
             mergeMap((error, index) => {
               const attempt = index + 1;
               this.retryAttempts.set(operationId, attempt);
-              
+
               // Check if max retries exceeded
               if (attempt > finalConfig.maxRetries) {
                 console.error(`Max retries (${finalConfig.maxRetries}) exceeded for ${operationId}`);
                 return throwError(error);
               }
-              
+
               // Calculate exponential backoff delay
               const delay = Math.min(
                 finalConfig.initialDelayMs * Math.pow(finalConfig.backoffMultiplier, index),
                 finalConfig.maxDelayMs
               );
-              
+
               console.log(
                 `Retrying ${operationId} (attempt ${attempt}/${finalConfig.maxRetries}) after ${delay}ms...`
               );
-              
+
               // Wait before retrying
               return timer(delay);
             })
@@ -124,12 +124,12 @@ export class RateLimitService {
     const lastAttemptKey = `last_${operationId}`;
     const lastAttempt = (this as any)[lastAttemptKey] || 0;
     const now = Date.now();
-    
+
     if (now - lastAttempt < minIntervalMs) {
       console.log(`Throttling ${operationId} - too soon since last attempt`);
       return false;
     }
-    
+
     (this as any)[lastAttemptKey] = now;
     return true;
   }
@@ -145,40 +145,40 @@ export class RateLimitService {
   ): Promise<T> {
     const finalConfig = { ...this.DEFAULT_CONFIG, ...config };
     let lastError: any;
-    
+
     // Mark operation as in progress
     this.inProgressOperations.add(operationId);
-    
+
     try {
       for (let attempt = 1; attempt <= finalConfig.maxRetries; attempt++) {
         this.retryAttempts.set(operationId, attempt);
-        
+
         try {
           const result = await operation();
           return result;
         } catch (error) {
           lastError = error;
-          
+
           // Don't retry if it's the last attempt
           if (attempt >= finalConfig.maxRetries) {
             throw error;
           }
-          
+
           // Calculate exponential backoff delay
           const delay = Math.min(
             finalConfig.initialDelayMs * Math.pow(finalConfig.backoffMultiplier, attempt - 1),
             finalConfig.maxDelayMs
           );
-          
+
           console.log(
             `Retrying ${operationId} (attempt ${attempt}/${finalConfig.maxRetries}) after ${delay}ms...`
           );
-          
+
           // Wait before retrying
           await this.sleep(delay);
         }
       }
-      
+
       throw lastError;
     } finally {
       // Clean up tracking

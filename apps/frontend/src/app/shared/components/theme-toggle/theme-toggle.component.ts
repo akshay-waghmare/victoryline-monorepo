@@ -1,6 +1,6 @@
 /**
  * Theme Toggle Component
- * 
+ *
  * A button component that toggles between light and dark themes.
  * Displays current theme icon and smooth transition animation.
  */

@@ -61,7 +61,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
   MobileNavComponent,
     LogoComponent,
     FooterComponent,
-    
+
   ],
   entryComponents: [
     LogoutFormComponent // Ensure the component is in entryComponents

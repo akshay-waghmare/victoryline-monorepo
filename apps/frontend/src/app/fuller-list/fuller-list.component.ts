@@ -20,7 +20,7 @@ export class FullerListComponent implements OnInit {
 
   ngOnInit() {
 
-    
+
   //   this.fullerService.getMarketListByEvent(7, true ).subscribe(data => {
   //     this.marketListInplay = data;
   //     // console.log(this.marketListInplay);
@@ -37,7 +37,7 @@ export class FullerListComponent implements OnInit {
 
   }
 
-  showMarket(element: any){
+  showMarket(element: any) {
     console.log(element.id);
     this.router.navigate(['../bet-market/', element.id] , { relativeTo: this.route });
   }

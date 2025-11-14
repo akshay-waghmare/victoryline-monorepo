@@ -16,11 +16,11 @@ export class LoginComponent implements OnInit {
   signinForm: FormGroup;
 
   constructor(
-    private readonly builder : FormBuilder,
-    private authService : AuthService,
-    private tokenStorage:TokenStorage,
+    private readonly builder: FormBuilder,
+    private authService: AuthService,
+    private tokenStorage: TokenStorage,
     private router: Router,
-    ) { 
+    ) {
     this.initForm();
   }
 
@@ -28,10 +28,10 @@ export class LoginComponent implements OnInit {
     this.logout();
   }
 
-  signin(){
-    console.log("attempt to sign in");
+  signin() {
+    console.log('attempt to sign in');
     this.authService.attemptAuth(this.signinForm.value).pipe(
-      switchMap((res :(any)) => {
+      switchMap((res: (any)) => {
         console.log(res);
         let user = window.atob(res.body.token.split('.')[1]);
         console.log(user);
@@ -50,7 +50,7 @@ export class LoginComponent implements OnInit {
     });
   }
 
-  
+
 
   public logout() {
 
@@ -58,10 +58,10 @@ export class LoginComponent implements OnInit {
   	this.tokenStorage.signOut();
   }
 
-  initForm(){
+  initForm() {
     this.signinForm = this.builder.group({
-      username : ["", Validators.required],
-      password:["",Validators.required]
+      username : ['', Validators.required],
+      password: ['', Validators.required]
     });
   }
 }

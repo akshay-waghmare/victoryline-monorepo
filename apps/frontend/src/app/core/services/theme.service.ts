@@ -1,9 +1,9 @@
 /**
  * Theme Service
- * 
+ *
  * Manages application theme (light/dark mode) with persistence and system preference detection.
  * Provides theme observables and methods for theme switching.
- * 
+ *
  * Features:
  * - Light/Dark theme switching
  * - System theme preference detection and sync
@@ -27,11 +27,26 @@ import {
   providedIn: 'root'
 })
 export class ThemeService {
+
+  constructor() {
+    // Initialize subjects with default values
+    const initialTheme = this.detectSystemTheme();
+    this.currentThemeSubject = new BehaviorSubject<ThemeMode>(initialTheme);
+    this.themeConfigSubject = new BehaviorSubject<ThemeConfig>(this.LIGHT_THEME);
+    this.systemThemeSubject = new BehaviorSubject<ThemeMode>(initialTheme);
+    this.animationsEnabledSubject = new BehaviorSubject<boolean>(true);
+
+    // Expose as observables
+    this.currentTheme$ = this.currentThemeSubject.asObservable();
+    this.themeConfig$ = this.themeConfigSubject.asObservable();
+    this.systemTheme$ = this.systemThemeSubject.asObservable();
+    this.animationsEnabled$ = this.animationsEnabledSubject.asObservable();
+  }
   // Storage keys
   private readonly THEME_STORAGE_KEY = 'victoryline-theme';
   private readonly USE_SYSTEM_THEME_KEY = 'victoryline-use-system-theme';
   private readonly ANIMATIONS_ENABLED_KEY = 'victoryline-animations-enabled';
-  
+
   // BroadcastChannel for cross-tab synchronization (T054)
   private themeChannel: BroadcastChannel | null = null;
 
@@ -40,7 +55,7 @@ export class ThemeService {
   private themeConfigSubject: BehaviorSubject<ThemeConfig>;
   private systemThemeSubject: BehaviorSubject<ThemeMode>;
   private animationsEnabledSubject: BehaviorSubject<boolean>;
-  private useSystemTheme: boolean = false;
+  private useSystemTheme = false;
 
   // Public observables
   public readonly currentTheme$: Observable<ThemeMode>;
@@ -55,23 +70,23 @@ export class ThemeService {
       primary: '#1976d2',
       primaryHover: '#1565c0',
       primaryActive: '#0d47a1',
-      
+
       background: '#ffffff',
       backgroundElevated: '#f5f5f5',
       backgroundHover: '#eeeeee',
-      
+
       textPrimary: '#212121',
       textSecondary: '#757575',
       textDisabled: '#bdbdbd',
-      
+
       border: '#e0e0e0',
       borderLight: '#f5f5f5',
-      
+
       success: '#4caf50',
       warning: '#ff9800',
       error: '#f44336',
       info: '#2196f3',
-      
+
       matchLive: '#4caf50',
       matchUpcoming: '#2196f3',
       matchCompleted: '#757575'
@@ -85,7 +100,7 @@ export class ThemeService {
       xxl: '48px'
     },
     typography: {
-      fontFamily: "'Roboto', 'Helvetica Neue', sans-serif",
+      fontFamily: '\'Roboto\', \'Helvetica Neue\', sans-serif',
       fontSize: {
         xs: '12px',
         sm: '14px',
@@ -129,23 +144,23 @@ export class ThemeService {
       primary: '#90caf9',
       primaryHover: '#64b5f6',
       primaryActive: '#42a5f5',
-      
+
       background: '#121212',
       backgroundElevated: '#1e1e1e',
       backgroundHover: '#2a2a2a',
-      
+
       textPrimary: '#ffffff',
       textSecondary: '#b0b0b0',
       textDisabled: '#666666',
-      
+
       border: '#2a2a2a',
       borderLight: '#1e1e1e',
-      
+
       success: '#66bb6a',
       warning: '#ffa726',
       error: '#ef5350',
       info: '#42a5f5',
-      
+
       matchLive: '#66bb6a',
       matchUpcoming: '#42a5f5',
       matchCompleted: '#757575'
@@ -162,20 +177,12 @@ export class ThemeService {
     }
   };
 
-  constructor() {
-    // Initialize subjects with default values
-    const initialTheme = this.detectSystemTheme();
-    this.currentThemeSubject = new BehaviorSubject<ThemeMode>(initialTheme);
-    this.themeConfigSubject = new BehaviorSubject<ThemeConfig>(this.LIGHT_THEME);
-    this.systemThemeSubject = new BehaviorSubject<ThemeMode>(initialTheme);
-    this.animationsEnabledSubject = new BehaviorSubject<boolean>(true);
-
-    // Expose as observables
-    this.currentTheme$ = this.currentThemeSubject.asObservable();
-    this.themeConfig$ = this.themeConfigSubject.asObservable();
-    this.systemTheme$ = this.systemThemeSubject.asObservable();
-    this.animationsEnabled$ = this.animationsEnabledSubject.asObservable();
-  }
+  /**
+   * Toggle between light and dark theme
+   * Debounced to prevent rapid switching (T114)
+   * @returns New theme mode
+   */
+  private toggleDebounceTimer: any = null;
 
   /**
    * Initialize theme service (called by app initializer)
@@ -245,22 +252,15 @@ export class ThemeService {
     console.log(`Theme changed to: ${mode}`);
   }
 
-  /**
-   * Toggle between light and dark theme
-   * Debounced to prevent rapid switching (T114)
-   * @returns New theme mode
-   */
-  private toggleDebounceTimer: any = null;
-  
   public toggleTheme(): ThemeMode {
     // Clear existing debounce timer
     if (this.toggleDebounceTimer) {
       clearTimeout(this.toggleDebounceTimer);
     }
-    
+
     const currentTheme = this.getCurrentTheme();
     const newTheme: ThemeMode = currentTheme === 'light' ? 'dark' : 'light';
-    
+
     // Debounce theme toggle (300ms) to prevent rapid switching
     this.toggleDebounceTimer = setTimeout(() => {
       // Disable system theme sync when manually toggling
@@ -268,7 +268,7 @@ export class ThemeService {
       this.setTheme(newTheme, true);
       this.toggleDebounceTimer = null;
     }, 300);
-    
+
     return newTheme;
   }
 
@@ -468,7 +468,7 @@ export class ThemeService {
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener('change', (e) => {
         const reducedMotion = e.matches;
-        
+
         // Disable animations if reduced motion is preferred
         if (reducedMotion) {
           this.setAnimationsEnabled(false);
@@ -539,7 +539,7 @@ export class ThemeService {
     }
     return true; // Default to enabled
   }
-  
+
   /**
    * Set up BroadcastChannel for cross-tab theme synchronization
    * Task: T054 - BroadcastChannel synchronization
@@ -550,15 +550,15 @@ export class ThemeService {
       console.warn('BroadcastChannel not supported in this browser');
       return;
     }
-    
+
     try {
       // Create broadcast channel for theme updates
       this.themeChannel = new BroadcastChannel('victoryline-theme');
-      
+
       // Listen for theme changes from other tabs
       this.themeChannel.onmessage = (event) => {
         const { type, theme } = event.data;
-        
+
         if (type === 'theme-change' && isThemeMode(theme)) {
           console.log(`Received theme change from another tab: ${theme}`);
           // Apply theme without broadcasting to avoid infinite loop
@@ -568,13 +568,13 @@ export class ThemeService {
           this.themeConfigSubject.next(config);
         }
       };
-      
+
       console.log('BroadcastChannel initialized for theme synchronization');
     } catch (e) {
       console.warn('Failed to setup BroadcastChannel:', e);
     }
   }
-  
+
   /**
    * Broadcast theme change to other tabs
    */

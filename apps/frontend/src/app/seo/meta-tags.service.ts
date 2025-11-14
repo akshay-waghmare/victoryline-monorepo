@@ -79,7 +79,7 @@ export class MetaTagsService {
     date?: string; // YYYY-MM-DD
   }): string | null {
     const { tournament, season, homeTeam, awayTeam, format, date } = match;
-    
+
     // Return null if any required field is missing (fall back to current path)
     if (!tournament || !season || !homeTeam || !awayTeam || !format || !date) {
       return null;

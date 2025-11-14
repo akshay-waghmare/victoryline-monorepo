@@ -24,7 +24,7 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     // Initialize theme system on app startup
     this.themeService.initialize();
-    
+
     console.log('VictoryLine app initialized with theme system and scroll restoration');
   }
 }

@@ -68,7 +68,7 @@ describe('NetworkStatusService', () => {
         value: false
       });
       const offlineService = new NetworkStatusService();
-      
+
       offlineService.connectionQuality$.subscribe(quality => {
         expect(quality).toBe('offline');
         done();
@@ -81,7 +81,7 @@ describe('NetworkStatusService', () => {
         value: true
       });
       const onlineService = new NetworkStatusService();
-      
+
       onlineService.connectionQuality$.subscribe(quality => {
         expect(['good', 'poor']).toContain(quality);
         done();

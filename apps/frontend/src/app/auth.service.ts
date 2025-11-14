@@ -28,15 +28,15 @@ export class AuthService {
   userUpdates = this.userUpdateSource.asObservable();
 
   constructor(
-    private readonly http:HttpClient, private tokenStorage : TokenStorage , private router: Router
-  ) { 
+    private readonly http: HttpClient, private tokenStorage: TokenStorage , private router: Router
+  ) {
     this.startTokenCheck();
   }
 
-  attemptAuth(formData:any) : any {
+  attemptAuth(formData: any): any {
     const body = JSON.stringify(formData);
     console.log('attempAuth ::');
-    return this.http.post(`${this.userUrl}token/generate-token`, body, {headers:authHeaders,observe:'response'});
+    return this.http.post(`${this.userUrl}token/generate-token`, body, {headers: authHeaders, observe: 'response'});
   }
 
 

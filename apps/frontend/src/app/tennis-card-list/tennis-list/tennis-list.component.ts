@@ -1,6 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { TennisService } from './tennis.service';
-import * as _ from 'underscore'
+import * as _ from 'underscore';
 import { group } from '@angular/animations';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { Subscription } from 'rxjs';
@@ -35,23 +35,23 @@ export class TennisListComponent implements OnInit {
   ngOnInit() {
     this.tennisService.getUpcomingTennisEvents().subscribe((data) => {
 
-      let result = data.events;
-      this.groupedByLeaguesUpcoming = _.groupBy(result, (obj) => { return obj.tournament.name });
+      const result = data.events;
+      this.groupedByLeaguesUpcoming = _.groupBy(result, (obj) => obj.tournament.name);
 
-      console.log("upcoming : " + this.groupedByLeaguesUpcoming);
+      console.log('upcoming : ' + this.groupedByLeaguesUpcoming);
 
     });
     this.tennisService.getAllTennisEvents().subscribe((data) => {
 
-      let result = data.events;
-      this.groupedByLeagesInplay = _.groupBy(result, (obj) => { return obj.tournament.name });
+      const result = data.events;
+      this.groupedByLeagesInplay = _.groupBy(result, (obj) => obj.tournament.name);
 
     });
 
     this.inplayTopicSubscription = this.tennisService.getInplayTennisEventsSocket().subscribe((data) => {
       data = JSON.parse(data.body);
       this.result = _.toArray(data.events);
-      this.groupedByLeagesInplay = _.groupBy(this.result, (obj) => { return obj.tournament.name });
+      this.groupedByLeagesInplay = _.groupBy(this.result, (obj) => obj.tournament.name);
 
 
     });

@@ -21,10 +21,10 @@ export interface CurrentScore {
 
 /**
  * StickyHeaderComponent
- * 
+ *
  * Compact sticky header for match details page that appears on scroll.
  * Displays team names, current score, overs, and match status in a minimal layout.
- * 
+ *
  * Features:
  * - Sticky positioning after scroll threshold (default 200px)
  * - Slide-in animation from top
@@ -32,7 +32,7 @@ export interface CurrentScore {
  * - Live status indicator
  * - Touch-friendly design
  * - WCAG AA compliant
- * 
+ *
  * Usage:
  * ```html
  * <app-sticky-header
@@ -69,47 +69,47 @@ export class StickyHeaderComponent implements OnInit, OnDestroy, OnChanges {
    * @required
    */
   @Input() homeTeam!: Team;
-  
+
   /**
    * Away team information
    * @required
    */
   @Input() awayTeam!: Team;
-  
+
   /**
    * Current match score
    * @required
    */
   @Input() currentScore!: CurrentScore;
-  
+
   /**
    * Match status
    * @required
    */
   @Input() status!: 'live' | 'completed' | 'upcoming';
-  
+
   /**
    * Scroll threshold (px) before header becomes sticky
    * @default 200
    */
-  @Input() scrollThreshold: number = 200;
-  
+  @Input() scrollThreshold = 200;
+
   /**
    * Whether the header is currently in sticky state
    */
-  isSticky: boolean = false;
-  
+  isSticky = false;
+
   /**
    * Score pulse animation state for visual feedback on updates
    */
   scorePulseState: 'inactive' | 'active' = 'inactive';
-  
+
   /**
    * Previous score values for change detection
    */
-  private previousHomeScore: string = '';
-  private previousAwayScore: string = '';
-  
+  private previousHomeScore = '';
+  private previousAwayScore = '';
+
   /**
    * Throttle timer for scroll listener
    */
@@ -126,26 +126,26 @@ export class StickyHeaderComponent implements OnInit, OnDestroy, OnChanges {
       this.previousAwayScore = this.currentScore.awayScore;
     }
   }
-  
+
   /**
    * Detect score changes and trigger pulse animation
    */
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['currentScore'] && !changes['currentScore'].firstChange) {
       const newScore = changes['currentScore'].currentValue as CurrentScore;
-      
+
       // Check if score actually changed
-      if (newScore.homeScore !== this.previousHomeScore || 
+      if (newScore.homeScore !== this.previousHomeScore ||
           newScore.awayScore !== this.previousAwayScore) {
         // Trigger pulse animation
         this.scorePulseState = 'active';
-        
+
         // Reset after animation completes
         setTimeout(() => {
           this.scorePulseState = 'inactive';
           this.cdr.markForCheck();
         }, 500);
-        
+
         // Update previous scores
         this.previousHomeScore = newScore.homeScore;
         this.previousAwayScore = newScore.awayScore;
@@ -182,7 +182,7 @@ export class StickyHeaderComponent implements OnInit, OnDestroy, OnChanges {
   private checkStickyState(): void {
     const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
     const newStickyState = scrollPosition > this.scrollThreshold;
-    
+
     if (this.isSticky !== newStickyState) {
       this.isSticky = newStickyState;
       this.cdr.markForCheck();

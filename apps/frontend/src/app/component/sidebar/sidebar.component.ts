@@ -58,10 +58,10 @@ export class SidebarComponent implements OnInit, OnDestroy {
     });
 
     this.matchTeamsSubscription = this.matchDataService.getMatchTeams().subscribe(matchTeams => {
-      console.log("Data in matchTeams" , matchTeams);
+      console.log('Data in matchTeams' , matchTeams);
     });
 
-    
+
 
   }
 
@@ -73,20 +73,20 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private extractAndSetURls(message: any) {
     console.log('New match URL received:', message);
     // check if message is a variable of FramImpl class
-    
+
     if (message.hasOwnProperty('isBinaryBody')) {
       message = JSON.parse(message.body);
       if (message.hasOwnProperty('url')) {
-        // Handle new or existing match logic 
+        // Handle new or existing match logic
         const newMatchUrl = message.url;
         this.addUrlList(newMatchUrl);
 
       }
-      
+
       if (message.hasOwnProperty('status') && message.status === 'deleted') {
         // Deletion Handling
         const urlToDelete = message.url;
-        // Your logic to extract  matchTeam for UI link removal - you might need a minor 
+        // Your logic to extract  matchTeam for UI link removal - you might need a minor
         // adjustment   if a 'matchPart'  alone in your logic doesn't uniquely identify.
 
         // Removal from array if you're  only displaying  links using  'matchTeams' alone
@@ -96,8 +96,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
           this.matchDataService.removeMatchTeam(this.matchTeams[index]);
         }
       }
-    }
-    else {
+    } else {
       this.addUrlList(message);
     }
   }
@@ -133,5 +132,5 @@ export class SidebarComponent implements OnInit, OnDestroy {
     console.log('Toggle button clicked'); // Add console log
     this.sidebarService.toggleVisibility();
   }
-  
-} 
+
+}

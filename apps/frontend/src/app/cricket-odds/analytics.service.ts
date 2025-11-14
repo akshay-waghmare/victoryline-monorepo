@@ -12,7 +12,7 @@ export class AnalyticsService {
   trackEvent(eventName: string, properties?: Record<string, any>) {
     // Placeholder: integrate with backend analytics or third-party (GA, Mixpanel, etc.)
     console.log('[Analytics]', eventName, properties || {});
-    
+
     // Example integration point:
     // if (window['gtag']) {
     //   window['gtag']('event', eventName, properties);

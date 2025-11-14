@@ -41,10 +41,10 @@ export interface ViewportState {
 
 /**
  * ViewportService
- * 
+ *
  * Detects and monitors viewport size changes for responsive design.
  * Provides observables for viewport state and utility methods for breakpoint detection.
- * 
+ *
  * Usage:
  * ```typescript
  * constructor(private viewportService: ViewportService) {
@@ -80,7 +80,7 @@ export class ViewportService {
         .pipe(
           debounceTime(150),
           map(() => this.getCurrentViewportState()),
-          distinctUntilChanged((prev, curr) => 
+          distinctUntilChanged((prev, curr) =>
             prev.deviceType === curr.deviceType &&
             prev.isPortrait === curr.isPortrait
           )
@@ -98,7 +98,7 @@ export class ViewportService {
     const width = typeof window !== 'undefined' ? window.innerWidth : 0;
     const height = typeof window !== 'undefined' ? window.innerHeight : 0;
     const deviceType = this.getDeviceType(width);
-    
+
     return {
       width,
       height,
@@ -175,10 +175,10 @@ export class ViewportService {
 
   /**
    * Check if viewport width is at or above a specific breakpoint
-   * 
+   *
    * @param breakpoint The breakpoint to check against
    * @returns true if viewport width >= breakpoint
-   * 
+   *
    * Usage:
    * ```typescript
    * if (viewportService.isAtLeast(Breakpoint.MD)) {
@@ -192,7 +192,7 @@ export class ViewportService {
 
   /**
    * Check if viewport width is below a specific breakpoint
-   * 
+   *
    * @param breakpoint The breakpoint to check against
    * @returns true if viewport width < breakpoint
    */
@@ -202,11 +202,11 @@ export class ViewportService {
 
   /**
    * Check if viewport width is between two breakpoints
-   * 
+   *
    * @param minBreakpoint Minimum breakpoint (inclusive)
    * @param maxBreakpoint Maximum breakpoint (exclusive)
    * @returns true if minBreakpoint <= width < maxBreakpoint
-   * 
+   *
    * Usage:
    * ```typescript
    * if (viewportService.isBetween(Breakpoint.SM, Breakpoint.LG)) {
@@ -220,7 +220,7 @@ export class ViewportService {
 
   /**
    * Get observable that emits when device type changes
-   * 
+   *
    * Usage:
    * ```typescript
    * viewportService.deviceType$.subscribe(deviceType => {

@@ -9,7 +9,7 @@ describe('AnalyticsService', () => {
       providers: [AnalyticsService]
     });
     service = TestBed.get(AnalyticsService);
-    
+
     // Clear events before each test
     service.clearEvents();
   });
@@ -22,7 +22,7 @@ describe('AnalyticsService', () => {
     it('should track search events', () => {
       service.trackSearch('test query', 10);
       const events = service.getEvents();
-      
+
       expect(events.length).toBe(1);
       expect(events[0].category).toBe('content_discovery');
       expect(events[0].action).toBe('search');
@@ -33,64 +33,64 @@ describe('AnalyticsService', () => {
     it('should track autocomplete selection', () => {
       service.trackAutocompleteSelection('match123', 'Team A vs Team B', 2);
       const events = service.getEvents();
-      
+
       expect(events.length).toBe(1);
       expect(events[0].category).toBe('content_discovery');
       expect(events[0].action).toBe('autocomplete_select');
       expect(events[0].label).toBe('Team A vs Team B');
-      expect(events[0].metadata?.matchId).toBe('match123');
-      expect(events[0].metadata?.position).toBe(2);
+      expect(events[0].metadata ? .matchId ).toBe('match123');
+      expect(events[0].metadata ? .position ).toBe(2);
     });
 
     it('should track filter changes', () => {
       service.trackFilterChange('type', 'live', 15);
       const events = service.getEvents();
-      
+
       expect(events.length).toBe(1);
       expect(events[0].category).toBe('content_discovery');
       expect(events[0].action).toBe('filter_change');
-      expect(events[0].metadata?.filterType).toBe('type');
-      expect(events[0].metadata?.filterValue).toBe('live');
+      expect(events[0].metadata ? .filterType ).toBe('type');
+      expect(events[0].metadata ? .filterValue ).toBe('live');
       expect(events[0].value).toBe(15);
     });
 
     it('should track recommendation clicks', () => {
       service.trackRecommendationClick('match456', 'India vs Pakistan', 1, 'similar_teams');
       const events = service.getEvents();
-      
+
       expect(events.length).toBe(1);
       expect(events[0].category).toBe('recommendations');
       expect(events[0].action).toBe('recommendation_click');
-      expect(events[0].metadata?.matchId).toBe('match456');
-      expect(events[0].metadata?.position).toBe(1);
-      expect(events[0].metadata?.reason).toBe('similar_teams');
+      expect(events[0].metadata ? .matchId ).toBe('match456');
+      expect(events[0].metadata ? .position ).toBe(1);
+      expect(events[0].metadata ? .reason ).toBe('similar_teams');
     });
 
     it('should track recently viewed clicks', () => {
       service.trackRecentlyViewedClick('match789', 'England vs Australia', 0);
       const events = service.getEvents();
-      
+
       expect(events.length).toBe(1);
       expect(events[0].category).toBe('history');
       expect(events[0].action).toBe('recently_viewed_click');
-      expect(events[0].metadata?.matchId).toBe('match789');
-      expect(events[0].metadata?.position).toBe(0);
+      expect(events[0].metadata ? .matchId ).toBe('match789');
+      expect(events[0].metadata ? .position ).toBe(0);
     });
 
     it('should track general match clicks', () => {
       service.trackMatchClick('match111', 'South Africa vs New Zealand', 'all_matches');
       const events = service.getEvents();
-      
+
       expect(events.length).toBe(1);
       expect(events[0].category).toBe('content_discovery');
       expect(events[0].action).toBe('match_click');
-      expect(events[0].metadata?.source).toBe('all_matches');
+      expect(events[0].metadata ? .source ).toBe('all_matches');
     });
 
     it('should track history clear', () => {
       service.trackHistoryClear(8);
       const events = service.getEvents();
-      
+
       expect(events.length).toBe(1);
       expect(events[0].category).toBe('history');
       expect(events[0].action).toBe('clear_history');
@@ -103,7 +103,7 @@ describe('AnalyticsService', () => {
       service.trackSearch('query1', 5);
       service.trackSearch('query2', 8);
       service.trackSearch('query3', 12);
-      
+
       const events = service.getEvents();
       expect(events.length).toBe(3);
     });
@@ -113,7 +113,7 @@ describe('AnalyticsService', () => {
       for (let i = 0; i < 1100; i++) {
         service.trackSearch(`query${i}`, i);
       }
-      
+
       const events = service.getEvents();
       expect(events.length).toBeLessThanOrEqual(1000);
     });
@@ -123,7 +123,7 @@ describe('AnalyticsService', () => {
       for (let i = 0; i < 1050; i++) {
         service.trackSearch(`query${i}`, i);
       }
-      
+
       const events = service.getEvents();
       // First 50 events should be removed, so earliest should be query50
       const earliestEvent = events[0];
@@ -134,7 +134,7 @@ describe('AnalyticsService', () => {
       service.trackSearch('test1', 1);
       service.trackSearch('test2', 2);
       expect(service.getEvents().length).toBe(2);
-      
+
       service.clearEvents();
       expect(service.getEvents().length).toBe(0);
     });
@@ -145,7 +145,7 @@ describe('AnalyticsService', () => {
       const before = Date.now();
       service.trackSearch('test', 5);
       const after = Date.now();
-      
+
       const events = service.getEvents();
       expect(events[0].timestamp).toBeGreaterThanOrEqual(before);
       expect(events[0].timestamp).toBeLessThanOrEqual(after);
@@ -155,7 +155,7 @@ describe('AnalyticsService', () => {
       service.trackSearch('test1', 1);
       setTimeout(() => {
         service.trackSearch('test2', 2);
-        
+
         const events = service.getEvents();
         expect(events[0].timestamp).not.toBe(events[1].timestamp);
         done();
@@ -214,14 +214,14 @@ describe('AnalyticsService', () => {
     it('should preserve custom metadata', () => {
       service.trackRecommendationClick('m1', 'Match', 0, 'test_reason');
       const events = service.getEvents();
-      
-      expect(events[0].metadata?.reason).toBe('test_reason');
+
+      expect(events[0].metadata ? .reason ).toBe('test_reason');
     });
 
     it('should handle events without metadata', () => {
       service.trackMatchClick('m1', 'Match', 'all_matches');
       const events = service.getEvents();
-      
+
       expect(events[0].metadata).toBeDefined();
     });
 
@@ -230,11 +230,11 @@ describe('AnalyticsService', () => {
       for (let i = 0; i < 1010; i++) {
         service.trackRecommendationClick(`m${i}`, `Match ${i}`, i, `reason${i}`);
       }
-      
+
       const events = service.getEvents();
       // Check that recent events still have metadata
       const lastEvent = events[events.length - 1];
-      expect(lastEvent.metadata?.reason).toBeTruthy();
+      expect(lastEvent.metadata ? .reason ).toBeTruthy();
     });
   });
 });

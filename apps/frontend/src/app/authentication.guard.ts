@@ -9,7 +9,7 @@ export class AuthenticationGuard implements CanActivate, CanActivateChild {
 
     constructor(
         private readonly router: Router,
-        private tokenStorage:TokenStorage,
+        private tokenStorage: TokenStorage,
     ) { }
 
     canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {

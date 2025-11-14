@@ -37,52 +37,52 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   batsmanDataList: Array<any> = [];
   bowlerDataList: Array<any> = [];
 
-  team1Name: string = 'NA';
-  team1Score: string = 'NA';
-  team1Overs: string = 'NA';
+  team1Name = 'NA';
+  team1Score = 'NA';
+  team1Overs = 'NA';
 
-  team2Name: string = 'NA';
-  team2Score: string = 'NA';
-  team2Overs: string = 'NA';
+  team2Name = 'NA';
+  team2Score = 'NA';
+  team2Overs = 'NA';
 
 
-  favTeam: string = '-'
-  liveScoreUpdate: string = 'Wait for Score'; // Example: "6 runs scored in the last over."
-  backOdds: number = 0; // Example: Back odds for the favorite team.
-  layOdds: number = 1; // Example: Lay odds for the favorite team.
+  favTeam = '-';
+  liveScoreUpdate = 'Wait for Score'; // Example: "6 runs scored in the last over."
+  backOdds = 0; // Example: Back odds for the favorite team.
+  layOdds = 1; // Example: Lay odds for the favorite team.
 
-  session: string = '-';
-  sessionBackOdds: string = '-';
-  sessionLayOdds: string = '-';
+  session = '-';
+  sessionBackOdds = '-';
+  sessionLayOdds = '-';
 
-  showBetting: boolean = false; // Initially, hide betting options
-  selectedOdds: number = 0; // Initial odds value
-  betAmount: number = 0; // Initial bet amount
-  oddsStep: number = 0.1; // Initial step value
+  showBetting = false; // Initially, hide betting options
+  selectedOdds = 0; // Initial odds value
+  betAmount = 0; // Initial bet amount
+  oddsStep = 0.1; // Initial step value
   // Store the previous odds value
   prevOdds: number = this.selectedOdds;
 
-  showBettingFor: string = ''; // To trac which section is clicked
+  showBettingFor = ''; // To trac which section is clicked
 
-  layButtonActive: boolean = false;
+  layButtonActive = false;
 
-  selectedBetType: string = ''; // Initialize as 'back' or 'lay' based on user selection
+  selectedBetType = ''; // Initialize as 'back' or 'lay' based on user selection
 
 
-  currentMatchIndex: number | null = null; 
+  currentMatchIndex: number | null = null;
 
-  displayedColumns: string[] = ['teamName','type','amount', 'odd', 'status']; // Add more column names here
+  displayedColumns: string[] = ['teamName', 'type', 'amount', 'odd', 'status']; // Add more column names here
 
   quickStakeAmounts: number[] = [50, 100, 500, 1000, 1500, 2000, 2500, 3000]; // Define your quick stake amounts
 
 
   private destroy$: Subject<void> = new Subject<void>();
 
-  totalPotentialWin: number = 0;
-  totalPotentialLoss: number = 0;
-  winFormattedKey: string = '';
-  loseFormattedKey: string = '';
-  
+  totalPotentialWin = 0;
+  totalPotentialLoss = 0;
+  winFormattedKey = '';
+  loseFormattedKey = '';
+
   matchInfo: any;
   scorecardData: any;
 
@@ -110,7 +110,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   // Property to hold the match URL
   currentUrl: string;
-  
+
   // 002-match-details-ux: Match ID for new components (T039+)
   matchId: string | null = null;
   currentMatch: any = null; // Hold full match object if available
@@ -136,8 +136,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   scorecardInfo: any;
 
   // T056: Orientation change handling
-  private currentTabIndex: number = 0;
-  private scrollPosition: number = 0;
+  private currentTabIndex = 0;
+  private scrollPosition = 0;
   private resizeThrottle: any = null;
 
   // T063: Swipe gesture for tab navigation
@@ -147,11 +147,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   constructor(private rxStompService: RxStompService,
               private cricketService: CricketService,
-              private tokenStorage:TokenStorage,
+              private tokenStorage: TokenStorage,
               private snackBar: MatSnackBar,
-              private eventListService:EventListService,
-              private authService : AuthService,
-              private activatedRoute: ActivatedRoute,private router: Router) { }
+              private eventListService: EventListService,
+              private authService: AuthService,
+              private activatedRoute: ActivatedRoute, private router: Router) { }
 
   ngOnDestroy() {
     this.tossWonCountrySubject.complete();
@@ -178,9 +178,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   }
   ngOnInit(): void {
     this.currentUrl = this.activatedRoute.snapshot.queryParamMap.get('url') || this.activatedRoute.snapshot.params['url'];
-    
+
     // 002-match-details-ux: Extract matchId from URL or route params
-    this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId') 
+    this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId')
                 || this.activatedRoute.snapshot.params['matchId']
                 || this.extractMatchIdFromUrl(this.currentUrl);
 
@@ -210,17 +210,17 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     // Initialize or update the component properties here.
     // You can update liveScoreUpdate, backOdds, layOdds, and last6Balls based on real data.
 
-    //watching live score for cricet data
+    // watching live score for cricet data
     this.fetchCricketData();
 
-    //fetch user details from tokenStorage
+    // fetch user details from tokenStorage
     const user = this.tokenStorage.getUser();
     this.loggedUser =  JSON.parse(user);
 
-    //this.loadUserBets();
+    // this.loadUserBets();
 
   }
-  
+
 
 
   private fetchCricketData() {
@@ -231,7 +231,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.cricketService.getLastUpdatedData(match).subscribe(data => {
         this.parseCricObjData(data);
       });
-      //watching live score for cricket data
+      // watching live score for cricket data
       this.cricetTopicSubscription = this.rxStompService.watch(`/topic/cricket.${match}.*`).subscribe((data) => {
         this.parseCricObjData(data);
       });
@@ -241,7 +241,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private parseCricObjData(data) {
     console.log(data);
     // Check if 'data' has a 'body' property
-    if(data && 'body' in data){
+    if (data && 'body' in data) {
       console.log('Subscribed to data:', data.body);
       this.cricObj = JSON.parse(data.body);
     } else {
@@ -255,7 +255,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         const teamOddsValue = this.cricObj.team_odds;
         this.backOdds = teamOddsValue.backOdds;
         this.layOdds = teamOddsValue.layOdds;
-        console.log("Team Odds:", teamOddsValue);
+        console.log('Team Odds:', teamOddsValue);
       }
 
 
@@ -266,13 +266,13 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricObj.current_ball !== undefined) {
         this.liveScoreUpdate = this.cricObj.current_ball;
       }
-      
+
       if (this.cricObj.batsman_data !== undefined && Array.isArray(this.cricObj.batsman_data)) {
         const batsmanData = this.cricObj.batsman_data;
-  
+
         // Create a temporary array to build the new data
         const tempBatsmanList = [];
-  
+
         // Iterate through the batsman_data array
         batsmanData.forEach(playerInfo => {
           if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
@@ -288,13 +288,13 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
             });
           }
         });
-        
+
         // Only update if we have data to prevent flickering
         if (tempBatsmanList.length > 0) {
           this.batsmanDataList = tempBatsmanList;
         }
-    
-        console.log("Parsed Batsman Data List:", this.batsmanDataList);
+
+        console.log('Parsed Batsman Data List:', this.batsmanDataList);
       }
 
       if (this.cricObj.bowler_data !== undefined && Array.isArray(this.cricObj.bowler_data)) {
@@ -302,7 +302,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
         // Create a temporary array to build the new data
         const tempBowlerList = [];
-  
+
         // Iterate through the bowler_data array
         bowlerData.forEach(playerInfo => {
           if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
@@ -321,18 +321,18 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
             });
           }
         });
-        
+
         // Only update if we have data to prevent flickering
         if (tempBowlerList.length > 0) {
           this.bowlerDataList = tempBowlerList;
         }
-        
-        console.log("Parsed Bowler Data List:", this.bowlerDataList);
+
+        console.log('Parsed Bowler Data List:', this.bowlerDataList);
       }
-      
+
       if (this.cricObj.session_odds !== undefined) {
         const sessionOddsList = this.cricObj.session_odds;
-  
+
         if (Array.isArray(sessionOddsList) && sessionOddsList.length > 0) {
           this.sessionOddsListDisplay = this.cricObj.session_odds.sort((a, b) => {
             // Parse sessionOver as a number and sort by ascending order
@@ -355,21 +355,21 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricObj.over !== undefined) {
         const overValue = this.cricObj.over;
         this.team1Overs = overValue;
-        console.log("Over:", overValue);
+        console.log('Over:', overValue);
       }
 
       if (this.cricObj.batting_team !== undefined) {
         const batting_team = this.cricObj.batting_team;
         this.team1Name = batting_team;
         this.battingTeam = batting_team;
-        console.log("Batting team:", batting_team);
+        console.log('Batting team:', batting_team);
       }
 
       // Check and handle the "score" field
       if (this.cricObj.score !== undefined) {
         const scoreValue = this.cricObj.score;
         this.team1Score = scoreValue;
-        console.log("Score:", scoreValue);
+        console.log('Score:', scoreValue);
       }
 
       // Check and handle the "team_player_info" field
@@ -396,35 +396,35 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricObj.current_ball !== undefined) {
         const currentBallValue = this.cricObj.current_ball;
         const containsNumber = currentBallValue === 'Ball'; // change this to check 'Ball' string
-        if (containsNumber)
+        if (containsNumber) {
           this.liveScoreUpdate = 'Ball Start';
-        else if(currentBallValue === 'Stumps'){
+        } else if (currentBallValue === 'Stumps') {
           this.liveScoreUpdate = 'Stumps';
-        }
-        else
+        } else {
           this.liveScoreUpdate = currentBallValue;
-        console.log("Current Ball:", currentBallValue);
+             }
+        console.log('Current Ball:', currentBallValue);
       }
 
       // Check and handle the "runs_on_ball" field
       if (this.cricObj.runs_on_ball !== undefined && this.cricObj.runs_on_ball !== null) {
         const runsOnBallValue = this.cricObj.runs_on_ball;
         this.liveScoreUpdate = runsOnBallValue;
-        console.log("Runs on Ball:", runsOnBallValue);
+        console.log('Runs on Ball:', runsOnBallValue);
       }
 
       // Check and handle the "CRR" field
       if (this.cricObj.crr !== undefined && this.cricObj.crr !== null) {
         const currentRunRate = this.cricObj.crr;
 
-        console.log("Crr:", currentRunRate);
+        console.log('Crr:', currentRunRate);
         this.currentRunRate = currentRunRate;
         // crr === 'Crr not found' then set '';
         if (currentRunRate === 'CRR not found') {
           this.currentRunRate = '';
         }
-        console.log("CRR :", this.currentRunRate);
-        
+        console.log('CRR :', this.currentRunRate);
+
       }
 
       // Check and handle the "final_result_text" field
@@ -435,46 +435,46 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         if (finalResultTextValue === 'Final result text not found') {
           this.finalResultTextValue = '';
         }
-        console.log("Final Result Text:", this.finalResultTextValue);
+        console.log('Final Result Text:', this.finalResultTextValue);
       }
 
-      //check and handle the "overs_data" field
+      // check and handle the "overs_data" field
       if (this.cricObj.overs_data !== undefined && this.cricObj.overs_data !== null) {
         const oversDataValue = this.cricObj.overs_data;
-        console.log("Full Overs Data:", oversDataValue);
-        
+        console.log('Full Overs Data:', oversDataValue);
+
         // Try to find "This Over:" first
-        let thisOverData = this.cricObj.overs_data.find(over => over.overNumber === "This Over:");
-        
+        let thisOverData = this.cricObj.overs_data.find(over => over.overNumber === 'This Over:');
+
         // If not found, try the last over in the array
         if (!thisOverData && Array.isArray(this.cricObj.overs_data) && this.cricObj.overs_data.length > 0) {
           thisOverData = this.cricObj.overs_data[this.cricObj.overs_data.length - 1];
-          console.log("Using last over data:", thisOverData);
+          console.log('Using last over data:', thisOverData);
         }
-        
+
         if (thisOverData !== undefined && thisOverData.balls) {
-          console.log("Processing balls:", thisOverData.balls);
+          console.log('Processing balls:', thisOverData.balls);
           // Prepare the last6Balls array with the data
           const tempBalls = thisOverData.balls.map(ball => {
             // Handle different ball formats (string or object)
             const ballValue = typeof ball === 'string' ? ball.trim() : (ball.score || ball.runs || ball.toString());
             return { score: ballValue };
-          }).filter(ball => ball.score !== "" && ball.score !== null && ball.score !== undefined);
-          
-          console.log("Processed temp balls:", tempBalls);
-          
+          }).filter(ball => ball.score !== '' && ball.score !== null && ball.score !== undefined);
+
+          console.log('Processed temp balls:', tempBalls);
+
           // Only update if we have valid ball data
           if (tempBalls.length > 0) {
             this.last6Balls = tempBalls;
-            console.log("Updated last6Balls:", this.last6Balls);
+            console.log('Updated last6Balls:', this.last6Balls);
           } else {
-            console.log("No valid ball data found after processing");
+            console.log('No valid ball data found after processing');
           }
         } else {
-          console.log("No thisOverData or balls found");
+          console.log('No thisOverData or balls found');
         }
       } else {
-        console.log("No overs_data available");
+        console.log('No overs_data available');
       }
 
       // Fallback: derive last 6 balls from runs_on_ball stream if still empty
@@ -485,7 +485,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         const lastSix = tokens.slice(-6).map(t => ({ score: t }));
         if (lastSix.length > 0) {
           this.last6Balls = lastSix;
-          console.log("Fallback last6Balls from runs_on_ball:", this.last6Balls);
+          console.log('Fallback last6Balls from runs_on_ball:', this.last6Balls);
         }
       }
 
@@ -493,10 +493,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricObj.match_odds !== undefined && this.cricObj.match_odds !== null) {
         const testMatchOddsValue = this.cricObj.match_odds;
 
-        console.log("Test Match Odds:", testMatchOddsValue);
+        console.log('Test Match Odds:', testMatchOddsValue);
         this.testMatchOdds = testMatchOddsValue;
-        console.log("Test Match Odds:", this.testMatchOdds);
-        
+        console.log('Test Match Odds:', this.testMatchOdds);
+
       }
 
       // Check and handle the "fav_team" field
@@ -505,13 +505,13 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         if (this.favTeam !== favTeamValue) {
           this.favTeam = favTeamValue;
         }
-        console.log("Favorite Team:", favTeamValue);
+        console.log('Favorite Team:', favTeamValue);
       }
 
       // T040: Update sticky header data after processing cricket data
       this.updateStickyHeaderData();
     } else {
-      console.log("No cricket data received.");
+      console.log('No cricket data received.');
     }
   }
 
@@ -581,12 +581,12 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.selectedOdds = this.layOdds;
     }
 
-    if (this.showBettingFor =='sessionBackOdds') {
+    if (this.showBettingFor == 'sessionBackOdds') {
       this.selectedBetType = 'no';
       this.selectedOdds = Number(this.sessionBackOdds);
     }
 
-    if(this.showBettingFor == 'sessionLayOdds'){
+    if (this.showBettingFor == 'sessionLayOdds') {
       this.layButtonActive = true;
       this.selectedBetType = 'yes';
       this.selectedOdds = Number(this.sessionLayOdds);
@@ -594,18 +594,18 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   }
 
-  //Function to generate team code from team name
+  // Function to generate team code from team name
   generateTeamCode(teamName: string): string {
-    const words = teamName.split(" ");
-    let code = "";
+    const words = teamName.split(' ');
+    let code = '';
 
     if (words.length === 1) {
       code = words[0].substring(0, 2).toUpperCase();
     } else if (words.length === 2) {
-      code = words.map((word) => word[0]).join("").toUpperCase();
+      code = words.map((word) => word[0]).join('').toUpperCase();
     } else {
       // Handle other cases as needed
-      code = "NA";
+      code = 'NA';
     }
 
     return code;
@@ -634,7 +634,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     const betDetails = {
       betType: this.selectedBetType,
       teamName: this.favTeam,
-      odd: 1 + (Number(this.selectedOdds)/100),
+      odd: 1 + (Number(this.selectedOdds) / 100),
       amount: Number(this.betAmount),
       matchUrl: this.matchUrl // Adding the match url to betDetails
     };
@@ -642,7 +642,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
     this.showBetting = false;
     this.isBetProcessing = true;
-    
+
     console.log('Placing bet...');
     console.log('Selected Odds: ', this.selectedOdds);
     console.log('Bet Amount: ', this.betAmount);
@@ -650,14 +650,14 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     this.cricketService.placeBet(betDetails).pipe(timeout(10000)).subscribe({
       next: (response: any) => {
         console.log('Bet response received for match bet', response);
-        
+
         // Assuming response.bet contains the bet object
         if (response.bet) {
           const bet = response.bet;
-    
-          if (bet.status === "Confirmed") {
+
+          if (bet.status === 'Confirmed') {
             this.showToast('Bet placed and confirmed!', 'Close');
-          } else if (bet.status === "Cancelled") {
+          } else if (bet.status === 'Cancelled') {
             this.showToast('Bet was cancelled: ' + bet.teamName, 'Close');
           } else {
             this.showToast('Bet status: ' + bet.status, 'Close');
@@ -665,7 +665,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         } else {
           this.showToast('No bet found in the response', 'Close');
         }
-    
+
         this.isBetProcessing = false;
         this.loadUserBets();
       },
@@ -688,7 +688,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     return fullName; // No truncation needed
   }
   placeTestBet(match) {
-    
+
     const betDetails = {
       betType: this.betType,
       teamName: match.teamName,
@@ -723,18 +723,18 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     // Implement WebSocket subscription or polling to check bet status
     // Once confirmed:
     this.betStatusSubscription = this.eventListService.subscribeToBetStatusTopic().subscribe(bet => {
-      console.log("Bet status received here after confirmation  ", bet);
+      console.log('Bet status received here after confirmation  ', bet);
       // parse bet json
       const parsedBet = JSON.parse(bet.body);
-      if(parsedBet.status === 'Confirmed' && parsedBet.betId === betId) {
-        console.log("setting is bet processing to false after confirmation");
+      if (parsedBet.status === 'Confirmed' && parsedBet.betId === betId) {
+        console.log('setting is bet processing to false after confirmation');
         this.showToast('Bet placed Confirmed!', 'Close');
         this.isBetProcessing = false;
         this.loadUserBets();
         this.authService.updateUserDetails(parsedBet.user);
       }
-      if(parsedBet.status === 'Cancelled' && parsedBet.betId === betId) {
-        console.log("setting is bet processing to false after cancellation");
+      if (parsedBet.status === 'Cancelled' && parsedBet.betId === betId) {
+        console.log('setting is bet processing to false after cancellation');
         this.showToast('Error placing bet', 'Close');
         this.isBetProcessing = false;
         this.loadUserBets();
@@ -783,13 +783,13 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   // Example modification of the showBettingOptions method to accept match context
   // overload this showBettingOptions method to accept match context
-    
-  showBettingOptionsForTestMatch(section:string,  index: number , betType:string) {
+
+  showBettingOptionsForTestMatch(section: string,  index: number , betType: string) {
     this.showBetting = true;
     // If it's a test match, set the selected odds and amount based on the match parameter
     this.currentMatchIndex = index; // Set the current match index
     this.betType = betType;
-    
+
     const match = this.testMatchOdds[index]; // Access the match using the index
     this.betAmount = 0; // Clear the stakes when clicking on odds again
 
@@ -814,8 +814,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     this.cricketService.getUserBetsForMatch(this.matchUrl).subscribe(
       (response) => {
         console.log(response);
-        if(response.bets.length > 0){
-          this.userBets= response.bets;
+        if (response.bets.length > 0) {
+          this.userBets = response.bets;
           this.updatedUserData = this.userBets[0].user;
           this.authService.updateUserDetails(this.updatedUserData);
         }
@@ -826,19 +826,19 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
           const teamNames = Object.keys(this.formattedExposures);
           if (teamNames.length > 0) {
 
-            let teamName = teamNames[0];
+            const teamName = teamNames[0];
             this.totalPotentialWin = this.formattedExposures[teamName].win;
             this.totalPotentialLoss = this.formattedExposures[teamName].lose;
             this.winFormattedKey = `${teamName} Win`;
             this.loseFormattedKey = `${teamName} Lose`;
           }
 
-          
-  
+
+
           if (response.sessionExposures) {
             this.sessionExposures = this.formatSessionExposures(response.sessionExposures);
           }
-          
+
           console.log('Total Potential Win:', this.totalPotentialWin);
           console.log('Total Potential Loss:', this.totalPotentialLoss);
           console.log('Win Formatted Key:', this.winFormattedKey);
@@ -846,7 +846,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         }
 
 
-      }, 
+      },
       (error) => {
         console.error('Error fetching bets:', error);
       }
@@ -882,7 +882,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         if (outcome === 'win') {
             this.totalPotentialWin = exposures[key];
             this.winFormattedKey = formattedKey;
-            
+
         } else if (outcome === 'lose') {
             this.totalPotentialLoss = exposures[key];
             this.loseFormattedKey = formattedKey;
@@ -895,7 +895,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 onTabChange(event: MatTabChangeEvent) {
   // T056: Save current tab index for orientation changes
   this.currentTabIndex = event.index;
-  
+
   if (event.index === 1) { // Match Info tab is selected
     this.activatedRoute.params.subscribe(params => {
       const match = params['path']; // Use 'path' instead of 'match'
@@ -904,7 +904,7 @@ onTabChange(event: MatTabChangeEvent) {
       this.fetchMatchInfo(this.matchUrl);
     });
   } else if (event.index === 2) { // Scorecard tab is selected
-    //this.fetchScorecardInfo(this.matchUrl);
+    // this.fetchScorecardInfo(this.matchUrl);
 
     this.activatedRoute.params.subscribe(params => {
       const match = params['path']; // Use 'path' instead of 'match'
@@ -937,15 +937,15 @@ onOrientationChange(event: Event): void {
     this.resizeThrottle = setTimeout(() => {
       // Save current scroll position
       this.scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-      
+
       // Trigger change detection to adapt layout (handled by CSS media queries)
       // Tab selection is preserved via this.currentTabIndex
-      
+
       // Restore scroll position after layout stabilizes (50ms delay)
       setTimeout(() => {
         window.scrollTo(0, this.scrollPosition);
       }, 50);
-      
+
       // Clear throttle
       this.resizeThrottle = null;
     }, 100);
@@ -999,12 +999,12 @@ onRefreshMatchDetails(): void {
         }
         break;
     }
-    
+
     console.log('[PullToRefresh] Match details refreshed for tab:', this.currentTabIndex);
   }
 }
 
-fetchScorecardInfo(matchUrl:string){
+fetchScorecardInfo(matchUrl: string) {
 
   this.cricketService.getScorecardInfo(matchUrl).subscribe(
     data => {
@@ -1017,7 +1017,7 @@ fetchScorecardInfo(matchUrl:string){
   );
 }
 
-fetchMatchInfo(matchUrl:string) {
+fetchMatchInfo(matchUrl: string) {
   if (this.matchInfo) {
     // Data already fetched, no need to fetch again
     return;
@@ -1123,8 +1123,8 @@ formatAndGroupExposures(exposures: any): Record<string, FormattedExposure> {
 
   Object.keys(exposures).forEach(key => {
     const parts = key.replace('Adjusted', '').trim().split(' ');
-    const teamName = parts.slice(0, -1).join(' '); 
-    const outcome = parts[parts.length - 1].toLowerCase(); 
+    const teamName = parts.slice(0, -1).join(' ');
+    const outcome = parts[parts.length - 1].toLowerCase();
 
     if (!formattedExposures[teamName]) {
       formattedExposures[teamName] = { win: 0, lose: 0 };
@@ -1151,7 +1151,7 @@ placeSessionBet() {
     return;
   }
 
-  let bet: Bet = {
+  const bet: Bet = {
     teamName: this.battingTeam,
     betType: this.selectedBetType,
     amount: Number(this.betAmount),
@@ -1166,14 +1166,14 @@ placeSessionBet() {
   this.cricketService.placeBet(bet).pipe(timeout(10000)).subscribe({
     next: (response: any) => {
       console.log('Bet response received for match bet', response);
-      
+
       // Assuming response.bet contains the bet object
       if (response.bet) {
         const bet = response.bet;
-  
-        if (bet.status === "Confirmed") {
+
+        if (bet.status === 'Confirmed') {
           this.showToast('Bet placed and confirmed!', 'Close');
-        } else if (bet.status === "Cancelled") {
+        } else if (bet.status === 'Cancelled') {
           this.showToast('Bet was cancelled: ' + bet.teamName, 'Close');
         } else {
           this.showToast('Bet status: ' + bet.status, 'Close');
@@ -1181,7 +1181,7 @@ placeSessionBet() {
       } else {
         this.showToast('No bet found in the response', 'Close');
       }
-  
+
       this.isBetProcessing = false;
       this.loadUserBets();
     },
@@ -1200,8 +1200,8 @@ placeSessionBet() {
 
   // 002-match-details-ux: Helper to extract matchId from URL
   private extractMatchIdFromUrl(url: string): string | null {
-    if (!url) return null;
-    
+    if (!url) { return null; }
+
     // Try to extract match ID from various URL patterns
     // Example patterns: /match/12345, ?matchId=12345, /cricket-odds/12345
     const patterns = [
@@ -1210,14 +1210,14 @@ placeSessionBet() {
       /\/cricket-odds\/([^\/\?]+)/,
       /\/(\d+)$/  // numeric ID at end
     ];
-    
+
     for (const pattern of patterns) {
       const match = url.match(pattern);
       if (match && match[1]) {
         return match[1];
       }
     }
-    
+
     return null;
   }
 

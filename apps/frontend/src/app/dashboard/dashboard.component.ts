@@ -19,7 +19,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private matchService: MatchService,
-    private cricketService:CricketService,
+    private cricketService: CricketService,
     private eventListService: EventListService,
     private router: Router
   ) {}
@@ -41,7 +41,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         let message;
         if (betStatus.body) {
           message =  JSON.parse(betStatus.body);
-        } 
+        }
 
         this.handleBetStatusUpdate(message);
       }
@@ -68,7 +68,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       if (this.matches.length > 0) {
         this.cricketService.getUserBetsForMatchNonUserBased().subscribe(data => {
 
-          console.log("data for all match bets" , data);
+          console.log('data for all match bets' , data);
           this.matches.forEach(match => {
             if (data[match.url]) {
               const betsData = data[match.url];
@@ -128,11 +128,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Update matches with the latest bet data
     this.loadMatches();
   }
-  
+
   private loadNotifications(): void {
     this.matchService.getNotifications().subscribe(data => {
-      //this.notifications = data;
-      
+      // this.notifications = data;
+
     });
   }
 
@@ -162,7 +162,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const matchTeam = matchPart.split('-').slice(0, 3).join(' ');
 
     const teamObject = { url: message, teamName: matchTeam };
-    
+
     console.log('Adding match:', teamObject);
     // Add to MatchService so it's available to the subscription
     this.matchService.addMatchTeam(teamObject);
@@ -175,43 +175,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private calculateTotalPotentialWin(exposures: any): number {
     let totalWin = 0;
     const teams = this.extractTeamsFromExposures(exposures);
-  
+
     if (teams.length > 0) {
       const team = teams[0]; // Consider the first team in the list
       const winKey = `${team} Adjusted Win`;
-  
+
       if (exposures[winKey] !== undefined) {
         totalWin = exposures[winKey];
       }
     }
-  
+
     return totalWin;
   }
 
   private calculateTotalPotentialLoss(exposures: any): number {
     let totalLoss = 0;
     const teams = this.extractTeamsFromExposures(exposures);
-  
+
     if (teams.length > 0) {
       const team = teams[0]; // Consider the first team in the list
       const loseKey = `${team} Adjusted Lose`;
-  
+
       if (exposures[loseKey] !== undefined) {
         totalLoss = exposures[loseKey];
       }
     }
-  
+
     return totalLoss;
   }
 
   private setWinningAndLosingTeams(match: any, exposures: any): void {
     const teams = this.extractTeamsFromExposures(exposures);
-  
+
     if (teams.length > 0) {
       const team = teams[0]; // Consider the first team in the list
       const winKey = `${team} Adjusted Win`;
       const loseKey = `${team} Adjusted Lose`;
-  
+
       if (exposures[winKey] !== undefined) {
         match.winningTeam = team;
       }
@@ -223,14 +223,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private extractTeamsFromExposures(exposures: any): string[] {
     const teams = new Set<string>();
-  
+
     for (const key in exposures) {
-      if (key.includes("Adjusted Win") || key.includes("Adjusted Lose")) {
-        const team = key.replace(" Adjusted Win", "").replace(" Adjusted Lose", "");
+      if (key.includes('Adjusted Win') || key.includes('Adjusted Lose')) {
+        const team = key.replace(' Adjusted Win', '').replace(' Adjusted Lose', '');
         teams.add(team);
       }
     }
-  
+
     return Array.from(teams);
   }
 

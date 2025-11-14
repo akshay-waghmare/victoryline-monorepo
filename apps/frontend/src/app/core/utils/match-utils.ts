@@ -39,7 +39,7 @@ export function getMatchStatusBackground(status: MatchStatus, opacity: number = 
     [MatchStatus.RAIN_DELAY]: '244, 67, 54', // RGB for red
     [MatchStatus.ABANDONED]: '244, 67, 54'
   };
-  
+
   const rgb = baseColors[status] || '117, 117, 117';
   return `rgba(${rgb}, ${opacity})`;
 }
@@ -78,15 +78,15 @@ export function sortMatchesByPriority(matches: MatchCardViewModel[]): MatchCardV
     [MatchStatus.COMPLETED]: 5,
     [MatchStatus.ABANDONED]: 6
   };
-  
+
   return [...matches].sort((a, b) => {
     const priorityA = priorityOrder[a.status] || 99;
     const priorityB = priorityOrder[b.status] || 99;
-    
+
     if (priorityA !== priorityB) {
       return priorityA - priorityB;
     }
-    
+
     // Within same priority, sort by start time (upcoming: earliest first, completed: latest first)
     if (a.status === MatchStatus.UPCOMING) {
       return a.startTime.getTime() - b.startTime.getTime();
@@ -107,7 +107,7 @@ export function filterMatchesByStatus(matches: MatchCardViewModel[], status: Mat
  * Filter live matches (including innings break)
  */
 export function filterLiveMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
-  return matches.filter(match => 
+  return matches.filter(match =>
     match.status === MatchStatus.LIVE || match.status === MatchStatus.INNINGS_BREAK
   );
 }
@@ -133,10 +133,10 @@ export function searchMatches(matches: MatchCardViewModel[], query: string): Mat
   if (!query || query.trim() === '') {
     return matches;
   }
-  
+
   const lowerQuery = query.toLowerCase().trim();
-  
-  return matches.filter(match => 
+
+  return matches.filter(match =>
     match.team1.name.toLowerCase().includes(lowerQuery) ||
     match.team1.shortName.toLowerCase().includes(lowerQuery) ||
     match.team2.name.toLowerCase().includes(lowerQuery) ||
@@ -152,14 +152,14 @@ export function getMatchResultSummary(match: MatchCardViewModel): string {
   if (match.status !== MatchStatus.COMPLETED) {
     return '';
   }
-  
+
   const team1Score = match.team1.score;
   const team2Score = match.team2.score;
-  
+
   if (!team1Score || !team2Score) {
     return 'Match completed';
   }
-  
+
   // Determine winner by comparing runs
   if (team1Score.runs > team2Score.runs) {
     const margin = team1Score.runs - team2Score.runs;
@@ -187,9 +187,9 @@ export function getStalenessSeverity(match: MatchCardViewModel): 'none' | 'warni
   if (match.status !== MatchStatus.LIVE && match.status !== MatchStatus.INNINGS_BREAK) {
     return 'none'; // Only check staleness for live matches
   }
-  
+
   const secondsAgo = (Date.now() - match.lastUpdated.getTime()) / 1000;
-  
+
   if (secondsAgo < 30) {
     return 'none';
   } else if (secondsAgo < 120) {
@@ -204,9 +204,9 @@ export function getStalenessSeverity(match: MatchCardViewModel): 'none' | 'warni
  * Examples: 102 -> "17.0", 70 -> "11.4", 5 -> "0.5"
  */
 export function ballsToOvers(value: number | string): string {
-  if (value === undefined || value === null) return '';
+  if (value === undefined || value === null) { return ''; }
   const n = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(n)) return '';
+  if (isNaN(n)) { return ''; }
   // If already decimal like 17.0
   if (typeof value === 'string' && value.indexOf('.') !== -1) {
     return value;
@@ -222,15 +222,15 @@ export function ballsToOvers(value: number | string): string {
  * E.g., "155/9(102" -> "155/9 (17.0)"; "155-9(17.0)" stays as-is.
  */
 export function normalizeTeamScoreString(raw: string): string {
-  if (!raw) return raw;
-  var s = String(raw).trim();
+  if (!raw) { return raw; }
+  let s = String(raw).trim();
   // Ensure single space before '('
   s = s.replace(/\s*\(/g, ' (');
   // If '(digits)' convert digits to overs
   s = s.replace(/\((\d+)\)/g, function(m, d) { return '(' + ballsToOvers(d) + ')'; });
   // If '(' without closing ')', close and normalize
   s = s.replace(/\(([^)]*)$/, function(m, inside) {
-    var cleaned = String(inside).trim();
+    const cleaned = String(inside).trim();
     if (/^\d+$/.test(cleaned)) {
       return '(' + ballsToOvers(cleaned) + ')';
     }
@@ -244,13 +244,13 @@ export function normalizeTeamScoreString(raw: string): string {
  * Also supports '/scorecard' ending.
  */
 export function extractSlugFromUrl(url: string): string | null {
-  if (!url || url.indexOf('/') === -1) return null;
-  var parts = url.split('/').filter(function(p) { return !!p; });
-  if (parts.length < 2) return null;
-  var last = parts[parts.length - 1];
-  var prev = parts[parts.length - 2];
+  if (!url || url.indexOf('/') === -1) { return null; }
+  const parts = url.split('/').filter(function(p) { return !!p; });
+  if (parts.length < 2) { return null; }
+  const last = parts[parts.length - 1];
+  const prev = parts[parts.length - 2];
   if (last && prev) {
-    var lastLower = last.toLowerCase();
+    const lastLower = last.toLowerCase();
     if (lastLower === 'live' || lastLower === 'scorecard') {
       return prev;
     }

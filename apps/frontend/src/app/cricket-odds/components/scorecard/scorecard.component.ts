@@ -61,12 +61,12 @@ export class ScorecardComponent implements OnInit {
   }
 
   calculateStrikeRate(runs: number, balls: number): string {
-    if (balls === 0) return '0.00';
+    if (balls === 0) { return '0.00'; }
     return ((runs / balls) * 100).toFixed(2);
   }
 
   calculateEconomy(runs: number, overs: number): string {
-    if (overs === 0) return '0.00';
+    if (overs === 0) { return '0.00'; }
     return (runs / overs).toFixed(2);
   }
 

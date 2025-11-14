@@ -71,17 +71,17 @@ export class ContentDiscoveryComponent implements OnInit {
       this.matches = result;
       this.loading = false;
       this.error = null;
-      
+
       // Cache the results for offline use
       if (this.isOnline) {
         this.offlineCache.cacheSearchResults('initial', this.filters, result).subscribe();
       }
-      
+
       // Generate recommendations based on all matches
       this.loadRecommendations(result);
     }).catch(error => {
       console.error('Failed to load matches from network:', error);
-      
+
       // Fall back to cached data if offline
       if (!this.isOnline) {
         this.loadFromCache('initial');
@@ -132,12 +132,12 @@ export class ContentDiscoveryComponent implements OnInit {
     this.discoveryService.filterMatches(this.filters).then(result => {
       this.matches = result;
       this.loading = false;
-      
+
       // Cache filtered results
       if (this.isOnline) {
         this.offlineCache.cacheSearchResults('filter', this.filters, result).subscribe();
       }
-      
+
       // Track filter change
       this.analytics.trackFilterChange(
         'type',
@@ -146,7 +146,7 @@ export class ContentDiscoveryComponent implements OnInit {
       );
     }).catch(error => {
       console.error('Failed to apply filters:', error);
-      
+
       // Fall back to cached data if offline
       if (!this.isOnline) {
         this.loadFromCache('filter');
@@ -164,17 +164,17 @@ export class ContentDiscoveryComponent implements OnInit {
     this.discoveryService.search(query).then(result => {
       this.matches = result;
       this.loading = false;
-      
+
       // Cache search results
       if (this.isOnline) {
         this.offlineCache.cacheSearchResults(query, this.filters, result).subscribe();
       }
-      
+
       // Track search
       this.analytics.trackSearch(query, result.length);
     }).catch(error => {
       console.error('Failed to search:', error);
-      
+
       // Fall back to cached data if offline
       if (!this.isOnline) {
         this.loadFromCache(query);
@@ -190,18 +190,18 @@ export class ContentDiscoveryComponent implements OnInit {
     // Record the view
     this.historyService.recordView(item);
     this.loadRecentlyViewed();
-    
+
     // Track autocomplete selection
-    const matchTitle = `${item.team1?.name} vs ${item.team2?.name}`;
+    const matchTitle = `${item.team1 ? .name  } vs ${item.team2 ? .name  }`;
     this.analytics.trackAutocompleteSelection(item.id, matchTitle, 0);
   }
 
   onMatchClick(match: MatchCardViewModel, source: 'all_matches' | 'recently_viewed' | 'recommended' = 'all_matches', position?: number) {
     // Record view in history
     this.historyService.recordView(match);
-    
+
     // Track the click based on source
-    const matchTitle = `${match.team1?.name} vs ${match.team2?.name}`;
+    const matchTitle = `${match.team1 ? .name  } vs ${match.team2 ? .name  }`;
     if (source === 'recently_viewed' && position !== undefined) {
       this.analytics.trackRecentlyViewedClick(match.id, matchTitle, position);
     } else if (source === 'recommended' && position !== undefined) {
@@ -209,7 +209,7 @@ export class ContentDiscoveryComponent implements OnInit {
     } else {
       this.analytics.trackMatchClick(match.id, matchTitle, 'all_matches');
     }
-    
+
     // Navigate to match details
     if (match.matchUrl) {
       // Extract slug from URL for routing
@@ -224,7 +224,7 @@ export class ContentDiscoveryComponent implements OnInit {
       const itemCount = this.recentlyViewed.length;
       this.historyService.clearHistory();
       this.loadRecentlyViewed();
-      
+
       // Track history clear
       this.analytics.trackHistoryClear(itemCount);
     }

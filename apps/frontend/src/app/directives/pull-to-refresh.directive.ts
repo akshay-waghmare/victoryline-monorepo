@@ -7,17 +7,17 @@ type HammerInput = any;
 
 /**
  * PullToRefreshDirective
- * 
+ *
  * Implements pull-to-refresh gesture for mobile using HammerJS pan events.
  * Commonly used for refreshing live scores, match lists, and dynamic content.
- * 
+ *
  * Features:
  * - Visual feedback with spinner and arrow indicator
  * - 80px pull threshold before triggering refresh
  * - Smooth animation during pull and release
  * - Only triggers at scroll top (prevents conflicts with scrolling)
  * - Customizable refresh action via event binding
- * 
+ *
  * Usage:
  * ```html
  * <div appPullToRefresh (refresh)="onRefresh()">
@@ -26,7 +26,7 @@ type HammerInput = any;
  *   </div>
  * </div>
  * ```
- * 
+ *
  * Thresholds:
  * - Pull threshold: 80px (triggers refresh on release)
  * - Max pull distance: 120px (visual constraint)
@@ -56,7 +56,7 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
   /**
    * Current pull distance in pixels
    */
-  private pullDistance: number = 0;
+  private pullDistance = 0;
 
   /**
    * Threshold to trigger refresh (80px)
@@ -71,7 +71,7 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
   /**
    * Whether refresh is currently in progress
    */
-  private isRefreshing: boolean = false;
+  private isRefreshing = false;
 
   constructor(
     private elementRef: ElementRef,
@@ -99,7 +99,7 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
   private createIndicator(): void {
     this.indicator = this.renderer.createElement('div');
     this.renderer.addClass(this.indicator, 'pull-to-refresh-indicator');
-    
+
     // Set initial styles
     this.renderer.setStyle(this.indicator, 'position', 'absolute');
     this.renderer.setStyle(this.indicator, 'top', '0');
@@ -113,7 +113,7 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
     this.renderer.setStyle(this.indicator, 'transition', 'transform 0.2s ease-out');
     this.renderer.setStyle(this.indicator, 'z-index', '1000');
     this.renderer.setStyle(this.indicator, 'pointer-events', 'none');
-    
+
     // Add spinner icon (uses CSS for animation)
     const spinner = this.renderer.createElement('div');
     this.renderer.addClass(spinner, 'pull-to-refresh-spinner');
@@ -124,7 +124,7 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
     this.renderer.setStyle(spinner, 'border-radius', '50%');
     this.renderer.setStyle(spinner, 'opacity', '0');
     this.renderer.setStyle(spinner, 'transition', 'opacity 0.2s ease-out');
-    
+
     this.renderer.appendChild(this.indicator, spinner);
     this.renderer.appendChild(this.elementRef.nativeElement, this.indicator);
   }
@@ -189,7 +189,7 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
       if (spinner) {
         const opacity = this.pullDistance >= this.THRESHOLD ? 1 : this.pullDistance / this.THRESHOLD;
         this.renderer.setStyle(spinner, 'opacity', opacity.toString());
-        
+
         // Rotate spinner based on pull distance
         const rotation = (this.pullDistance / this.MAX_PULL) * 360;
         this.renderer.setStyle(spinner, 'transform', `rotate(${rotation}deg)`);
@@ -204,7 +204,7 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
     if (this.pullDistance >= this.THRESHOLD && !this.isRefreshing) {
       // T073: Trigger haptic feedback when refresh threshold reached
       this.triggerHapticFeedback();
-      
+
       // Trigger refresh
       this.isRefreshing = true;
       this.refresh.emit();
@@ -272,7 +272,7 @@ export class PullToRefreshDirective implements OnInit, OnDestroy {
 
 /**
  * Add spinner animation to global styles (or component styles):
- * 
+ *
  * @keyframes spin {
  *   from { transform: rotate(0deg); }
  *   to { transform: rotate(360deg); }

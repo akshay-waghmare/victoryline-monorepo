@@ -23,9 +23,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     { label: 'Players', icon: 'person', route: '/players' },
     { label: 'Teams', icon: 'groups', route: '/teams' }
   ];
-  
+
   constructor(private themeService: ThemeService, private router: Router) {}
-  
+
   ngOnInit(): void {
     this.applyTheme(this.themeService.getCurrentTheme());
 
@@ -37,12 +37,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
     });
     this.activeRoute = this.router.url;
   }
-  
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
   }
-  
+
   toggleTheme(): void { this.themeService.toggleTheme(); }
   get themeIcon(): string { return this.isDarkTheme ? 'brightness_3' : 'wb_sunny'; }
   get themeTooltip(): string { return this.isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'; }

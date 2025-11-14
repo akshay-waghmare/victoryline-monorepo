@@ -14,7 +14,7 @@ export class LoaderComponent implements OnInit {
   value = 50;
 
   isLoading: Subject<boolean> = this.loaderService.isLoading;
-  constructor(private loaderService: LoaderService){}
+  constructor(private loaderService: LoaderService) {}
 
  ngOnInit() {
   }

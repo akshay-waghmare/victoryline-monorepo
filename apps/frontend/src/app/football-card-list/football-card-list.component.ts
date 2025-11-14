@@ -1,5 +1,5 @@
 import { Component, Input, OnInit, SimpleChanges } from '@angular/core';
-import * as _  from 'underscore'
+import * as _  from 'underscore';
 
 
 @Component({
@@ -10,59 +10,57 @@ import * as _  from 'underscore'
 export class FootballCardListComponent implements OnInit {
 
   @Input()
-  footballData : any;
+  footballData: any;
 
   @Input()
-  selectedTabIndex : Number;
+  selectedTabIndex: Number;
 
-  ifBlink:Boolean;
-   
+  ifBlink: Boolean;
+
   constructor() { }
 
   ngOnInit() {
   }
 
-  isDataEmpty(){
+  isDataEmpty() {
     return _.isEmpty(this.footballData);
   }
 
-  getCalculatedElapsedTime(strtTime,periodTime):any {
-    let secondhalf:Boolean = false;
+  getCalculatedElapsedTime(strtTime, periodTime): any {
+    let secondhalf: Boolean = false;
 
-    
-    let startingTime = new Date(strtTime*1000); // conversion from timestamp
-    let startingHalfTime = new Date(periodTime*1000);
-    
-    let currentTime = new Date();
-    let diff  = (currentTime.getTime() - startingTime.getTime() ) / 1000;
-    let elapsedTime = Math.floor(diff/60);
 
-    if(this.selectedTabIndex==1){
-      return startingTime.toLocaleDateString() + "\n" + startingTime.toLocaleTimeString();
+    const startingTime = new Date(strtTime * 1000); // conversion from timestamp
+    const startingHalfTime = new Date(periodTime * 1000);
+
+    const currentTime = new Date();
+    const diff  = (currentTime.getTime() - startingTime.getTime() ) / 1000;
+    const elapsedTime = Math.floor(diff / 60);
+
+    if (this.selectedTabIndex == 1) {
+      return startingTime.toLocaleDateString() + '\n' + startingTime.toLocaleTimeString();
     }
 
-    let timeBetweenStartingOfHalves =  ( startingHalfTime.getTime() - startingTime.getTime() ) / 1000;
-    let breakMinutes = Math.floor(timeBetweenStartingOfHalves / 60) - 45;
+    const timeBetweenStartingOfHalves =  ( startingHalfTime.getTime() - startingTime.getTime() ) / 1000;
+    const breakMinutes = Math.floor(timeBetweenStartingOfHalves / 60) - 45;
 
-    if(Math.floor(timeBetweenStartingOfHalves / 60) >= 60){
+    if (Math.floor(timeBetweenStartingOfHalves / 60) >= 60) {
       secondhalf = true;
     }
 
-    if(elapsedTime > 45 && secondhalf==false){
-      return 'HT'
-    }
-    else if(secondhalf==true){
-      return elapsedTime-breakMinutes;
-    }
-    else{
+    if (elapsedTime > 45 && secondhalf == false) {
+      return 'HT';
+    } else if (secondhalf == true) {
+      return elapsedTime - breakMinutes;
+    } else {
       return elapsedTime;
     }
   }
-  
+
   ngOnChanges(changes: SimpleChanges) {
     // only run when property "data" changed
     if (changes['footballData']) {
-      this.ifBlink=true;
+      this.ifBlink = true;
     }
 }
 

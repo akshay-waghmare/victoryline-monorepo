@@ -7,16 +7,16 @@ import { Router } from '@angular/router';
     <div class="splash-screen" [@slideOut]="animationState">
       <div class="splash-container">
         <div class="splash-logo">
-          <app-logo 
-            variant="primary" 
-            size="2xl" 
+          <app-logo
+            variant="primary"
+            size="2xl"
             [showText]="true"
             logoText="Crickzen"
             altText="Crickzen Live Cricket"
             containerClass="splash-logo-container"
           ></app-logo>
         </div>
-        
+
         <div class="splash-animation">
           <div class="cricket-ball"></div>
           <div class="cricket-stumps">
@@ -25,12 +25,12 @@ import { Router } from '@angular/router';
             <div class="stump"></div>
           </div>
         </div>
-        
+
         <div class="splash-text">
           <h1 class="splash-title">Welcome to Live Cricket</h1>
           <p class="splash-subtitle">Your ultimate destination for real-time cricket updates</p>
         </div>
-        
+
         <div class="splash-progress">
           <div class="progress-bar">
             <div class="progress-fill" [style.width.%]="progressValue"></div>
@@ -165,11 +165,11 @@ import { Router } from '@angular/router';
     }
 
     @keyframes logoEntrance {
-      from { 
+      from {
         opacity: 0;
         transform: scale(0.5) rotate(-10deg);
       }
-      to { 
+      to {
         opacity: 1;
         transform: scale(1) rotate(0deg);
       }
@@ -228,7 +228,7 @@ import { Router } from '@angular/router';
       .splash-title {
         font-size: 2rem;
       }
-      
+
       .splash-subtitle {
         font-size: 1rem;
       }
@@ -239,7 +239,7 @@ export class SplashScreenComponent implements OnInit, OnDestroy {
   progressValue = 0;
   loadingText = 'Initializing cricket app...';
   animationState = 'in';
-  
+
   private loadingSteps = [
     { progress: 20, text: 'Loading cricket data...' },
     { progress: 40, text: 'Connecting to live scores...' },
@@ -247,7 +247,7 @@ export class SplashScreenComponent implements OnInit, OnDestroy {
     { progress: 80, text: 'Preparing your dashboard...' },
     { progress: 100, text: 'Ready to play!' }
   ];
-  
+
   private currentStep = 0;
   private intervalId: any;
 

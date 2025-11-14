@@ -11,7 +11,7 @@ import { map, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 })
 export class NetworkStatusService {
   private onlineSubject = new BehaviorSubject<boolean>(navigator.onLine);
-  
+
   /**
    * Observable that emits true when online, false when offline
    */
@@ -67,7 +67,7 @@ export class NetworkStatusService {
 
         // Check Network Information API if available
         const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-        
+
         if (connection) {
           const effectiveType = connection.effectiveType;
           // '4g' = good, '3g' = acceptable, '2g'/'slow-2g' = poor
@@ -109,7 +109,7 @@ export class NetworkStatusService {
         method: 'HEAD',
         cache: 'no-cache'
       });
-      
+
       const isOnline = response.ok;
       this.onlineSubject.next(isOnline);
       return isOnline;
@@ -125,7 +125,7 @@ export class NetworkStatusService {
    */
   getConnectionType(): string {
     const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    return connection?.type || 'unknown';
+    return connection ? .type || 'unknown'  ;
   }
 
   /**
@@ -133,7 +133,7 @@ export class NetworkStatusService {
    */
   getEffectiveType(): string {
     const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    return connection?.effectiveType || 'unknown';
+    return connection ? .effectiveType || 'unknown'  ;
   }
 
   /**
@@ -141,6 +141,6 @@ export class NetworkStatusService {
    */
   isMeteredConnection(): boolean {
     const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    return connection?.saveData === true || connection?.type === 'cellular';
+    return connection ? .saveData === true || connection ? .type === 'cellular'  ;
   }
 }

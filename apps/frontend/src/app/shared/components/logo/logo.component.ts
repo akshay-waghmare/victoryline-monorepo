@@ -4,9 +4,9 @@ import { Component, Input } from '@angular/core';
   selector: 'app-logo',
   template: `
     <div class="logo-container" [ngClass]="containerClass + ' logo-' + size">
-      <img 
-        [src]="logoSrc" 
-        [alt]="altText" 
+      <img
+        [src]="logoSrc"
+        [alt]="altText"
         [ngClass]="imageClass"
         class="logo-image"
         (error)="onImageError($event)"
@@ -144,29 +144,29 @@ import { Component, Input } from '@angular/core';
         height: 40px;
         gap: 0.5rem;
       }
-      
+
       .logo-navbar .logo-image {
         height: 40px;
         max-height: 40px;
       }
-      
+
       .logo-navbar .logo-text {
         font-size: 1.1rem;
       }
-      
+
       .logo-brand {
         height: 48px;
       }
-      
+
       .logo-brand .logo-image {
         height: 48px;
         max-height: 48px;
       }
-      
+
       .logo-splash {
         height: 64px;
       }
-      
+
       .logo-splash .logo-image {
         height: 64px;
         max-height: 64px;
@@ -207,12 +207,12 @@ import { Component, Input } from '@angular/core';
 export class LogoComponent {
   @Input() variant: 'primary' | 'circular' | 'text' = 'primary';
   @Input() size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'navbar' | 'footer' | 'brand' | 'splash' = 'md';
-  @Input() showText: boolean = true;
-  @Input() logoText: string = 'Crickzen';
-  @Input() containerClass: string = '';
-  @Input() imageClass: string = '';
-  @Input() textClass: string = '';
-  @Input() altText: string = 'Crickzen Live Cricket';
+  @Input() showText = true;
+  @Input() logoText = 'Crickzen';
+  @Input() containerClass = '';
+  @Input() imageClass = '';
+  @Input() textClass = '';
+  @Input() altText = 'Crickzen Live Cricket';
 
   get logoSrc(): string {
     switch (this.variant) {

@@ -8,17 +8,17 @@ import { TokenStorage } from '../token.storage';
   providedIn: 'root'
 })
 export class CricketService {
-  private entity_bet_history = environment.REST_API_URL + 'cricket-data/'+'bet/history';
-  private profitLossEndpoint = environment.REST_API_URL + 'cricket-data/'+'bet/profit-loss';
+  private entity_bet_history = environment.REST_API_URL + 'cricket-data/' + 'bet/history';
+  private profitLossEndpoint = environment.REST_API_URL + 'cricket-data/' + 'bet/profit-loss';
   private lastUpdatedCricketData = environment.REST_API_URL + 'cricket-data';
   private  placeBetEndpoint = environment.REST_API_URL + 'cricket-data/' + 'placeBet';
   private  getAllbetsFormatch = environment.REST_API_URL + 'cricket-data/' + 'bets/';
   private  getMatchInfoDetails = environment.REST_API_URL + 'cricket-data/' + 'match-info/get';
   private  getScorecardDetails = environment.REST_API_URL + 'cricket-data/' + 'sC4-stats/get';
   private  getAllbetsFormatchNonUserBased = environment.REST_API_URL + 'cricket-data/' + 'get-match-bet-with-exposure/';
-  
 
-  constructor(private http: HttpClient , private tokenStorage:TokenStorage,
+
+  constructor(private http: HttpClient , private tokenStorage: TokenStorage,
      ) { }
 
   private headers = new HttpHeaders({
@@ -31,7 +31,7 @@ export class CricketService {
   }
 
   placeBet(betDetails: any): Observable<any> {
-    return this.http.post<any>(this.placeBetEndpoint, betDetails , {headers:this.headers});
+    return this.http.post<any>(this.placeBetEndpoint, betDetails , {headers: this.headers});
   }
 
   getUserBetsForMatch(matchUrl: any): Observable<any> {
@@ -57,11 +57,11 @@ export class CricketService {
   getProfitLoss(startDate: Date, endDate: Date): Observable<any> {
     const startOfDay = this.getStartOfDay(startDate).toISOString();
     const endOfDay = this.getEndOfDay(endDate).toISOString();
-    let params = new HttpParams().set('startDate', startOfDay).set('endDate', endOfDay);
+    const params = new HttpParams().set('startDate', startOfDay).set('endDate', endOfDay);
     return this.http.get(this.profitLossEndpoint, { headers: this.headers, params: params });
   }
 
- 
+
 
   getStartOfDay(date: Date): Date {
     if (!date || isNaN(date.getTime())) {

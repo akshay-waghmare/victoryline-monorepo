@@ -93,7 +93,7 @@ export class CommentaryListComponent implements OnInit, OnDestroy {
   }
 
   loadMore(): void {
-    if (this.loadingMore || !this.hasMore) return;
+    if (this.loadingMore || !this.hasMore) { return; }
 
     this.loadingMore = true;
     const nextPage = this.currentPage + 1;

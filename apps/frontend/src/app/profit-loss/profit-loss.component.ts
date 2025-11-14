@@ -46,7 +46,7 @@ export class ProfitLossComponent implements OnInit, OnDestroy, AfterViewInit {
 
     const subscription = this.cricketService.getProfitLoss(new Date(this.startDate), new Date(this.endDate)).subscribe(
         (response: any) => {
-        console.log("logging profit loss response : ", response);
+        console.log('logging profit loss response : ', response);
         const profitLossArray = Object.values(response);
         // Sorting the profitLossArray by transactionDate in ascending order
         profitLossArray.sort((a: any, b: any) => {

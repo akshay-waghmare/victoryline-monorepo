@@ -2,17 +2,17 @@ import { Component, Input, OnInit, ElementRef, ViewChild, ChangeDetectionStrateg
 
 /**
  * LazyImageComponent
- * 
+ *
  * Lazy-loads images using Intersection Observer API with srcset support
  * for responsive images and error fallbacks.
- * 
+ *
  * Features:
  * - Lazy loading with Intersection Observer
  * - Responsive images with srcset support
  * - Error handling with fallback images
  * - Loading placeholder
  * - Accessibility (alt text required)
- * 
+ *
  * Usage:
  * ```html
  * <app-lazy-image
@@ -74,13 +74,13 @@ export class LazyImageComponent implements OnInit {
    * Root margin for Intersection Observer (when to start loading)
    * Default: 200px (start loading 200px before image enters viewport)
    */
-  @Input() rootMargin: string = '200px';
+  @Input() rootMargin = '200px';
 
   /**
    * Threshold for Intersection Observer
    * Default: 0.01 (trigger when 1% of image is visible)
    */
-  @Input() threshold: number = 0.01;
+  @Input() threshold = 0.01;
 
   /**
    * Current image state
@@ -90,7 +90,7 @@ export class LazyImageComponent implements OnInit {
   /**
    * Loaded image URL (may be fallback if primary failed)
    */
-  loadedSrc: string = '';
+  loadedSrc = '';
 
   private observer: IntersectionObserver;
 
@@ -142,7 +142,7 @@ export class LazyImageComponent implements OnInit {
    */
   private loadImage(): void {
     const img = new Image();
-    
+
     img.onload = () => {
       this.loadedSrc = this.src;
       this.imageState = 'loaded';
@@ -170,7 +170,7 @@ export class LazyImageComponent implements OnInit {
    */
   private loadFallbackImage(): void {
     const img = new Image();
-    
+
     img.onload = () => {
       this.loadedSrc = this.fallback;
       this.imageState = 'loaded';

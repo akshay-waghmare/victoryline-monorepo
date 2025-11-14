@@ -9,21 +9,21 @@ import { environment } from 'src/environments/environment';
 export class TennisaRankingService {
 
   private atpranking_tennis_url = environment.REST_API_URL + 'tennis/tennis/atp/ranking';
-  
+
   private wtaranking_tennis_url = environment.REST_API_URL + 'tennis/tennis/wta/ranking';
-  
-  
+
+
 
   constructor(private _http: HttpClient,
               ) { }
 
-  getTennisAtpRankingEvents() : Observable<any> {
+  getTennisAtpRankingEvents(): Observable<any> {
 
     return this._http.get(this.atpranking_tennis_url);
 
   }
 
-  getTennisWtaRankingEvents() : Observable<any> {
+  getTennisWtaRankingEvents(): Observable<any> {
 
     return this._http.get(this.wtaranking_tennis_url);
 

@@ -23,8 +23,8 @@ export class NavbarComponent implements OnInit {
     { path: '/dashboard', title: 'Dashboard', icon: 'dashboard' },
   ];
 
-  currentRoute: string = '';
-  isMobileMenuOpen: boolean = false;
+  currentRoute = '';
+  isMobileMenuOpen = false;
 
   constructor(
     private router: Router,
@@ -34,7 +34,7 @@ export class NavbarComponent implements OnInit {
   ngOnInit(): void {
     // Track current route for active state
     this.currentRoute = this.router.url;
-    
+
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {

@@ -45,7 +45,7 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AuthenticationGuard } from 'src/app/authentication.guard';
 import { BetMarketComponent } from 'src/app/bet-market/bet-market.component';
-import { StompService, StompConfig ,rxStompServiceFactory ,RxStompService, InjectableRxStompConfig  } from '@stomp/ng2-stompjs';
+import { StompService, StompConfig , rxStompServiceFactory , RxStompService, InjectableRxStompConfig  } from '@stomp/ng2-stompjs';
 import { FootballCardListComponent } from 'src/app/football-card-list/football-card-list.component';
 import { TennisListComponent } from 'src/app/tennis-card-list/tennis-list/tennis-list.component';
 import { TennisCardListComponent } from 'src/app/tennis-card-list/tennis-card-list.component';
@@ -130,7 +130,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatToolbarModule,
     MatSelectModule,
     MatDatepickerModule,
-    MatNativeDateModule, 
+    MatNativeDateModule,
   MatMomentDateModule,
   MatListModule,
   LayoutModule,
@@ -138,8 +138,8 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatSnackBarModule, // Import MatSnackBarModule
     MatTooltipModule, // Import MatTooltipModule for navbar tooltips (T046)
     ContentDiscoveryModule, // Phase 6: Content Discovery
-    
-  
+
+
   ],
   declarations: [
     DashboardComponent,
@@ -175,10 +175,10 @@ const myRxStompConfig: InjectableRxStompConfig = {
     ScorecardCardComponent,
     LineupsComponent,
     MatchDetailsInfoComponent,
-    
+
   ],
   providers: [
-    
+
     RxStompService,
     {
       provide: DateAdapter,

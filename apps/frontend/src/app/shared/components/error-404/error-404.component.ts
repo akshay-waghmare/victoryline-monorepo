@@ -7,16 +7,16 @@ import { Router } from '@angular/router';
     <div class="error-page">
       <div class="error-container">
         <div class="error-branding">
-          <app-logo 
-            variant="primary" 
-            size="xl" 
+          <app-logo
+            variant="primary"
+            size="xl"
             [showText]="true"
             logoText="Crickzen"
             altText="Crickzen Live Cricket"
             containerClass="error-logo"
           ></app-logo>
         </div>
-        
+
         <div class="error-content">
           <div class="error-icon">
             <i class="material-icons">sports_cricket</i>
@@ -24,21 +24,21 @@ import { Router } from '@angular/router';
           <h1 class="error-title">404</h1>
           <h2 class="error-subtitle">Oops! That's a Wide Ball!</h2>
           <p class="error-message">
-            The page you're looking for seems to have gone for a six! 
+            The page you're looking for seems to have gone for a six!
             Let's get you back to the cricket action.
           </p>
-          
+
           <div class="error-actions">
-            <button 
-              class="btn btn-primary" 
+            <button
+              class="btn btn-primary"
               (click)="goHome()"
             >
               <i class="material-icons">home</i>
               Back to Home
             </button>
-            
-            <button 
-              class="btn btn-secondary" 
+
+            <button
+              class="btn btn-secondary"
               (click)="goBack()"
             >
               <i class="material-icons">arrow_back</i>
@@ -46,7 +46,7 @@ import { Router } from '@angular/router';
             </button>
           </div>
         </div>
-        
+
         <div class="error-suggestions">
           <h3>What would you like to do?</h3>
           <div class="suggestions-grid">
@@ -217,16 +217,16 @@ import { Router } from '@angular/router';
       .error-container {
         padding: 2rem;
       }
-      
+
       .error-title {
         font-size: 4rem;
       }
-      
+
       .error-actions {
         flex-direction: column;
         align-items: center;
       }
-      
+
       .suggestions-grid {
         grid-template-columns: repeat(2, 1fr);
       }

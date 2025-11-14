@@ -67,7 +67,7 @@ export function isLiveMatch(status: MatchStatus): boolean {
  */
 export function calculateStaleness(lastUpdated: Date): 'fresh' | 'warning' | 'error' {
   const secondsAgo = (Date.now() - lastUpdated.getTime()) / 1000;
-  
+
   if (secondsAgo < 30) {
     return 'fresh';
   } else if (secondsAgo < 120) {
@@ -87,7 +87,7 @@ export function formatTimeDisplay(date: Date): string {
   const diffMinutes = Math.floor(diffSeconds / 60);
   const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
-  
+
   if (diffMs < 0) {
     // Past time
     if (diffSeconds < 60) {

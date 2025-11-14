@@ -9,7 +9,7 @@ export class Bet {
     status: string;         // Status of the bet, e.g., 'Pending', 'Won', 'Lost'
     placedAt: Date;         // Timestamp when the bet was placed
     marketName: string;
-  
+
     constructor(init?: Partial<Bet>) {
       Object.assign(this, init);
     }

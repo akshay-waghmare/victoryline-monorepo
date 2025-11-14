@@ -18,29 +18,29 @@ import { ViewportService } from '../services/viewport.service';
 export class HomeComponent implements OnInit, OnDestroy {
 
   @ViewChild('scrollContainer', { read: ElementRef }) scrollContainer!: ElementRef;
-  
+
   // New: Match data with strong typing
   liveMatches: MatchCardViewModel[] = [];
   upcomingMatches: MatchCardViewModel[] = [];
   recentMatches: MatchCardViewModel[] = [];
   isLoadingMatches = true;
   hasMatchError = false;
-  
+
   // Mobile layout state
   isMobileView = false;
   currentOrientation: 'portrait' | 'landscape' = 'portrait';
-  
+
   // T069: Context menu state
   showContextMenu = false;
   contextMenuPosition = { x: 0, y: 0 };
   selectedMatchId = '';
   selectedMatchTitle = '';
   selectedMatchUrl = '';
-  
+
   // Subscription for auto-refresh
   private matchSubscription?: Subscription;
   private viewportSubscription?: Subscription;
-  
+
   // Existing: Blog posts
   blogPosts: BlogPost[];
 
@@ -63,13 +63,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     // Load matches using new MatchesService
     this.loadMatches();
-    
+
     // Subscribe to viewport changes for responsive behavior (T025)
     this.viewportSubscription = this.viewportService.isMobile$.subscribe(isMobile => {
       this.isMobileView = isMobile;
       console.log('Mobile view:', isMobile);
     });
-    
+
     // Subscribe to orientation changes (T025)
     this.viewportService.orientation$.subscribe(orientation => {
       this.currentOrientation = orientation;
@@ -77,7 +77,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       this.handleOrientationChange(orientation);
     });
   }
-  
+
   /**
    * Load matches and categorize them with auto-refresh every 30 seconds
    * T041 - Integration with new MatchCardComponent
@@ -85,7 +85,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   loadMatches(): void {
     this.isLoadingMatches = true;
     this.hasMatchError = false;
-    
+
     // Subscribe to auto-refreshing matches (updates every 30 seconds)
     this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
       (matches) => {
@@ -93,11 +93,11 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.liveMatches = filterLiveMatches(matches);
         this.upcomingMatches = filterUpcomingMatches(matches).slice(0, 3); // Show top 3 upcoming
         this.recentMatches = filterCompletedMatches(matches).slice(0, 3); // Show top 3 recent
-        
+
         console.log('Live matches updated:', this.liveMatches);
         console.log('Upcoming matches:', this.upcomingMatches);
         console.log('Recent matches:', this.recentMatches);
-        
+
         this.isLoadingMatches = false;
       },
       (error) => {
@@ -107,7 +107,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
     );
   }
-  
+
   /**
    * Cleanup on component destroy
    */
@@ -116,16 +116,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.matchSubscription) {
       this.matchSubscription.unsubscribe();
     }
-    
+
     // Unsubscribe from viewport updates
     if (this.viewportSubscription) {
       this.viewportSubscription.unsubscribe();
     }
-    
+
     // Stop auto-refresh timer
     this.matchesService.stopAutoRefresh();
   }
-  
+
   /**
    * T065: Handle pull-to-refresh for home page
    * Refreshes match list and blog posts
@@ -144,7 +144,7 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
     );
   }
-  
+
   /**
    * Handle mobile match card click (T026)
    * Navigate to match details page
@@ -152,23 +152,23 @@ export class HomeComponent implements OnInit, OnDestroy {
   onMobileMatchClick(matchId: string): void {
     const match = [...this.liveMatches, ...this.upcomingMatches, ...this.recentMatches]
       .find(m => m.id === matchId);
-    
+
     if (match) {
       this.onMatchClick(match);
     }
   }
-  
+
   /**
    * Handle orientation change (T025)
    * Adapt layout without page reload
    */
   handleOrientationChange(orientation: 'portrait' | 'landscape'): void {
     console.log(`Orientation changed to ${orientation}`);
-    
+
     // Update CSS classes or layout properties if needed
     // The CSS media queries will handle most of the layout changes
     // This method is here for any JavaScript-specific adjustments
-    
+
     // Force reflow to ensure smooth transition
     if (this.scrollContainer && this.scrollContainer.nativeElement) {
       const element = this.scrollContainer.nativeElement;
@@ -176,28 +176,28 @@ export class HomeComponent implements OnInit, OnDestroy {
       const _ = element.offsetHeight; // Trigger reflow
     }
   }
-  
+
   /**
    * Handle match card click
    */
   onMatchClick(match: MatchCardViewModel): void {
     // Update meta tags
     this.updateMetaTagsForMatch(match);
-    
+
     // Navigate to match details using the original URL structure
     if (match.matchUrl) {
       // Extract the match URL path from the full URL
       // URL format: https://crex.com/scoreboard/.../ind-a-vs-sa-a-2nd-test.../live
       const urlParts = match.matchUrl.split('/');
       const matchUrlPath = urlParts[urlParts.length - 2]; // Get the part before '/live'
-      
+
       // Navigate to cric-live route (existing route in the app)
       this.router.navigate(['cric-live', matchUrlPath]);
     } else {
       console.warn('No match URL available for navigation');
     }
   }
-  
+
   /**
    * Handle details button click
    */
@@ -205,7 +205,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     console.log('Details clicked for match:', match);
     this.onMatchClick(match);
   }
-  
+
   /**
    * Update meta tags for match
    */
@@ -213,14 +213,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     const title = `${match.team1.name} vs ${match.team2.name} - ${match.displayStatus}`;
     const description = `Live cricket score: ${match.team1.name} vs ${match.team2.name} at ${match.venue}`;
     const keywords = `${match.team1.name}, ${match.team2.name}, cricket match, live score, ${match.venue}`;
-    
+
     this.titleService.setTitle(title);
     this.metaService.updateTag({ name: 'description', content: description });
     this.metaService.updateTag({ name: 'keywords', content: keywords });
     this.metaService.updateTag({ property: 'og:title', content: title });
     this.metaService.updateTag({ property: 'og:description', content: description });
   }
-  
+
   /**
    * TrackBy function for ngFor optimization
    */
@@ -236,7 +236,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     console.log(`URL1 -> Team: ${result1.teamName}, Tournament: ${result1.tournamentName}`);
     const parts = url.split('/').slice(2); // Ignore the first empty part and 'scoreboard'
 
-    //const date = '27 July'; // Assuming we have the date already or can derive it
+    // const date = '27 July'; // Assuming we have the date already or can derive it
     const title = result1.tournamentName;
     const description = `${parts[2].replace(/-/g, ' ')}`; // Create a description
     const teams = result1.teamName;
@@ -244,17 +244,17 @@ export class HomeComponent implements OnInit, OnDestroy {
     const team1 = this.extractTeams(teams).team1;
     const team2 = this.extractTeams(teams).team2;
 
-    const matchUrl =parts[5];
-    //const startTime = '06:00 PM'; // Assuming we have the start time already or can derive it
+    const matchUrl = parts[5];
+    // const startTime = '06:00 PM'; // Assuming we have the start time already or can derive it
 
     return {
-      //date,
+      // date,
       title,
       description,
       team1,
       team2,
       matchUrl,
-      //startTime
+      // startTime
     };
   }
 
@@ -274,7 +274,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   //   this.metaService.updateTag({ property: 'og:title', content: match.title });
   //   this.metaService.updateTag({ property: 'og:description', content: match.description });
   // }
-  
+
 
   private formatTeamName(team: string): string {
     return team.toUpperCase();
@@ -321,7 +321,7 @@ export class HomeComponent implements OnInit, OnDestroy {
    */
   canScrollRight(containerId: string): boolean {
     const container = document.getElementById(containerId);
-    if (!container) return false;
+    if (!container) { return false; }
     return container.scrollLeft < (container.scrollWidth - container.clientWidth - 1);
   }
 
@@ -336,7 +336,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (match) {
         // The full match for the team names and tournament name
         const fullMatch = match[1];
-        
+
         // Split on hyphens to separate the match details
         const parts = fullMatch.split('-');
 
@@ -358,9 +358,9 @@ export class HomeComponent implements OnInit, OnDestroy {
 
 extractTeams(matchString: string): { team1: string, team2: string } | null {
   // Check if the match string contains the "-vs-" separator
-  if (matchString.includes("-vs-")) {
+  if (matchString.includes('-vs-')) {
       // Split the string at "-vs-" to get the two teams
-      const teams = matchString.split("-vs-");
+      const teams = matchString.split('-vs-');
 
       // Ensure we have exactly two teams
       if (teams.length === 2) {
@@ -368,9 +368,8 @@ extractTeams(matchString: string): { team1: string, team2: string } | null {
               team1: teams[0], // First team
               team2: teams[1]  // Second team
           };
-      }else if(teams.length > 2)
-      {
-        const firstVsIndex = matchString.indexOf("-vs-");
+      } else if (teams.length > 2) {
+        const firstVsIndex = matchString.indexOf('-vs-');
 
     // If "-vs-" is found
     if (firstVsIndex !== -1) {
@@ -379,7 +378,7 @@ extractTeams(matchString: string): { team1: string, team2: string } | null {
         const team2Part = matchString.substring(firstVsIndex + 4); // Skip over "-vs-"
 
         // Split team2Part by "-" to get the first word after "vs", which would be the second team
-        const team2Array = team2Part.split("-");
+        const team2Array = team2Part.split('-');
         const team2 = team2Array[0];
 
         return {
@@ -421,20 +420,20 @@ openNews(url: string): void {
   onMatchLongPress(event: any, matchId: string): void {
     const match = [...this.liveMatches, ...this.upcomingMatches, ...this.recentMatches]
       .find(m => m.id === matchId);
-    
-    if (!match) return;
-    
+
+    if (!match) { return; }
+
     // Set context menu state
     this.selectedMatchId = matchId;
     this.selectedMatchTitle = `${match.team1} vs ${match.team2}`;
     this.selectedMatchUrl = `/match/${matchId}`;
-    
+
     // Position menu at touch point
     this.contextMenuPosition = {
-      x: event.center?.x || event.clientX || 0,
-      y: event.center?.y || event.clientY || 0
+      x: event.center ? .x || event.clientX || 0  ,
+      y: event.center ? .y || event.clientY || 0 
     };
-    
+
     this.showContextMenu = true;
     console.log('[LongPress] Context menu shown for match:', matchId);
   }
@@ -452,12 +451,12 @@ openNews(url: string): void {
   onShareMatch(matchId: string): void {
     const match = [...this.liveMatches, ...this.upcomingMatches, ...this.recentMatches]
       .find(m => m.id === matchId);
-    
-    if (!match) return;
-    
+
+    if (!match) { return; }
+
     const url = `${window.location.origin}/match/${matchId}`;
     const title = `${match.team1} vs ${match.team2}`;
-    
+
     // Use Web Share API if available
     if (navigator.share) {
       navigator.share({

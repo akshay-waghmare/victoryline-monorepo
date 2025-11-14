@@ -40,7 +40,7 @@ describe('MatchHistoryService', () => {
     it('should record a match view', () => {
       const match = createMockMatch('m1', 'India', 'Pakistan');
       service.recordMatchView(match);
-      
+
       const history = service.getRecentlyViewed();
       expect(history.length).toBe(1);
       expect(history[0].id).toBe('m1');
@@ -50,7 +50,7 @@ describe('MatchHistoryService', () => {
       const match = createMockMatch('m1', 'India', 'Pakistan');
       service.recordMatchView(match);
       service.recordMatchView(match);
-      
+
       const history = service.getRecentlyViewed();
       expect(history.length).toBe(1);
     });
@@ -58,11 +58,11 @@ describe('MatchHistoryService', () => {
     it('should move existing match to front when viewed again', () => {
       const match1 = createMockMatch('m1', 'India', 'Pakistan');
       const match2 = createMockMatch('m2', 'England', 'Australia');
-      
+
       service.recordMatchView(match1);
       service.recordMatchView(match2);
       service.recordMatchView(match1); // View m1 again
-      
+
       const history = service.getRecentlyViewed();
       expect(history[0].id).toBe('m1'); // m1 should be at front
     });
@@ -73,7 +73,7 @@ describe('MatchHistoryService', () => {
         const match = createMockMatch(`m${i}`, `Team${i}A`, `Team${i}B`);
         service.recordMatchView(match);
       }
-      
+
       const history = service.getRecentlyViewed();
       expect(history.length).toBe(20);
     });
@@ -84,7 +84,7 @@ describe('MatchHistoryService', () => {
         const match = createMockMatch(`m${i}`, `Team${i}A`, `Team${i}B`);
         service.recordMatchView(match);
       }
-      
+
       const history = service.getRecentlyViewed();
       // m0 (oldest) should be removed
       expect(history.find(m => m.id === 'm0')).toBeUndefined();
@@ -105,7 +105,7 @@ describe('MatchHistoryService', () => {
         const match = createMockMatch(`m${i}`, `Team${i}A`, `Team${i}B`);
         service.recordMatchView(match);
       }
-      
+
       const history = service.getRecentlyViewed(5);
       expect(history.length).toBe(5);
     });
@@ -114,11 +114,11 @@ describe('MatchHistoryService', () => {
       const match1 = createMockMatch('m1', 'Team1A', 'Team1B');
       const match2 = createMockMatch('m2', 'Team2A', 'Team2B');
       const match3 = createMockMatch('m3', 'Team3A', 'Team3B');
-      
+
       service.recordMatchView(match1);
       service.recordMatchView(match2);
       service.recordMatchView(match3);
-      
+
       const history = service.getRecentlyViewed();
       expect(history[0].id).toBe('m3'); // Newest
       expect(history[2].id).toBe('m1'); // Oldest
@@ -130,7 +130,7 @@ describe('MatchHistoryService', () => {
         const match = createMockMatch(`m${i}`, `Team${i}A`, `Team${i}B`);
         service.recordMatchView(match);
       }
-      
+
       const history = service.getRecentlyViewed();
       expect(history.length).toBe(5);
     });
@@ -146,11 +146,11 @@ describe('MatchHistoryService', () => {
       const match1 = createMockMatch('m1', 'India', 'Pakistan');
       const match2 = createMockMatch('m2', 'India', 'England');
       const match3 = createMockMatch('m3', 'India', 'Australia');
-      
+
       service.recordMatchView(match1);
       service.recordMatchView(match2);
       service.recordMatchView(match3);
-      
+
       const favorites = service.getFavoriteTeams();
       expect(favorites[0]).toBe('India'); // Appears in all 3 matches
     });
@@ -159,7 +159,7 @@ describe('MatchHistoryService', () => {
       service.recordMatchView(createMockMatch('m1', 'India', 'Pakistan'));
       service.recordMatchView(createMockMatch('m2', 'India', 'England'));
       service.recordMatchView(createMockMatch('m3', 'England', 'Australia'));
-      
+
       const favorites = service.getFavoriteTeams();
       expect(favorites[0]).toBe('India'); // 2 occurrences
       expect(favorites[1]).toBe('England'); // 2 occurrences
@@ -169,7 +169,7 @@ describe('MatchHistoryService', () => {
       service.recordMatchView(createMockMatch('m1', 'Team1', 'Team2'));
       service.recordMatchView(createMockMatch('m2', 'Team3', 'Team4'));
       service.recordMatchView(createMockMatch('m3', 'Team5', 'Team6'));
-      
+
       const favorites = service.getFavoriteTeams(2);
       expect(favorites.length).toBeLessThanOrEqual(2);
     });
@@ -179,9 +179,9 @@ describe('MatchHistoryService', () => {
     it('should remove all history', () => {
       service.recordMatchView(createMockMatch('m1', 'India', 'Pakistan'));
       service.recordMatchView(createMockMatch('m2', 'England', 'Australia'));
-      
+
       expect(service.getRecentlyViewed().length).toBe(2);
-      
+
       service.clearHistory();
       expect(service.getRecentlyViewed().length).toBe(0);
     });
@@ -189,7 +189,7 @@ describe('MatchHistoryService', () => {
     it('should clear localStorage', () => {
       service.recordMatchView(createMockMatch('m1', 'India', 'Pakistan'));
       service.clearHistory();
-      
+
       expect(localStorage.removeItem).toHaveBeenCalledWith('matchHistory');
     });
   });
@@ -198,13 +198,13 @@ describe('MatchHistoryService', () => {
     it('should save to localStorage when recording views', () => {
       const match = createMockMatch('m1', 'India', 'Pakistan');
       service.recordMatchView(match);
-      
+
       expect(localStorage.setItem).toHaveBeenCalledWith('matchHistory', jasmine.any(String));
     });
 
     it('should handle localStorage quota exceeded', () => {
       (localStorage.setItem as jasmine.Spy).and.throwError('QuotaExceededError');
-      
+
       const match = createMockMatch('m1', 'India', 'Pakistan');
       expect(() => {
         service.recordMatchView(match);
@@ -213,7 +213,7 @@ describe('MatchHistoryService', () => {
 
     it('should handle corrupted localStorage data', () => {
       mockLocalStorage['matchHistory'] = 'invalid json {[';
-      
+
       expect(() => {
         service.getRecentlyViewed();
       }).not.toThrow();
@@ -223,11 +223,11 @@ describe('MatchHistoryService', () => {
       const match = createMockMatch('m1', 'India', 'Pakistan');
       const historyData = JSON.stringify([match]);
       mockLocalStorage['matchHistory'] = historyData;
-      
+
       // Create new service instance to trigger load
       const newService = new MatchHistoryService();
       const history = newService.getRecentlyViewed();
-      
+
       expect(history.length).toBe(1);
       expect(history[0].id).toBe('m1');
     });
@@ -243,7 +243,7 @@ describe('MatchHistoryService', () => {
         venue: 'Stadium',
         date: new Date().toISOString()
       };
-      
+
       expect(() => {
         service.recordMatchView(match);
       }).not.toThrow();

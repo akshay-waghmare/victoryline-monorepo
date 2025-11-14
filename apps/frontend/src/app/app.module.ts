@@ -51,7 +51,7 @@ import { SwipeGestureDirective } from './directives/swipe-gesture.directive';
 import { PullToRefreshDirective } from './directives/pull-to-refresh.directive';
 import { LongPressDirective } from './directives/long-press.directive';
 import { ContextMenuComponent } from './components/context-menu/context-menu.component';
-//import { HomeComponent } from './home/home.component';
+// import { HomeComponent } from './home/home.component';
 
 
 const stompConfig: StompConfig = {
@@ -75,7 +75,7 @@ const stompConfig: StompConfig = {
     LoginComponent,
     LoaderComponent,
     ElapsedTimePipe,
-    
+
     // Mobile-first components
     LazyImageComponent,
     LoadingSkeletonComponent,
@@ -86,8 +86,8 @@ const stompConfig: StompConfig = {
     PullToRefreshDirective,
     LongPressDirective,
     ContextMenuComponent,
-    
-        
+
+
   ],
   imports: [
     BrowserModule,
@@ -113,7 +113,7 @@ const stompConfig: StompConfig = {
   entryComponents: [
     LogoutFormComponent // Ensure the component is in entryComponents
   ],
-  providers: [AuthenticationGuard,TokenStorage,
+  providers: [AuthenticationGuard, TokenStorage,
     LoaderService,
     HttpClientModule,
     StompConfig,
@@ -124,10 +124,10 @@ const stompConfig: StompConfig = {
       multi: true
     },
     {provide: RouteReuseStrategy, useClass: CustomReuseStrategy },
-    { provide: HTTP_INTERCEPTORS,useValue: stompConfig, useClass: LoaderInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useValue: stompConfig, useClass: LoaderInterceptor, multi: true },
     { provide: HAMMER_GESTURE_CONFIG, useClass: CustomHammerConfig }],
   bootstrap: [AppComponent],
-  
+
   // exports: [SidebarComponent]
 })
 export class AppModule { }

@@ -15,13 +15,13 @@ export class SkeletonCardComponent {
   /**
    * Number of skeleton cards to display
    */
-  @Input() count: number = 1;
-  
+  @Input() count = 1;
+
   /**
    * Card variant (matches MatchCardComponent variants)
    */
   @Input() variant: 'default' | 'compact' | 'detailed' = 'default';
-  
+
   /**
    * Get array for ngFor iteration
    */

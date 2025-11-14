@@ -15,21 +15,21 @@ export class FootballService {
 
 
   constructor(private _http: HttpClient,
-              private rxStompService  : RxStompService) { }
+              private rxStompService: RxStompService) { }
 
-  getUpcomingFootballEvents() : Observable<any> {
+  getUpcomingFootballEvents(): Observable<any> {
 
     return this._http.get(this.upcoming_football_url);
 
   }
-  
-  getInplayFootballEvents() : Observable<any> {
+
+  getInplayFootballEvents(): Observable<any> {
 
     return this._http.get(this.inplay_football_url);
 
   }
 
-  getInplayFootballEventsSocket() : Observable<any> {
+  getInplayFootballEventsSocket(): Observable<any> {
 
     return this.rxStompService.watch('/topic/football.inplay');
 

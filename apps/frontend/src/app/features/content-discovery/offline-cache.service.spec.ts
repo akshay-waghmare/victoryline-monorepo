@@ -76,7 +76,7 @@ describe('OfflineCacheService', () => {
   describe('IndexedDB Support', () => {
     it('should handle missing IndexedDB gracefully', (done) => {
       (window as any).indexedDB = undefined;
-      
+
       service.cacheSearchResults('test', {}, []).subscribe({
         next: () => {
           // Should complete without error

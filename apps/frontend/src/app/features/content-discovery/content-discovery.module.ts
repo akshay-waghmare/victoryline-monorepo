@@ -11,8 +11,8 @@ import { LazyLoadDirective } from './lazy-load.directive';
 @NgModule({
   imports: [CommonModule, FormsModule, ScrollingModule],
   declarations: [
-    ContentDiscoveryComponent, 
-    SearchComponent, 
+    ContentDiscoveryComponent,
+    SearchComponent,
     MatchSkeletonComponent,
     EmptyStateComponent,
     LazyLoadDirective

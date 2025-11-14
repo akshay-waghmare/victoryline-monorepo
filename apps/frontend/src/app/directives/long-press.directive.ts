@@ -6,16 +6,16 @@ type HammerInput = any;
 
 /**
  * T069: LongPressDirective
- * 
+ *
  * Detects long-press gestures (500ms hold) using HammerJS.
  * Used for triggering context menus on match cards.
- * 
+ *
  * Features:
  * - 500ms press duration threshold
  * - Emits press event with coordinates
  * - Works with HammerJS press recognizer
  * - Cancels on movement (>10px)
- * 
+ *
  * Usage:
  * ```html
  * <div appLongPress (longPress)="onLongPress($event)">
@@ -45,18 +45,18 @@ export class LongPressDirective {
   private setupHammer(): void {
     if (typeof window !== 'undefined' && (window as any).Hammer) {
       const Hammer = (window as any).Hammer;
-      
+
       // Create HammerJS manager
       this.hammerManager = new Hammer.Manager(this.el.nativeElement);
-      
+
       // Configure press recognizer (500ms hold)
       const press = new Hammer.Press({
         time: 500, // 500ms hold time
         threshold: 10 // Allow 10px movement before cancelling
       });
-      
+
       this.hammerManager.add(press);
-      
+
       // Listen for press event
       this.hammerManager.on('press', (event: HammerInput) => {
         this.onPress(event);
@@ -70,16 +70,16 @@ export class LongPressDirective {
   private onPress(event: HammerInput): void {
     // Prevent default context menu on long-press
     event.preventDefault();
-    
+
     // T073: Trigger haptic feedback on long-press (if supported)
     this.triggerHapticFeedback();
-    
+
     // Emit long-press event with coordinates
     this.longPress.emit({
       center: event.center,
       target: event.target
     });
-    
+
     console.log('[LongPress] Detected at:', event.center);
   }
 

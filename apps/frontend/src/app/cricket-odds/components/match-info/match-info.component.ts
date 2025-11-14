@@ -42,13 +42,13 @@ export class MatchDetailsInfoComponent implements OnInit {
   }
 
   get venueName(): string {
-    if (this.matchInfo && this.matchInfo.venue) return this.matchInfo.venue;
-    if (this.matchData && this.matchData.venue && this.matchData.venue.name) return this.matchData.venue.name;
+    if (this.matchInfo && this.matchInfo.venue) { return this.matchInfo.venue; }
+    if (this.matchData && this.matchData.venue && this.matchData.venue.name) { return this.matchData.venue.name; }
     return 'Venue not available';
   }
 
   get venueLocation(): string {
-    if (!this.matchData || !this.matchData.venue) return '';
+    if (!this.matchData || !this.matchData.venue) { return ''; }
     const city = this.matchData.venue.city || '';
     const country = this.matchData.venue.country || '';
     return [city, country].filter(Boolean).join(', ');
@@ -59,8 +59,8 @@ export class MatchDetailsInfoComponent implements OnInit {
   }
 
   get seriesName(): string {
-    if (this.matchInfo && this.matchInfo.series_name) return this.matchInfo.series_name;
-    if (this.matchData && this.matchData.series) return this.matchData.series;
+    if (this.matchInfo && this.matchInfo.series_name) { return this.matchInfo.series_name; }
+    if (this.matchData && this.matchData.series) { return this.matchData.series; }
     return 'Series not available';
   }
 
@@ -73,13 +73,13 @@ export class MatchDetailsInfoComponent implements OnInit {
   }
 
   get matchDate(): string {
-    if (this.matchInfo && this.matchInfo.match_date) return this.matchInfo.match_date;
-    if (this.matchData && this.matchData.startTime) return this.matchData.startTime;
+    if (this.matchInfo && this.matchInfo.match_date) { return this.matchInfo.match_date; }
+    if (this.matchData && this.matchData.startTime) { return this.matchData.startTime; }
     return null;
   }
 
   get tossInfo(): string {
-    if (this.matchInfo && this.matchInfo.toss_info) return this.matchInfo.toss_info;
+    if (this.matchInfo && this.matchInfo.toss_info) { return this.matchInfo.toss_info; }
     if (this.matchData && this.matchData.toss) {
       const decision = this.matchData.toss.decision === 'BAT' ? 'bat' : 'field';
       return `Toss won and chose to ${decision}`;

@@ -35,7 +35,7 @@ export interface ScoreUpdateEvent {
         animate('200ms ease-in', style({ transform: 'scale(1)', opacity: 1 }))
       ])
     ]),
-    
+
     // Pulse animation for live indicator
     trigger('pulse', [
       transition('* => *', [
@@ -46,49 +46,49 @@ export interface ScoreUpdateEvent {
 })
 export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterViewInit {
   // ===== INPUTS =====
-  
+
   /**
    * Match data to display
    */
   @Input() match!: MatchCardViewModel;
-  
+
   /**
    * Enable animations (default: true)
    */
-  @Input() enableAnimations: boolean = true;
-  
+  @Input() enableAnimations = true;
+
   /**
    * Card layout variant
    */
   @Input() variant: 'default' | 'compact' | 'detailed' = 'default';
-  
+
   /**
    * Show match details button
    */
-  @Input() showDetailsButton: boolean = true;
-  
+  @Input() showDetailsButton = true;
+
   /**
    * Maximum height for card (for scrollable containers)
    */
   @Input() maxHeight?: string;
-  
+
   // ===== OUTPUTS =====
-  
+
   /**
    * Emitted when user clicks the card
    */
   @Output() cardClick = new EventEmitter<string>();
-  
+
   /**
    * Emitted when user clicks "View Details" button
    */
   @Output() detailsClick = new EventEmitter<string>();
-  
+
   /**
    * Emitted when score updates (for analytics)
    */
   @Output() scoreUpdated = new EventEmitter<ScoreUpdateEvent>();
-  
+
   /**
    * Emitted when user swipes left on the card (mobile gesture)
    */
@@ -98,33 +98,33 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
    * Emitted when user swipes right on the card (mobile gesture)
    */
   @Output() swipeRight = new EventEmitter<string>();
-  
+
   /**
    * Emitted when card enters/leaves viewport (for lazy loading)
    */
   @Output() visibilityChange = new EventEmitter<boolean>();
-  
+
   // ===== COMPONENT STATE =====
-  
-  isHovered: boolean = false;
-  isAnimating: boolean = false;
-  isInViewport: boolean = false;
+
+  isHovered = false;
+  isAnimating = false;
+  isInViewport = false;
   previousMatch: MatchCardViewModel | null = null;
-  
+
   // Animation state tracking
-  team1ScoreState: string = 'idle';
-  team2ScoreState: string = 'idle';
-  
+  team1ScoreState = 'idle';
+  team2ScoreState = 'idle';
+
   // Intersection Observer for lazy loading
   private intersectionObserver: IntersectionObserver | null = null;
   // Cleanup
   // Element reference
   @ViewChild('cardElement') cardElement?: ElementRef<HTMLDivElement>;
-  
+
   constructor(
     private animationService: AnimationService
   ) {}
-  
+
   ngOnInit(): void {
     // Initialize previous match data for change detection
     if (this.match) {
@@ -132,7 +132,7 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     }
 
   }
-  
+
   ngAfterViewInit(): void {
     // Set up IntersectionObserver for visibility tracking
     if ('IntersectionObserver' in window && this.cardElement) {
@@ -145,40 +145,40 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
         },
         { threshold: 0.1 } // 10% of card visible
       );
-      
+
       this.intersectionObserver.observe(this.cardElement.nativeElement);
     }
   }
-  
+
   ngOnChanges(changes: SimpleChanges): void {
     // Detect score changes and trigger animations
     if (changes['match'] && !changes['match'].firstChange) {
       const previousMatch = changes['match'].previousValue as MatchCardViewModel;
       const currentMatch = changes['match'].currentValue as MatchCardViewModel;
-      
+
       // Check team1 score change
       if (this.hasScoreChanged(previousMatch.team1.score, currentMatch.team1.score)) {
         this.onScoreUpdate('team1', previousMatch.team1.score, currentMatch.team1.score);
       }
-      
+
       // Check team2 score change
       if (this.hasScoreChanged(previousMatch.team2.score, currentMatch.team2.score)) {
         this.onScoreUpdate('team2', previousMatch.team2.score, currentMatch.team2.score);
       }
-      
+
       this.previousMatch = { ...currentMatch };
     }
   }
-  
+
   ngOnDestroy(): void {
     // Cleanup
     if (this.intersectionObserver) {
       this.intersectionObserver.disconnect();
     }
   }
-  
+
   // ===== PUBLIC METHODS =====
-  
+
   /**
    * Manually trigger score update animation
    */
@@ -186,14 +186,14 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     if (!this.enableAnimations || this.animationService.prefersReducedMotion()) {
       return;
     }
-    
+
     const elementId = `${this.match.id}-${team}-score`;
-    
+
     if (this.animationService.isAnimating(elementId)) {
       // Animation already running, skip
       return;
     }
-    
+
     // Update animation state
     if (team === 'team1') {
       this.team1ScoreState = 'updated';
@@ -202,11 +202,11 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
       this.team2ScoreState = 'updated';
       setTimeout(() => this.team2ScoreState = 'idle', 500);
     }
-    
+
     // Register animation with service
     this.animationService.startAnimation(elementId, 500);
   }
-  
+
   /**
    * Refresh card data (useful for polling)
    */
@@ -214,7 +214,7 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     // Force change detection by creating new object reference
     this.match = { ...this.match };
   }
-  
+
   /**
    * Highlight card temporarily
    */
@@ -222,55 +222,55 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     // Implementation would add a temporary highlight class
     // For now, just emit the highlight state
   }
-  
+
   /**
    * Check if card is currently in viewport
    */
   public isVisible(): boolean {
     return this.isInViewport;
   }
-  
+
   // ===== TEMPLATE HELPER METHODS =====
-  
+
   getStatusDisplayText(): string {
     return getStatusDisplayText(this.match.status);
   }
-  
+
   getStatusColor(): string {
     return getStatusColor(this.match.status);
   }
-  
+
   getStaleness(): 'fresh' | 'warning' | 'error' {
     return calculateStaleness(this.match.lastUpdated);
   }
-  
+
   getTimeDisplay(): string {
     return formatTimeDisplay(this.match.startTime);
   }
-  
+
   isMatchLive(): boolean {
     return isLiveMatch(this.match.status);
   }
 
   // ===== EVENT HANDLERS =====
-  
+
   onCardClick(): void {
     this.cardClick.emit(this.match.id);
   }
-  
+
   onDetailsClick(event: Event): void {
     event.stopPropagation(); // Prevent card click
     this.detailsClick.emit(this.match.id);
   }
-  
+
   onMouseEnter(): void {
     this.isHovered = true;
   }
-  
+
   onMouseLeave(): void {
     this.isHovered = false;
   }
-  
+
   @HostListener('swipeleft', ['$event'])
   onSwipeLeft(event: any): void {
     if (event) {
@@ -286,22 +286,22 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     }
     this.swipeRight.emit(this.match.id);
   }
-  
+
   // ===== PRIVATE METHODS =====
-  
+
   private hasScoreChanged(previous: ScoreInfo | null, current: ScoreInfo | null): boolean {
-    if (!previous && !current) return false;
-    if (!previous || !current) return true;
-    
-    return previous.runs !== current.runs || 
+    if (!previous && !current) { return false; }
+    if (!previous || !current) { return true; }
+
+    return previous.runs !== current.runs ||
            previous.wickets !== current.wickets ||
            previous.overs !== current.overs;
   }
-  
+
   private onScoreUpdate(team: 'team1' | 'team2', previousScore: ScoreInfo | null, newScore: ScoreInfo): void {
     // Trigger animation
     this.triggerScoreAnimation(team);
-    
+
     // Emit score update event
     this.scoreUpdated.emit({
       matchId: this.match.id,

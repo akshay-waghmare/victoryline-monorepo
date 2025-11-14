@@ -8,7 +8,7 @@ import { StalenessLevel } from '../../models/match.models';
 })
 export class StalenessIndicatorComponent implements OnInit {
   @Input() lastUpdated?: string; // ISO 8601 timestamp
-  
+
   StalenessLevel = StalenessLevel;
   currentLevel: StalenessLevel = StalenessLevel.LIVE;
   secondsSinceUpdate = 0;

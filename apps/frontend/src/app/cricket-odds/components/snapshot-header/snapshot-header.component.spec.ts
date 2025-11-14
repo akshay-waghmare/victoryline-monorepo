@@ -14,7 +14,7 @@ describe('SnapshotHeaderComponent', () => {
 
   beforeEach(() => {
     snapshotSubject = new BehaviorSubject<ScoreSnapshot | null>(null);
-    
+
     mockLiveFacade = jasmine.createSpyObj('MatchLiveFacade', ['init', 'getSnapshotStream', 'dispose']);
     mockLiveFacade.getSnapshotStream.and.returnValue(snapshotSubject.asObservable());
 

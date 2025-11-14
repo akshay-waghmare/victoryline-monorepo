@@ -1,9 +1,9 @@
 /**
  * Shared Angular Animation Definitions
- * 
+ *
  * Provides reusable animation triggers for components throughout the app.
  * These animations work alongside CSS keyframe animations for comprehensive motion design.
- * 
+ *
  * Usage:
  * ```typescript
  * @Component({
@@ -70,12 +70,12 @@ export const fade: AnimationTriggerMetadata = trigger('fade', [
 export const slideInFromRight: AnimationTriggerMetadata = trigger('slideInFromRight', [
   transition(':enter', [
     style({ transform: 'translateX(100%)', opacity: 0 }),
-    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'translateX(0)', opacity: 1 })
     )
   ]),
   transition(':leave', [
-    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'translateX(100%)', opacity: 0 })
     )
   ])
@@ -89,12 +89,12 @@ export const slideInFromRight: AnimationTriggerMetadata = trigger('slideInFromRi
 export const slideInFromLeft: AnimationTriggerMetadata = trigger('slideInFromLeft', [
   transition(':enter', [
     style({ transform: 'translateX(-100%)', opacity: 0 }),
-    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'translateX(0)', opacity: 1 })
     )
   ]),
   transition(':leave', [
-    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'translateX(-100%)', opacity: 0 })
     )
   ])
@@ -108,12 +108,12 @@ export const slideInFromLeft: AnimationTriggerMetadata = trigger('slideInFromLef
 export const slideUp: AnimationTriggerMetadata = trigger('slideUp', [
   transition(':enter', [
     style({ transform: 'translateY(100%)', opacity: 0 }),
-    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'translateY(0)', opacity: 1 })
     )
   ]),
   transition(':leave', [
-    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'translateY(100%)', opacity: 0 })
     )
   ])
@@ -127,12 +127,12 @@ export const slideUp: AnimationTriggerMetadata = trigger('slideUp', [
 export const slideDown: AnimationTriggerMetadata = trigger('slideDown', [
   transition(':enter', [
     style({ transform: 'translateY(-100%)', opacity: 0 }),
-    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'translateY(0)', opacity: 1 })
     )
   ]),
   transition(':leave', [
-    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'translateY(-100%)', opacity: 0 })
     )
   ])
@@ -142,18 +142,18 @@ export const slideDown: AnimationTriggerMetadata = trigger('slideDown', [
  * Scale In Animation
  * Used for: Modals, dialogs, popovers
  * Duration: 250ms
- * 
+ *
  * Starts at 95% scale for subtle entrance
  */
 export const scaleIn: AnimationTriggerMetadata = trigger('scaleIn', [
   transition(':enter', [
     style({ transform: 'scale(0.95)', opacity: 0 }),
-    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('250ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'scale(1)', opacity: 1 })
     )
   ]),
   transition(':leave', [
-    animate('200ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('200ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ transform: 'scale(0.95)', opacity: 0 })
     )
   ])
@@ -163,7 +163,7 @@ export const scaleIn: AnimationTriggerMetadata = trigger('scaleIn', [
  * Score Update Animation
  * Used for: Live match scores, run counters, wicket updates
  * Duration: 400ms
- * 
+ *
  * Features:
  * - Scale pulse (1 → 1.1 → 1)
  * - Color flash to success color
@@ -184,11 +184,11 @@ export const scoreUpdate: AnimationTriggerMetadata = trigger('scoreUpdate', [
  * Pulse Animation (State-based)
  * Used for: Live indicators, loading states, attention grabbers
  * Duration: 1500ms (repeats via CSS)
- * 
+ *
  * States:
  * - inactive: Normal state
  * - active: Pulsing state
- * 
+ *
  * Note: For continuous pulsing, use CSS animation class .animate-pulse
  */
 export const pulse: AnimationTriggerMetadata = trigger('pulse', [
@@ -237,7 +237,7 @@ export const bounce: AnimationTriggerMetadata = trigger('bounce', [
  * List Animation (Stagger)
  * Used for: List items, search results, match cards
  * Duration: 200ms per item with 50ms stagger
- * 
+ *
  * Usage:
  * ```html
  * <div *ngFor="let item of items" @listItem>
@@ -246,12 +246,12 @@ export const bounce: AnimationTriggerMetadata = trigger('bounce', [
 export const listItem: AnimationTriggerMetadata = trigger('listItem', [
   transition(':enter', [
     style({ opacity: 0, transform: 'translateY(10px)' }),
-    animate('200ms {{ delay }}ms cubic-bezier(0.4, 0, 0.2, 1)', 
+    animate('200ms {{ delay }}ms cubic-bezier(0.4, 0, 0.2, 1)',
       style({ opacity: 1, transform: 'translateY(0)' })
     )
   ], { params: { delay: 0 } }),
   transition(':leave', [
-    animate('150ms ease-out', 
+    animate('150ms ease-out',
       style({ opacity: 0, transform: 'translateY(10px)' })
     )
   ])
@@ -261,7 +261,7 @@ export const listItem: AnimationTriggerMetadata = trigger('listItem', [
  * Expand/Collapse Animation
  * Used for: Accordion sections, expandable cards, details panels
  * Duration: 300ms
- * 
+ *
  * States:
  * - collapsed: Height 0, hidden
  * - expanded: Full height, visible
@@ -286,7 +286,7 @@ export const expandCollapse: AnimationTriggerMetadata = trigger('expandCollapse'
  * Rotate Animation
  * Used for: Loading spinners, refresh buttons, dropdown chevrons
  * Duration: 300ms
- * 
+ *
  * States:
  * - default: 0deg rotation
  * - rotated: 180deg rotation
@@ -320,19 +320,19 @@ export const routeAnimations: AnimationTriggerMetadata = trigger('routeAnimation
         opacity: 0
       })
     ], { optional: true }),
-    
+
     // Fade out the leaving page
     query(':leave', [
       animate('200ms ease-out', style({ opacity: 0 }))
     ], { optional: true }),
-    
+
     // Fade in the entering page with slight slide up
     query(':enter', [
-      style({ 
+      style({
         opacity: 0,
         transform: 'translateY(10px)'
       }),
-      animate('300ms 100ms ease-in', style({ 
+      animate('300ms 100ms ease-in', style({
         opacity: 1,
         transform: 'translateY(0)'
       }))
@@ -353,11 +353,11 @@ export const fadeTransition: AnimationTriggerMetadata = trigger('fadeTransition'
         width: '100%'
       })
     ], { optional: true }),
-    
+
     query(':leave', [
       animate('150ms ease-out', style({ opacity: 0 }))
     ], { optional: true }),
-    
+
     query(':enter', [
       style({ opacity: 0 }),
       animate('250ms ease-in', style({ opacity: 1 }))
@@ -367,7 +367,7 @@ export const fadeTransition: AnimationTriggerMetadata = trigger('fadeTransition'
 
 /**
  * Export all animations as array for easy component imports
- * 
+ *
  * Usage:
  * ```typescript
  * @Component({

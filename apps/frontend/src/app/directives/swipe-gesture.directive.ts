@@ -6,16 +6,16 @@ type HammerManager = typeof Hammer;
 
 /**
  * SwipeGestureDirective
- * 
+ *
  * Enables swipe left/right gestures using HammerJS.
  * Commonly used for tab navigation, card swiping, and dismissible content.
- * 
+ *
  * Features:
  * - Swipe left/right detection with configurable threshold
  * - Velocity-based gesture recognition
  * - Compatible with scroll containers
  * - Touch-friendly (50px minimum swipe distance)
- * 
+ *
  * Usage:
  * ```html
  * <div appSwipeGesture
@@ -24,7 +24,7 @@ type HammerManager = typeof Hammer;
  *   Swipeable content
  * </div>
  * ```
- * 
+ *
  * Thresholds (from CustomHammerConfig):
  * - Minimum distance: 50px
  * - Minimum velocity: 0.3

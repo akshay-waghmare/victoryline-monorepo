@@ -2,27 +2,27 @@ import { Directive, ElementRef, HostListener, Input, Renderer2, OnDestroy } from
 
 /**
  * TouchFeedbackDirective
- * 
+ *
  * Provides visual touch feedback for interactive elements on mobile.
  * Creates a ripple effect similar to Material Design when elements are tapped.
- * 
+ *
  * Features:
  * - Material Design-style ripple effect
  * - Configurable ripple color
  * - Respects prefers-reduced-motion
  * - Works with any clickable element
  * - Performance optimized with RAF
- * 
+ *
  * Usage:
  * ```html
  * <!-- Default ripple -->
  * <button appTouchFeedback>Click me</button>
- * 
+ *
  * <!-- Custom ripple color -->
  * <div appTouchFeedback rippleColor="rgba(255, 0, 0, 0.3)" class="card">
  *   Card content
  * </div>
- * 
+ *
  * <!-- Disabled ripple -->
  * <button appTouchFeedback [rippleDisabled]="true">No ripple</button>
  * ```
@@ -35,21 +35,21 @@ export class TouchFeedbackDirective implements OnDestroy {
    * Ripple color (RGBA)
    * Default: rgba(255, 255, 255, 0.3)
    */
-  @Input() rippleColor: string = 'rgba(255, 255, 255, 0.3)';
+  @Input() rippleColor = 'rgba(255, 255, 255, 0.3)';
 
   /**
    * Disable ripple effect
    */
-  @Input() rippleDisabled: boolean = false;
+  @Input() rippleDisabled = false;
 
   /**
    * Ripple duration in ms
    * Default: 600ms
    */
-  @Input() rippleDuration: number = 600;
+  @Input() rippleDuration = 600;
 
   private rippleElement: HTMLElement | null = null;
-  private prefersReducedMotion: boolean = false;
+  private prefersReducedMotion = false;
 
   constructor(
     private el: ElementRef,

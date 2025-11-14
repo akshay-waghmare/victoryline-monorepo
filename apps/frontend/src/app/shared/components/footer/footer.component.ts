@@ -6,9 +6,9 @@ import { Component } from '@angular/core';
     <footer class="footer">
       <div class="footer__container">
         <div class="footer__branding">
-          <app-logo 
-            variant="primary" 
-            size="footer" 
+          <app-logo
+            variant="primary"
+            size="footer"
             [showText]="true"
             logoText="Crickzen"
             altText="Crickzen Live Cricket"
@@ -16,7 +16,7 @@ import { Component } from '@angular/core';
           ></app-logo>
           <p class="footer__tagline">Your ultimate destination for live cricket scores and updates</p>
         </div>
-        
+
         <div class="footer__links">
           <div class="footer__section">
             <h3 class="footer__section-title">Cricket</h3>
@@ -27,7 +27,7 @@ import { Component } from '@angular/core';
               <li><a href="/matches" class="footer__link">Tournament Coverage</a></li>
             </ul>
           </div>
-          
+
           <div class="footer__section">
             <h3 class="footer__section-title">Features</h3>
             <ul class="footer__list">
@@ -37,7 +37,7 @@ import { Component } from '@angular/core';
               <li><a href="#" class="footer__link">Player Stats</a></li>
             </ul>
           </div>
-          
+
           <div class="footer__section">
             <h3 class="footer__section-title">About</h3>
             <ul class="footer__list">
@@ -49,7 +49,7 @@ import { Component } from '@angular/core';
           </div>
         </div>
       </div>
-      
+
       <div class="footer__bottom">
         <div class="footer__container">
           <div class="footer__copyright">
@@ -170,7 +170,7 @@ import { Component } from '@angular/core';
         grid-template-columns: 1fr;
         gap: 1.5rem;
       }
-      
+
       .footer__bottom .footer__container {
         flex-direction: column;
         gap: 1rem;

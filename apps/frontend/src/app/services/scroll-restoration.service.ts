@@ -5,16 +5,16 @@ import { filter } from 'rxjs/operators';
 
 /**
  * ScrollRestorationService
- * 
+ *
  * Saves and restores scroll positions when navigating between pages.
  * Essential for mobile UX to maintain context when user navigates back.
- * 
+ *
  * Features:
  * - Automatic scroll position tracking for all routes
  * - Configurable routes to exclude from restoration
  * - Smooth scroll restoration with animation
  * - Memory-efficient storage (only last 10 positions)
- * 
+ *
  * Usage in AppComponent:
  * ```typescript
  * constructor(private scrollRestoration: ScrollRestorationService) {
@@ -30,12 +30,12 @@ export class ScrollRestorationService {
   private maxStoredPositions = 10;
   private excludedRoutes: string[] = [];
   private enabled = false;
-  
+
   constructor(
     private router: Router,
     private viewportScroller: ViewportScroller
   ) {}
-  
+
   /**
    * Enable scroll restoration
    * Call this in AppComponent constructor
@@ -44,17 +44,17 @@ export class ScrollRestorationService {
     if (this.enabled) {
       return;
     }
-    
+
     this.enabled = true;
     this.excludedRoutes = excludedRoutes;
-    
+
     // Save scroll position before navigation
     this.router.events
       .pipe(filter(event => event instanceof NavigationStart))
       .subscribe((event: NavigationStart) => {
         this.saveScrollPosition(this.router.url);
       });
-    
+
     // Restore scroll position after navigation
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
@@ -62,14 +62,14 @@ export class ScrollRestorationService {
         this.restoreScrollPosition(event.urlAfterRedirects);
       });
   }
-  
+
   /**
    * Disable scroll restoration
    */
   disable(): void {
     this.enabled = false;
   }
-  
+
   /**
    * Save current scroll position for a route
    */
@@ -77,17 +77,17 @@ export class ScrollRestorationService {
     if (this.isExcluded(url)) {
       return;
     }
-    
+
     const position = this.viewportScroller.getScrollPosition();
     this.scrollPositions.set(url, position);
-    
+
     // Limit stored positions to prevent memory leaks
     if (this.scrollPositions.size > this.maxStoredPositions) {
       const firstKey = this.scrollPositions.keys().next().value;
       this.scrollPositions.delete(firstKey);
     }
   }
-  
+
   /**
    * Restore scroll position for a route
    */
@@ -95,9 +95,9 @@ export class ScrollRestorationService {
     if (this.isExcluded(url)) {
       return;
     }
-    
+
     const position = this.scrollPositions.get(url);
-    
+
     if (position) {
       // Use setTimeout to ensure DOM is ready
       setTimeout(() => {
@@ -110,14 +110,14 @@ export class ScrollRestorationService {
       }, 0);
     }
   }
-  
+
   /**
    * Check if route is excluded from restoration
    */
   private isExcluded(url: string): boolean {
     return this.excludedRoutes.some(route => url.startsWith(route));
   }
-  
+
   /**
    * Manually save scroll position (for custom scenarios)
    */
@@ -125,7 +125,7 @@ export class ScrollRestorationService {
     const pos = position || this.viewportScroller.getScrollPosition();
     this.scrollPositions.set(key, pos);
   }
-  
+
   /**
    * Manually restore scroll position (for custom scenarios)
    */
@@ -135,14 +135,14 @@ export class ScrollRestorationService {
       this.viewportScroller.scrollToPosition(position);
     }
   }
-  
+
   /**
    * Clear all stored positions
    */
   clear(): void {
     this.scrollPositions.clear();
   }
-  
+
   /**
    * Clear position for specific route
    */

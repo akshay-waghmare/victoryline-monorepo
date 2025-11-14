@@ -1,6 +1,6 @@
 /**
  * Animation State Models
- * 
+ *
  * TypeScript interfaces for animation tracking, performance monitoring, and configuration.
  * Used by AnimationService to manage animation state and prevent conflicts.
  */
@@ -11,15 +11,15 @@
 export interface AnimationState {
   // Currently animating elements (by ID or selector)
   animatingElements: Set<string>;
-  
+
   // Frame timing for performance monitoring
   frameTimes: number[];
   averageFPS: number;
-  
+
   // Animation preferences
   reducedMotion: boolean;
   animationsEnabled: boolean;
-  
+
   // Performance metrics
   lastFrameTime: number;
   frameCount: number;

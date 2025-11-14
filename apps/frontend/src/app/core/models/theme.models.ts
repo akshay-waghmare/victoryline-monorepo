@@ -1,6 +1,6 @@
 /**
  * Theme Configuration Models
- * 
+ *
  * TypeScript interfaces for theme system, including colors, spacing, typography, and shadows.
  * Used by ThemeService to manage light/dark mode configurations.
  */
@@ -37,27 +37,27 @@ export interface ThemeColors {
   primary: string;
   primaryHover: string;
   primaryActive: string;
-  
+
   // Background colors
   background: string;
   backgroundElevated: string; // Cards, modals
   backgroundHover: string;
-  
+
   // Text colors
   textPrimary: string;
   textSecondary: string;
   textDisabled: string;
-  
+
   // Border colors
   border: string;
   borderLight: string;
-  
+
   // Status colors (semantic)
   success: string; // Green for live matches
   warning: string; // Yellow for warnings
   error: string;   // Red for errors/rain delays
   info: string;    // Blue for upcoming matches
-  
+
   // Match status colors
   matchLive: string;
   matchUpcoming: string;

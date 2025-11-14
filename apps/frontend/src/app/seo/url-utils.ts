@@ -22,7 +22,7 @@ export interface PlayerUrlParams {
 /**
  * Generates SEO-friendly match URL following the pattern:
  * /match/{tournament}/{season}/{home-team}-vs-{away-team}/{format}/{date}
- * 
+ *
  * Example: /match/ipl/2023/mumbai-indians-vs-chennai-super-kings/t20/2023-05-29
  */
 export function buildMatchUrl(params: MatchUrlParams): string {
@@ -41,7 +41,7 @@ export function buildMatchUrl(params: MatchUrlParams): string {
 /**
  * Generates SEO-friendly team URL following the pattern:
  * /team/{team-name}
- * 
+ *
  * Example: /team/mumbai-indians
  */
 export function buildTeamUrl(params: TeamUrlParams): string {
@@ -52,7 +52,7 @@ export function buildTeamUrl(params: TeamUrlParams): string {
 /**
  * Generates SEO-friendly player URL following the pattern:
  * /player/{player-name}
- * 
+ *
  * Example: /player/virat-kohli
  */
 export function buildPlayerUrl(params: PlayerUrlParams): string {
@@ -67,14 +67,14 @@ export function parseMatchUrl(url: string): MatchUrlParams | null {
   try {
     const path = url.replace(/^\/match\//, '');
     const parts = path.split('/');
-    
+
     if (parts.length !== 5) {
       return null;
     }
 
     const [tournament, season, teamsString, format, date] = parts;
     const teamsParts = teamsString.split('-vs-');
-    
+
     if (teamsParts.length !== 2) {
       return null;
     }
@@ -190,7 +190,7 @@ export interface SocialUrlParams {
 export function buildTwitterShareUrl(params: SocialUrlParams): string {
   const baseUrl = 'https://twitter.com/intent/tweet';
   const searchParams = new URLSearchParams();
-  
+
   searchParams.set('url', params.url);
   if (params.text) {
     searchParams.set('text', params.text);
@@ -198,7 +198,7 @@ export function buildTwitterShareUrl(params: SocialUrlParams): string {
   if (params.hashtags && params.hashtags.length > 0) {
     searchParams.set('hashtags', params.hashtags.join(','));
   }
-  
+
   return `${baseUrl}?${searchParams.toString()}`;
 }
 
@@ -206,7 +206,7 @@ export function buildFacebookShareUrl(url: string): string {
   const baseUrl = 'https://www.facebook.com/sharer/sharer.php';
   const searchParams = new URLSearchParams();
   searchParams.set('u', url);
-  
+
   return `${baseUrl}?${searchParams.toString()}`;
 }
 
@@ -215,6 +215,6 @@ export function buildWhatsAppShareUrl(params: SocialUrlParams): string {
   const text = params.text ? `${params.text} ${params.url}` : params.url;
   const searchParams = new URLSearchParams();
   searchParams.set('text', text);
-  
+
   return `${baseUrl}?${searchParams.toString()}`;
 }

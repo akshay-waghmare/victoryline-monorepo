@@ -10,7 +10,7 @@ import { Directive, ElementRef, Input, OnInit, OnDestroy } from '@angular/core';
 export class LazyLoadDirective implements OnInit, OnDestroy {
   @Input() appLazyLoad: string; // Image URL to load
   @Input() lazyLoadPlaceholder = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"%3E%3Crect fill="%23f0f0f0" width="200" height="200"/%3E%3C/svg%3E';
-  
+
   private observer: IntersectionObserver;
 
   constructor(private el: ElementRef<HTMLImageElement>) {}
@@ -56,23 +56,23 @@ export class LazyLoadDirective implements OnInit, OnDestroy {
 
   private loadImage() {
     const img = this.el.nativeElement;
-    
+
     if (this.appLazyLoad) {
       // Create a temporary image to preload
       const tempImg = new Image();
-      
+
       tempImg.onload = () => {
         img.src = this.appLazyLoad;
         img.classList.remove('lazy-loading');
         img.classList.add('lazy-loaded');
       };
-      
+
       tempImg.onerror = () => {
         // Keep placeholder on error
         img.classList.remove('lazy-loading');
         img.classList.add('lazy-error');
       };
-      
+
       tempImg.src = this.appLazyLoad;
     }
   }

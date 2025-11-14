@@ -43,7 +43,7 @@ export class BetHistoryComponent implements OnInit, OnDestroy, AfterViewInit {
   loadUserBetHistory(): void {
     const subscription = this.cricketService.getUserBetHistory().subscribe(
       (response: any) => {
-        console.log("logging bet history response : " , response);
+        console.log('logging bet history response : ' , response);
         this.bets.data = response.bets;
       },
       (error) => {

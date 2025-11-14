@@ -10,13 +10,13 @@ import { N_ROUTES } from 'src/app/constants/constants';
   providedIn: 'root'
 })
 export class EventListService {
-  
-  
+
+
   private live_matches_url = environment.REST_API_URL + 'cricket-data/' + 'live-matches';
   private entity_url = environment.REST_API_URL + 'events';
   constructor(private _http: HttpClient, private rxStompService: RxStompService) {
   }
-  
+
   getUserBetsForMatch(matchUrl: any) {
     throw new Error('Method not implemented.');
   }
@@ -38,7 +38,7 @@ export class EventListService {
 
   /// this url will be sent to the backend to activate the scraping logic for the new match
   sendLinkToBackend(urlToSend: String) {
-    //post request to the backend with the url as payload
+    // post request to the backend with the url as payload
     return this._http.post(environment.REST_API_URL + 'cricket-data/' + 'scrape-live-match', { url: urlToSend });
   }
 

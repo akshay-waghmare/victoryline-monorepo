@@ -24,7 +24,7 @@ export class MatchLiveFacade {
   constructor(private rxStomp: RxStompService, private zone: NgZone) {}
 
   init(matchId: string) {
-    if (this.matchId === matchId) return; // already initialized for this match
+    if (this.matchId === matchId) { return; } // already initialized for this match
     this.matchId = matchId;
     this.reconnectAttempts$.next(0);
     this.connectSnapshot(matchId);
@@ -39,7 +39,7 @@ export class MatchLiveFacade {
           mergeMap((err, attempt) => {
             const currentAttempt = attempt + 1;
             this.reconnectAttempts$.next(currentAttempt);
-            
+
             if (currentAttempt >= this.MAX_ATTEMPTS) {
               console.error(`[MatchLiveFacade] Max reconnect attempts (${this.MAX_ATTEMPTS}) reached for snapshot.`);
               return throwError(() => new Error('Max reconnect attempts exceeded'));

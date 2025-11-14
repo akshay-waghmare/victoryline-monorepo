@@ -13,18 +13,18 @@ export class TennisService {
 
   private upcoming_tennis_url = environment.REST_API_URL + 'tennis/tennis/tournaments';
   private inplay_tennis_url = environment.REST_API_URL + 'tennis/tennis/all';
-  
+
 
   constructor(private _http: HttpClient,
-    private rxStompService  : RxStompService ) { }
+    private rxStompService: RxStompService ) { }
 
-  getUpcomingTennisEvents() : Observable<any> {
+  getUpcomingTennisEvents(): Observable<any> {
 
     return this._http.get(this.inplay_tennis_url);
 
   }
 
-  getAllTennisEvents() : Observable<any> {
+  getAllTennisEvents(): Observable<any> {
 
     return this._http.get(this.upcoming_tennis_url);
 
@@ -32,7 +32,7 @@ export class TennisService {
 
 
 
-getInplayTennisEventsSocket() : Observable<any> {
+getInplayTennisEventsSocket(): Observable<any> {
 
   return this.rxStompService.watch('/topic/tennis.inplay');
 

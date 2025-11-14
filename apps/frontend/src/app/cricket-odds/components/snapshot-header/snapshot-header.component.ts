@@ -27,7 +27,7 @@ export class SnapshotHeaderComponent implements OnInit, OnDestroy {
     }
 
     this.liveFacade.init(this.matchId);
-    
+
     this.snapshotSub = this.liveFacade.getSnapshotStream().subscribe(data => {
       if (data) {
         this.analytics.mark('snapshot_render_start');

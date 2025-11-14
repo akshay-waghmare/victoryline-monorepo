@@ -16,14 +16,14 @@ export interface MatchCardViewModel {
   venue: string;
   startTime: Date;
   matchUrl?: string;             // Original match URL for navigation
-  
+
   // Computed display properties
   displayStatus: string;        // "Live", "Upcoming", "Completed"
   statusColor: string;           // Computed from theme
   timeDisplay: string;           // "2h ago", "Tomorrow 2:00 PM"
   isLive: boolean;
   canAnimate: boolean;           // True if match is live
-  
+
   // UI state
   isHovered: boolean;
   isSelected: boolean;

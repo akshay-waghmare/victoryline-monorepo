@@ -2,17 +2,17 @@ import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 
 /**
  * T070: ContextMenuComponent
- * 
+ *
  * Mobile-friendly context menu triggered by long-press on match cards.
  * Provides quick actions: share, favorite, open in new tab.
- * 
+ *
  * Features:
  * - Overlay menu with backdrop
  * - 44x44px touch targets (WCAG AAA)
  * - Slide-up animation
  * - Respects prefers-reduced-motion
  * - Click outside to close
- * 
+ *
  * Usage:
  * ```html
  * <app-context-menu
@@ -36,7 +36,7 @@ export class ContextMenuComponent implements OnInit {
   /**
    * Control menu visibility
    */
-  @Input() visible: boolean = false;
+  @Input() visible = false;
 
   /**
    * Menu position (x, y coordinates)
@@ -46,17 +46,17 @@ export class ContextMenuComponent implements OnInit {
   /**
    * Match ID for actions
    */
-  @Input() matchId: string = '';
+  @Input() matchId = '';
 
   /**
    * Match title for sharing
    */
-  @Input() matchTitle: string = '';
+  @Input() matchTitle = '';
 
   /**
    * Match URL for sharing/opening
    */
-  @Input() matchUrl: string = '';
+  @Input() matchUrl = '';
 
   /**
    * Event: Share match

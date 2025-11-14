@@ -1,9 +1,9 @@
 /**
  * Animation Service
- * 
+ *
  * Manages animation state, performance monitoring, and conflict prevention.
  * Tracks currently animating elements and monitors frame rates to ensure smooth performance.
- * 
+ *
  * Features:
  * - Animation state tracking (prevents concurrent animations on same element)
  * - FPS monitoring and performance metrics
@@ -120,7 +120,7 @@ export class AnimationService {
 
     // Register animation
     this.animationState.animatingElements.add(elementId);
-    
+
     const trigger: AnimationTrigger = {
       name: elementId,
       element: document.getElementById(elementId) || document.body,
@@ -128,7 +128,7 @@ export class AnimationService {
       startTime: performance.now(),
       duration: duration
     };
-    
+
     this.activeAnimations.set(elementId, trigger);
 
     // Auto-complete after duration
@@ -151,7 +151,7 @@ export class AnimationService {
 
     // Remove from active set
     this.animationState.animatingElements.delete(elementId);
-    
+
     // Update trigger state
     const trigger = this.activeAnimations.get(elementId);
     if (trigger) {
@@ -276,7 +276,7 @@ export class AnimationService {
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener('change', (e) => {
         this.animationState.reducedMotion = e.matches;
-        
+
         if (e.matches) {
           // Disable animations if reduced motion is preferred
           this.setAnimationsEnabled(false);
@@ -294,7 +294,7 @@ export class AnimationService {
     const measureFPS = () => {
       const now = performance.now();
       const delta = now - this.animationState.lastFrameTime;
-      
+
       if (delta > 0) {
         const fps = 1000 / delta;
         this.animationState.frameTimes.push(fps);
@@ -328,7 +328,7 @@ export class AnimationService {
    */
   private updateMetrics(): void {
     const frameTimes = this.animationState.frameTimes;
-    
+
     if (frameTimes.length === 0) {
       return;
     }

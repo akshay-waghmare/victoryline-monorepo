@@ -15,7 +15,7 @@ import { Component, Input } from '@angular/core';
           </circle>
         </svg>
         <span class="live-banner__text">
-          Live match in progress. 
+          Live match in progress.
           <a [href]="finalUrl" class="live-banner__link" rel="canonical">
             View permanent match page
           </a>
