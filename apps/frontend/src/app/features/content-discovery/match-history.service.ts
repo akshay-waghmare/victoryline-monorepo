@@ -19,22 +19,22 @@ export class MatchHistoryService {
    */
   recordView(match: MatchCardViewModel): void {
     const history = this.getHistory();
-
+    
     // Remove existing entry for this match if any
     const filtered = history.filter(item => item.matchId !== match.id);
-
+    
     // Add new entry at the beginning
     const newEntry: MatchHistoryItem = {
       matchId: match.id,
       viewedAt: new Date(),
       matchData: match
     };
-
+    
     filtered.unshift(newEntry);
-
+    
     // Keep only the most recent MAX_HISTORY_ITEMS
     const trimmed = filtered.slice(0, this.MAX_HISTORY_ITEMS);
-
+    
     this.saveHistory(trimmed);
   }
 
@@ -89,11 +89,11 @@ export class MatchHistoryService {
   getFavoriteTeams(): string[] {
     const history = this.getHistory();
     const teamCounts = new Map<string, number>();
-
+    
     history.forEach(item => {
-      const team1 = item.matchData.team1 ? .name  ;
-      const team2 = item.matchData.team2 ? .name  ;
-
+      const team1 = item.matchData.team1 && item.matchData.team1.name;
+      const team2 = item.matchData.team2 && item.matchData.team2.name;
+      
       if (team1) {
         teamCounts.set(team1, (teamCounts.get(team1) || 0) + 1);
       }
@@ -101,7 +101,7 @@ export class MatchHistoryService {
         teamCounts.set(team2, (teamCounts.get(team2) || 0) + 1);
       }
     });
-
+    
     // Sort by frequency and return top teams
     return Array.from(teamCounts.entries())
       .sort((a, b) => b[1] - a[1])
@@ -118,9 +118,9 @@ export class MatchHistoryService {
       if (!data) {
         return [];
       }
-
+      
       const parsed = JSON.parse(data);
-
+      
       // Convert date strings back to Date objects
       return parsed.map((item: any) => ({
         ...item,

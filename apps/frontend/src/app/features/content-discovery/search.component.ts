@@ -8,9 +8,9 @@ import { MatchCardViewModel } from '../matches/models/match-card.models';
   selector: 'app-search',
   template: `
     <div class="search-container">
-      <input
-        type="search"
-        placeholder="Search teams, matches, or players"
+      <input 
+        type="search" 
+        placeholder="Search teams, matches, or players" 
         [(ngModel)]="query"
         (input)="onInput($event.target.value)"
         (focus)="showSuggestions = true"
@@ -20,14 +20,14 @@ import { MatchCardViewModel } from '../matches/models/match-card.models';
         aria-controls="suggestions-list"
         [attr.aria-expanded]="showSuggestions && suggestions.length > 0"
       />
-      <ul
+      <ul 
         id="suggestions-list"
-        *ngIf="showSuggestions && suggestions.length > 0"
+        *ngIf="showSuggestions && suggestions.length > 0" 
         class="suggestions"
         role="listbox"
       >
-        <li
-          *ngFor="let s of suggestions; let i = index"
+        <li 
+          *ngFor="let s of suggestions; let i = index" 
           (mousedown)="selectSuggestion(s)"
           class="suggestion-item"
           role="option"
@@ -35,7 +35,7 @@ import { MatchCardViewModel } from '../matches/models/match-card.models';
           tabindex="-1"
         >
           <div class="suggestion-content">
-            <span class="suggestion-title">{{s.team1?.name}} vs {{s.team2?.name}}</span>
+            <span class="suggestion-title">{{s.team1 && s.team1.name}} vs {{s.team2 && s.team2.name}}</span>
             <span class="suggestion-meta">{{s.venue}} • {{s.displayStatus}}</span>
           </div>
         </li>
@@ -157,7 +157,7 @@ export class SearchComponent implements OnDestroy {
   }
 
   selectSuggestion(item: MatchCardViewModel) {
-    this.query = `${item.team1 ? .name  } vs ${item.team2 ? .name  }`;
+    this.query = `${item.team1 && item.team1.name || ''} vs ${item.team2 && item.team2.name || ''}`;
     this.showSuggestions = false;
     this.suggestionSelected.emit(item);
     this.search.emit(this.query);

@@ -14,7 +14,8 @@ RUN npm install --legacy-peer-deps
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application with legacy OpenSSL support for Node 16
+ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN npm run build \
  && mkdir -p prerender \
  && BACKEND_URL=${BACKEND_URL:-http://host.docker.internal:8099} npm run prerender || echo "Prerender failed or backend unavailable, continuing with fallback"

@@ -13,17 +13,14 @@ export interface MatchFilter {
 
 @Injectable({ providedIn: 'root' })
 export class DiscoveryFilterService {
+  private cachedMatches: MatchCardViewModel[] = [];
+  private lastFetchTime: number = 0;
+  private CACHE_TTL = 30000; // 30 seconds cache (matches auto-refresh interval)
 
   constructor(
     private matchesService: MatchesService,
     private rateLimitService: RateLimitService
   ) {}
-  private cachedMatches: MatchCardViewModel[] = [];
-  private lastFetchTime = 0;
-  private CACHE_TTL = 30000; // 30 seconds cache (matches auto-refresh interval)
-
-  // New method for autocomplete suggestions with cached results
-  private cachedSuggestions = new Map<string, MatchCardViewModel[]>();
 
   getInitialMatches(): Promise<MatchCardViewModel[]> {
     return this.fetchMatches();
@@ -31,7 +28,7 @@ export class DiscoveryFilterService {
 
   private fetchMatches(): Promise<MatchCardViewModel[]> {
     const now = Date.now();
-
+    
     // Return cached data if still fresh
     if (this.cachedMatches.length > 0 && (now - this.lastFetchTime) < this.CACHE_TTL) {
       return Promise.resolve(this.cachedMatches);
@@ -39,7 +36,7 @@ export class DiscoveryFilterService {
 
     // Apply rate limiting with exponential backoff
     const operationId = 'fetchMatches';
-
+    
     return this.rateLimitService.executeLimited(
       operationId,
       () => {
@@ -109,29 +106,32 @@ export class DiscoveryFilterService {
   search(query: string): Promise<MatchCardViewModel[]> {
     // Throttle search operations to prevent spam
     const operationId = `search_${query}`;
-
+    
     if (!this.rateLimitService.throttleOperation(operationId, 300)) {
       // Return cached results if throttled
       return Promise.resolve(this.cachedMatches);
     }
-
+    
     const q = (query || '').toLowerCase();
     return this.fetchMatches().then(matches => {
       return matches.filter(m => {
-        const team1Name = (m.team1 ? .name || ''  ).toLowerCase();
-        const team2Name = (m.team2 ? .name || ''  ).toLowerCase();
+        const team1Name = (m.team1 && m.team1.name || '').toLowerCase();
+        const team2Name = (m.team2 && m.team2.name || '').toLowerCase();
         const venue = (m.venue || '').toLowerCase();
-
-        return team1Name.includes(q) ||
-               team2Name.includes(q) ||
+        
+        return team1Name.includes(q) || 
+               team2Name.includes(q) || 
                venue.includes(q);
       });
     });
   }
 
+  // New method for autocomplete suggestions with cached results
+  private cachedSuggestions = new Map<string, MatchCardViewModel[]>();
+
   searchWithSuggestions(query: string): Promise<MatchCardViewModel[]> {
     const q = (query || '').toLowerCase();
-
+    
     // Check cache first
     if (this.cachedSuggestions.has(q)) {
       return Promise.resolve(this.cachedSuggestions.get(q)!);
@@ -140,13 +140,13 @@ export class DiscoveryFilterService {
     // Search matches
     return this.search(query).then(results => {
       const topResults = results.slice(0, 5); // Limit to top 5 suggestions
-
+      
       // Cache the result
       this.cachedSuggestions.set(q, topResults);
-
+      
       // Clear cache after 5 minutes to avoid stale data
       setTimeout(() => this.cachedSuggestions.delete(q), 5 * 60 * 1000);
-
+      
       return topResults;
     });
   }

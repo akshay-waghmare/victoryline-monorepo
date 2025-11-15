@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, of } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, switchMap } from 'rxjs/operators';
 
 /**
  * Service for offline caching of search results and match data using IndexedDB.
@@ -94,7 +94,7 @@ export class OfflineCacheService {
       tap(db => {
         const transaction = db.transaction([this.STORE_SEARCHES], 'readwrite');
         const store = transaction.objectStore(this.STORE_SEARCHES);
-
+        
         const cacheKey = this.getCacheKey(query, filters);
         const cacheEntry = {
           cacheKey,
@@ -169,7 +169,7 @@ export class OfflineCacheService {
       tap(db => {
         const transaction = db.transaction([this.STORE_MATCHES], 'readwrite');
         const store = transaction.objectStore(this.STORE_MATCHES);
-
+        
         const cacheEntry = {
           matchId,
           data: matchData,
@@ -272,9 +272,9 @@ export class OfflineCacheService {
    */
   getCacheStats(): Observable<{ searches: number; matches: number }> {
     return from(this.initDatabase()).pipe(
-      tap(async db => {
+      switchMap(async db => {
         const transaction = db.transaction([this.STORE_SEARCHES, this.STORE_MATCHES], 'readonly');
-
+        
         const searchCount = await new Promise<number>((resolve) => {
           const request = transaction.objectStore(this.STORE_SEARCHES).count();
           request.onsuccess = () => resolve(request.result);

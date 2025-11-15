@@ -2,10 +2,10 @@
 @import '../node_modules/bootstrap/dist/css/bootstrap.min.css';
 
 /* Mobile-First Design System Imports */
-@import './_variables.css';
-@import './_responsive.css';
-@import './_utilities.css';
-@import './_animations.css';
+@import './styles/_variables.css';
+@import './styles/_responsive.css';
+@import './styles/_utilities.css';
+@import './styles/_animations.css';
 
 /* Aspect ratio utilities to reserve layout space for deferred media */
 .aspect-16-9 {
