@@ -36,4 +36,63 @@ TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties
 
 
 <!-- MANUAL ADDITIONS START -->
+
+## Known Issues & Active Incidents
+
+### 🔴 CRITICAL: Scraper Thread/PID Leak (2025-11-15)
+**Status**: Active - Immediate Action Required  
+**Severity**: Critical - Service Degraded  
+**Reference**: `specs/004-scraper-resilience/incidents/SCRAPER_THREAD_LEAK_INCIDENT.md`
+
+**Issue Summary**:
+The scraper service has accumulated 4,613 PIDs (processes/threads) over 20 hours of runtime, causing complete thread exhaustion. The service cannot start new threads and is stuck with 2.6-hour stale data.
+
+**Root Cause**:
+Playwright/Chromium browser processes are not being cleaned up after scraping operations, despite the scraper resilience implementation (Feature 004).
+
+**Immediate Impact**:
+- ❌ No new matches being discovered
+- ❌ No live updates (data 2.6+ hours stale)
+- ❌ API returns stale data (violates 5-second freshness requirement)
+- ❌ Health status: "failing", `can't start new thread` error
+
+**Emergency Recovery**:
+```bash
+# Restart the scraper container immediately
+cd /home/administrator/victoryline-monorepo
+docker-compose restart scraper
+
+# Validate recovery
+docker stats victoryline-scraper --no-stream
+curl http://localhost:5000/health | jq '.data.scrapers[0].status'
+```
+
+**Required Fixes** (in priority order):
+1. **Add Docker PID Limit**: Set `pids: 512` in `docker-compose.prod.yml`
+2. **Fix Browser Cleanup**: Add explicit `browser.close()` in `finally` blocks in `crex_scraper.py`
+3. **Add PID Monitoring**: Track PIDs in `ScraperContext.update_resource_usage()`
+4. **Lower Staleness Threshold**: Change from 300s → 60s in `src/config.py`
+5. **Add Orphan Cleanup Worker**: Background task to force-restart stuck scrapers
+
+**Development Guidelines**:
+- ⚠️ Always use context managers: `with sync_playwright() as p:`
+- ⚠️ Register cleanup callbacks: `context.register_cleanup(cleanup_fn)`
+- ⚠️ Test browser cleanup in integration tests
+- ⚠️ Monitor PIDs during development: `docker stats --no-stream`
+- ⚠️ Never launch browsers without explicit cleanup paths
+
+**Monitoring**:
+- PIDs should remain: 50-150 (normal), alert at 200+
+- Staleness should be: <60 seconds, alert at 300+
+- Health status should be: "healthy", alert on "degraded" or "failing"
+
+**Success Criteria**:
+- [ ] PIDs stable below 150 for 24 hours
+- [ ] Zero "can't start new thread" errors
+- [ ] Auto-restart working (6-hour lifecycle)
+- [ ] New matches discovered continuously
+- [ ] Data staleness <60 seconds
+
+---
+
 <!-- MANUAL ADDITIONS END -->

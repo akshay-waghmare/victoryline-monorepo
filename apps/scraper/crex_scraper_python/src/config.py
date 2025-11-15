@@ -72,7 +72,9 @@ class ScraperSettings:
     memory_soft_limit_mb: int = 1536
     memory_hard_limit_mb: int = 2048
     polling_interval_seconds: float = 2.5
-    staleness_threshold_seconds: int = 300
+    # Reduced default staleness threshold from 300s (5 min) to 60s (1 min)
+    # Rationale: Faster detection of stalled scrapers prevents multi‑hour data freezes
+    staleness_threshold_seconds: int = 60
     max_queue_size: int = 1000
     max_queue_size_mb: int = 10
     circuit_breaker_threshold: int = 5
@@ -83,6 +85,8 @@ class ScraperSettings:
     retry_max_delay_seconds: float = 16.0
     retry_jitter_seconds: float = 0.3
     memory_restart_grace_seconds: int = 60
+    pid_soft_limit: int = 500
+    pid_restart_threshold: int = 500
     enable_prometheus_metrics: bool = True
     prometheus_host: str = "0.0.0.0"
     prometheus_port: int = 9090
@@ -102,6 +106,8 @@ class ScraperSettings:
     failing_error_threshold: int = 6
     degraded_staleness_seconds: int = 120
     orphan_cleanup_interval_seconds: int = 1800
+    pid_restart_threshold: int = 500  # New: restart scrapers if observed chrome/playwright PIDs exceed this
+    container_restart_interval_minutes: int = 10  # Periodic container restart interval to prevent resource leaks
 
     @property
     def is_tiny_profile(self) -> bool:
@@ -131,6 +137,8 @@ class ScraperSettings:
             "retry_max_delay_seconds": self.retry_max_delay_seconds,
             "retry_jitter_seconds": self.retry_jitter_seconds,
             "memory_restart_grace_seconds": self.memory_restart_grace_seconds,
+            "pid_soft_limit": self.pid_soft_limit,
+            "pid_restart_threshold": self.pid_restart_threshold,
             "enable_prometheus_metrics": self.enable_prometheus_metrics,
             "prometheus_host": self.prometheus_host,
             "prometheus_port": self.prometheus_port,
@@ -150,6 +158,7 @@ class ScraperSettings:
             "failing_error_threshold": self.failing_error_threshold,
             "degraded_staleness_seconds": self.degraded_staleness_seconds,
             "orphan_cleanup_interval_seconds": self.orphan_cleanup_interval_seconds,
+            "container_restart_interval_minutes": self.container_restart_interval_minutes,
         }
 
     @classmethod
@@ -159,7 +168,8 @@ class ScraperSettings:
         memory_soft_limit_mb = _coerce_int(env.get("MEMORY_SOFT_LIMIT_MB"), 1536, minimum=128)
         memory_hard_limit_mb = _coerce_int(env.get("MEMORY_HARD_LIMIT_MB"), 2048, minimum=256)
         polling_interval_seconds = _coerce_float(env.get("POLLING_INTERVAL_SECONDS"), 2.5, minimum=0.1)
-        staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 300, minimum=30)
+        # Minimum kept at 30s to avoid hyper‑aggressive restart loops
+        staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 60, minimum=30)
         max_queue_size = _coerce_int(env.get("MAX_QUEUE_SIZE"), 1000, minimum=10)
         max_queue_size_mb = _coerce_int(env.get("MAX_QUEUE_SIZE_MB"), 10, minimum=1)
         circuit_breaker_threshold = _coerce_int(env.get("CIRCUIT_BREAKER_THRESHOLD"), 5, minimum=1)
@@ -170,6 +180,8 @@ class ScraperSettings:
         retry_max_delay_seconds = _coerce_float(env.get("RETRY_MAX_DELAY_SECONDS"), 16.0, minimum=retry_base_delay_seconds)
         retry_jitter_seconds = _coerce_float(env.get("RETRY_JITTER_SECONDS"), 0.3, minimum=0.0)
         memory_restart_grace_seconds = _coerce_int(env.get("SCRAPER_RESTART_GRACE_SECONDS"), 60, minimum=10)
+        pid_soft_limit = _coerce_int(env.get("PID_SOFT_LIMIT"), 360, minimum=100)
+        pid_restart_threshold = _coerce_int(env.get("PID_RESTART_THRESHOLD"), pid_soft_limit, minimum=100)
         enable_prometheus_metrics = _coerce_bool(env.get("ENABLE_PROMETHEUS_METRICS"), True)
         prometheus_host = _coerce_str(env.get("PROMETHEUS_HOST"), "0.0.0.0")
         prometheus_port = _coerce_int(env.get("PROMETHEUS_PORT"), 9090, minimum=1)
@@ -191,6 +203,8 @@ class ScraperSettings:
         degraded_error_threshold = _coerce_int(env.get("SCRAPER_DEGRADED_ERROR_THRESHOLD"), 3, minimum=1)
         failing_error_threshold = _coerce_int(env.get("SCRAPER_FAILING_ERROR_THRESHOLD"), 6, minimum=degraded_error_threshold)
         degraded_staleness_seconds = _coerce_int(env.get("SCRAPER_DEGRADED_STALENESS_SECONDS"), 120, minimum=30)
+        orphan_cleanup_interval_seconds = _coerce_int(env.get("ORPHAN_CLEANUP_INTERVAL_SECONDS"), 1800, minimum=60)
+        container_restart_interval_minutes = _coerce_int(env.get("CONTAINER_RESTART_INTERVAL_MINUTES"), 10, minimum=1)
         scraper_id = _coerce_str(env.get("SCRAPER_ID"), str(uuid.uuid4()))
 
         if memory_soft_limit_mb > memory_hard_limit_mb:
@@ -218,6 +232,8 @@ class ScraperSettings:
             retry_max_delay_seconds=retry_max_delay_seconds,
             retry_jitter_seconds=retry_jitter_seconds,
             memory_restart_grace_seconds=memory_restart_grace_seconds,
+            pid_soft_limit=pid_soft_limit,
+            pid_restart_threshold=pid_restart_threshold,
             enable_prometheus_metrics=enable_prometheus_metrics,
             prometheus_host=prometheus_host,
             prometheus_port=prometheus_port,
@@ -236,6 +252,8 @@ class ScraperSettings:
             degraded_error_threshold=degraded_error_threshold,
             failing_error_threshold=failing_error_threshold,
             degraded_staleness_seconds=degraded_staleness_seconds,
+            orphan_cleanup_interval_seconds=orphan_cleanup_interval_seconds,
+            container_restart_interval_minutes=container_restart_interval_minutes,
         )
 
 

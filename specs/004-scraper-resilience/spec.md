@@ -791,6 +791,11 @@ def test_memory_limit_triggers_restart(scraper_service, memory_monitor):
 - **002-match-details-ux**: Benefits from reliable, fresh data for enhanced match detail pages
 - **001-modern-ui-redesign**: Real-time UI updates depend on reliable scraper data flow
 
+### Incident Reports & Checklist
+
+- **Scraper Thread/PID Leak Incident**: `./incidents/SCRAPER_THREAD_LEAK_INCIDENT.md`
+- **Fix Checklist**: `./incidents/SCRAPER_FIX_CHECKLIST.md`
+
 ---
 
 **Next Steps**: Review this specification with stakeholders, prioritize requirements, and create detailed implementation tasks in [tasks.md](./tasks.md).

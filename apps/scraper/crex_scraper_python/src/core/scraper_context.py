@@ -51,6 +51,7 @@ class ScraperContext:
     memory_bytes: int = 0
     cpu_percent: float = 0.0
     browser_pid: Optional[int] = None
+    total_pids: int = 0  # Count of chromium/playwright related processes observed
     polling_interval: float = field(default_factory=lambda: get_settings().polling_interval_seconds)
 
     def __post_init__(self) -> None:
@@ -167,21 +168,34 @@ class ScraperContext:
             self._maybe_schedule_memory_restart()
             return
         pid = process_pid or self.browser_pid
-        if pid is None:
-            return
+        rss = None
+        cpu = None
+        if pid is not None:
+            try:
+                process = psutil.Process(pid)
+                rss = process.memory_info().rss
+                cpu = process.cpu_percent(interval=0.0)
+            except psutil.Error:
+                with self._lock:
+                    self.browser_pid = None
+        # Independent PID scan to catch leaks even if browser_pid missing
         try:
-            process = psutil.Process(pid)
-            rss = process.memory_info().rss
-            cpu = process.cpu_percent(interval=0.0)
+            chrome_like = 0
+            for proc in psutil.process_iter(['name', 'cmdline']):
+                name = (proc.info.get('name') or '').lower()
+                cmd = ' '.join(proc.info.get('cmdline') or []).lower()
+                if 'chrome' in name or 'chromium' in name or 'playwright' in cmd:
+                    chrome_like += 1
             with self._lock:
-                self.memory_bytes = rss
-                self.cpu_percent = cpu
-            self._maybe_schedule_memory_restart(current_memory_bytes=rss, now=utcnow())
-        except psutil.Error:
-            # Process might have terminated between calls
-            with self._lock:
-                self.browser_pid = None
-            self._maybe_schedule_memory_restart(now=utcnow())
+                self.total_pids = chrome_like
+                if rss is not None:
+                    self.memory_bytes = rss
+                if cpu is not None:
+                    self.cpu_percent = cpu if cpu is not None else self.cpu_percent
+        except Exception:
+            pass
+        self._maybe_schedule_memory_restart(current_memory_bytes=self.memory_bytes, now=utcnow())
+        # Per-context PID restart removed - using periodic container restart instead
 
     def update_memory_bytes(self, memory_bytes: int) -> None:
         with self._lock:
@@ -258,6 +272,64 @@ class ScraperContext:
             now=now,
             metadata=metadata,
         )
+
+    def _maybe_schedule_pid_restart(
+        self,
+        *,
+        now: Optional[datetime] = None,
+    ) -> bool:
+        threshold = self.settings.pid_restart_threshold
+        with self._lock:
+            current = self.total_pids
+        
+        logger.debug(
+            f"[PID_RESTART_CHECK] match_id={self.match_id} current_pids={current} "
+            f"threshold={threshold} restart_requested={self._restart_requested}"
+        )
+        
+        if current < threshold:
+            logger.debug(f"[PID_RESTART_CHECK] Below threshold, not restarting (current={current} < threshold={threshold})")
+            return False
+        
+        # PID threshold exceeded - trigger graceful container restart
+        logger.critical(
+            f"[PID_THRESHOLD_EXCEEDED] match_id={self.match_id} current_pids={current} exceeds threshold={threshold}. "
+            "Triggering graceful container restart."
+        )
+        metadata = {"pids": current, "threshold": threshold, "action": "graceful_container_restart"}
+        
+        # Log structured event
+        logger.error("pid_threshold_exceeded", metadata=metadata)
+        
+        # Trigger graceful container restart (handled by main module)
+        self._trigger_container_restart(metadata)
+        return True
+    
+    def _trigger_container_restart(self, metadata: dict) -> None:
+        """Signal that container should gracefully restart due to PID threshold."""
+        import threading
+        import time
+        import os
+        
+        def graceful_exit():
+            # Mark container as unhealthy immediately (503 responses)
+            try:
+                from src.crex_main_url import CONTAINER_UNHEALTHY
+                CONTAINER_UNHEALTHY.set()
+                logger.warning("container_marked_unhealthy", metadata=metadata)
+            except Exception:
+                pass  # Module may not be imported yet
+            
+            # Wait briefly for health checks to propagate and clients to detect unhealthy state
+            logger.info("waiting_for_health_check_propagation", metadata={"wait_seconds": 10})
+            time.sleep(10)
+            
+            # Now exit - Docker will restart container (use os._exit to exit entire process, not just thread)
+            logger.critical("exiting_container_for_restart", metadata=metadata)
+            os._exit(1)
+        
+        # Run in background thread so we can return immediately
+        threading.Thread(target=graceful_exit, daemon=False).start()
 
     # --- Lifecycle ----------------------------------------------------------
 
@@ -340,6 +412,7 @@ class ScraperContext:
                 "status": self.health_status,
                 "memory_mb": round(self.memory_bytes / 1024 / 1024, 2),
                 "cpu_percent": round(self.cpu_percent, 2),
+                "total_pids": self.total_pids,
                 "polling_interval": self.polling_interval,
                 "shutdown_requested": self._shutdown_requested,
                 "is_shutdown": self._shutdown_time is not None,

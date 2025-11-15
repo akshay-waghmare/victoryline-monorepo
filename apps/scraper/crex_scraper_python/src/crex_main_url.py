@@ -44,8 +44,70 @@ SETTINGS = get_settings()
 logging_config.setup_logging(SETTINGS)
 logger = get_logger(component="crex_main_url")
 SERVICE_START_TIME = utcnow()
+# Track single live matches scraping thread to prevent runaway browser leaks
+LIVE_MATCHES_THREAD: Optional[threading.Thread] = None
+LIVE_MATCHES_LOCK = threading.RLock()
+
+def _orphan_cleanup_worker():
+    """Background task that forces container restart at configured interval.
+    
+    Simple periodic restart to prevent PID/memory accumulation from browser processes.
+    Also checks for stale scraper contexts between restarts.
+    """
+    settings = SETTINGS
+    staleness_threshold = settings.staleness_threshold_seconds * 3
+    restart_interval_seconds = settings.container_restart_interval_minutes * 60
+    
+    print(f"[ORPHAN_WORKER] Starting - will restart container every {restart_interval_seconds//60} minutes", flush=True)
+    logger.info("orphan_cleanup_worker_started", metadata={"restart_interval_minutes": restart_interval_seconds//60})
+    
+    start_time = time.time()
+    
+    while not SERVICE_SHUTDOWN_EVENT.is_set():
+        time.sleep(30)
+        try:
+            # Check if it's time for periodic restart
+            elapsed = time.time() - start_time
+            if elapsed >= restart_interval_seconds:
+                logger.warning(
+                    "periodic_container_restart",
+                    metadata={
+                        "uptime_minutes": elapsed // 60,
+                        "reason": f"{restart_interval_seconds//60}_minute_periodic_restart",
+                        "action": "graceful_container_restart"
+                    }
+                )
+                print(f"[ORPHAN_WORKER] {restart_interval_seconds//60} minutes elapsed - restarting container", flush=True)
+                
+                # Mark container as unhealthy for graceful degradation
+                CONTAINER_UNHEALTHY.set()
+                
+                # Schedule container exit after brief delay for health propagation
+                def delayed_exit():
+                    time.sleep(10)
+                    logger.critical("exiting_container_for_restart", metadata={"source": "periodic_10min_restart"})
+                    os._exit(1)  # Force exit entire process
+                
+                threading.Thread(target=delayed_exit, daemon=False).start()
+                return  # Exit worker loop after triggering restart
+            
+            # Check for stale contexts between restarts
+            for ctx in scraper_registry.all_contexts():
+                if ctx.staleness_seconds >= staleness_threshold and not ctx.restart_requested:
+                    ctx.request_restart("orphan_stale", grace_seconds=settings.memory_restart_grace_seconds)
+        except Exception as e:
+            # Defensive: never let monitoring worker crash
+            logger.error("orphan_cleanup_worker_error", metadata={"error": str(e)})
+            continue
+
+# Initialize global state before starting background workers
 scraper_registry = ScraperRegistry()
 SERVICE_SHUTDOWN_EVENT = threading.Event()
+# Flag to mark container as unhealthy before exit (allows graceful degradation)
+CONTAINER_UNHEALTHY = threading.Event()
+
+# Start orphan cleanup worker (must be after SERVICE_SHUTDOWN_EVENT is defined)
+threading.Thread(target=_orphan_cleanup_worker, daemon=True).start()
 
 
 def _maybe_schedule_restart(
@@ -347,6 +409,19 @@ def _build_health_response():
 
 @app.route("/health", methods=["GET"])
 def health():
+    # Check if container is marked unhealthy (PID threshold exceeded, preparing to restart)
+    if CONTAINER_UNHEALTHY.is_set():
+        return jsonify({
+            "success": False,
+            "data": {
+                "overall_status": "unhealthy",
+                "reason": "container_restart_pending",
+                "message": "PID threshold exceeded, container will restart shortly"
+            },
+            "error": "Service unavailable - container restarting",
+            "timestamp": utcnow().isoformat()
+        }), 503
+    
     body, status_code = _build_health_response()
     return jsonify(body), status_code
 
@@ -737,19 +812,26 @@ def shutdown_active_scrapes(timeout_seconds: float = 30.0, *, stop_event: Option
 
 @app.route('/scrape-live-matches-link', methods=['GET'])
 def scrape_live_matches():
-    try:
-        logging.info("Received request to scrape live matches")
-        scraping_thread = threading.Thread(target=job, kwargs={"stop_event": SERVICE_SHUTDOWN_EVENT})
-        scraping_thread.daemon = True
-        scraping_thread.start()
+    """Start (or reuse) the continuous live matches discovery thread.
 
+    Prevents spawning multiple persistent browser loops which previously
+    caused thousands of orphaned Chromium processes and thread exhaustion.
+    """
+    global LIVE_MATCHES_THREAD
+    try:
+        with LIVE_MATCHES_LOCK:
+            if LIVE_MATCHES_THREAD and LIVE_MATCHES_THREAD.is_alive():
+                return jsonify({'status': 'Already running'}), 200
+            logging.info("Starting live matches discovery thread")
+            LIVE_MATCHES_THREAD = threading.Thread(target=job, kwargs={"stop_event": SERVICE_SHUTDOWN_EVENT}, daemon=True)
+            LIVE_MATCHES_THREAD.start()
         return jsonify({'status': 'Scraping started'})
     except ScrapeError as se:
         logging.error(f"Scraping error occurred: {se}")
-        return jsonify({'status': 'Scraping error', 'error_message': str(se)})
+        return jsonify({'status': 'Scraping error', 'error_message': str(se)}), 500
     except Exception as e:
         logging.error(f"Error occurred: {e}")
-        return jsonify({'status': 'Error occurred', 'error_message': str(e)})
+        return jsonify({'status': 'Error occurred', 'error_message': str(e)}), 500
 
 @app.route('/start-scrape', methods=['POST'])
 def start_scrape():

@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from contextlib import ExitStack, contextmanager
 from dataclasses import replace
-from typing import Any, Callable, Iterator, TypeVar
+from typing import Any, Callable, Iterator, Optional, TypeVar
 
 from playwright.sync_api import (
     Browser,
@@ -18,6 +18,10 @@ from src.logging.adapters import get_logger
 from src.logging.diagnostics import capture_html_snapshot
 
 from src.monitoring import record_scraper_retry
+try:  # Best-effort import; keep scraper decoupled if context not present
+    from src.core.scraper_context import ScraperContext  # type: ignore
+except Exception:  # pragma: no cover - fallback when running standalone
+    ScraperContext = None  # type: ignore
 from crex_scraper_python.parsers import (
     SelectorResolutionError,
     extract_match_href,
@@ -50,7 +54,22 @@ class DOMChangeError(ScrapeError):
 
 @contextmanager
 def managed_browser(playwright, **launch_kwargs) -> Iterator[Browser]:
-    browser = playwright.chromium.launch(**launch_kwargs)
+    # Inject conservative flags to reduce process/CPU overhead
+    default_args = [
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-extensions",
+        "--disable-background-networking",
+        "--disable-background-timer-throttling",
+        "--mute-audio",
+    ]
+    args = list(launch_kwargs.pop("args", []))
+    # Prepend any defaults not already present
+    for flag in default_args:
+        if flag not in args:
+            args.append(flag)
+    browser = playwright.chromium.launch(args=args, **launch_kwargs)
     try:
         yield browser
     finally:
@@ -106,7 +125,22 @@ def _run_with_retry(operation: str, func: Callable[..., T], *args: Any, **kwargs
     return wrapped()
 
 
-def scrape(url: str) -> list[str]:
+def _attempt_get_browser_pid(browser: Browser) -> Optional[int]:
+    """Attempt to extract the underlying Chromium process PID (best effort)."""
+    try:
+        impl = getattr(browser, "_impl_obj", None)
+        conn = getattr(impl, "_connection", None)
+        transport = getattr(conn, "_transport", None)
+        proc = getattr(transport, "_proc", None)
+        pid = getattr(proc, "pid", None)
+        if isinstance(pid, int):
+            return pid
+    except Exception:
+        return None
+    return None
+
+
+def scrape(url: str, context: Optional["ScraperContext"] = None) -> list[str]:
     start_time = time.time()
     stage_timings: dict[str, float] = {}
 
@@ -115,8 +149,32 @@ def scrape(url: str) -> list[str]:
         with sync_playwright() as playwright:
             with ExitStack() as stack:
                 browser = stack.enter_context(managed_browser(playwright, headless=True))
-                context = stack.enter_context(managed_context(browser))
-                page = stack.enter_context(managed_page(context))
+                browser_pid = _attempt_get_browser_pid(browser)
+                if context is not None and browser_pid is not None:
+                    try:
+                        context.set_browser_pid(browser_pid)  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
+                if context is not None:
+                    try:
+                        def _cleanup(_ctx: "ScraperContext") -> None:  # type: ignore[name-defined]
+                            _close_safely(browser, "browser")
+                        context.register_cleanup(_cleanup)  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
+                browser_context = stack.enter_context(managed_context(browser))
+                page = stack.enter_context(managed_page(browser_context))
+
+                # Ensure page/context/browser are closed if outer context triggers shutdown
+                if context is not None:
+                    try:
+                        def _cleanup_full(_ctx: "ScraperContext") -> None:  # type: ignore[name-defined]
+                            _close_safely(page, "page")
+                            _close_safely(browser_context, "browser_context")
+                            _close_safely(browser, "browser")
+                        context.register_cleanup(_cleanup_full)  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
 
                 nav_start = time.time()
                 logger.info("navigation.start", metadata={"url": url})

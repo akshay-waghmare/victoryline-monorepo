@@ -73,6 +73,12 @@ def _initialize_metrics(registry: CollectorRegistry) -> dict[str, object]:
         ("match_id",),
         registry=registry,
     )
+    pids = Gauge(
+        "scraper_pids_total",
+        "Observed process count associated with the scraper worker.",
+        ("match_id",),
+        registry=registry,
+    )
     active = Gauge(
         "active_scrapers_count",
         "Number of active scraper workers registered.",
@@ -90,6 +96,7 @@ def _initialize_metrics(registry: CollectorRegistry) -> dict[str, object]:
         "updates": updates,
         "latency": latency,
         "memory": memory,
+        "pids": pids,
         "active": active,
         "staleness": staleness,
     }
@@ -101,6 +108,7 @@ SCRAPER_RETRY_ATTEMPTS_TOTAL: Counter = _metrics["retries"]  # type: ignore[assi
 SCRAPER_UPDATES_TOTAL: Counter = _metrics["updates"]  # type: ignore[assignment]
 SCRAPER_UPDATE_LATENCY_SECONDS: Histogram = _metrics["latency"]  # type: ignore[assignment]
 SCRAPER_MEMORY_BYTES: Gauge = _metrics["memory"]  # type: ignore[assignment]
+SCRAPER_PIDS_TOTAL: Gauge = _metrics["pids"]  # type: ignore[assignment]
 ACTIVE_SCRAPERS_COUNT: Gauge = _metrics["active"]  # type: ignore[assignment]
 DATA_STALENESS_SECONDS: Gauge = _metrics["staleness"]  # type: ignore[assignment]
 
@@ -165,6 +173,10 @@ def clear_scraper_gauges(match_id: str) -> None:
 def update_context_metrics(context: "ScraperContext") -> None:
     set_scraper_memory(context.match_id, float(context.memory_bytes))
     set_data_staleness(context.match_id, float(context.staleness_seconds))
+    try:
+        SCRAPER_PIDS_TOTAL.labels(match_id=context.match_id).set(max(int(getattr(context, "total_pids", 0)), 0))
+    except Exception:
+        pass
 
 
 def reset_metrics_for_tests() -> None:
@@ -208,6 +220,7 @@ __all__ = [
     "SCRAPER_UPDATES_TOTAL",
     "SCRAPER_UPDATE_LATENCY_SECONDS",
     "SCRAPER_MEMORY_BYTES",
+    "SCRAPER_PIDS_TOTAL",
     "ACTIVE_SCRAPERS_COUNT",
     "DATA_STALENESS_SECONDS",
 ]
