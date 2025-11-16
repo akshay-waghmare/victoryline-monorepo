@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  scraper:
+    environment:
+      POLLING_INTERVAL_SECONDS: "5"
+      POLLING_MIN_SECONDS: "3"
+      POLLING_BREAK_SECONDS: "30"
+      PAGE_TIMEOUT_SECONDS: "30"
+      MEMORY_SOFT_LIMIT_MB: "650"
+      MEMORY_HARD_LIMIT_MB: "800"
+      SCRAPER_MAX_LIFETIME_HOURS: "6"
+      BATCH_SIZE: "15"
+      ENABLE_PROMETHEUS_METRICS: "true"
+      PROMETHEUS_PORT: "9090"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 800M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    command: >
+      python run_server.py --chromium-flags="--disable-dev-shm-usage --disable-gpu
+      --no-sandbox --disable-extensions --mute-audio --disable-background-timer-throttling
+      --disable-renderer-backgrounding --single-process"
+
+  grafana:
+    profiles: ["full-stack"]
+
+  prometheus:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M

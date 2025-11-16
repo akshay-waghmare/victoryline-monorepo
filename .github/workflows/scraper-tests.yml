@@ -1,0 +1,47 @@
+name: Scraper Unit Tests
+
+on:
+  pull_request:
+    paths:
+      - 'apps/scraper/crex_scraper_python/**'
+      - '.github/workflows/scraper-tests.yml'
+  push:
+    branches:
+      - main
+      - 004-scraper-resilience
+    paths:
+      - 'apps/scraper/crex_scraper_python/**'
+      - '.github/workflows/scraper-tests.yml'
+
+concurrency:
+  group: scraper-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install scraper dependencies
+        working-directory: apps/scraper/crex_scraper_python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Run unit tests
+        working-directory: apps/scraper/crex_scraper_python
+        env:
+          PYTHONPATH: src
+        run: |
+          pytest -q

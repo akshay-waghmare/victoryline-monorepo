@@ -7,11 +7,12 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.logging.adapters import configure_logging, get_logger, bind_correlation_id
+from crex_scraper_python.logging_config import setup_logging
+from src.logging.adapters import get_logger, bind_correlation_id
 from src.crex_scraper import scrape
 
 if __name__ == "__main__":
-    configure_logging()
+    setup_logging()
     
     # Bind a correlation ID
     correlation_id = bind_correlation_id("test-manual-001")

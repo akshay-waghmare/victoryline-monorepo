@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  title: Scraper Health API
+  description: Health check and monitoring endpoints for cricket match scraper service
+  version: 1.0.0
+  contact:
+    name: VictoryLine API Team
+    email: ops-team@victoryline.com
+
+servers:
+  - url: http://localhost:5000
+    description: Local development
+  - url: http://scraper:5000
+    description: Docker internal network
+  - url: https://api.victoryline.com/scraper
+    description: Production
+
+tags:
+  - name: Health
+    description: Health check and monitoring endpoints
+  - name: Metrics
+    description: Prometheus metrics endpoints
+
+paths:
+  /health:
+    get:
+      summary: Get scraper health status
+      description: |
+        Returns comprehensive health information for all active scraper instances.
+        Includes overall status, per-match health, resource usage, and error counts.
+        Response time guaranteed <100ms.
+      tags:
+        - Health
+      operationId: getHealthStatus
+      responses:
+        '200':
+          description: Health check successful (may include degraded scrapers)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: All scrapers healthy
+                  value:
+                    success: true
+                    data:
+                      overall_status: "healthy"
+                      active_scraper_count: 3
+                      scrapers:
+                        - match_id: "12345"
+                          url: "https://example.com/match/12345"
+                          last_update: "2025-11-12T10:30:45.123Z"
+                          error_count: 0
+                          memory_mb: 856
+                          status: "healthy"
+                        - match_id: "67890"
+                          url: "https://example.com/match/67890"
+                          last_update: "2025-11-12T10:30:43.456Z"
+                          error_count: 1
+                          memory_mb: 923
+                          status: "healthy"
+                      total_memory_mb: 1779
+                      uptime_seconds: 3456
+                    error: null
+                    timestamp: "2025-11-12T10:30:45.500Z"
+                degraded:
+                  summary: Some scrapers degraded
+                  value:
+                    success: true
+                    data:
+                      overall_status: "degraded"
+                      active_scraper_count: 2
+                      scrapers:
+                        - match_id: "12345"
+                          url: "https://example.com/match/12345"
+                          last_update: "2025-11-12T10:25:45.123Z"
+                          error_count: 3
+                          memory_mb: 1456
+                          status: "degraded"
+                      total_memory_mb: 1456
+                      uptime_seconds: 7892
+                    error: null
+                    timestamp: "2025-11-12T10:30:45.500Z"
+        '503':
+          description: Service unavailable (all scrapers failing)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                success: false
+                data:
+                  overall_status: "down"
+                  active_scraper_count: 0
+                  scrapers: []
+                  total_memory_mb: 0
+                  uptime_seconds: 0
+                error:
+                  code: "SERVICE_DOWN"
+                  message: "No active scrapers running"
+                timestamp: "2025-11-12T10:30:45.500Z"
+
+  /metrics:
+    get:
+      summary: Get Prometheus metrics
+      description: |
+        Exposes Prometheus-formatted metrics for scraping.
+        Standard Prometheus text format with TYPE and HELP comments.
+      tags:
+        - Metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics successfully retrieved
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP scraper_errors_total Total scraping errors
+                  # TYPE scraper_errors_total counter
+                  scraper_errors_total{match_id="12345",error_type="network"} 3
+                  scraper_errors_total{match_id="12345",error_type="parsing"} 1
+                  scraper_errors_total{match_id="67890",error_type="timeout"} 2
+                  
+                  # HELP scraper_updates_total Total successful updates
+                  # TYPE scraper_updates_total counter
+                  scraper_updates_total{match_id="12345"} 1456
+                  scraper_updates_total{match_id="67890"} 892
+                  
+                  # HELP scraper_update_latency_seconds Update latency
+                  # TYPE scraper_update_latency_seconds histogram
+                  scraper_update_latency_seconds_bucket{match_id="12345",le="0.1"} 234
+                  scraper_update_latency_seconds_bucket{match_id="12345",le="0.5"} 1200
+                  scraper_update_latency_seconds_bucket{match_id="12345",le="1.0"} 1450
+                  scraper_update_latency_seconds_bucket{match_id="12345",le="+Inf"} 1456
+                  scraper_update_latency_seconds_sum{match_id="12345"} 456.7
+                  scraper_update_latency_seconds_count{match_id="12345"} 1456
+                  
+                  # HELP scraper_memory_bytes Memory usage in bytes
+                  # TYPE scraper_memory_bytes gauge
+                  scraper_memory_bytes{match_id="12345"} 897581056
+                  scraper_memory_bytes{match_id="67890"} 967458816
+                  
+                  # HELP active_scrapers_count Number of active scrapers
+                  # TYPE active_scrapers_count gauge
+                  active_scrapers_count 2
+                  
+                  # HELP data_staleness_seconds Seconds since last update
+                  # TYPE data_staleness_seconds gauge
+                  data_staleness_seconds{match_id="12345"} 5
+                  data_staleness_seconds{match_id="67890"} 8
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - success
+        - data
+        - error
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          description: Whether the request was successful
+        data:
+          type: object
+          nullable: true
+          properties:
+            overall_status:
+              type: string
+              enum: [healthy, degraded, down]
+              description: Aggregate health status of all scrapers
+            active_scraper_count:
+              type: integer
+              minimum: 0
+              description: Number of currently active scraper instances
+            scrapers:
+              type: array
+              description: Per-scraper health details
+              items:
+                $ref: '#/components/schemas/ScraperHealth'
+            total_memory_mb:
+              type: number
+              format: float
+              minimum: 0
+              description: Total memory usage across all scrapers in MB
+            uptime_seconds:
+              type: integer
+              minimum: 0
+              description: Service uptime in seconds
+        error:
+          type: object
+          nullable: true
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Human-readable error message
+            field:
+              type: string
+              description: Field name if validation error
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of response generation
+          example: "2025-11-12T10:30:45.123Z"
+    
+    ScraperHealth:
+      type: object
+      required:
+        - match_id
+        - url
+        - last_update
+        - error_count
+        - memory_mb
+        - status
+      properties:
+        match_id:
+          type: string
+          description: Unique identifier for the match being scraped
+          example: "12345"
+        url:
+          type: string
+          format: uri
+          description: Source URL being scraped
+          example: "https://www.cricbuzz.com/live-cricket-scores/12345"
+        last_update:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp of last successful data update
+          example: "2025-11-12T10:30:45.123Z"
+        error_count:
+          type: integer
+          minimum: 0
+          description: Number of consecutive errors (resets on success)
+          example: 0
+        memory_mb:
+          type: number
+          format: float
+          minimum: 0
+          description: Current memory usage of scraper in megabytes
+          example: 856.3
+        status:
+          type: string
+          enum: [healthy, degraded, failing]
+          description: |
+            Health status classification:
+            - healthy: error_count <= 2, staleness <= 120s
+            - degraded: error_count 3-5, staleness 120-300s
+            - failing: error_count > 5, staleness > 300s
+          example: "healthy"
+        uptime_seconds:
+          type: integer
+          minimum: 0
+          description: Time since scraper started in seconds
+          example: 3456
+        polling_interval:
+          type: number
+          format: float
+          minimum: 0
+          description: Current adaptive polling interval in seconds
+          example: 2.5

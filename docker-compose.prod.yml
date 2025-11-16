@@ -33,7 +33,7 @@ services:
   #     start_period: 30s
 
   backend:
-    image: "${BACKEND_IMAGE:-macubex/victoryline-backend:v1.0.0}"
+    image: "${BACKEND_IMAGE:-macubex/victoryline-backend:v1.1.0}"
     container_name: victoryline-backend
     restart: unless-stopped
     ports:
@@ -66,9 +66,10 @@ services:
       start_period: 60s
 
   scraper:
-    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.0.0}"
+    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.1.2}"
     container_name: victoryline-scraper
     restart: unless-stopped
+    pids_limit: 512
     ports:
       - "${SCRAPER_PORT:-5000}:5000"
     environment:
@@ -80,12 +81,31 @@ services:
       FLASK_ENV: "${FLASK_ENV:-production}"
       FLASK_DEBUG: "${FLASK_DEBUG:-0}"
       PLAYWRIGHT_HEADLESS: "${PLAYWRIGHT_HEADLESS:-true}"
+      SCRAPER_MAX_LIFETIME_HOURS: "${SCRAPER_MAX_LIFETIME_HOURS:-6}"
+      MEMORY_SOFT_LIMIT_MB: "${MEMORY_SOFT_LIMIT_MB:-1536}"
+      MEMORY_HARD_LIMIT_MB: "${MEMORY_HARD_LIMIT_MB:-2048}"
+      POLLING_INTERVAL_SECONDS: "${POLLING_INTERVAL_SECONDS:-2.5}"
+      POLLING_MIN_SECONDS: "${POLLING_MIN_SECONDS:-2}"
+      POLLING_BREAK_SECONDS: "${POLLING_BREAK_SECONDS:-30}"
+      PAGE_TIMEOUT_SECONDS: "${PAGE_TIMEOUT_SECONDS:-30}"
+      ENABLE_PROMETHEUS_METRICS: "${ENABLE_PROMETHEUS_METRICS:-true}"
+      PROMETHEUS_PORT: "${PROMETHEUS_PORT:-9090}"
+      STALENESS_THRESHOLD_SECONDS: "${STALENESS_THRESHOLD_SECONDS:-60}"
+      CONTAINER_RESTART_INTERVAL_MINUTES: "${CONTAINER_RESTART_INTERVAL_MINUTES:-10}"
     volumes:
       - scraper_data:/app/storage
     depends_on:
       - backend
     networks:
       - victoryline-network
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2560M
+        reservations:
+          cpus: "1.0"
+          memory: 1024M
     healthcheck:
       test:
         - CMD-SHELL

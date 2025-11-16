@@ -13,7 +13,16 @@ import structlog
 
 _CORRELATION_ID_VAR: ContextVar[Optional[str]] = ContextVar("correlation_id", default=None)
 _DEFAULT_COMPONENT = "scraper"
-_ALLOWED_TOP_LEVEL_KEYS = {"timestamp", "level", "correlation_id", "component", "event", "metadata"}
+_ALLOWED_TOP_LEVEL_KEYS = {
+    "timestamp",
+    "level",
+    "correlation_id",
+    "component",
+    "event",
+    "metadata",
+    "match_id",
+    "scraper_id",
+}
 _IS_CONFIGURED = False
 
 Processor = Callable[[structlog.BoundLoggerBase, str, MutableMapping[str, Any]], MutableMapping[str, Any]]
@@ -129,6 +138,14 @@ def _ensure_standard_schema(
 
     component = event_dict.get("component") or _DEFAULT_COMPONENT
     event_dict["component"] = component
+
+    scraper_id = event_dict.get("scraper_id")
+    if not scraper_id:
+        scraper_id = "unknown"
+    event_dict["scraper_id"] = scraper_id
+
+    match_id = event_dict.get("match_id")
+    event_dict["match_id"] = match_id or "unbound"
 
     metadata = event_dict.get("metadata")
 
