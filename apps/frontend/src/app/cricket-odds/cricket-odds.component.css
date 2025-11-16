@@ -23,6 +23,37 @@
     background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
 }
 
+mat-card-content {
+  padding-left: 15%;
+  padding-right: 15%;
+}
+
+.cricket-odds__hero {
+  display: block;
+  margin: 0 0 32px 0;
+  width: 100%;
+}
+
+.hero-downstream {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (max-width: 1200px) {
+  mat-card-content {
+    padding-left: 8%;
+    padding-right: 8%;
+  }
+}
+
+@media (max-width: 768px) {
+  mat-card-content {
+    padding-left: 4%;
+    padding-right: 4%;
+  }
+}
+
 /* Enhanced typography for better readability */
 .team-label, .session-label, .score-update, .team-overs, .team-score {
     line-height: 1.5;

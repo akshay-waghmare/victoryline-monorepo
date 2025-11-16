@@ -64,7 +64,6 @@ services:
       dockerfile: Dockerfile
     container_name: victoryline-scraper
     restart: unless-stopped
-    pids_limit: 512
     ports:
       - "${SCRAPER_PORT:-5000}:5000"
     environment:
@@ -98,6 +97,7 @@ services:
     deploy:
       resources:
         limits:
+          pids: 512
           cpus: "2.0"
           memory: 2560M
         reservations:

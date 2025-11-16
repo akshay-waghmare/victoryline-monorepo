@@ -1,0 +1,220 @@
+openapi: 3.0.3
+info:
+  title: VictoryLine Live Match Snapshot API
+  version: 0.1.0
+  description: Frontend consumption contract for hero layout data (no backend changes required).
+servers:
+  - url: https://{host}/api/v1
+    variables:
+      host:
+        default: example.victoryline.com
+paths:
+  /matches/{matchId}/snapshot:
+    get:
+      summary: Retrieve live snapshot data for a match
+      operationId: getLiveMatchSnapshot
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Snapshot retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveMatchSnapshot'
+        '404':
+          description: Match not found
+        '503':
+          description: Snapshot temporarily unavailable (fallback to cached data)
+components:
+  schemas:
+    LiveMatchSnapshot:
+      type: object
+      required: [id, status, timestamp, innings, staleness]
+      properties:
+        id:
+          type: string
+          example: pak-vs-sl-3rd-odi-2025
+        status:
+          type: string
+          enum: [LIVE, INNINGS_BREAK, DELAYED, COMPLETED]
+        timestamp:
+          type: string
+          format: date-time
+        innings:
+          $ref: '#/components/schemas/InningsScore'
+        chaseContext:
+          $ref: '#/components/schemas/ChaseContext'
+          nullable: true
+        batters:
+          type: array
+          minItems: 0
+          maxItems: 2
+          items:
+            $ref: '#/components/schemas/ParticipantSummary'
+        bowler:
+          $ref: '#/components/schemas/BowlerSummary'
+          nullable: true
+        partnership:
+          $ref: '#/components/schemas/PartnershipSummary'
+          nullable: true
+        odds:
+          $ref: '#/components/schemas/OddsQuote'
+          nullable: true
+        staleness:
+          $ref: '#/components/schemas/StalenessSignal'
+    InningsScore:
+      type: object
+      required: [teamCode, teamName, runs, wickets, overs, runRate]
+      properties:
+        teamCode:
+          type: string
+        teamName:
+          type: string
+        runs:
+          type: integer
+        wickets:
+          type: integer
+          minimum: 0
+          maximum: 10
+        overs:
+          type: string
+          pattern: '^\\d+\\.\\d$'
+        runRate:
+          type: number
+        projected:
+          type: number
+          nullable: true
+        resultSummary:
+          type: string
+          nullable: true
+    ChaseContext:
+      type: object
+      required: [target, runsRemaining, ballsRemaining, requiredRunRate]
+      properties:
+        target:
+          type: integer
+        runsRemaining:
+          type: integer
+          minimum: 0
+        ballsRemaining:
+          type: integer
+          minimum: 0
+        requiredRunRate:
+          type: number
+        winProbability:
+          type: number
+          nullable: true
+          description: Percentage (0-100)
+    ParticipantSummary:
+      type: object
+      required: [id, name, role, runs, balls, strikeRate, isOnStrike]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [BATTER, KEEPER, ALL_ROUNDER, UNKNOWN]
+        runs:
+          type: integer
+        balls:
+          type: integer
+        fours:
+          type: integer
+          nullable: true
+        sixes:
+          type: integer
+          nullable: true
+        strikeRate:
+          type: number
+        isOnStrike:
+          type: boolean
+        recentBalls:
+          type: array
+          items:
+            type: string
+          maxItems: 6
+          nullable: true
+    BowlerSummary:
+      type: object
+      required: [id, name, overs, runsConceded, wickets]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        overs:
+          type: string
+        maidens:
+          type: integer
+          nullable: true
+        runsConceded:
+          type: integer
+        wickets:
+          type: integer
+        economy:
+          type: number
+        lastOverFigure:
+          type: string
+          nullable: true
+    PartnershipSummary:
+      type: object
+      required: [runs, balls]
+      properties:
+        runs:
+          type: integer
+        balls:
+          type: integer
+        wicketsFallen:
+          type: integer
+          nullable: true
+        description:
+          type: string
+          nullable: true
+    OddsQuote:
+      type: object
+      required: [label, format, jurisdictionEnabled]
+      properties:
+        label:
+          type: string
+        value:
+          type: number
+          nullable: true
+        format:
+          type: string
+          enum: [PERCENT, DECIMAL, FRACTIONAL]
+        trend:
+          type: string
+          enum: [UP, DOWN, STABLE, UNKNOWN]
+          nullable: true
+        provider:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          nullable: true
+        jurisdictionEnabled:
+          type: boolean
+    StalenessSignal:
+      type: object
+      required: [tier, ageSeconds]
+      properties:
+        tier:
+          type: string
+          enum: [FRESH, WARNING, ERROR]
+        ageSeconds:
+          type: integer
+        message:
+          type: string
+          nullable: true
+        nextRetryAllowed:
+          type: string
+          format: date-time
+          nullable: true

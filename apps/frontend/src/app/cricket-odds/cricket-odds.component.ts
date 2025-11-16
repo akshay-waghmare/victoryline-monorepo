@@ -37,17 +37,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   batsmanDataList: Array<any> = [];
   bowlerDataList: Array<any> = [];
 
-  team1Name: string = 'NA';
-  team1Score: string = 'NA';
-  team1Overs: string = 'NA';
-
-  team2Name: string = 'NA';
-  team2Score: string = 'NA';
-  team2Overs: string = 'NA';
-
-
-  favTeam: string = '-'
-  liveScoreUpdate: string = 'Wait for Score'; // Example: "6 runs scored in the last over."
+  favTeam: string = '-';
   backOdds: number = 0; // Example: Back odds for the favorite team.
   layOdds: number = 1; // Example: Lay odds for the favorite team.
 
@@ -95,8 +85,6 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   tossWonCountry: string;
   batOrBallSelected: string;
   testMatchOdds: any[];
-  currentRunRate: any;
-  finalResultTextValue: any;
   betType: string;
   loggedUser: string;
   matchUrl: any;
@@ -160,12 +148,15 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     });
   }
   ngOnInit(): void {
-    this.currentUrl = this.activatedRoute.snapshot.queryParamMap.get('url') || this.activatedRoute.snapshot.params['url'];
+    this.currentUrl = this.activatedRoute.snapshot.queryParamMap.get('url')
+            || this.activatedRoute.snapshot.params['url']
+            || this.activatedRoute.snapshot.params['path'];
     
     // 002-match-details-ux: Extract matchId from URL or route params
     this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId') 
-                || this.activatedRoute.snapshot.params['matchId']
-                || this.extractMatchIdFromUrl(this.currentUrl);
+          || this.activatedRoute.snapshot.params['matchId']
+          || this.activatedRoute.snapshot.params['path']
+          || this.extractMatchIdFromUrl(this.currentUrl);
 
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -190,9 +181,6 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       // this.checkIfCountryAndOptionSet();
     });
 
-    // Initialize or update the component properties here.
-    // You can update liveScoreUpdate, backOdds, layOdds, and last6Balls based on real data.
-
     //watching live score for cricet data
     this.fetchCricketData();
 
@@ -210,6 +198,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     this.activatedRoute.params.subscribe(params => {
       const match = params['path']; // Use 'path' instead of 'match'
       this.matchUrl = match;
+      this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId')
+                    || params['matchId']
+                    || match
+                    || this.matchId;
 
       this.cricketService.getLastUpdatedData(match).subscribe(data => {
         this.parseCricObjData(data);
@@ -246,10 +238,6 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         this.tossWonCountrySubject.next(this.cricObj.toss_won_country);
       }
 
-      if (this.cricObj.current_ball !== undefined) {
-        this.liveScoreUpdate = this.cricObj.current_ball;
-      }
-      
       if (this.cricObj.batsman_data !== undefined && Array.isArray(this.cricObj.batsman_data)) {
         const batsmanData = this.cricObj.batsman_data;
   
@@ -334,91 +322,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         this.batOrBallSelectedSubject.next(bat_or_ball_selected);
       }
 
-      // Check and handle the "over" field
-      if (this.cricObj.over !== undefined) {
-        const overValue = this.cricObj.over;
-        this.team1Overs = overValue;
-        console.log("Over:", overValue);
-      }
-
-      if (this.cricObj.batting_team !== undefined) {
-        const batting_team = this.cricObj.batting_team;
-        this.team1Name = batting_team;
-        this.battingTeam = batting_team;
-        console.log("Batting team:", batting_team);
-      }
-
-      // Check and handle the "score" field
-      if (this.cricObj.score !== undefined) {
-        const scoreValue = this.cricObj.score;
-        this.team1Score = scoreValue;
-        console.log("Score:", scoreValue);
-      }
-
-      // Check and handle the "team_player_info" field
-      /* if (this.cricObj.team_player_info !== undefined) {
-        const team_player_info = this.cricObj.team_player_info;
-        console.log("team_player_info:", team_player_info);
-        for (const country in team_player_info) {
-          if (team_player_info.hasOwnProperty(country)) {
-            const squad = team_player_info[country];
-            const code = this.generateTeamCode(country);
-            if (this.team1Name === 'NA') {
-              this.team1Name = code;
-            }
-            else {
-              this.team2Name = code;
-            }
-            console.log(`Country: ${country}`);
-            console.log(`Squad: ${squad.join(', ')}`);
-          }
-        }
-
-      } */
-      // Check and handle the "current_ball" field
-      if (this.cricObj.current_ball !== undefined) {
-        const currentBallValue = this.cricObj.current_ball;
-        const containsNumber = currentBallValue === 'Ball'; // change this to check 'Ball' string
-        if (containsNumber)
-          this.liveScoreUpdate = 'Ball Start';
-        else if(currentBallValue === 'Stumps'){
-          this.liveScoreUpdate = 'Stumps';
-        }
-        else
-          this.liveScoreUpdate = currentBallValue;
-        console.log("Current Ball:", currentBallValue);
-      }
-
-      // Check and handle the "runs_on_ball" field
-      if (this.cricObj.runs_on_ball !== undefined && this.cricObj.runs_on_ball !== null) {
-        const runsOnBallValue = this.cricObj.runs_on_ball;
-        this.liveScoreUpdate = runsOnBallValue;
-        console.log("Runs on Ball:", runsOnBallValue);
-      }
-
-      // Check and handle the "CRR" field
-      if (this.cricObj.crr !== undefined && this.cricObj.crr !== null) {
-        const currentRunRate = this.cricObj.crr;
-
-        console.log("Crr:", currentRunRate);
-        this.currentRunRate = currentRunRate;
-        // crr === 'Crr not found' then set '';
-        if (currentRunRate === 'CRR not found') {
-          this.currentRunRate = '';
-        }
-        console.log("CRR :", this.currentRunRate);
-        
-      }
-
-      // Check and handle the "final_result_text" field
-      if (this.cricObj.final_result_text !== undefined && this.cricObj.final_result_text !== null) {
-        const finalResultTextValue = this.cricObj.final_result_text;
-        this.finalResultTextValue = finalResultTextValue;
-        // if finalResultTextValue === 'Final result text not found' then set '';
-        if (finalResultTextValue === 'Final result text not found') {
-          this.finalResultTextValue = '';
-        }
-        console.log("Final Result Text:", this.finalResultTextValue);
+      if (this.cricObj.batting_team !== undefined && this.cricObj.batting_team !== null) {
+        this.battingTeam = this.cricObj.batting_team;
       }
 
       //check and handle the "overs_data" field
@@ -543,23 +448,6 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.selectedOdds = Number(this.sessionLayOdds);
     }
 
-  }
-
-  //Function to generate team code from team name
-  generateTeamCode(teamName: string): string {
-    const words = teamName.split(" ");
-    let code = "";
-
-    if (words.length === 1) {
-      code = words[0].substring(0, 2).toUpperCase();
-    } else if (words.length === 2) {
-      code = words.map((word) => word[0]).join("").toUpperCase();
-    } else {
-      // Handle other cases as needed
-      code = "NA";
-    }
-
-    return code;
   }
 
   // Function to cancel the bet
@@ -1051,6 +939,10 @@ placeSessionBet() {
   // 002-match-details-ux: Helper to extract matchId from URL
   private extractMatchIdFromUrl(url: string): string | null {
     if (!url) return null;
+    const trimmed = String(url).trim();
+    if (trimmed && trimmed.indexOf('/') === -1 && /[-\d]/.test(trimmed)) {
+      return trimmed;
+    }
     
     // Try to extract match ID from various URL patterns
     // Example patterns: /match/12345, ?matchId=12345, /cricket-odds/12345

@@ -1,0 +1,441 @@
+:host {
+  display: block;
+  color: #1a202c;
+  width: 100%;
+}
+
+.live-hero {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(to bottom right, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 25vh;
+  min-height: 200px;
+}
+
+.live-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.live-hero__headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.live-hero__fixture {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.live-hero__team {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a202c;
+  letter-spacing: 0.01em;
+}
+
+.live-hero__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 999px;
+}
+
+.live-hero__timestamp {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.live-hero__grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  padding: 20px 32px;
+  gap: 32px;
+}
+
+.live-hero__pod {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.live-hero__pod--score {
+  justify-self: start;
+  padding-left: 60px;
+}
+
+.live-hero__pod--context {
+  justify-self: end;
+  text-align: right;
+  padding-right: 60px;
+}
+
+.scoreline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 10px;
+}
+
+.scoreline__runs {
+  font-size: 4rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 0.9;
+  text-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
+}
+
+.scoreline__separator {
+  color: #cbd5e0;
+  margin: 0 4px;
+  font-size: 2.8rem;
+  font-weight: 300;
+}
+
+.scoreline__wickets {
+  font-size: 2.8rem;
+  color: #1a202c;
+}
+
+.scoreline__team-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.scoreline__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.scoreline__meta > span {
+  padding: 5px 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.current-ball {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.current-ball__label {
+  display: none;
+}
+
+.current-ball__value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.recent-balls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.recent-balls__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+  min-width: auto;
+}
+
+.recent-balls__list {
+  display: flex;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+
+.recent-balls__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+  min-width: 70px;
+}
+
+.recent-balls__list {
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  flex-wrap: wrap;
+}
+
+.recent-balls__item {
+  min-width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 2px solid #e2e8f0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1a202c;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.recent-balls__item:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+}
+
+.scoreline__summary {
+  display: none;
+}
+
+.scoreline__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.retry-button {
+  appearance: none;
+  border: 2px solid #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.retry-button:hover,
+.retry-button:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.retry-button:focus-visible {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.retry-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.chase-summary {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.5;
+  text-align: right;
+}
+
+.context-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.context-grid__item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.context-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.context-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a202c;
+}
+
+.odds {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.odds__value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.odds__trend {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.odds__note {
+  margin: 8px 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.live-hero--loading {
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  padding: 48px;
+}
+
+.live-hero__loader {
+  font-size: 0.875rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.live-hero__error {
+  margin-top: 20px;
+  padding: 16px;
+  font-size: 0.875rem;
+  color: #dc2626;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+@media (max-width: 1365px) {
+  .live-hero__grid {
+    flex-direction: column;
+  }
+
+  .live-hero__pod {
+    border-right: none;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .live-hero__pod:last-child {
+    border-bottom: none;
+  }
+
+  .scoreline__runs {
+    font-size: 3rem;
+  }
+
+  .scoreline__wickets {
+    font-size: 2rem;
+  }
+
+  .odds__value {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .live-hero__headline {
+    padding: 16px 20px;
+  }
+
+  .live-hero__pod {
+    padding: 24px 20px;
+  }
+
+  .live-hero__team {
+    font-size: 1.25rem;
+  }
+
+  .scoreline__runs {
+    font-size: 2.5rem;
+  }
+
+  .context-value {
+    font-size: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .retry-button,
+  .recent-balls__item {
+    transition: none;
+  }
+}

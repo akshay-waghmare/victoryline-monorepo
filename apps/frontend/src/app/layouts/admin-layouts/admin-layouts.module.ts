@@ -83,6 +83,7 @@ import { MatchLiveFacade } from 'src/app/cricket-odds/match-live.facade';
 import { MatchApiService } from 'src/app/cricket-odds/match-api.service';
 import { AnalyticsService } from 'src/app/cricket-odds/analytics.service';
 import { MatchFallbackService } from 'src/app/cricket-odds/match-fallback.service';
+import { MatchLiveModule } from 'src/app/match-live';
 
 
 
@@ -134,7 +135,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     ComponentsModule,
     MatSnackBarModule, // Import MatSnackBarModule
     MatTooltipModule, // Import MatTooltipModule for navbar tooltips (T046)
-    
+    MatchLiveModule,
   
   ],
   declarations: [

@@ -10,6 +10,10 @@ Auto-generated from feature plans. Last updated: 2025-11-12
 - Angular Universal (SSR), Express server adapter, Helmet (security headers), Sharp (OG image resizing), Spring Boot Web + Jackson, MySQL JDBC, Redis client, Flask + requests, Lighthouse CI, axe-core (accessibility audit), sitemap + robots generator utility (custom or library), json-schema / OpenAPI tooling. (003-seo-optimization)
 - MySQL (authoritative match / team / player data); Redis (caching rendered SEO metadata & sitemap snapshot); File store or object storage (future) for generated OG/social images (initially build-time static assets). (003-seo-optimization)
 - Python 3.x (Scraper), Java 8/11 with Spring Boot 2.x (Backend) (004-scraper-resilience)
+- TypeScript 3.2.x, Angular 7.2 + Angular Material 7 (layout, typography), RxJS 6 (streams), @stomp/ng2-stompjs (websocket updates), MatchesService / EventListService for data, existing scorecard API client (005-live-match-glance)
+- N/A (frontend state + in-memory services only) (005-live-match-glance)
+- TypeScript 3.2.x, Angular 7.2 CLI, HTML5, SCSS + Angular core & router, RxJS 6.x, Angular Material 7 (layout primitives), internal design tokens (005-live-match-glance)
+- N/A (consumes snapshot/scorecard REST endpoints only) (005-live-match-glance)
 
 - TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties)  <!-- + ACTION REQUIRED: Replace the content in this section with the technical details (001-modern-ui-redesign)
 
@@ -30,9 +34,9 @@ npm test; npm run lint
 TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties)  <!--: Follow standard conventions
 
 ## Recent Changes
-- 004-scraper-resilience: Added Python 3.x (Scraper), Java 8/11 with Spring Boot 2.x (Backend)
-- 003-seo-optimization: Added Angular Universal (SSR), Express server adapter, Helmet (security headers), Sharp (OG image resizing), Spring Boot Web + Jackson, MySQL JDBC, Redis client, Flask + requests, Lighthouse CI, axe-core (accessibility audit), sitemap + robots generator utility (custom or library), json-schema / OpenAPI tooling.
-- 003-seo-optimization: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+- 005-live-match-glance: Added TypeScript 3.2.x, Angular 7.2 CLI, HTML5, SCSS + Angular core & router, RxJS 6.x, Angular Material 7 (layout primitives), internal design tokens
+- 005-live-match-glance: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
+- 005-live-match-glance: Added TypeScript 3.2.x, Angular 7.2 + Angular Material 7 (layout, typography), RxJS 6 (streams), @stomp/ng2-stompjs (websocket updates), MatchesService / EventListService for data, existing scorecard API client
 
 
 <!-- MANUAL ADDITIONS START -->
