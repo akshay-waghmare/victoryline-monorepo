@@ -166,8 +166,9 @@ services:
     container_name: victoryline-ghost
     restart: unless-stopped
     environment:
-      url: "${GHOST_URL:-https://yourdomain.com}"
+      url: "${GHOST_URL:-https://crickzen.com}"
       NODE_ENV: production
+      # SQLite is sufficient for Ghost in production (simpler than MySQL)
     volumes:
       - ghost_data:/var/lib/ghost/content
     networks:

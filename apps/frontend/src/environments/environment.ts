@@ -17,7 +17,10 @@ export const environment = {
   REST_API_URL: '/api/',
   REST_API_SCRAPING_URL: '/api/',
   ghostApiUrl: 'http://localhost:2368/ghost/api/content',
-  ghostApiKey: '17e5c1d7e5d34f09d1a9879db8'
+  ghostApiKey: '30d103b8c5c578c76a6c0d1283'
+
+  // ghostApiUrl: 'https://crickzen.com/ghost/api/content',
+  // ghostApiKey: '30d103b8c5c578c76a6c0d1283' 
 };
 
 /*
