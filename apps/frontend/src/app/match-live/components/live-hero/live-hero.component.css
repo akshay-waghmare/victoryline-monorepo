@@ -2,6 +2,9 @@
   display: block;
   color: #1a202c;
   width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .live-hero {
@@ -15,6 +18,23 @@
   width: 100%;
   height: 25vh;
   min-height: 200px;
+}
+
+/* Mobile Responsiveness: Phase 7 (T032, T038, T042) - Compact hero for mobile viewports */
+@media (max-width: 768px) {
+  .live-hero {
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    border-radius: 0;
+    margin: 0;
+    width: 100vw;
+    box-sizing: border-box;
+    overflow: visible;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
 }
 
 .live-hero::before {
@@ -43,6 +63,26 @@
   gap: 16px;
 }
 
+.live-hero__match-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-hero__info-icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: #667eea;
+}
+
+.live-hero__info-text {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1a202c;
+  letter-spacing: 0.01em;
+}
+
 .live-hero__team {
   font-size: 1.125rem;
   font-weight: 700;
@@ -66,19 +106,98 @@
 .live-hero__timestamp {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 0.75rem;
   color: #64748b;
 }
 
-.live-hero__grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+.staleness-badge {
+  display: inline-flex;
   align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.staleness-badge[data-tier="WARNING"] {
+  background: rgba(255, 193, 7, 0.15);
+  color: #f57c00;
+}
+
+.staleness-badge[data-tier="ERROR"] {
+  background: rgba(244, 67, 54, 0.15);
+  color: #d32f2f;
+}
+
+.staleness-badge__icon {
+  font-size: 0.875rem;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.staleness-badge__label {
+  line-height: 1;
+}
+
+.retry-button-small {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: #667eea;
+  border: none;
+  border-radius: 50%;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button-small:hover,
+.retry-button-small:focus {
+  background: #764ba2;
+  transform: scale(1.1);
+}
+
+.retry-button-small mat-icon {
+  font-size: 1rem;
+  width: 1rem;
+  height: 1rem;
+}
+
+.live-hero__grid {
+  display: flex;
+  flex-direction: column;
   flex: 1;
   width: 100%;
   padding: 20px 32px;
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+/* Top row container for score and current ball */
+.live-hero__top-row {
+  display: flex;
+  align-items: stretch;
   gap: 32px;
+}
+
+@media (max-width: 1024px) {
+  .live-hero__grid {
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .live-hero__grid {
+    margin-bottom: 10px;
+  }
 }
 
 .live-hero__pod {
@@ -88,14 +207,23 @@
 }
 
 .live-hero__pod--score {
-  justify-self: start;
+  flex: 1;
   padding-left: 60px;
 }
 
 .live-hero__pod--context {
-  justify-self: end;
-  text-align: right;
-  padding-right: 60px;
+  width: 100%;
+  text-align: center;
+  padding: 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Current ball positioning in flexbox layout */
+.current-ball {
+  flex: 0 0 auto;
+  min-width: 120px;
 }
 
 .scoreline {
@@ -108,6 +236,18 @@
   margin-bottom: 10px;
 }
 
+@media (max-width: 768px) {
+  .scoreline {
+    font-size: 1.25rem;
+    gap: 4px;
+    justify-content: flex-start;
+    margin-bottom: 4px;
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+}
+
 .scoreline__runs {
   font-size: 4rem;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -116,6 +256,18 @@
   background-clip: text;
   line-height: 0.9;
   text-shadow: 0 2px 4px rgba(102, 126, 234, 0.1);
+}
+
+@media (max-width: 768px) {
+  .scoreline__runs {
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+
+  .scoreline__wickets,
+  .scoreline__separator {
+    font-size: 2rem;
+  }
 }
 
 .scoreline__separator {
@@ -158,10 +310,33 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+.striker-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.striker-label {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+.striker-name {
+  font-weight: 700;
+}
+
 .current-ball {
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-bottom: 70px;
 }
 
 .current-ball__label {
@@ -176,6 +351,28 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+@media (max-width: 768px) {
+  .current-ball {
+    margin-bottom: 0;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .current-ball__label {
+    display: block;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    font-weight: 600;
+  }
+
+  .current-ball__value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
 }
 
 .recent-balls {
@@ -302,6 +499,7 @@
   color: #475569;
   line-height: 1.5;
   text-align: right;
+  margin-bottom: 70px;
 }
 
 .context-grid {
@@ -433,9 +631,261 @@
   }
 }
 
+.live-hero__quick-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  padding: 16px 32px;
+  border-top: 1px solid #e2e8f0;
+  background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.quick-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #1a202c;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.quick-link:hover,
+.quick-link:focus {
+  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.quick-link__icon {
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  color: #667eea;
+}
+
+.quick-link__label {
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 768px) {
+  .live-hero__quick-links {
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .quick-link {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    gap: 6px;
+  }
+
+  .quick-link__icon {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .retry-button,
-  .recent-balls__item {
+  .recent-balls__item,
+  .quick-link {
     transition: none;
   }
 }
+
+/* ============================================================
+   Mobile Responsiveness - Consistent design for 400px to 768px
+   Single unified approach for all mobile devices
+   ============================================================ */
+
+@media (max-width: 768px) {
+  /* Live hero container - consistent mobile styling */
+  .live-hero {
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    border-radius: 0;
+    margin: 0;
+    width: 100vw;
+    box-sizing: border-box;
+    overflow: visible;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+  }
+
+  /* Compact headline - works for all mobile sizes */
+  .live-hero__headline {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+    box-sizing: border-box;
+  }
+
+  .live-hero__fixture {
+    gap: 8px;
+  }
+
+  .live-hero__info-text {
+    display: none;
+  }
+
+  .live-hero__team {
+    font-size: 0.875rem;
+    font-weight: 700;
+  }
+
+  .live-hero__status {
+    font-size: 0.625rem;
+    padding: 3px 8px;
+  }
+
+  .live-hero__timestamp {
+    font-size: 0.75rem;
+    gap: 6px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .timestamp-label {
+    display: none;
+  }
+
+  /* Mobile flexbox layout - consistent across all mobile sizes */
+  .live-hero__grid {
+    padding: 16px;
+    gap: 16px;
+    margin-bottom: 0;
+  }
+
+  /* Top row - score and current ball side by side */
+  .live-hero__top-row {
+    gap: 16px;
+  }
+
+  /* Score pod - left side */
+  .live-hero__pod--score {
+    flex: 0.4;
+    padding: 0 16px 0 0;
+    text-align: left;
+    border-right: 1px solid #e2e8f0;
+    min-width: 0;
+  }
+
+  /* Current ball - right side */
+  .current-ball {
+    flex: 0.6;
+    min-width: 90px;
+    padding: 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+
+  .current-ball__label {
+    display: block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .current-ball__value {
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  /* Context section - full width below - minimal padding */
+  .live-hero__pod--context {
+    width: 100%;
+    padding: 6px 0 0 0;
+    text-align: center;
+  }
+
+  /* Typography - consistent sizing for all mobile */
+  .scoreline__team-name {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    font-weight: 700;
+    color: #1a202c;
+  }
+
+  .scoreline {
+    font-size: 1.2rem;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+
+  .scoreline__runs {
+    font-size: 2.2rem;
+    line-height: 0.9;
+  }
+
+  .scoreline__wickets,
+  .scoreline__separator {
+    font-size: 1.6rem;
+  }
+
+  .scoreline__meta {
+    gap: 6px;
+    font-size: 0.75rem;
+    justify-content: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .scoreline__meta > span {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  /* Striker info - compact mobile display */
+  .striker-info {
+    margin-top: 6px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+
+  .striker-label {
+    font-size: 0.65rem;
+  }
+
+  /* Hide elements for cleaner mobile experience */
+  .live-hero__quick-links {
+    display: none;
+  }
+
+  .recent-balls {
+    display: none;
+  }
+
+  /* Show chase summary - compact */
+  .chase-summary {
+    display: block;
+    font-size: 0.8rem;
+    line-height: 1.2;
+    color: #475569;
+    font-weight: 500;
+    margin: 0;
+    padding: 4px 0;
+  }
+}
+

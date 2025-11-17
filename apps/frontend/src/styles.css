@@ -745,7 +745,11 @@ body, html {
   }
 
   .courses-panel {
-    margin-top: 0px !important; /* Remove top margin for viewports smaller than 768px */
+    margin: 0px !important;
+    padding: 0px !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
   }
 
   .main-panel {
@@ -771,5 +775,174 @@ body, html {
 
   .sidebar-toggle-button {
     display: block;
+  }
+}
+
+/* Mobile responsive fixes - Complete edge-to-edge layout */
+@media (max-width: 768px) {
+  /* Global resets for edge-to-edge layout */
+  html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+  }
+  
+  /* Reset all elements to prevent overflow */
+  * {
+    box-sizing: border-box !important;
+  }
+  
+  /* App root and main containers - completely full width */
+  app-root,
+  .layout-container,
+  .main-content {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Bootstrap containers - full width with no padding */
+  .container-fluid, .container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Navbar - reduced height, show on mobile */
+  .navbar {
+    height: 50px !important;
+    min-height: 50px !important;
+    display: flex !important;
+    overflow: visible !important;
+    padding: 8px 16px !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+  
+  .navbar__container {
+    display: flex !important;
+    padding: 0 !important;
+    align-items: center !important;
+    height: 100% !important;
+    width: 100% !important;
+  }
+  
+  .navbar__logo {
+    gap: 20px !important; /* Increased gap between logo elements */
+    align-items: center !important;
+  }
+  
+  .navbar__logo-img {
+    height: 28px !important;
+  }
+
+  /* Hide match snapshot header on mobile */
+  header[aria-label="Match snapshot header"] {
+    display: none !important;
+  }
+  
+  .mat-card-header {
+    display: none !important;
+  }
+  
+  /* Courses panel - complete edge-to-edge */
+  .courses-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-radius: 0 !important;
+  }
+  
+  /* Bootstrap grid system - remove all spacing */
+  .courses-panel .container,
+  .courses-panel .container-fluid {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .courses-panel .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+  
+  .courses-panel .col-md-12,
+  .courses-panel [class*="col-"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Course cards - add minimal internal padding only */
+  .course-card {
+    margin: 8px !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Main panel - force full width on mobile */
+  .main-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    float: none !important;
+    position: static !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+  
+  /* Sidebar - hide completely on mobile */
+  .sidebar {
+    display: none !important;
+  }
+  
+  /* Any wrapper containers that might add margins */
+  .wrapper,
+  .content-wrapper,
+  .page-wrapper {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Angular Material Tab fixes for mobile */
+  .mat-tab-header,
+  .mat-tab-header-pagination-controls-enabled {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+
+  .mat-tab-labels {
+    flex-wrap: nowrap !important;
+    min-width: 100% !important;
+  }
+
+  .mat-tab-label {
+    min-width: auto !important;
+    flex: 1 1 auto !important;
+    padding: 8px 12px !important;
+    font-size: 0.75rem !important;
+  }
+
+  .mat-tab-header-pagination {
+    display: none !important;
   }
 }

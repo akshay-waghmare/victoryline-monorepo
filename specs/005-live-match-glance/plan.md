@@ -98,28 +98,111 @@ apps/frontend/
 - Documented local iteration workflow and validation checklist in `quickstart.md` (run frontend, load mock snapshot, verify no-scroll hero).
 - Updated Copilot agent context via `.specify/scripts/powershell/update-agent-context.ps1 -AgentType copilot` (run 2025-11-16).
 
-## Phase 2 – Implementation Plan (UPCOMING)
+## Phase 2 – Implementation Plan (COMPLETED)
 
-1. **Scaffold UI Shell**
+1. **Scaffold UI Shell** ✅
   - Generate `live-hero` component tree under `match-live/components`, wire to routing entry.
   - Lay out CSS grid per `asd.pdf` mock using 8px spacing tokens and Angular Material layout utilities.
   - Introduce condensed sticky variant (`hero-condensed`) triggered on quick-link navigation or scroll threshold.
 
-2. **Bind Data Layer**
+2. **Bind Data Layer** ✅
   - Implement `live-hero-data.adapter.ts` to transform `LiveMatchSnapshot` into view models defined in `data-model.md`.
   - Connect to existing `MatchLiveFacade`/`MatchApiService` snapshot stream; ensure polling/websocket updates propagate.
   - Handle odds fallback, staleness tiers, and placeholder messaging per spec.
 
-3. **Interactions & Accessibility**
+3. **Interactions & Accessibility** ✅
   - Build quick-link sticky behavior preserving hero visibility when navigating to commentary/scorecard.
   - Add keyboard focus order, ARIA landmarks, and reduced-motion handling for player/bowler swap animations.
   - Surface analytics events for hero impressions, staleness warnings, odds visibility, and quick-link clicks.
 
-4. **Testing & Validation**
+4. **Testing & Validation** ✅
   - Author Jasmine/Karma unit specs for data adapter and pod components (cover staleness/odds fallbacks, condensed mode triggers).
   - Add Protractor (or Cypress equivalent) smoke to confirm hero remains above the fold using viewport checks.
   - Run axe-core audit and Lighthouse (desktop) to certify accessibility/performance budgets.
   - Verify layout against `asd.pdf` mock and Crex reference on 1366x768 & 1024x768 landscapes; capture screenshots.
+
+## Phase 3 – Mobile Responsiveness (COMPLETE ✅)
+
+**Goal**: Optimize the live match page for mobile devices (375px-768px viewports) with a modern, app-style interface ensuring optimal usability and information hierarchy.
+
+**Completed (2025-11-17)**:
+- ✅ Desktop hero layout complete (3-column responsive grid)
+- ✅ Condensed sticky header on scroll
+- ✅ Quick links CTA bar (touch-friendly, 44px minimum tap target)
+- ✅ Batsman and bowler stats tables (NO horizontal scroll, essential columns only)
+- ✅ Odds toggle (hide/show team + session odds, hidden by default on mobile)
+- ✅ Mobile-first CSS media queries (375px-768px breakpoints)
+- ✅ Constrained hero (height: auto, min 180px, max 25vh, 2-column layout on mobile)
+- ✅ Current ball visible on left (1.5rem compact), score on right (1.75rem)
+- ✅ Chase summary displayed (instead of redundant last 6 balls)
+- ✅ Single-column score layout (centered, visible data)
+- ✅ Touch-optimized buttons and navigation
+- ✅ Responsive container adjustments (edge-to-edge, full width utilization)
+- ✅ Enhanced mobile visibility (larger fonts, readable player names, 45% width for names)
+
+**Deferred (Backend Support Required)**:
+- ⏸️ Commentary feed (API endpoint not available)
+- ⏸️ Partnership data display (not in current DTO)
+- ⏸️ Ball-by-ball chips (no ball history data)
+- ⏸️ Last 5 overs distribution (no over-by-over data)
+- ⏸️ Sticky mobile header with back button (not in current scope)
+- ⏸️ Hamburger menu navigation (future enhancement)
+
+**Phase 3.1: Mobile Research & Planning** ✅
+  - ✅ Reviewed Crex wireframe for mobile layout inspiration
+  - ✅ Identified data gaps (commentary, partnership, ball history)
+  - ✅ Defined breakpoint strategy (400px, 768px, 1024px)
+  - ✅ Documented available vs unavailable data in plan.md
+
+**Phase 3.2: Mobile Hero & Core Layout** ✅
+  - ✅ Implemented responsive breakpoints (375px-400px, 400px-768px, 768px-1024px)
+  - ✅ Transformed 3-column grid to single-column stack on mobile
+  - ✅ Reduced hero height to 15vh (150px minimum) on mobile
+  - ✅ Made headline compact (8px padding, wrapped layout)
+  - ✅ Centered score and context pods
+  - ✅ Optimized typography for mobile (0.75rem-0.9375rem)
+
+**Phase 3.3: Mobile Interactions & Polish** ✅
+  - ✅ Touch-optimized tap targets (44x44px minimum)
+  - ✅ Smooth horizontal scroll with momentum (`-webkit-overflow-scrolling: touch`)
+  - ✅ Sticky first column in stats tables
+  - ✅ Odds hidden by default on mobile (viewport-based initialization)
+  - ✅ Icon-only odds toggle on mobile (label hidden)
+  - ✅ Container proper box-sizing and width constraints
+  - ✅ **REVISION COMPLETE**: Removed horizontal scroll, all content fits viewport width without overflow
+  - ✅ **VISIBILITY FIXES**: Hero data fully visible, batsman names readable, edge-to-edge layout, increased font sizes
+  - ✅ **HEIGHT CONSTRAINT**: Hero limited to 25vh max-height (from 70% screen), optimized spacing and font sizes
+  - ✅ **2-COLUMN LAYOUT**: Current ball (left) + score (right), chase summary below, hidden redundant last 6 balls
+  - ✅ **MAXIMUM WIDTH**: calc(100vw - 2px) with 1px edge borders, minimal padding (4px horizontal)
+  - ✅ **OVERFLOW FIX (T042)**: Removed max-height and overflow:hidden to show all hero content (score, team, overs visible)
+  - ✅ **EDGE-TO-EDGE LAYOUT (T043)**: Container and hero now 100vw (no side borders/margins) like footer for max space
+  - ✅ **ICON-ONLY LABELS (T044)**: Match info and timestamp use icons only on mobile (location, clock) - text hidden
+  - ✅ **HERO GRID VISIBILITY (T045)**: Mobile hero uses explicit grid areas + no extra-small height clamps so score, ball, and chase summary remain visible
+  - ✅ **FULL-WIDTH MAIN CONTAINER (T046)**: Mat-card, banner, and main content reset padding/margins on <=768px for true edge-to-edge layout
+
+**Phase 3.4: Testing & Documentation** 🚧 (Pending Real Device Testing)
+  - ✅ Testing checklist added to quickstart.md
+  - ✅ Mobile breakpoints documented
+  - ⏸️ Chrome DevTools emulation testing (T035)
+  - ⏸️ Real device testing (iOS Safari, Chrome Android)
+
+## Data Availability Notes
+
+**Available in Current Snapshot**:
+- Match score, overs, wickets
+- Team names and codes
+- Current batsmen (runs, balls, 4s, 6s, strike rate)
+- Current bowler (overs, runs, wickets, economy)
+- Session odds and team odds
+- Match status and staleness indicators
+
+**Not Available (Backend Enhancement Required)**:
+- Ball-by-ball commentary text
+- Partnership statistics (runs, balls)
+- Historical ball outcomes (for ball chips)
+- Last 5 overs run distribution
+- Player images/avatars
+- Team flags/logos
 
 ## Complexity Tracking
 

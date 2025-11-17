@@ -1,45 +1,83 @@
+<!-- Condensed Hero (Sticky on Scroll) -->
+<app-hero-condensed
+  *ngIf="(showCondensed$ | async) && (view$ | async) as view"
+  [view]="view"
+  [matchInfo]="matchInfo">
+</app-hero-condensed>
+
 <ng-container *ngIf="view$ | async as view; else loadingState">
   <section class="live-hero" [attr.data-status]="view.status">
     <header class="live-hero__headline">
       <div class="live-hero__fixture">
-        <span class="live-hero__team" title="{{ view.score.teamName }}">{{ view.score.teamName }}</span>
+        <div class="live-hero__match-info" *ngIf="matchInfo">
+          <mat-icon class="live-hero__info-icon" [attr.title]="matchInfo.match_name || matchInfo.series_name">location_on</mat-icon>
+          <span class="live-hero__info-text">{{ matchInfo.match_name || matchInfo.series_name }}</span>
+        </div>
         <span class="live-hero__status">{{ view.status | titlecase }}</span>
       </div>
       <div class="live-hero__timestamp">
-        <span>Updated</span>
+        <mat-icon class="timestamp-icon">schedule</mat-icon>
+        <span class="timestamp-label">Updated</span>
         <time [attr.datetime]="view.timestamp">{{ view.timestamp | date:'shortTime' }}</time>
+        
+        <!-- Staleness Warning Badge -->
+        <span class="staleness-badge" 
+              *ngIf="view.staleness.tier !== 'FRESH'"
+              [attr.data-tier]="view.staleness.tier">
+          <mat-icon class="staleness-badge__icon">warning</mat-icon>
+          <span class="staleness-badge__label">{{ stalenessBadge(view) }}</span>
+        </span>
+        
+        <!-- Manual Retry Button -->
+        <button type="button" 
+                class="retry-button-small" 
+                *ngIf="view.staleness.tier === 'ERROR'"
+                (click)="retry()"
+                aria-label="Retry loading live data">
+          <mat-icon>refresh</mat-icon>
+        </button>
       </div>
     </header>
 
     <div class="live-hero__grid">
-      <!-- LEFT: Score and Team Info -->
-      <div class="live-hero__pod live-hero__pod--score">
-        <div class="scoreline__team-name">{{ view.score.teamName }}</div>
-        <div class="scoreline" aria-label="Current score">
-          <span class="scoreline__runs">{{ view.score.runs }}</span>
-          <span class="scoreline__separator">/</span>
-          <span class="scoreline__wickets">{{ view.score.wickets }}</span>
+      <!-- Top row: Score and Current Ball side by side -->
+      <div class="live-hero__top-row">
+        <!-- LEFT: Score and Team Info -->
+        <div class="live-hero__pod live-hero__pod--score">
+          <div class="scoreline__team-name">{{ view.score.teamName }}</div>
+          <div class="scoreline" aria-label="Current score">
+            <span class="scoreline__runs">{{ view.score.runs }}</span>
+            <span class="scoreline__separator">/</span>
+            <span class="scoreline__wickets">{{ view.score.wickets }}</span>
+          </div>
+          <div class="scoreline__meta">
+            <span>{{ view.score.overs }} ov</span>
+            <span>{{ view.score.runRateLabel }}</span>
+          </div>
+          <!-- Striker Information -->
+          <div class="striker-info" *ngIf="view.batters.length">
+            <span class="striker-label">On Strike:</span>
+            <span class="striker-name" *ngFor="let batter of view.batters">
+              <span *ngIf="batter.isOnStrike">{{ batter.name }} ({{ batter.runs }}*)</span>
+            </span>
+          </div>
+          <div class="recent-balls" *ngIf="view.batters.length && view.batters[0].recentBalls.length">
+            <span class="recent-balls__label">This over:</span>
+            <ul class="recent-balls__list" aria-label="Recent balls">
+              <li class="recent-balls__item" *ngFor="let ball of view.batters[0].recentBalls; trackBy: trackBall">
+                {{ ball }}
+              </li>
+            </ul>
+          </div>
         </div>
-        <div class="scoreline__meta">
-          <span>{{ view.score.overs }} ov</span>
-          <span>{{ view.score.runRateLabel }}</span>
-        </div>
-        <div class="recent-balls" *ngIf="view.batters.length && view.batters[0].recentBalls.length">
-          <span class="recent-balls__label">This over:</span>
-          <ul class="recent-balls__list" aria-label="Recent balls">
-            <li class="recent-balls__item" *ngFor="let ball of view.batters[0].recentBalls; trackBy: trackBall">
-              {{ ball }}
-            </li>
-          </ul>
+
+        <!-- RIGHT: Current Ball (Large Circle) -->
+        <div class="current-ball" *ngIf="view.score.currentBall">
+          <span class="current-ball__value">{{ view.score.currentBall }}</span>
         </div>
       </div>
 
-      <!-- CENTER: Current Ball (Large Circle) -->
-      <div class="current-ball" *ngIf="view.score.currentBall">
-        <span class="current-ball__value">{{ view.score.currentBall }}</span>
-      </div>
-
-      <!-- RIGHT: Chase Context -->
+      <!-- Bottom row: Chase Context (Full Width) -->
       <div class="live-hero__pod live-hero__pod--context">
         <div class="chase-summary" *ngIf="view.score.resultSummary">
           {{ view.score.resultSummary }}
@@ -49,6 +87,22 @@
         </div>
       </div>
     </div>
+
+    <!-- Quick Links CTA Bar -->
+    <nav class="live-hero__quick-links" aria-label="Quick navigation">
+      <a href="#commentary" class="quick-link">
+        <mat-icon class="quick-link__icon">comment</mat-icon>
+        <span class="quick-link__label">Commentary</span>
+      </a>
+      <a href="#scorecard" class="quick-link">
+        <mat-icon class="quick-link__icon">article</mat-icon>
+        <span class="quick-link__label">Scorecard</span>
+      </a>
+      <a href="#match-info" class="quick-link">
+        <mat-icon class="quick-link__icon">info</mat-icon>
+        <span class="quick-link__label">Info</span>
+      </a>
+    </nav>
   </section>
 </ng-container>
 

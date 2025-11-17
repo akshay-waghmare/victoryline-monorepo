@@ -273,6 +273,14 @@ export class LiveHeroDataAdapter {
       return null;
     }
 
+    // Handle special cases
+    if (raw === 'Ball') {
+      return 'Ball Start';
+    }
+    if (raw === 'Stumps') {
+      return 'Stumps';
+    }
+
     return raw;
   }
 }

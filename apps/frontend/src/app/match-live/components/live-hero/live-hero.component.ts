@@ -1,5 +1,5 @@
-import { ChangeDetectionStrategy, Component, Input, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
-import { Observable } from 'rxjs';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, OnDestroy, SimpleChanges, HostListener } from '@angular/core';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { LiveHeroConfig, LiveHeroState, LiveHeroViewModel, StalenessTier } from '../../services/live-hero.models';
 import { LiveHeroStateService } from '../../services/live-hero-state.service';
 
@@ -13,11 +13,26 @@ import { LiveHeroStateService } from '../../services/live-hero-state.service';
 export class LiveHeroComponent implements OnChanges, OnDestroy {
   @Input() matchId!: string;
   @Input() config?: LiveHeroConfig;
+  @Input() matchInfo?: any;
 
   readonly state$: Observable<LiveHeroState> = this.heroState.state$;
   readonly view$: Observable<LiveHeroViewModel | null> = this.heroState.view$;
+  
+  private showCondensedSubject = new BehaviorSubject<boolean>(false);
+  readonly showCondensed$ = this.showCondensedSubject.asObservable();
+  private heroScrollThreshold = 300; // pixels scrolled before showing condensed
 
   constructor(private readonly heroState: LiveHeroStateService) {}
+
+  @HostListener('window:scroll', ['$event'])
+  onScroll(): void {
+    const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+    const shouldShowCondensed = scrollPosition > this.heroScrollThreshold;
+    
+    if (this.showCondensedSubject.value !== shouldShowCondensed) {
+      this.showCondensedSubject.next(shouldShowCondensed);
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!this.matchId) {
@@ -31,6 +46,7 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
 
   ngOnDestroy(): void {
     this.heroState.destroy();
+    this.showCondensedSubject.complete();
   }
 
   retry(): void {

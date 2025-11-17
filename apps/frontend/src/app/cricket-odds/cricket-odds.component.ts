@@ -103,6 +103,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   matchId: string | null = null;
   currentMatch: any = null; // Hold full match object if available
 
+  // Toggle to hide/show odds sections
+  showOdds: boolean = true;
+
 
 
   teamComparisonKeys: string[] = [];
@@ -148,6 +151,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     });
   }
   ngOnInit(): void {
+    // Phase 7 (T036): Hide odds by default on mobile viewports
+    this.showOdds = window.innerWidth > 768;
+    
     this.currentUrl = this.activatedRoute.snapshot.queryParamMap.get('url')
             || this.activatedRoute.snapshot.params['url']
             || this.activatedRoute.snapshot.params['path'];
@@ -190,6 +196,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
     //this.loadUserBets();
 
+    // Fetch match info for hero component display
+    if (this.matchUrl || this.currentUrl) {
+      this.fetchMatchInfo(this.matchUrl || this.currentUrl);
+    }
+
   }
   
 
@@ -210,6 +221,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.cricetTopicSubscription = this.rxStompService.watch(`/topic/cricket.${match}.*`).subscribe((data) => {
         this.parseCricObjData(data);
       });
+      
+      // Fetch match info for hero component
+      this.fetchMatchInfo(match);
     });
   }
 

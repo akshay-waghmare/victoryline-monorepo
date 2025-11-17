@@ -72,9 +72,13 @@ class ScraperSettings:
     memory_soft_limit_mb: int = 1536
     memory_hard_limit_mb: int = 2048
     polling_interval_seconds: float = 2.5
-    # Reduced default staleness threshold from 300s (5 min) to 60s (1 min)
-    # Rationale: Faster detection of stalled scrapers prevents multi‑hour data freezes
-    staleness_threshold_seconds: int = 60
+    # Increased from 60s to 180s (3 min) to allow scrapers enough time for:
+    # - Browser launch (5-10s)
+    # - Page navigation (5-10s)
+    # - API response processing (10-20s)
+    # - Data push to backend (5-10s)
+    # Total: 25-50s minimum, 180s provides adequate buffer
+    staleness_threshold_seconds: int = 180
     max_queue_size: int = 1000
     max_queue_size_mb: int = 10
     circuit_breaker_threshold: int = 5
@@ -168,8 +172,9 @@ class ScraperSettings:
         memory_soft_limit_mb = _coerce_int(env.get("MEMORY_SOFT_LIMIT_MB"), 1536, minimum=128)
         memory_hard_limit_mb = _coerce_int(env.get("MEMORY_HARD_LIMIT_MB"), 2048, minimum=256)
         polling_interval_seconds = _coerce_float(env.get("POLLING_INTERVAL_SECONDS"), 2.5, minimum=0.1)
+        # Increased default from 60s to 180s (3 min) to prevent premature restarts
         # Minimum kept at 30s to avoid hyper‑aggressive restart loops
-        staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 60, minimum=30)
+        staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 180, minimum=30)
         max_queue_size = _coerce_int(env.get("MAX_QUEUE_SIZE"), 1000, minimum=10)
         max_queue_size_mb = _coerce_int(env.get("MAX_QUEUE_SIZE_MB"), 10, minimum=1)
         circuit_breaker_threshold = _coerce_int(env.get("CIRCUIT_BREAKER_THRESHOLD"), 5, minimum=1)

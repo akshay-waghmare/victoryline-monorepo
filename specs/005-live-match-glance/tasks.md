@@ -73,13 +73,13 @@ description: "Task list for implementing the Live Match Glance Layout hero"
 
 **Independent Test**: Age snapshot timestamps to trigger warning/error tiers, navigate via quick links while condensed hero stays visible, and verify odds placeholder/analytics events fire when data is missing.
 
-- [ ] T018 [US3] Implement HeroCondensedComponent (ts/html/scss) in apps/frontend/src/app/match-live/components/hero-condensed/
-- [ ] T019 [US3] Add scroll/intersection logic in apps/frontend/src/app/match-live/components/live-hero/live-hero.component.ts to toggle condensed hero and preserve key data
-- [ ] T020 [US3] Add quick link CTA bar in LiveHeroComponent and wire anchor targets in apps/frontend/src/app/cricket-odds/cricket-odds.component.ts for commentary, scorecard, and info sections
-- [ ] T021 [US3] Surface staleness tiers and manual retry control in LiveHeroComponent using LiveHeroStateService retry hooks
-- [ ] T022 [US3] Display jurisdiction-aware odds placeholder with timestamp/provider metadata in LiveHeroComponent when odds.jurisdictionEnabled is false
-- [ ] T023 [US3] Emit AnalyticsService events (hero_view, staleness_warning, odds_placeholder) from apps/frontend/src/app/match-live/services/live-hero-state.service.ts
-- [ ] T024 [US3] Guard hero animations with `prefers-reduced-motion` and fine-tune transitions in apps/frontend/src/app/match-live/components/live-hero/live-hero.component.scss
+- [x] T018 [US3] Implement HeroCondensedComponent (ts/html/scss) in apps/frontend/src/app/match-live/components/hero-condensed/
+- [x] T019 [US3] Add scroll/intersection logic in apps/frontend/src/app/match-live/components/live-hero/live-hero.component.ts to toggle condensed hero and preserve key data
+- [x] T020 [US3] Add quick link CTA bar in LiveHeroComponent and wire anchor targets in apps/frontend/src/app/cricket-odds/cricket-odds.component.ts for commentary, scorecard, and info sections
+- [x] T021 [US3] Surface staleness tiers and manual retry control in LiveHeroComponent using LiveHeroStateService retry hooks
+- [ ] T022 [US3] Display jurisdiction-aware odds placeholder with timestamp/provider metadata in LiveHeroComponent when odds.jurisdictionEnabled is false (DEFERRED)
+- [x] T023 [US3] Emit AnalyticsService events (hero_view, staleness_warning, odds_placeholder) from apps/frontend/src/app/match-live/services/live-hero-state.service.ts
+- [x] T024 [US3] Guard hero animations with `prefers-reduced-motion` and fine-tune transitions in apps/frontend/src/app/match-live/components/live-hero/live-hero.component.scss
 
 ---
 
@@ -87,11 +87,41 @@ description: "Task list for implementing the Live Match Glance Layout hero"
 
 **Purpose**: Cleanup, documentation, and validation
 
-- [ ] T025 Update specs/005-live-match-glance/quickstart.md with condensed hero checks and quick-link validation steps
-- [ ] T026 Execute the quickstart hero validation checklist and document results in specs/005-live-match-glance/quickstart.md
-- [ ] T027 Remove obsolete snapshot header component files in apps/frontend/src/app/cricket-odds/components/snapshot-header/
-- [ ] T028 Run `npm run lint` and `ng test --watch=false` in apps/frontend, capturing results in specs/005-live-match-glance/quickstart.md
-- [ ] T029 Audit hero SCSS for brand color consistency (light/dark themes) and document confirmations in specs/005-live-match-glance/quickstart.md
+- [x] T025 Update specs/005-live-match-glance/quickstart.md with condensed hero checks and quick-link validation steps
+- [x] T026 Execute the quickstart hero validation checklist and document results in specs/005-live-match-glance/quickstart.md
+- [x] T027 Remove obsolete snapshot header component files in apps/frontend/src/app/cricket-odds/components/snapshot-header/
+- [x] T028 Run `npm run lint` and `ng test --watch=false` in apps/frontend, capturing results in specs/005-live-match-glance/quickstart.md
+- [x] T029 Audit hero SCSS for brand color consistency (light/dark themes) and document confirmations in specs/005-live-match-glance/quickstart.md
+
+---
+
+## Phase 7: Mobile Responsiveness (Priority: P2) 📱
+
+**Goal**: Transform the live match page for 375px-768px viewports with touch-optimized layout
+
+**Independent Test**: Open `/cric-live/:slug` on Chrome DevTools mobile emulation (iPhone SE, Pixel 5) and confirm sticky header renders, compact score card displays, stats tables scroll horizontally, and quick links are touch-friendly (44px minimum).
+
+**Known Limitations**: 
+- No commentary API available → Commentary section deferred
+- No partnership data in MatchDTO → Partnership display deferred
+
+- [x] T030 [P] [Mobile] Create mobile-first CSS media queries in apps/frontend/src/app/cricket-odds/cricket-odds.component.css targeting 375px-768px viewports
+- [ ] T031 [Mobile] Implement sticky header with back button and match title for mobile in apps/frontend/src/app/cricket-odds/cricket-odds.component.html (DEFERRED - Not in current wireframe scope)
+- [x] T032 [Mobile] Create compact score card variant with live status badge (reduce hero height from 25vh to 15vh on mobile) in apps/frontend/src/app/match-live/components/live-hero/live-hero.component.css
+- [x] T033 [Mobile] Optimize batsman/bowler stats tables for mobile display - hide non-essential columns, use fixed table layout (NO horizontal scroll) in apps/frontend/src/app/cricket-odds/cricket-odds.component.css
+- [x] T034 [Mobile] Add touch-friendly quick links navigation bar (44px minimum tap target) in apps/frontend/src/app/match-live/components/live-hero/live-hero.component.css
+- [ ] T035 [Mobile] Test responsive layout on Chrome DevTools device emulation (iPhone SE 375px, Pixel 5 393px, iPad Mini 768px) and document results in specs/005-live-match-glance/quickstart.md
+- [x] T036 [Mobile] Hide odds by default on mobile viewports (leverage existing showOdds toggle, set initial state based on viewport width) in apps/frontend/src/app/cricket-odds/cricket-odds.component.ts
+- [ ] T037 [Mobile] Add hamburger menu consideration for future navigation (document pattern in specs/005-live-match-glance/plan.md) (DEFERRED - Future enhancement)
+- [x] T038 [Mobile] Fix horizontal viewport overflow - ensure hero and all containers fit within 100vw with proper padding and no horizontal scroll in apps/frontend/src/app/match-live/components/live-hero/live-hero.component.css and cricket-odds.component.css
+- [x] T039 [Mobile] Fix mobile content visibility - increase font sizes, fix hero data display, make batsman names readable, implement edge-to-edge layout for full width utilization
+- [x] T040 [Mobile] Constrain hero component height - limit to 25vh max-height (was taking 70% of screen), reduce padding/gaps, optimize font sizes to fit
+- [x] T041 [Mobile] Implement 2-column hero layout - current ball (left) + score (right), hide redundant 'last 6 balls', show chase summary instead, maximize width with 1px edge spacing
+- [x] T042 [Mobile] Remove max-height constraint and overflow:hidden from hero to prevent content clipping on mobile
+- [x] T043 [Mobile] Make main container and hero edge-to-edge (100vw) like footer for maximum space utilization
+- [x] T044 [Mobile] Replace text labels with icons only - match info (location icon), timestamp (clock icon) for space saving
+- [x] T045 [Mobile] Ensure hero pods stay visible on <=768px by using grid template areas and removing extra-small max-height clamps in apps/frontend/src/app/match-live/components/live-hero/live-hero.component.css
+- [x] T046 [Mobile] Make mat-card/main containers span 100vw with zero padding/margins (edge-to-edge layout) in apps/frontend/src/app/cricket-odds/cricket-odds.component.css
 
 ---
 
@@ -103,18 +133,21 @@ description: "Task list for implementing the Live Match Glance Layout hero"
 2. **Foundational (Phase 2)** → blocks all user stories
 3. **User Stories (Phases 3–5)** → execute in priority order (US1 → US2 → US3); US2 and US3 may run in parallel once their prerequisites are satisfied
 4. **Polish (Phase 6)** → after desired user stories are complete
+5. **Mobile Responsiveness (Phase 7)** → depends on Phase 3 (US1) completion; requires hero shell and score card components to be in place
 
 ### User Story Dependencies
 
 - **US1** depends on Phase 2 completion; unlocks MVP
 - **US2** depends on US1 (shares hero shell/styling) and Phase 2
 - **US3** depends on US1 (hero shell) and Phase 2; can overlap with US2 once hero layout stable
+- **Mobile (Phase 7)** depends on US1 (hero layout and score card); can proceed without US2/US3
 
 ### Parallel Opportunities
 
 - T006 and T011/T012 can run in parallel once foundational work is finished (distinct components)
 - Analytics (T023) and styling refinements (T024) can proceed concurrently after US3 data hooks exist
-- Cleanup tasks (T025–T028) can be distributed after core phases finish
+- Cleanup tasks (T025–T029) can be distributed after core phases finish
+- Mobile tasks (T030-T037) can run independently once Phase 3 (US1) is complete; T030-T034 can be worked in parallel by different developers (distinct SCSS files)
 
 ---
 
@@ -127,12 +160,23 @@ description: "Task list for implementing the Live Match Glance Layout hero"
 ### Incremental Delivery
 
 1. MVP (US1) deployed for initial feedback
-2. Layer US2 for participant context
+2. Layer US2 for participant context (DEFERRED)
 3. Finish with US3 trust signals and analytics, then run polish tasks
+4. Add mobile responsiveness (Phase 7) for 375px-768px viewports
 
 ### Parallel Team Strategy
 
 - Developer A: US1 hero shell + integration
-- Developer B: US2 participant pods
+- Developer B: US2 participant pods (DEFERRED)
 - Developer C: US3 freshness/condensed behavior
+- Developer D: Mobile responsiveness (T030-T037)
 - Shared polish tasks split once feature-complete
+
+### Current Status (2025-11-15)
+
+- **Completed**: Phases 1-3 (US1 MVP), Phase 5 (US3), Phase 6 (Polish) ✅
+- **Deferred**: Phase 4 (US2) - Awaiting partnership data in MatchDTO
+- **In Progress**: Phase 7 (Mobile Responsiveness) - Planning complete, implementation pending
+- **Known Limitations**: 
+  - Commentary API not available → Commentary section deferred
+  - Partnership data not in MatchDTO → Partnership display deferred

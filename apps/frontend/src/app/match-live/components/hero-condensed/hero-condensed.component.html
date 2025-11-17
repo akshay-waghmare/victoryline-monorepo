@@ -1,0 +1,27 @@
+<div class="hero-condensed" *ngIf="view" [attr.data-status]="view.status">
+  <div class="condensed__content">
+    <!-- Match Info -->
+    <div class="condensed__match-info" *ngIf="matchInfo">
+      <span class="condensed__match-name">{{ matchInfo.match_name || matchInfo.series_name }}</span>
+    </div>
+
+    <!-- Score Display -->
+    <div class="condensed__score">
+      <span class="condensed__team-name">{{ view.score.teamName }}</span>
+      <span class="condensed__scoreline">{{ view.score.runs }}/{{ view.score.wickets }}</span>
+      <span class="condensed__overs">({{ view.score.overs }} ov)</span>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="condensed__status">
+      <span class="status-badge" [attr.data-tier]="view.staleness.tier">
+        {{ view.status | titlecase }}
+      </span>
+    </div>
+
+    <!-- Current Ball -->
+    <div class="condensed__current-ball" *ngIf="view.score.currentBall">
+      <span class="ball-value">{{ view.score.currentBall }}</span>
+    </div>
+  </div>
+</div>

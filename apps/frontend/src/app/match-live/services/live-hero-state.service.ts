@@ -96,6 +96,13 @@ export class LiveHeroStateService {
     this.httpSubscription.add(sub);
   }
 
+  private emitAnalyticsEvent(eventName: string, data?: any) {
+    // Emit analytics event - hook into existing analytics service if available
+    console.log('[LiveHeroAnalytics]', eventName, data);
+    // TODO: Integrate with AnalyticsService when available
+    // this.analytics.track(eventName, data);
+  }
+
   private emitView() {
     if (!this.latestSnapshot) {
       return;
@@ -105,6 +112,30 @@ export class LiveHeroStateService {
       scorecard: null,
       config: this.currentConfig
     });
+
+    // Emit analytics events
+    this.emitAnalyticsEvent('hero_view', {
+      matchId: this.currentMatchId,
+      status: view.status,
+      stalenessTier: view.staleness.tier
+    });
+
+    // Emit staleness warning if needed
+    if (view.staleness.tier === 'WARNING' || view.staleness.tier === 'ERROR') {
+      this.emitAnalyticsEvent('staleness_warning', {
+        matchId: this.currentMatchId,
+        tier: view.staleness.tier,
+        ageSeconds: view.staleness.ageSeconds
+      });
+    }
+
+    // Emit odds placeholder event if odds not available
+    if (!view.odds || !view.odds.jurisdictionEnabled) {
+      this.emitAnalyticsEvent('odds_placeholder', {
+        matchId: this.currentMatchId,
+        jurisdictionEnabled: view.odds ? view.odds.jurisdictionEnabled : false
+      });
+    }
 
     this.viewSubject.next(view);
     this.stateSubject.next({
@@ -345,9 +376,15 @@ export class LiveHeroStateService {
   }
 
   private deriveStatus(data: LegacyCricketData): LiveMatchSnapshotDto['status'] {
-    if (data.final_result_text) {
-      return 'COMPLETED';
+    // Only mark as COMPLETED if final_result_text contains 'won'
+    if (data.final_result_text && typeof data.final_result_text === 'string') {
+      const text = data.final_result_text.toLowerCase();
+      if (text.includes('won')) {
+        console.log('[LiveHeroState] deriveStatus - Match completed:', data.final_result_text);
+        return 'COMPLETED';
+      }
     }
+    console.log('[LiveHeroState] deriveStatus - Match live, final_result_text:', data.final_result_text);
     return 'LIVE';
   }
 
