@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # MySQL Database - COMMENTED OUT: Using H2 embedded database instead
   # mysql:
@@ -69,7 +67,6 @@ services:
     image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.1.2}"
     container_name: victoryline-scraper
     restart: unless-stopped
-    pids_limit: 512
     ports:
       - "${SCRAPER_PORT:-5000}:5000"
     environment:
@@ -92,6 +89,9 @@ services:
       PROMETHEUS_PORT: "${PROMETHEUS_PORT:-9090}"
       STALENESS_THRESHOLD_SECONDS: "${STALENESS_THRESHOLD_SECONDS:-60}"
       CONTAINER_RESTART_INTERVAL_MINUTES: "${CONTAINER_RESTART_INTERVAL_MINUTES:-10}"
+      # Feature 005: Upcoming Matches configuration
+      BACKEND_URL: "${BACKEND_URL:-http://backend:8099}"
+      SCRAPER_TIMEOUT: "${SCRAPER_TIMEOUT:-10}"
     volumes:
       - scraper_data:/app/storage
     depends_on:
@@ -103,6 +103,7 @@ services:
         limits:
           cpus: "2.0"
           memory: 2560M
+          pids: 512
         reservations:
           cpus: "1.0"
           memory: 1024M

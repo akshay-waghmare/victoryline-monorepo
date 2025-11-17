@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Console appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appender for upcoming matches feature -->
+    <appender name="UPCOMING_MATCHES" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/upcoming-matches.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/upcoming-matches.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Loggers for Feature 005 -->
+    <logger name="com.devglan.controller.UpcomingMatchController" level="INFO" additivity="false">
+        <appender-ref ref="UPCOMING_MATCHES"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <logger name="com.devglan.service.impl.UpcomingMatchServiceImpl" level="INFO" additivity="false">
+        <appender-ref ref="UPCOMING_MATCHES"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <logger name="com.devglan.repository.UpcomingMatchRepository" level="DEBUG" additivity="false">
+        <appender-ref ref="UPCOMING_MATCHES"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

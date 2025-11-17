@@ -310,6 +310,10 @@ class Config:
     SCRAPER_DEBUG_MODE = os.getenv('SCRAPER_DEBUG_MODE', 'False') == 'True'
     SCRAPER_ARTIFACT_ROOT = os.getenv('SCRAPER_ARTIFACT_ROOT', 'artifacts')
     SCRAPER_ARTIFACT_RETENTION_DAYS = int(os.getenv('SCRAPER_ARTIFACT_RETENTION_DAYS', 14))
+    
+    # Feature 005: Upcoming Matches configuration
+    BACKEND_URL = os.getenv('BACKEND_URL', 'http://backend:8080')
+    SCRAPER_TIMEOUT = int(os.getenv('SCRAPER_TIMEOUT', 10))
 
     @staticmethod
     def init_app(app):

@@ -10,6 +10,15 @@ import sqlite3
 from crex_scraper import fetchData
 from shared import scraping_tasks
 
+# Feature 005: Upcoming Matches - Import scheduler and health tracker
+from crex_scraper_python.fixture_scraper_scheduler import FixtureScraperScheduler
+from crex_scraper_python.scraper_health_tracker import ScraperHealthTracker
+from crex_scraper_python.src.config import Config
+
+# Initialize fixture scraper scheduler and health tracker
+fixture_scheduler = None
+health_tracker = None
+
 app = Flask(__name__)
 CORS(app, resources={
     r"/add-lead": {
@@ -404,7 +413,85 @@ def delete_lead(lead_id):
     except Exception as e:
         logging.error(f"Error deleting lead: {e}")
         return jsonify({"error": str(e)}), 500
+
+# Feature 005: Upcoming Matches - Fixture scraper endpoints
+
+@app.route('/api/fixtures/status', methods=['GET'])
+def get_fixture_scraper_status():
+    """Get fixture scraper scheduler status"""
+    try:
+        if fixture_scheduler is None:
+            return jsonify({"error": "Fixture scheduler not initialized"}), 503
+        
+        status = fixture_scheduler.get_status()
+        return jsonify({"success": True, "data": status}), 200
     
+    except Exception as e:
+        logging.error(f"Error getting fixture scraper status: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/health/upcoming', methods=['GET'])
+def get_upcoming_matches_health():
+    """Get comprehensive health status for upcoming matches scraper"""
+    try:
+        if health_tracker is None:
+            return jsonify({"error": "Health tracker not initialized"}), 503
+        
+        health_status = health_tracker.get_health_status()
+        
+        # Return appropriate HTTP status code based on health
+        if health_status["status"] == "healthy":
+            status_code = 200
+        elif health_status["status"] == "degraded":
+            status_code = 200  # Still operational
+        else:  # failing
+            status_code = 503  # Service unavailable
+        
+        return jsonify({"success": True, "data": health_status}), status_code
+    
+    except Exception as e:
+        logging.error(f"Error getting health status: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/fixtures/trigger', methods=['POST'])
+def trigger_fixture_scraper():
+    """Manually trigger an immediate fixture scrape"""
+    try:
+        if fixture_scheduler is None:
+            return jsonify({"error": "Fixture scheduler not initialized"}), 503
+        
+        fixture_scheduler.trigger_immediate_run()
+        return jsonify({"success": True, "message": "Fixture scraper triggered"}), 200
+    
+    except Exception as e:
+        logging.error(f"Error triggering fixture scraper: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+def initialize_fixture_scheduler():
+    """Initialize and start the fixture scraper scheduler and health tracker"""
+    global fixture_scheduler, health_tracker
+    try:
+        logging.info("Initializing fixture scraper scheduler...")
+        config = Config()
+        fixture_scheduler = FixtureScraperScheduler(config)
+        
+        # Initialize health tracker with scheduler reference
+        health_tracker = ScraperHealthTracker(
+            scheduler=fixture_scheduler,
+            api_client=fixture_scheduler.api_client
+        )
+        
+        fixture_scheduler.start()
+        logging.info("Fixture scraper scheduler and health tracker initialized successfully")
+    except Exception as e:
+        logging.error(f"Error initializing fixture scheduler: {e}", exc_info=True)
+        fixture_scheduler = None
+        health_tracker = None
+
 if __name__ == "__main__":
     initialize_database()
+    
+    # Feature 005: Start fixture scraper scheduler
+    initialize_fixture_scheduler()
+    
     app.run(host="0.0.0.0", port=5000, debug=True)

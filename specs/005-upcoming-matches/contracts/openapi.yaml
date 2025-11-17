@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: VictoryLine Upcoming Matches API
+  version: 1.0.0
+  description: REST API for upcoming cricket fixtures (Phase 1 - backend + scraper)
+servers:
+  - url: https://api.victoryline.local
+    description: Local/dev
+paths:
+  /api/v1/matches/upcoming:
+    get:
+      summary: List upcoming matches
+      operationId: listUpcomingMatches
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+          description: Page number (1-based)
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+          description: Page size (max 100)
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+          description: ISO-8601 UTC start bound (inclusive)
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+          description: ISO-8601 UTC end bound (inclusive)
+        - in: query
+          name: team
+          schema: { type: string }
+          description: Filter by team name or code (case-insensitive contains)
+        - in: query
+          name: series
+          schema: { type: string }
+          description: Filter by series name (case-insensitive contains)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePagedUpcoming'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/ServerError' }
+  /api/v1/matches/upcoming/{id}:
+    get:
+      summary: Get upcoming match by id
+      operationId: getUpcomingMatch
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUpcoming'
+        '404': { $ref: '#/components/responses/NotFound' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '500': { $ref: '#/components/responses/ServerError' }
+  /api/v1/health/upcoming:
+    get:
+      summary: Health status for upcoming matches subsystem
+      operationId: getUpcomingHealth
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseHealth'
+        '500': { $ref: '#/components/responses/ServerError' }
+components:
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    ServerError:
+      description: Server error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+  schemas:
+    ApiResponsePagedUpcoming:
+      type: object
+      required: [success, data, error, timestamp]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [items, page, pageSize, total]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/UpcomingMatch' }
+            page: { type: integer, example: 1 }
+            pageSize: { type: integer, example: 20 }
+            total: { type: integer, example: 250 }
+        error: { nullable: true, oneOf: [ { type: 'null' }, { $ref: '#/components/schemas/ErrorObject' } ] }
+        timestamp: { type: string, format: date-time }
+    ApiResponseUpcoming:
+      type: object
+      required: [success, data, error, timestamp]
+      properties:
+        success: { type: boolean, example: true }
+        data: { $ref: '#/components/schemas/UpcomingMatch' }
+        error: { nullable: true, oneOf: [ { type: 'null' }, { $ref: '#/components/schemas/ErrorObject' } ] }
+        timestamp: { type: string, format: date-time }
+    ApiResponseHealth:
+      type: object
+      required: [success, data, error, timestamp]
+      properties:
+        success: { type: boolean, example: true }
+        data:
+          type: object
+          required: [status, lastScrapeAt, pidCount]
+          properties:
+            status: { type: string, enum: [healthy, degraded, failing], example: healthy }
+            lastScrapeAt: { type: string, format: date-time }
+            pidCount: { type: integer, description: 'Current process/thread count for scraper container' }
+        error: { nullable: true, oneOf: [ { type: 'null' }, { $ref: '#/components/schemas/ErrorObject' } ] }
+        timestamp: { type: string, format: date-time }
+    UpcomingMatch:
+      type: object
+      required: [id, source, sourceKey, seriesName, matchTitle, teamA, teamB, startTime, status, lastUpdated]
+      properties:
+        id: { type: integer, example: 12345 }
+        source: { type: string, example: crex }
+        sourceKey: { type: string, example: india-vs-australia-2025-12-01 }
+        seriesName: { type: string, example: Border-Gavaskar Trophy }
+        matchTitle: { type: string, example: India vs Australia }
+        teamA:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string, example: India }
+            code: { type: string, example: IND }
+        teamB:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string, example: Australia }
+            code: { type: string, example: AUS }
+        startTime: { type: string, format: date-time, example: '2025-12-01T09:30:00Z' }
+        venue:
+          type: object
+          properties:
+            name: { type: string, example: Wankhede Stadium }
+            city: { type: string, example: Mumbai }
+            country: { type: string, example: India }
+        status: { type: string, enum: [scheduled, postponed, cancelled] }
+        lastUpdated: { type: string, format: date-time }
+    ErrorResponse:
+      type: object
+      required: [success, data, error, timestamp]
+      properties:
+        success: { type: boolean, example: false }
+        data: { nullable: true, oneOf: [ { type: 'null' }, { type: object } ] }
+        error: { $ref: '#/components/schemas/ErrorObject' }
+        timestamp: { type: string, format: date-time }
+    ErrorObject:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, example: VALIDATION_ERROR }
+        message: { type: string, example: 'Page size must be between 1 and 100' }
+        field: { type: string, nullable: true }
