@@ -131,7 +131,7 @@ class UpcomingMatch:
                 "name": self.team_b_name,
                 "code": self.team_b_code
             },
-            "startTime": self.start_time_utc.isoformat() + "Z" if self.start_time_utc else None,
+            "startTime": self.start_time_utc.timestamp() if self.start_time_utc else None,
             "venue": {
                 "name": self.venue_name,
                 "city": self.city,
@@ -139,7 +139,7 @@ class UpcomingMatch:
             } if (self.venue_name or self.city or self.country) else None,
             "status": self.status.value,
             "notes": self.notes,
-            "lastUpdated": self.last_scraped_at.isoformat() + "Z" if self.last_scraped_at else None
+            "lastUpdated": self.last_scraped_at.timestamp() if self.last_scraped_at else None
         }
 
     @classmethod

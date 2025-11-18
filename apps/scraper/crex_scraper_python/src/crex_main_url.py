@@ -1074,6 +1074,103 @@ def delete_lead(lead_id):
     except Exception as e:
         logging.error(f"Error deleting lead: {e}")
         return jsonify({"error": str(e)}), 500
+
+# =============================================================================
+# Feature 005: Upcoming Matches / Fixtures Scraping
+# =============================================================================
+
+@app.route("/api/fixtures/scrape", methods=["POST"])
+def scrape_fixtures():
+    """
+    Trigger fixture scraping manually
+    Feature 005: Upcoming Matches Feed
+    """
+    try:
+        from crex_fixture_scraper import CrexFixtureScraper
+        from upcoming_match_api_client import UpcomingMatchApiClient
+        from src.config import get_settings
+        
+        logging.info("Manual fixture scrape triggered")
+        
+        # Initialize scraper and API client
+        settings = get_settings()
+        scraper = CrexFixtureScraper(settings)
+        api_client = UpcomingMatchApiClient(
+            base_url=os.getenv('BACKEND_URL', 'http://victoryline-backend:8099')
+        )
+        
+        # Scrape fixtures
+        fixtures = scraper.scrape_fixtures()
+        
+        if not fixtures:
+            return jsonify({
+                "success": False,
+                "message": "No fixtures found",
+                "count": 0
+            }), 200
+        
+        # Send fixtures to backend
+        success_count = 0
+        failed_count = 0
+        errors = []
+        
+        for fixture in fixtures:
+            try:
+                result = api_client.upsert_match(fixture)
+                if result:
+                    success_count += 1
+                    logging.info(f"Saved fixture: {fixture.match_title}")
+                else:
+                    failed_count += 1
+                    errors.append(f"Failed to save: {fixture.match_title}")
+            except Exception as e:
+                failed_count += 1
+                error_msg = f"Error saving {fixture.match_title}: {str(e)}"
+                errors.append(error_msg)
+                logging.error(error_msg)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Scraped {len(fixtures)} fixtures",
+            "total_scraped": len(fixtures),
+            "saved": success_count,
+            "failed": failed_count,
+            "errors": errors[:5] if errors else []  # Return first 5 errors
+        }), 200
+        
+    except ImportError as e:
+        logging.error(f"Import error in fixture scraper: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Fixture scraper dependencies not available",
+            "details": str(e)
+        }), 500
+    except Exception as e:
+        logging.error(f"Error in fixture scrape: {e}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route("/api/fixtures/status", methods=["GET"])
+def fixtures_status():
+    """
+    Get fixture scraping status
+    Feature 005: Upcoming Matches Feed
+    """
+    try:
+        # For now, return basic status
+        # In future, track last scrape time, next scheduled scrape, etc.
+        return jsonify({
+            "success": True,
+            "scraper_active": True,
+            "message": "Fixture scraper available. Use POST /api/fixtures/scrape to trigger manual scrape"
+        }), 200
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
     
 if __name__ == "__main__":
     initialize_database()

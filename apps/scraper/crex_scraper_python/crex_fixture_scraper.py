@@ -18,7 +18,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from models.upcoming_match import UpcomingMatch, MatchStatus
-from crex_scraper_python.src.config import Config
+from src.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ class CrexFixtureScraper:
     - Browser cleanup tracking
     """
     
-    BASE_URL = "https://crex.live"
-    FIXTURES_PATH = "/fixtures"
+    BASE_URL = "https://crex.com"
+    FIXTURES_PATH = "/fixtures/match-list"
     
     def __init__(self, config: Config):
         self.config = config

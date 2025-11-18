@@ -57,6 +57,9 @@ COPY *.py ./
 # Copy the entire scraper application package
 COPY crex_scraper_python/ ./
 
+# Copy models directory for Feature 005
+COPY models/ ./models/
+
 # Make the start script executable if it exists
 RUN if [ -f start.sh ]; then chmod +x start.sh; fi
 
