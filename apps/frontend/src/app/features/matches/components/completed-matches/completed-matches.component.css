@@ -1,0 +1,388 @@
+/**
+ * Completed Matches Component Styles
+ * Feature: 006-completed-matches-display
+ * Mobile-first responsive design (320px - 2560px)
+ */
+
+/* Container */
+.completed-matches-container {
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 400px;
+}
+
+/* Loading State */
+.loading-state {
+  display: block;
+  width: 100%;
+}
+
+/* Skeleton Cards Animation (T032) */
+.skeleton-card {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 0%,
+    #e0e0e0 20%,
+    #f0f0f0 40%,
+    #f0f0f0 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-badge {
+  height: 60px;
+  border-radius: 6px;
+}
+
+.skeleton-text {
+  height: 16px;
+  margin: 8px 0;
+}
+
+.skeleton-text--large {
+  height: 20px;
+  width: 80%;
+}
+
+.skeleton-text--small {
+  height: 14px;
+  width: 60%;
+}
+
+.skeleton-button {
+  height: 40px;
+  border-radius: 4px;
+  margin-top: 12px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.error-message {
+  color: #dc3545;
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+
+.retry-button {
+  padding: 10px 24px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.retry-button:hover {
+  background-color: #0056b3;
+}
+
+.retry-button:focus {
+  outline: 2px solid #0056b3;
+  outline-offset: 2px;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Matches Grid */
+.matches-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Tablet and above */
+@media (min-width: 768px) {
+  .matches-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .completed-matches-container {
+    padding: 24px;
+  }
+}
+
+/* Desktop and above */
+@media (min-width: 1024px) {
+  .matches-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+/* Match Card */
+.match-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  transition: box-shadow 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+
+.match-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.match-card:focus-within {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Series Badge - Enhanced for T026-T028 */
+.series-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 6px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+  position: relative;
+}
+
+.series-name {
+  font-size: 1.125rem; /* 18px - Enhanced prominence per T027 */
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+.series-format {
+  font-size: 11px;
+  opacity: 0.95;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Format indicators with icons - T028 */
+.series-format::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.series-format[data-format="Test"]::before,
+.series-format[data-format="TEST"]::before {
+  content: '🏏';
+}
+
+.series-format[data-format="T20"]::before,
+.series-format[data-format="T20I"]::before {
+  content: '⚡';
+}
+
+.series-format[data-format="ODI"]::before {
+  content: '🎯';
+}
+
+/* Match Info */
+.match-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Teams */
+.teams {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.team {
+  display: flex;
+  align-items: center;
+}
+
+.team-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #212529;
+}
+
+.vs-divider {
+  text-align: center;
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 4px 0;
+}
+
+/* Result */
+.result {
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-left: 3px solid #28a745;
+  border-radius: 4px;
+}
+
+.result-text {
+  font-size: 14px;
+  color: #495057;
+  font-weight: 500;
+}
+
+/* Match Meta */
+.match-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: #6c757d;
+}
+
+.completion-date,
+.location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* View Details Button */
+.view-details-button {
+  width: 100%;
+  padding: 10px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 4px;
+}
+
+.view-details-button:hover {
+  background-color: #0056b3;
+}
+
+.view-details-button:focus {
+  outline: 2px solid #0056b3;
+  outline-offset: 2px;
+}
+
+/* Results Summary */
+.results-summary {
+  text-align: center;
+  padding: 16px;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .match-card {
+    border: 2px solid #000;
+  }
+  
+  .series-badge {
+    border: 2px solid #fff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+  
+  .match-card {
+    transition: none;
+  }
+  
+  .retry-button,
+  .view-details-button {
+    transition: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .view-details-button,
+  .retry-button {
+    display: none;
+  }
+  
+  .match-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

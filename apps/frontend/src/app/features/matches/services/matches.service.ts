@@ -7,13 +7,14 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, forkJoin, timer } from 'rxjs';
 import { map, switchMap, catchError, shareReplay } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
 import { EventListService } from '../../../component/event-list.service';
 import { getStatusDisplayText, formatTimeDisplay, calculateStaleness } from '../models/match-status';
 import { ballsToOvers, extractSlugFromUrl } from '../../../core/utils/match-utils';
 import { environment } from '../../../../environments/environment';
+import { CompletedMatch, CompletedMatchesResponse } from '../../../shared/models/completed-match.models';
 
 @Injectable({
   providedIn: 'root'
@@ -578,4 +579,32 @@ export class MatchesService {
     // Fallback to timestamp-based ID
     return `match-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
+
+  /**
+   * Get completed matches with series information
+   * Feature: 006-completed-matches-display (T012)
+   * @returns Observable<CompletedMatch[]>
+   */
+  getCompletedMatches(): Observable<CompletedMatch[]> {
+    const url = `${environment.REST_API_URL}api/v1/matches/completed`;
+    
+    // Get auth token from storage
+    const token = window.sessionStorage.getItem('token');
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    return this.http.get<CompletedMatchesResponse>(url, { headers }).pipe(
+      map(response => {
+        console.log('Received completed matches:', response);
+        return response.matches || [];
+      }),
+      catchError(error => {
+        console.error('Error fetching completed matches:', error);
+        return of([]);
+      })
+    );
+  }
 }
+

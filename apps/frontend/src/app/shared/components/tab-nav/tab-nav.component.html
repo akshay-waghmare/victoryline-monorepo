@@ -1,13 +1,15 @@
-<div class="tab-nav">
+<div class="tab-nav" role="tablist" [attr.aria-label]="'Match status tabs'">
   <div class="tab-nav__container">
     <button
-      *ngFor="let tab of tabs"
+      *ngFor="let tab of tabs; let i = index"
       class="tab-nav__tab"
       [class.tab-nav__tab--active]="isActive(tab.id)"
       (click)="selectTab(tab.id)"
       [attr.aria-selected]="isActive(tab.id)"
       [attr.aria-label]="tab.label + (tab.count ? ' (' + tab.count + ')' : '')"
+      [attr.tabindex]="isActive(tab.id) ? 0 : -1"
       role="tab"
+      type="button"
     >
       <i *ngIf="tab.icon" class="material-icons tab-nav__icon">{{ tab.icon }}</i>
       <span class="tab-nav__label">{{ tab.label }}</span>

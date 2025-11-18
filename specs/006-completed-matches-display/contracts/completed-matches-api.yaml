@@ -1,0 +1,299 @@
+openapi: 3.0.3
+info:
+  title: Completed Matches API
+  description: API endpoint for retrieving the 20 most recently completed cricket matches with series information
+  version: 1.0.0
+  contact:
+    name: VictoryLine API Team
+    
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: https://api.victoryline.com/api/v1
+    description: Production server
+
+paths:
+  /matches/completed:
+    get:
+      summary: Get completed matches
+      description: Retrieves the 20 most recently completed cricket matches ordered by completion date (most recent first), including series information
+      operationId: getCompletedMatches
+      tags:
+        - Matches
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Number of matches to return (default 20, max 50)
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Successfully retrieved completed matches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompletedMatchesResponse'
+              examples:
+                success:
+                  summary: Successful response with 20 matches
+                  value:
+                    success: true
+                    data:
+                      - matchId: 12345
+                        teamA: "India"
+                        teamB: "Australia"
+                        scoreA: "328/5"
+                        scoreB: "325/9"
+                        result: "India won by 5 wickets"
+                        seriesName: "India vs Australia ODI Series 2025"
+                        format: "ODI"
+                        completionDate: "2025-11-15T18:30:00Z"
+                        venue: "Melbourne Cricket Ground"
+                      - matchId: 12344
+                        teamA: "England"
+                        teamB: "Pakistan"
+                        scoreA: "287/7"
+                        scoreB: "285/10"
+                        result: "England won by 3 wickets"
+                        seriesName: "England vs Pakistan T20 Series 2025"
+                        format: "T20"
+                        completionDate: "2025-11-14T16:45:00Z"
+                        venue: "Lord's Cricket Ground"
+                    error: null
+                    timestamp: "2025-11-18T10:30:45.123Z"
+                    count: 20
+                fewerThan20:
+                  summary: Response with fewer than 20 matches
+                  value:
+                    success: true
+                    data:
+                      - matchId: 12345
+                        teamA: "India"
+                        teamB: "Australia"
+                        scoreA: "328/5"
+                        scoreB: "325/9"
+                        result: "India won by 5 wickets"
+                        seriesName: "India vs Australia ODI Series 2025"
+                        format: "ODI"
+                        completionDate: "2025-11-15T18:30:00Z"
+                        venue: "Melbourne Cricket Ground"
+                    error: null
+                    timestamp: "2025-11-18T10:30:45.123Z"
+                    count: 1
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidLimit:
+                  summary: Invalid limit parameter
+                  value:
+                    success: false
+                    data: null
+                    error:
+                      code: "VALIDATION_ERROR"
+                      message: "Limit must be between 1 and 50"
+                      field: "limit"
+                    timestamp: "2025-11-18T10:30:45.123Z"
+        '401':
+          description: Unauthorized - missing or invalid JWT token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Missing authentication token
+                  value:
+                    success: false
+                    data: null
+                    error:
+                      code: "UNAUTHORIZED"
+                      message: "Authentication required. Please provide a valid JWT token."
+                      field: null
+                    timestamp: "2025-11-18T10:30:45.123Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                databaseError:
+                  summary: Database connection failure
+                  value:
+                    success: false
+                    data: null
+                    error:
+                      code: "DATABASE_ERROR"
+                      message: "Unable to fetch completed matches. Please try again later."
+                      field: null
+                    timestamp: "2025-11-18T10:30:45.123Z"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /api/v1/auth/login endpoint
+
+  schemas:
+    CompletedMatchesResponse:
+      type: object
+      required:
+        - success
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the request was successful
+          example: true
+        data:
+          type: array
+          nullable: true
+          description: Array of completed match objects (null if error)
+          items:
+            $ref: '#/components/schemas/CompletedMatch'
+        error:
+          type: object
+          nullable: true
+          description: Error details (null if success)
+          $ref: '#/components/schemas/ErrorDetail'
+        timestamp:
+          type: string
+          format: date-time
+          description: Server timestamp when response was generated (ISO 8601)
+          example: "2025-11-18T10:30:45.123Z"
+        count:
+          type: integer
+          description: Number of matches returned
+          example: 20
+          minimum: 0
+          
+    CompletedMatch:
+      type: object
+      required:
+        - matchId
+        - teamA
+        - teamB
+        - seriesName
+        - format
+        - completionDate
+      properties:
+        matchId:
+          type: integer
+          format: int64
+          description: Unique match identifier
+          example: 12345
+        teamA:
+          type: string
+          description: First team name
+          example: "India"
+          maxLength: 100
+        teamB:
+          type: string
+          description: Second team name
+          example: "Australia"
+          maxLength: 100
+        scoreA:
+          type: string
+          nullable: true
+          description: Team A's score (null if not available)
+          example: "328/5"
+        scoreB:
+          type: string
+          nullable: true
+          description: Team B's score (null if not available)
+          example: "325/9"
+        result:
+          type: string
+          nullable: true
+          description: Match result summary (null if not available)
+          example: "India won by 5 wickets"
+          maxLength: 500
+        seriesName:
+          type: string
+          description: Series name (placeholder if unavailable)
+          example: "India vs Australia ODI Series 2025"
+          maxLength: 200
+        format:
+          type: string
+          enum: [TEST, ODI, T20]
+          description: Match format
+          example: "ODI"
+        completionDate:
+          type: string
+          format: date-time
+          description: When the match was completed (ISO 8601)
+          example: "2025-11-15T18:30:00Z"
+        venue:
+          type: string
+          nullable: true
+          description: Match venue (null if not available)
+          example: "Melbourne Cricket Ground"
+          maxLength: 200
+          
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          description: Always false for error responses
+          example: false
+        data:
+          type: object
+          nullable: true
+          description: Always null for error responses
+          example: null
+        error:
+          type: object
+          description: Error details
+          $ref: '#/components/schemas/ErrorDetail'
+        timestamp:
+          type: string
+          format: date-time
+          description: Server timestamp when error occurred (ISO 8601)
+          example: "2025-11-18T10:30:45.123Z"
+          
+    ErrorDetail:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "DATABASE_ERROR"
+          enum:
+            - VALIDATION_ERROR
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - DATABASE_ERROR
+            - INTERNAL_ERROR
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Unable to fetch completed matches. Please try again later."
+        field:
+          type: string
+          nullable: true
+          description: Field name that caused validation error (null for non-validation errors)
+          example: "limit"
+
+tags:
+  - name: Matches
+    description: Cricket match related endpoints

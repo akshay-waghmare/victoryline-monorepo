@@ -1,10 +1,6 @@
 package com.devglan.model;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.util.Date;
 
 @Entity
@@ -26,6 +22,13 @@ public class Matches {
     private String location;
     private Boolean visibility;
     private String matchLink;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "series_id")
+    private Series series;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date completionDate;
 
     // Constructors, Getters, and Setters
     // Constructor
@@ -127,6 +130,22 @@ public class Matches {
 
     public void setMatchLink(String matchLink) {
         this.matchLink = matchLink;
+    }
+
+    public Series getSeries() {
+        return series;
+    }
+
+    public void setSeries(Series series) {
+        this.series = series;
+    }
+
+    public Date getCompletionDate() {
+        return completionDate;
+    }
+
+    public void setCompletionDate(Date completionDate) {
+        this.completionDate = completionDate;
     }
 }
 

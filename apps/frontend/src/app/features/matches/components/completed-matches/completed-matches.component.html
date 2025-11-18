@@ -1,0 +1,105 @@
+<!-- Completed Matches Component Template -->
+<!-- Feature: 006-completed-matches-display -->
+
+<div class="completed-matches-container" role="main" aria-label="Completed Matches">
+  
+  <!-- Loading State with Skeleton Cards (T032) -->
+  <div *ngIf="loading" class="loading-state" role="status" aria-live="polite">
+    <div class="matches-grid">
+      <div *ngFor="let i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]" class="match-card skeleton-card" aria-hidden="true">
+        <div class="skeleton skeleton-badge"></div>
+        <div class="skeleton skeleton-text skeleton-text--large"></div>
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-text skeleton-text--small"></div>
+        <div class="skeleton skeleton-button"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="error-state" role="alert" aria-live="assertive">
+    <div class="error-icon" aria-hidden="true">⚠️</div>
+    <p class="error-message">{{ error }}</p>
+    <button 
+      class="retry-button" 
+      (click)="retry()"
+      aria-label="Retry loading completed matches">
+      Retry
+    </button>
+  </div>
+
+  <!-- Matches List -->
+  <div *ngIf="!loading && !error" class="matches-list">
+    
+    <!-- Empty State -->
+    <div *ngIf="matches.length === 0" class="empty-state" role="status">
+      <div class="empty-icon" aria-hidden="true">🏏</div>
+      <p>No completed matches found</p>
+    </div>
+
+    <!-- Matches Grid -->
+    <div *ngIf="matches.length > 0" class="matches-grid" role="list">
+      <article 
+        *ngFor="let match of matches; trackBy: trackByMatchId"
+        class="match-card"
+        role="listitem"
+        [attr.aria-label]="match.homeTeamName + ' vs ' + match.awayTeamName + ' - ' + match.seriesName">
+        
+        <!-- Series Badge -->
+        <div class="series-badge" [attr.aria-label]="'Series: ' + match.seriesName">
+          <span class="series-name">{{ match.seriesName }}</span>
+          <span *ngIf="match.seriesFormat" 
+                class="series-format" 
+                [attr.data-format]="match.seriesFormat"
+                [attr.aria-label]="'Format: ' + match.seriesFormat">
+            {{ match.seriesFormat }}
+          </span>
+        </div>
+
+        <!-- Match Info -->
+        <div class="match-info">
+          
+          <!-- Teams -->
+          <div class="teams">
+            <div class="team">
+              <span class="team-name">{{ match.homeTeamName }}</span>
+            </div>
+            <div class="vs-divider" aria-hidden="true">vs</div>
+            <div class="team">
+              <span class="team-name">{{ match.awayTeamName }}</span>
+            </div>
+          </div>
+
+          <!-- Result -->
+          <div class="result" [attr.aria-label]="'Result: ' + match.result">
+            <span class="result-text">{{ match.result }}</span>
+          </div>
+
+          <!-- Meta Information -->
+          <div class="match-meta">
+            <span class="completion-date" [attr.aria-label]="'Completed on ' + formatDate(match.completionDate)">
+              <span aria-hidden="true">📅</span> {{ formatDate(match.completionDate) }}
+            </span>
+            <span *ngIf="match.location" class="location" [attr.aria-label]="'Location: ' + match.location">
+              <span aria-hidden="true">📍</span> {{ match.location }}
+            </span>
+          </div>
+        </div>
+
+        <!-- View Details Button -->
+        <button 
+          *ngIf="match.matchLink"
+          class="view-details-button"
+          (click)="viewMatchDetails(match)"
+          [attr.aria-label]="'View details for ' + match.homeTeamName + ' vs ' + match.awayTeamName">
+          View Details
+        </button>
+      </article>
+    </div>
+
+    <!-- Results Summary -->
+    <div *ngIf="matches.length > 0" class="results-summary" role="status" aria-live="polite">
+      Showing {{ matches.length }} completed match{{ matches.length !== 1 ? 'es' : '' }}
+    </div>
+  </div>
+</div>
