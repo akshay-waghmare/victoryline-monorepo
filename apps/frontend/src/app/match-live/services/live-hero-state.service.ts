@@ -10,6 +10,7 @@ import {
   LiveHeroConfig,
   LiveHeroState,
   LiveHeroViewModel,
+  LiveHeroBatterView,
   LiveMatchSnapshotDto,
   OddsQuoteDto,
   ParticipantSummaryDto,
@@ -32,6 +33,7 @@ export class LiveHeroStateService {
   private latestSnapshot: LiveMatchSnapshotDto | null = null;
   private currentConfig: LiveHeroConfig | undefined;
   private pollingEnabled = false;
+  private lastValidStriker: LiveHeroBatterView | null = null;
 
   readonly state$: Observable<LiveHeroState> = this.stateSubject.asObservable();
   readonly view$: Observable<LiveHeroViewModel | null> = this.viewSubject.asObservable();
@@ -110,8 +112,14 @@ export class LiveHeroStateService {
 
     const view = this.adapter.mapSnapshot(this.latestSnapshot, {
       scorecard: null,
-      config: this.currentConfig
+      config: this.currentConfig,
+      lastValidStriker: this.lastValidStriker
     });
+
+    // Update last valid striker if we have a new valid one
+    if (view.lastValidStriker && view.lastValidStriker !== this.lastValidStriker) {
+      this.lastValidStriker = view.lastValidStriker;
+    }
 
     // Emit analytics events
     this.emitAnalyticsEvent('hero_view', {

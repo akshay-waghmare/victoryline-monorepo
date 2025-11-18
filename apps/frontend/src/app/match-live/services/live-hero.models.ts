@@ -191,6 +191,8 @@ export interface LiveHeroViewModel {
   odds: LiveHeroOddsView | null;
   staleness: LiveHeroStalenessView;
   quickLinks: LiveHeroQuickLink[];
+  currentStriker?: LiveHeroBatterView | null;
+  lastValidStriker?: LiveHeroBatterView | null;
 }
 
 export interface LiveHeroState {

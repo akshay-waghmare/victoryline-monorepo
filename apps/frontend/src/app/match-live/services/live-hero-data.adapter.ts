@@ -31,7 +31,7 @@ export class LiveHeroDataAdapter {
 
   mapSnapshot(
     snapshot: LiveMatchSnapshotDto,
-    options: { scorecard?: ScorecardSnapshotDto | null; config?: LiveHeroConfig } = {}
+    options: { scorecard?: ScorecardSnapshotDto | null; config?: LiveHeroConfig; lastValidStriker?: LiveHeroBatterView | null } = {}
   ): LiveHeroViewModel {
     const scorecardData = options.scorecard || null;
     const config = options.config;
@@ -53,6 +53,15 @@ export class LiveHeroDataAdapter {
       ? config.quickLinks
       : this.defaultQuickLinks;
 
+    // Find the current striker (batsman who is on strike)
+    const currentStriker = batters.find(batter => batter.isOnStrike && 
+      !batter.name.toLowerCase().includes('unknown') && 
+      !batter.name.toLowerCase().includes('batter')) || null;
+
+    // Use last valid striker if current one is not available
+    const lastValidStriker = options.lastValidStriker || null;
+    const displayStriker = currentStriker || lastValidStriker;
+
     return {
       matchId: snapshot.id,
       status: snapshot.status,
@@ -64,7 +73,9 @@ export class LiveHeroDataAdapter {
       partnershipLabel,
       odds,
       staleness,
-      quickLinks
+      quickLinks,
+      currentStriker: displayStriker,
+      lastValidStriker: currentStriker || lastValidStriker
     };
   }
 
