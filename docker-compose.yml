@@ -85,8 +85,8 @@ services:
       PAGE_TIMEOUT_SECONDS: "${PAGE_TIMEOUT_SECONDS:-30}"
       ENABLE_PROMETHEUS_METRICS: "${ENABLE_PROMETHEUS_METRICS:-true}"
       PROMETHEUS_PORT: "${PROMETHEUS_PORT:-9090}"
-      PID_SOFT_LIMIT: "${PID_SOFT_LIMIT:-300}"
-      PID_RESTART_THRESHOLD: "${PID_RESTART_THRESHOLD:-350}"
+      PID_SOFT_LIMIT: "${PID_SOFT_LIMIT:-800}"
+      PID_RESTART_THRESHOLD: "${PID_RESTART_THRESHOLD:-1000}"
       STALENESS_THRESHOLD_SECONDS: "${STALENESS_THRESHOLD_SECONDS:-300}"
     volumes:
       - scraper_data:/app/storage
@@ -97,7 +97,7 @@ services:
     deploy:
       resources:
         limits:
-          pids: 350
+          pids: 1000
           cpus: "2.0"
           memory: 2560M
         reservations:
