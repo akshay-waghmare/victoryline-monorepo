@@ -73,7 +73,6 @@ import { TabNavComponent } from 'src/app/shared/components/tab-nav/tab-nav.compo
 import { StalenessIndicatorComponent } from 'src/app/shared/components/staleness-indicator/staleness-indicator.component';
 
 // 002-match-details-ux: Cricket odds feature components
-import { SnapshotHeaderComponent } from 'src/app/cricket-odds/components/snapshot-header/snapshot-header.component';
 import { ScorecardComponent as MatchDetailsScorecardComponent } from 'src/app/cricket-odds/components/scorecard/scorecard.component';
 import { LineupsComponent } from 'src/app/cricket-odds/components/lineups/lineups.component';
 import { MatchDetailsInfoComponent } from 'src/app/cricket-odds/components/match-info/match-info.component';
@@ -83,6 +82,7 @@ import { MatchLiveFacade } from 'src/app/cricket-odds/match-live.facade';
 import { MatchApiService } from 'src/app/cricket-odds/match-api.service';
 import { AnalyticsService } from 'src/app/cricket-odds/analytics.service';
 import { MatchFallbackService } from 'src/app/cricket-odds/match-fallback.service';
+import { MatchLiveModule } from 'src/app/match-live';
 
 
 
@@ -134,7 +134,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     ComponentsModule,
     MatSnackBarModule, // Import MatSnackBarModule
     MatTooltipModule, // Import MatTooltipModule for navbar tooltips (T046)
-    
+    MatchLiveModule,
   
   ],
   declarations: [
@@ -166,7 +166,6 @@ const myRxStompConfig: InjectableRxStompConfig = {
     // 002-match-details-ux: Shared components
     StalenessIndicatorComponent,
     // 002-match-details-ux: Cricket odds feature components
-    SnapshotHeaderComponent,
     MatchDetailsScorecardComponent,
     LineupsComponent,
     MatchDetailsInfoComponent,

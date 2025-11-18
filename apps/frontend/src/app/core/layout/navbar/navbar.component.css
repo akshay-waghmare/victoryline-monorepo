@@ -265,16 +265,20 @@
  
  @media (max-width: 768px) {
    .navbar {
-     height: 56px;
+     height: 48px;
    }
    
    .navbar__container {
      padding: 0 var(--spacing-md);
    }
    
+   .navbar__logo {
+     gap: var(--spacing-lg); /* Increase gap between logo elements */
+   }
+   
    .navbar__mobile-menu {
-     top: 56px;
-     top: calc(56px + env(safe-area-inset-top));
+     top: 48px;
+     top: calc(48px + env(safe-area-inset-top));
    }
  }
  

@@ -1,0 +1,219 @@
+.hero-condensed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: linear-gradient(to right, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-condensed {
+    transition: none;
+  }
+}
+
+.condensed__content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 16px;
+  color: #ffffff;
+}
+
+.condensed__match-info {
+  flex: 0 0 auto;
+  min-width: 180px;
+}
+
+.condensed__match-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.condensed__score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.condensed__team-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.condensed__scoreline {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.condensed__overs {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.condensed__status {
+  flex: 0 0 auto;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+}
+
+.status-badge[data-tier="WARNING"] {
+  background: rgba(255, 193, 7, 0.3);
+}
+
+.status-badge[data-tier="ERROR"] {
+  background: rgba(244, 67, 54, 0.3);
+}
+
+.condensed__current-ball {
+  flex: 0 0 auto;
+}
+
+.ball-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+@media (max-width: 1024px) {
+  .condensed__content {
+    padding: 6px 16px;
+    gap: 12px;
+  }
+
+  .condensed__match-info {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-condensed {
+    width: 100vw;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .condensed__content {
+    padding: 6px 8px;
+    gap: 6px;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .condensed__score {
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .condensed__team-name {
+    font-size: 0.6875rem;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .condensed__scoreline {
+    font-size: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  .condensed__overs {
+    font-size: 0.625rem;
+    flex-shrink: 0;
+  }
+
+  .condensed__status {
+    flex-shrink: 0;
+  }
+
+  .status-badge {
+    padding: 3px 8px;
+    font-size: 0.625rem;
+  }
+
+  .condensed__current-ball {
+    flex-shrink: 0;
+  }
+
+  .ball-value {
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .condensed__content {
+    padding: 4px 6px;
+    gap: 4px;
+  }
+
+  .condensed__team-name {
+    font-size: 0.625rem;
+    max-width: 80px;
+  }
+
+  .condensed__scoreline {
+    font-size: 0.8125rem;
+  }
+
+  .condensed__overs {
+    font-size: 0.5625rem;
+  }
+
+  .status-badge {
+    padding: 2px 6px;
+    font-size: 0.5625rem;
+  }
+
+  .ball-value {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 4px;
+    font-size: 0.6875rem;
+  }
+}

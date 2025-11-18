@@ -18,7 +18,9 @@ export class MatchDetailsInfoComponent implements OnInit {
   ngOnInit(): void {
     if (this.matchInfo) {
       this.matchData = this.matchInfo;
-      console.log('[MatchDetailsInfo] Using existing match info data');
+      console.log('[MatchDetailsInfo] Using existing match info data:', this.matchInfo);
+      console.log('[MatchDetailsInfo] Series name:', this.seriesName);
+      console.log('[MatchDetailsInfo] Match status:', this.matchStatus);
     } else if (this.matchId) {
       // this.loadMatchInfo(); // Future API implementation
       console.warn('[MatchDetailsInfo] API fetch not yet implemented');
@@ -59,7 +61,10 @@ export class MatchDetailsInfoComponent implements OnInit {
   }
 
   get seriesName(): string {
-    if (this.matchInfo && this.matchInfo.series_name) return this.matchInfo.series_name;
+    // Use the same logic as hero component: match_name || series_name
+    if (this.matchInfo) {
+      return this.matchInfo.match_name || this.matchInfo.series_name || 'Series not available';
+    }
     if (this.matchData && this.matchData.series) return this.matchData.series;
     return 'Series not available';
   }
@@ -69,7 +74,22 @@ export class MatchDetailsInfoComponent implements OnInit {
   }
 
   get matchStatus(): string {
-    return (this.matchData && this.matchData.status) || 'Status not available';
+    if (this.matchData && this.matchData.status) return this.matchData.status;
+    
+    // Derive status from matchInfo if available
+    if (this.matchInfo) {
+      const finalResult = this.matchInfo.final_result_text;
+      if (finalResult && typeof finalResult === 'string') {
+        const text = finalResult.toLowerCase();
+        // Only mark as completed if it contains 'won'
+        if (text.includes('won')) {
+          return 'Completed';
+        }
+      }
+      return 'Live';
+    }
+    
+    return 'Status not available';
   }
 
   get matchDate(): string {

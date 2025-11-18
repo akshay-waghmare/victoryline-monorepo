@@ -17,7 +17,13 @@
     <!-- Main content area (T009) -->
     <main role="main" aria-label="Match details content">
       <mat-card-content>
-       
+        <app-live-hero
+          class="cricket-odds__hero"
+          *ngIf="matchId"
+          [matchId]="matchId"
+          [matchInfo]="matchInfo">
+        </app-live-hero>
+
       <mat-tab-group (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
         <mat-tab label="Live Match">
@@ -51,25 +57,9 @@
               </script>
             </div>
 
-            <div class="cricket-odds-container">
+            <div class="cricket-odds-container" *ngIf="(last6Balls && last6Balls.length > 0) || userBets.length > 0 || (sessionExposures && sessionExposures.length > 0) || (!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || batsmanDataList.length > 0 || bowlerDataList.length > 0 || sessionOddsListDisplay.length > 0">
               <div class="cricket-odds">
-                <!-- Live Score Update -->
-                <div class="live-score">
-                  <div class="score-update">{{ liveScoreUpdate }}</div>
-                  <div class="bottom">
-                    <div class="left-half">
-                      <div class="team-label">{{ team1Name }}</div>
-                      <div class="team-score">{{ team1Score }}</div>
-                      <div class="team-overs">{{ team1Overs }}</div>
-                    </div>
-                    <div class="match-info">
-                      <!-- Displaying CRR and final result text -->
-                      <div class="crr">CRR: {{ currentRunRate }}</div>
-                      <div class="final-result-text">{{ finalResultTextValue }}</div>
-                    </div>
-                  </div>
-                </div>
-        
+
                 <!-- Last 6 Balls -->
                 <div class="last-6-balls-container" *ngIf="last6Balls && last6Balls.length > 0">
                   <div class="balls-header">
@@ -106,24 +96,40 @@
                   </div>
                 </div>
                 
+                <!-- Odds and Stats Section -->
+                <div class="odds-stats-section" *ngIf="(!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || batsmanDataList.length > 0 || bowlerDataList.length > 0">
+                
+                <!-- Odds Toggle Button (Phase 7 Mobile Optimized) -->
+                <div class="odds-toggle-container" style="margin: 16px 0; text-align: right;">
+                  <button mat-button 
+                          class="odds-toggle-btn"
+                          (click)="showOdds = !showOdds"
+                          style="background: #667eea; color: white; border-radius: 4px; padding: 8px 16px;">
+                    <mat-icon style="vertical-align: middle; margin-right: 4px;">
+                      {{ showOdds ? 'visibility_off' : 'visibility' }}
+                    </mat-icon>
+                    <span class="odds-toggle-label">{{ showOdds ? 'Hide Odds' : 'Show Odds' }}</span>
+                  </button>
+                </div>
+
                 <!-- Favorite Team Odds -->
-                <div *ngIf="!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-'">
+                <div *ngIf="showOdds && !(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-'">
                   <div *ngIf="!favTeam.includes('Unknown')" class="favorite-odds team-section">
-                    <div class="team-label" [attr.data-full-name]="favTeam"> {{getTruncatedTeamName(favTeam) }}</div>
+                    <div class="team-label" [attr.data-full-name]="favTeam">{{getTruncatedTeamName(favTeam) }}</div>
                     <div class="odds-buttons">
                       <button mat-raised-button color="primary" [ngClass]="{'non-clickable': !isClickable}">
                         {{ backOdds }}</button>
                       <button mat-raised-button color="accent" [ngClass]="{'non-clickable': !isClickable}">{{ layOdds }}</button>
                     </div>
                   </div>
-        
+
                   <div class="betting-options" [class.lay-active]="layButtonActive"
                     *ngIf="showBetting && (showBettingFor === 'teamSectionBackOdds' || showBettingFor === 'layOdds' )">
                     <div class="button-row">
                       <button mat-button class="cancel-bet" (click)="cancelBet()">Cancel</button>
-                      <button mat-button class="clear-bet" (click)="clearStake()">Clear</button> <!-- Clear button -->
+                      <button mat-button class="clear-bet" (click)="clearStake()">Clear</button>
                     </div>
-    
+
                     <div class="odds-amount">
                       <div class="odds">
                         <label for="odds">Odds:</label>
@@ -143,10 +149,9 @@
                     <button mat-raised-button class="place-bet" color="primary" (click)="placeBet()">Place Bet</button>
                   </div>
                 </div>
-        
+
                 <!-- Test Match Odds -->
-                <!-- This section is shown only if it's a test match, i.e., testMatchOdds has values -->
-                <div *ngIf="testMatchOdds && testMatchOdds.length">
+                <div *ngIf="showOdds && testMatchOdds && testMatchOdds.length">
                   <div *ngFor="let match of testMatchOdds; let i = index" class="test-match-odds">
                     <div class="favorite-odds team-section">
                       <div class="team-label">{{ match.teamName }}</div>
@@ -159,15 +164,14 @@
                         </button>
                       </div>
                     </div>
-                    <!-- Corrected conditional rendering and class binding syntax -->
                     <div class="betting-options"
                       *ngIf="showBetting && showBettingFor === 'testMatchOdds' && currentMatchIndex === i"
                       [class.lay-active]="layButtonActive">
                       <div class="button-row">
                         <button mat-button class="cancel-bet" (click)="cancelBet()">Cancel</button>
-                        <button mat-button class="clear-bet" (click)="clearStake()">Clear</button> <!-- Clear button -->
+                        <button mat-button class="clear-bet" (click)="clearStake()">Clear</button>
                       </div>
-    
+
                       <div class="odds">
                         <label for="odds{{i}}">Odds:</label>
                         <input type="number" id="odds{{i}}" class="disabled-input" [(ngModel)]="selectedOdds" readonly/>
@@ -177,14 +181,82 @@
                         <label for="amount{{i}}">Amount:</label>
                         <input type="number" id="amount{{i}}" [(ngModel)]="betAmount" />
                       </div>
-                      <button mat-raised-button class="place-bet" color="primary" (click)="placeTestBet(match)">Place
-                        Bet</button>
+                      <button mat-raised-button class="place-bet" color="primary" (click)="placeTestBet(match)">Place Bet</button>
                     </div>
                   </div>
                 </div>
-        
-        
+
+                <div class="stats-container">
+                  <!-- Batsman Stats -->
+                  <div class="batsman-stats" *ngIf="batsmanDataList.length > 0">
+                    <div class="stats-header">
+                      <mat-icon class="stats-icon">sports_cricket</mat-icon>
+                      <h3>Current Batsmen</h3>
+                    </div>
+                    <table class="stats-table">
+                      <thead>
+                        <tr>
+                          <th>Batsman</th>
+                          <th>R</th>
+                          <th>B</th>
+                          <th>4s</th>
+                          <th>6s</th>
+                          <th>SR</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let batsman of batsmanDataList">
+                          <td class="player-name">
+                            {{ batsman.name }}
+                            <mat-icon *ngIf="batsman.onStrike" class="on-strike-icon">sports_cricket</mat-icon>
+                          </td>
+                          <td class="stat-value">{{ batsman.score }}</td>
+                          <td class="stat-value">{{ batsman.ballsFaced }}</td>
+                          <td class="stat-value">{{ batsman.fours }}</td>
+                          <td class="stat-value">{{ batsman.sixes }}</td>
+                          <td class="stat-value highlight-sr">{{ batsman.strikeRate }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Bowler Stats -->
+                  <div class="bowler-stats" *ngIf="bowlerDataList.length > 0">
+                    <div class="stats-header">
+                      <mat-icon class="stats-icon">sports_baseball</mat-icon>
+                      <h3>Current Bowler</h3>
+                    </div>
+                    <table class="stats-table">
+                      <thead>
+                        <tr>
+                          <th>Bowler</th>
+                          <th>O</th>
+                          <th>R</th>
+                          <th>W</th>
+                          <th>D</th>
+                          <th>ECO</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let bowler of bowlerDataList">
+                          <td class="player-name">{{ bowler.name }}</td>
+                          <td class="stat-value">{{ bowler.ballsBowled }}</td>
+                          <td class="stat-value">{{ bowler.score }}</td>
+                          <td class="stat-value highlight-wickets">{{ bowler.wicketsTaken }}</td>
+                          <td class="stat-value">{{ bowler.dotBalls }}</td>
+                          <td class="stat-value highlight-eco">{{ bowler.economyRate }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                
+                </div>
+                <!-- End Odds and Stats Section -->
+
+                <section class="hero-downstream">
                 <!-- Session Odds -->
+                <ng-container *ngIf="showOdds">
                 <div *ngFor="let sessionOdds of sessionOddsListDisplay">
                   <div *ngIf="sessionOdds.session !== '-'">
                     <div class="favorite-odds session-section">
@@ -221,72 +293,8 @@
                     </div>
                   </div>
                 </div>
-        
-                <div class="stats-container">
-                  <!-- Batsman Stats -->
-                  <div class="batsman-stats" *ngIf="batsmanDataList.length > 0">
-                    <div class="stats-header">
-                      <mat-icon class="stats-icon">sports_cricket</mat-icon>
-                      <h3>Current Batsmen</h3>
-                    </div>
-                    <table class="stats-table">
-                      <thead>
-                        <tr>
-                          <th>Batter</th>
-                          <th>R</th>
-                          <th>B</th>
-                          <th>4s</th>
-                          <th>6s</th>
-                          <th>SR</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr *ngFor="let batsman of batsmanDataList">
-                          <td class="player-name">
-                            {{ batsman.name }}  
-                            <mat-icon *ngIf="batsman.onStrike" class="on-strike-icon">sports_cricket</mat-icon>
-                          </td>
-                          <td class="stat-value">{{ batsman.score }}</td>
-                          <td class="stat-value">{{ batsman.ballsFaced }}</td>
-                          <td class="stat-value">{{ batsman.fours }}</td>
-                          <td class="stat-value">{{ batsman.sixes }}</td>
-                          <td class="stat-value highlight-sr">{{ batsman.strikeRate }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                
-                  <!-- Bowler Stats -->
-                  <div class="bowler-stats" *ngIf="bowlerDataList.length > 0">
-                    <div class="stats-header">
-                      <mat-icon class="stats-icon">sports_baseball</mat-icon>
-                      <h3>Current Bowler</h3>
-                    </div>
-                    <table class="stats-table">
-                      <thead>
-                        <tr>
-                          <th>Bowler</th>
-                          <th>O</th>
-                          <th>R</th>
-                          <th>W</th>
-                          <th>D</th>
-                          <th>ECO</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr *ngFor="let bowler of bowlerDataList">
-                          <td class="player-name">{{ bowler.name }}</td>
-                          <td class="stat-value">{{ bowler.ballsBowled }}</td>
-                          <td class="stat-value">{{ bowler.score }}</td>
-                          <td class="stat-value highlight-wickets">{{ bowler.wicketsTaken }}</td>
-                          <td class="stat-value">{{ bowler.dotBalls }}</td>
-                          <td class="stat-value highlight-eco">{{ bowler.economyRate }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-    
+                </ng-container>
+                </section>
                 
               </div>
             </div>

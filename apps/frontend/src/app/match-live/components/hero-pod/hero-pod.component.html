@@ -1,0 +1,21 @@
+<header class="hero-pod__header" *ngIf="title || subtitle || statusBadge">
+  <div class="hero-pod__heading">
+    <p class="hero-pod__title" [attr.id]="headerId" *ngIf="title">
+      {{ title }}
+    </p>
+    <p class="hero-pod__subtitle" *ngIf="subtitle">
+      {{ subtitle }}
+    </p>
+  </div>
+  <span class="hero-pod__badge" *ngIf="statusBadge">
+    {{ statusBadge }}
+  </span>
+</header>
+
+<section class="hero-pod__body">
+  <ng-content></ng-content>
+</section>
+
+<footer class="hero-pod__footer" *ngIf="footerVisible">
+  <ng-content select="[heroPodFooter]"></ng-content>
+</footer>

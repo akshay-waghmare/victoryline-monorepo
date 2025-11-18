@@ -1,0 +1,116 @@
+<!-- Condensed Hero (Sticky on Scroll) -->
+<app-hero-condensed
+  *ngIf="(showCondensed$ | async) && (view$ | async) as view"
+  [view]="view"
+  [matchInfo]="matchInfo">
+</app-hero-condensed>
+
+<ng-container *ngIf="view$ | async as view; else loadingState">
+  <section class="live-hero" [attr.data-status]="view.status">
+    <header class="live-hero__headline">
+      <div class="live-hero__fixture">
+        <div class="live-hero__match-info" *ngIf="matchInfo">
+          <mat-icon class="live-hero__info-icon" [attr.title]="matchInfo.match_name || matchInfo.series_name">location_on</mat-icon>
+          <span class="live-hero__info-text">{{ matchInfo.match_name || matchInfo.series_name }}</span>
+        </div>
+        <span class="live-hero__status">{{ view.status | titlecase }}</span>
+      </div>
+      <div class="live-hero__timestamp">
+        <mat-icon class="timestamp-icon">schedule</mat-icon>
+        <span class="timestamp-label">Updated</span>
+        <time [attr.datetime]="view.timestamp">{{ view.timestamp | date:'shortTime' }}</time>
+        
+        <!-- Staleness Warning Badge -->
+        <span class="staleness-badge" 
+              *ngIf="view.staleness.tier !== 'FRESH'"
+              [attr.data-tier]="view.staleness.tier">
+          <mat-icon class="staleness-badge__icon">warning</mat-icon>
+          <span class="staleness-badge__label">{{ stalenessBadge(view) }}</span>
+        </span>
+        
+        <!-- Manual Retry Button -->
+        <button type="button" 
+                class="retry-button-small" 
+                *ngIf="view.staleness.tier === 'ERROR'"
+                (click)="retry()"
+                aria-label="Retry loading live data">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </header>
+
+    <div class="live-hero__grid">
+      <!-- Top row: Score and Current Ball side by side -->
+      <div class="live-hero__top-row">
+        <!-- LEFT: Score and Team Info -->
+        <div class="live-hero__pod live-hero__pod--score">
+          <!-- Main score content -->
+          <div class="score-main">
+            <div class="scoreline__team-name">{{ view.score.teamName }}</div>
+            <div class="scoreline" aria-label="Current score">
+              <span class="scoreline__runs">{{ view.score.runs }}</span>
+              <span class="scoreline__separator">/</span>
+              <span class="scoreline__wickets">{{ view.score.wickets }}</span>
+            </div>
+            <div class="scoreline__meta">
+              <span>{{ view.score.overs }} ov</span>
+              <span>{{ view.score.runRateLabel }}</span>
+            </div>
+            
+            <!-- Recent balls - positioned below main score -->
+            <div class="recent-balls" *ngIf="view.batters.length && view.batters[0].recentBalls.length">
+              <span class="recent-balls__label">This over:</span>
+              <ul class="recent-balls__list" aria-label="Recent balls">
+                <li class="recent-balls__item" *ngFor="let ball of view.batters[0].recentBalls; trackBy: trackBall">
+                  {{ ball }}
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Striker info - positioned to the right on desktop -->
+          <div class="score-meta">
+            <div class="striker-info" *ngIf="view.currentStriker">
+              <span class="striker-label">
+                {{ view.currentStriker === view.lastValidStriker ? 'On Strike:' : 'Last Known:' }}
+              </span>
+              <span class="striker-name">{{ view.currentStriker.name }} ({{ view.currentStriker.runs }}*)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Current Ball (Large Circle) -->
+        <div class="current-ball" *ngIf="view.score.currentBall">
+          <span class="current-ball__value">{{ view.score.currentBall }}</span>
+        </div>
+      </div>
+
+      <!-- Bottom row: Chase Context (Full Width) -->
+      <div class="live-hero__pod live-hero__pod--context">
+        <div class="chase-summary" *ngIf="view.score.resultSummary">
+          {{ view.score.resultSummary }}
+        </div>
+        <div class="chase-summary" *ngIf="!view.score.resultSummary && view.chase.isChasing">
+          {{ view.score.teamName }} need {{ view.chase.runsRemaining }} runs in {{ view.chase.ballsRemaining }} balls
+        </div>
+      </div>
+    </div>
+  </section>
+</ng-container>
+
+<ng-template #loadingState>
+  <div class="live-hero live-hero--loading" *ngIf="state$ | async as state">
+    <div class="live-hero__loader" aria-busy="true" aria-live="polite">
+      <span *ngIf="state.loading">Loading live hero…</span>
+      <span *ngIf="!state.loading && !state.view">Awaiting first update…</span>
+    </div>
+    <div class="live-hero__error" *ngIf="state.error">
+      <p>Could not load live data.</p>
+      <button type="button" class="retry-button" (click)="retry()">Retry</button>
+    </div>
+  </div>
+</ng-template>
+
+<div class="live-hero__error" *ngIf="(state$ | async)?.error as error">
+  <p>{{ error }}</p>
+</div>

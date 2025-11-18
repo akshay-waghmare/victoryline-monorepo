@@ -69,7 +69,6 @@ services:
     image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.1.2}"
     container_name: victoryline-scraper
     restart: unless-stopped
-    pids_limit: 512
     ports:
       - "${SCRAPER_PORT:-5000}:5000"
     environment:
@@ -90,7 +89,7 @@ services:
       PAGE_TIMEOUT_SECONDS: "${PAGE_TIMEOUT_SECONDS:-30}"
       ENABLE_PROMETHEUS_METRICS: "${ENABLE_PROMETHEUS_METRICS:-true}"
       PROMETHEUS_PORT: "${PROMETHEUS_PORT:-9090}"
-      STALENESS_THRESHOLD_SECONDS: "${STALENESS_THRESHOLD_SECONDS:-60}"
+      STALENESS_THRESHOLD_SECONDS: "${STALENESS_THRESHOLD_SECONDS:-180}"
       CONTAINER_RESTART_INTERVAL_MINUTES: "${CONTAINER_RESTART_INTERVAL_MINUTES:-10}"
     volumes:
       - scraper_data:/app/storage
@@ -101,6 +100,7 @@ services:
     deploy:
       resources:
         limits:
+          pids: 512
           cpus: "2.0"
           memory: 2560M
         reservations:
