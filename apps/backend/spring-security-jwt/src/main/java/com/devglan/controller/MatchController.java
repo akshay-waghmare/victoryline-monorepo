@@ -32,11 +32,11 @@ public class MatchController {
     /**
      * GET /api/v1/matches/completed
      * Returns the last 20 completed matches with series information
+     * Public endpoint - no authentication required
      * 
      * @return ResponseEntity with completed matches list
      */
     @GetMapping("/completed")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
     public ResponseEntity<Map<String, Object>> getCompletedMatches() {
         try {
             logger.info("Received request for completed matches");

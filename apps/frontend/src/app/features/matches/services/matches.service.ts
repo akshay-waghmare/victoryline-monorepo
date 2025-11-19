@@ -583,21 +583,17 @@ export class MatchesService {
   /**
    * Get completed matches with series information
    * Feature: 006-completed-matches-display (T012)
+   * Public endpoint - no authentication required
    * @returns Observable<CompletedMatch[]>
    */
   getCompletedMatches(): Observable<CompletedMatch[]> {
-    const url = `${environment.REST_API_URL}api/v1/matches/completed`;
+    const url = `${environment.REST_API_URL}v1/matches/completed`;
     
-    // Get auth token from storage
-    const token = window.sessionStorage.getItem('token');
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
+    console.log('Fetching completed matches from:', url);
 
-    return this.http.get<CompletedMatchesResponse>(url, { headers }).pipe(
+    return this.http.get<CompletedMatchesResponse>(url).pipe(
       map(response => {
-        console.log('Received completed matches:', response);
+        console.log('Received completed matches response:', response);
         return response.matches || [];
       }),
       catchError(error => {

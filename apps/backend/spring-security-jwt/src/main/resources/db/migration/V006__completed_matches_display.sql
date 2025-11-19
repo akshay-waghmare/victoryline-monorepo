@@ -1,50 +1,32 @@
--- 006-completed-matches-display: Database Migration Script
--- Purpose: Add series support and optimize completed matches queries
+-- V006: Optimize completed matches query for LIVE_MATCH table
+-- Date: November 18, 2025 (CORRECTED)
+-- Purpose: Add indexes to LIVE_MATCH table for efficient completed matches retrieval
+--
+-- CRITICAL CORRECTION: The system uses LIVE_MATCH table (JPA entity: LiveMatch.java),
+-- NOT the 'matches' table from V1 schema. The previous implementation was WRONG.
+--
+-- LIVE_MATCH table structure (created by JPA):
+--   - id (BIGINT, PRIMARY KEY, AUTO_INCREMENT)
+--   - url (VARCHAR) - match URL identifier
+--   - isDeleted (BOOLEAN) - TRUE = completed match, FALSE = live/ongoing
+--   - lastKnownState (TEXT/CLOB) - JSON string with match details (teams, scores, result)
+--   - deletionAttempts (INT) - counter for deletion retry logic
+--   - distributionDone (BOOLEAN) - flag indicating bet distribution completion
+--
+-- Query pattern for completed matches:
+--   SELECT * FROM LIVE_MATCH WHERE isDeleted = TRUE ORDER BY id DESC LIMIT 20
+--
+-- Note: We use 'id' as a proxy for completion time since the table doesn't have
+-- an explicit completion_date column. Higher IDs = more recent matches.
 
--- Step 1: Create series table
-CREATE TABLE IF NOT EXISTS series (
-    series_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    format VARCHAR(50),
-    start_date DATE,
-    end_date DATE,
-    organizer VARCHAR(100),
-    season VARCHAR(100),
-    description TEXT,
-    INDEX idx_name (name),
-    INDEX idx_dates (start_date, end_date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Add composite index for efficient "last 20 completed matches" query
+-- This index optimizes: WHERE isDeleted = TRUE ORDER BY id DESC LIMIT 20
+-- H2 and MySQL compatible syntax
+CREATE INDEX IF NOT EXISTS idx_is_deleted_id ON LIVE_MATCH(isDeleted, id);
 
--- Step 2: Add series_id and completion_date columns to matches table
-ALTER TABLE matches 
-    ADD COLUMN series_id BIGINT,
-    ADD COLUMN completion_date TIMESTAMP NULL DEFAULT NULL,
-    ADD CONSTRAINT fk_matches_series FOREIGN KEY (series_id) REFERENCES series(series_id) ON DELETE SET NULL;
+-- Add index on url column for fast match lookup by URL
+-- This optimizes queries like: WHERE url = ?
+CREATE INDEX IF NOT EXISTS idx_url ON LIVE_MATCH(url);
 
--- Step 3: Create performance index for completed matches queries
-CREATE INDEX idx_status_completion ON matches(match_status, completion_date DESC);
-
--- Step 4: Migrate existing data - populate series from competition field
-INSERT INTO series (name, format, season)
-SELECT DISTINCT 
-    competition,
-    'Unknown',
-    YEAR(match_date)
-FROM matches
-WHERE competition IS NOT NULL AND competition != '';
-
--- Step 5: Update matches with series_id based on competition name
-UPDATE matches m
-INNER JOIN series s ON m.competition = s.name
-SET m.series_id = s.series_id;
-
--- Step 6: Set completion_date for completed matches
-UPDATE matches 
-SET completion_date = match_date 
-WHERE match_status IN ('Completed', 'Result', 'Finished')
-AND completion_date IS NULL;
-
--- Verification queries
--- SELECT COUNT(*) as total_series FROM series;
--- SELECT COUNT(*) as matches_with_series FROM matches WHERE series_id IS NOT NULL;
--- SELECT COUNT(*) as completed_matches FROM matches WHERE match_status IN ('Completed', 'Result', 'Finished');
+-- Note: No data migration needed since LIVE_MATCH table is already populated
+-- by the scraper service (cricket_data_service.py → add_live_matches function)

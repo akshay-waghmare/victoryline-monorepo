@@ -26,7 +26,7 @@ http://localhost, http://localhost:80 {
   @websocket {
     path /api/ws/*
   }
-  reverse_proxy @websocket frontend:80 {
+  reverse_proxy @websocket backend:8099 {
     header_up Host {host}
     header_up X-Real-IP {remote}
     header_up X-Forwarded-For {remote}
@@ -35,6 +35,69 @@ http://localhost, http://localhost:80 {
     header_up Connection {http.request.header.Connection}
     # Increase timeout for long-lived WebSocket connections
     flush_interval -1
+  }
+  
+  # Backend cricket-data endpoints - handle with /api prefix
+  # Strip /api prefix and forward to backend as /cricket-data/*
+  @apicricketdata {
+    path /api/cricket-data/*
+  }
+  handle @apicricketdata {
+    uri strip_prefix /api
+    reverse_proxy backend:8099 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+      header_up X-Forwarded-For {remote}
+      header_up X-Forwarded-Proto {scheme}
+    }
+  }
+  
+  # Backend events endpoint with /api prefix
+  # Strip /api prefix and forward to backend as /events
+  @apievents {
+    path /api/events /api/events/*
+  }
+  handle @apievents {
+    uri strip_prefix /api
+    reverse_proxy backend:8099 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+      header_up X-Forwarded-For {remote}
+      header_up X-Forwarded-Proto {scheme}
+    }
+  }
+  
+  # Backend cricket-data endpoints without /api prefix (direct access)
+  @cricketdata {
+    path /cricket-data/*
+  }
+  reverse_proxy @cricketdata backend:8099 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+  
+  # Backend events endpoint without /api prefix (direct access)
+  @events {
+    path /events /events/*
+  }
+  reverse_proxy @events backend:8099 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+  
+  # Backend API endpoints - proxy remaining /api/* requests to backend
+  @api {
+    path /api/*
+  }
+  reverse_proxy @api backend:8099 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
   }
   
   # Serve frontend Angular app proxied from internal container

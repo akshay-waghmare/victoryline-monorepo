@@ -68,6 +68,8 @@ import { MatchCardComponent } from 'src/app/features/matches/components/match-ca
 import { SkeletonCardComponent } from 'src/app/shared/components/skeleton-card/skeleton-card.component';
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
 import { TabNavComponent } from 'src/app/shared/components/tab-nav/tab-nav.component';
+import { CompletedMatchesComponent } from 'src/app/features/matches/components/completed-matches/completed-matches.component';
+import { TimeAgoPipe } from 'src/app/features/matches/pipes/time-ago.pipe';
 
 // 002-match-details-ux: Shared components
 import { StalenessIndicatorComponent } from 'src/app/shared/components/staleness-indicator/staleness-indicator.component';
@@ -75,6 +77,7 @@ import { StalenessIndicatorComponent } from 'src/app/shared/components/staleness
 // 002-match-details-ux: Cricket odds feature components
 import { SnapshotHeaderComponent } from 'src/app/cricket-odds/components/snapshot-header/snapshot-header.component';
 import { ScorecardComponent as MatchDetailsScorecardComponent } from 'src/app/cricket-odds/components/scorecard/scorecard.component';
+// import { ScorecardCardComponent } from 'src/app/cricket-odds/components/scorecard-card/scorecard-card.component';
 import { LineupsComponent } from 'src/app/cricket-odds/components/lineups/lineups.component';
 import { MatchDetailsInfoComponent } from 'src/app/cricket-odds/components/match-info/match-info.component';
 
@@ -84,6 +87,8 @@ import { MatchApiService } from 'src/app/cricket-odds/match-api.service';
 import { AnalyticsService } from 'src/app/cricket-odds/analytics.service';
 import { MatchFallbackService } from 'src/app/cricket-odds/match-fallback.service';
 
+// Phase 6: Content Discovery
+// import { ContentDiscoveryModule } from 'src/app/features/content-discovery/content-discovery.module';
 
 
 const myRxStompConfig: InjectableRxStompConfig = {
@@ -134,6 +139,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     ComponentsModule,
     MatSnackBarModule, // Import MatSnackBarModule
     MatTooltipModule, // Import MatTooltipModule for navbar tooltips (T046)
+    // ContentDiscoveryModule, // Phase 6: Content Discovery
     
   
   ],
@@ -163,11 +169,14 @@ const myRxStompConfig: InjectableRxStompConfig = {
     SkeletonCardComponent,
     MatchesListComponent,
     TabNavComponent,
+    CompletedMatchesComponent,
+    TimeAgoPipe,
     // 002-match-details-ux: Shared components
     StalenessIndicatorComponent,
     // 002-match-details-ux: Cricket odds feature components
     SnapshotHeaderComponent,
     MatchDetailsScorecardComponent,
+    // ScorecardCardComponent,
     LineupsComponent,
     MatchDetailsInfoComponent,
     

@@ -9,18 +9,21 @@ Your VictoryLine application now has a **complete production-ready Docker setup*
 ## 📦 What Was Created
 
 ### Core Files
-1. ✅ **`docker-compose.yml`** - Orchestrates all 4 services (Frontend, Backend, Scraper, MySQL)
-2. ✅ **`.env.example`** - Environment configuration template
-3. ✅ **`DOCKER_DEPLOYMENT.md`** - Complete deployment guide
+1. ✅ **`docker-compose.yml`** - Orchestrates all 6 services (Caddy, Frontend, Backend, Scraper, MySQL, Redis)
+2. ✅ **`Caddyfile.local`** - Caddy reverse proxy configuration (HTTP for local dev)
+3. ✅ **`.env.example`** - Environment configuration template
+4. ✅ **`DOCKER_DEPLOYMENT.md`** - Complete deployment guide
+5. ✅ **`CADDY_WEBSOCKET_FIX.md`** - WebSocket configuration documentation
 
 ### Updated Dockerfiles
-1. ✅ **Frontend** - Node 16.20.2, optimized multi-stage build
-2. ✅ **Backend** - Java 11, MySQL support, health checks
+1. ✅ **Frontend** - Node 16.20.2, optimized multi-stage build, nginx serving
+2. ✅ **Backend** - Java 11, WebSocket support, MySQL/Redis ready, health checks
 3. ✅ **Scraper** - Python 3.9, Playwright, reproducible build
 
 ### Optimization Files
 1. ✅ **`.dockerignore`** files for all services (faster builds)
-2. ✅ **`nginx.conf`** - Updated for Docker networking
+2. ✅ **`nginx.conf`** - Internal nginx config (inside frontend container)
+3. ✅ **`Caddyfile.local`** - External Caddy reverse proxy (WebSocket fixed)
 
 ---
 
@@ -61,19 +64,33 @@ docker compose ps
 # View logs
 docker compose logs -f
 
+# Check Caddy specifically (important for WebSocket)
+docker logs victoryline-caddy -f
+
 # Test endpoints
-curl http://localhost        # Frontend
-curl http://localhost:8099   # Backend
-curl http://localhost:5000   # Scraper
+curl http://localhost              # Frontend (via Caddy)
+curl http://localhost/api/v1/      # Backend API (via Caddy)
+curl http://localhost/sitemap.xml  # SEO endpoint (via Caddy → Backend)
 ```
+
+### WebSocket Verification
+1. Open http://localhost in browser
+2. Open DevTools (F12) → Network tab → WS filter
+3. Look for `ws://localhost/api/ws/websocket` 
+4. Status should be **101 Switching Protocols** ✅
+5. No errors in Console ✅
 
 ---
 
 ## 🌐 Access Your App
 
-- **Frontend**: http://localhost
-- **Backend API**: http://localhost:8099
-- **Scraper API**: http://localhost:5000
+- **Frontend**: http://localhost (via Caddy reverse proxy)
+- **Backend API**: http://localhost/api/v1/* (proxied by Caddy)
+- **WebSocket**: ws://localhost/api/ws/websocket (proxied to backend:8099)
+- **Scraper API**: http://localhost:5000 (internal, not exposed)
+- **Prerender**: http://localhost:9100 (SSR service)
+
+**Note**: Only Caddy exposes ports 80/443 externally. All other services communicate within the Docker network.
 
 ---
 
@@ -111,25 +128,61 @@ Includes:
 ## 🎯 Architecture Overview
 
 ```
-┌─────────────────────────────────────────┐
-│  Frontend (Nginx) :80                   │
-│  └─→ Proxies /api/ to Backend          │
-└─────────────────────────────────────────┘
-           ↓
-┌─────────────────────────────────────────┐
-│  Backend (Spring Boot) :8099            │
-│  └─→ Connects to MySQL                 │
-└─────────────────────────────────────────┘
-           ↓
-┌─────────────────────────────────────────┐
-│  MySQL :3306                            │
-│  └─→ Persistent storage                │
-└─────────────────────────────────────────┘
+                     Internet
+                        ↓
+         ┌──────────────────────────────┐
+         │   Caddy Reverse Proxy        │
+         │   :80 (HTTP) :443 (HTTPS)    │
+         └──────────────────────────────┘
+                        ↓
+        ┌───────────────┴────────────────┐
+        ↓                                ↓
+┌───────────────────┐          ┌─────────────────────┐
+│ Frontend (nginx)  │          │ Backend (Spring)    │
+│ :80 (internal)    │          │ :8099 (internal)    │
+│ • Angular app     │          │ • REST API          │
+│ • Static assets   │          │ • WebSocket server  │
+└───────────────────┘          └─────────────────────┘
+                                         ↓
+                        ┌────────────────┴──────────────┐
+                        ↓                               ↓
+                ┌──────────────┐              ┌──────────────┐
+                │ MySQL :3306  │              │ Redis :6379  │
+                │ • Match data │              │ • API cache  │
+                │ • User data  │              │ • Sessions   │
+                └──────────────┘              └──────────────┘
 
-┌─────────────────────────────────────────┐
-│  Scraper (Flask) :5000                  │
-│  └─→ Sends data to Backend             │
-└─────────────────────────────────────────┘
+        ┌────────────────────────────────────────────┐
+        │ Scraper (Flask) :5000 (internal)           │
+        │ └─→ Sends scraped data to Backend          │
+        └────────────────────────────────────────────┘
+
+        ┌────────────────────────────────────────────┐
+        │ Prerender :9100                            │
+        │ └─→ SSR service for SEO                    │
+        └────────────────────────────────────────────┘
+```
+
+### Request Flow Examples
+
+**Frontend Page Request:**
+```
+Browser → Caddy:80 → Frontend:80 (nginx) → Angular app
+```
+
+**API Request:**
+```
+Browser → Caddy:80 /api/* → Backend:8099 → MySQL/Redis
+```
+
+**WebSocket Connection:**
+```
+Browser → Caddy:80 /api/ws/* → Backend:8099 WebSocket → Live updates
+```
+
+**SEO Request:**
+```
+Bot → Caddy:80 /sitemap.xml → Backend:8099 → Generated sitemap
 ```
 
 ---

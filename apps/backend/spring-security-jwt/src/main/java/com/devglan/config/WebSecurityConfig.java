@@ -60,14 +60,15 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
 				.authorizeRequests()
 				.antMatchers(
-						"/api/**",
 						// Public SEO and infrastructure endpoints
 						"/robots.txt", "/sitemap.xml", "/sitemaps/**",
 						"/api/v1/seo/**",
+						"/api/v1/matches/completed",
 						"/actuator/health",
 						"/vote/**",
 				        "/users/search", "/users/search/**", 
 				        "/ws/*", "/ws/**", 
+				        "/api/ws/*", "/api/ws/**",
 				        "/h2-console/**", 
 				        "/token/*", "/token", "/token/**",
 						"/signup", "/football", "/football/**", 

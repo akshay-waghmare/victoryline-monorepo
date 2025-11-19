@@ -581,4 +581,44 @@ public class CricketDataController {
 	        return CompletableFuture.completedFuture(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("User not found."));
 	    }
 	}
+	
+	/**
+	 * TEST ENDPOINT: Mark matches as completed for testing completed matches feature
+	 * This endpoint marks the first 3 live matches as completed with sample data
+	 * ONLY FOR TESTING - Should be removed in production
+	 */
+	@PostMapping("/test/mark-completed")
+	public ResponseEntity<String> markMatchesAsCompletedForTesting() {
+		try {
+			List<LiveMatch> liveMatches = liveMatchService.findAllLiveMatches();
+			
+			if (liveMatches.isEmpty()) {
+				return ResponseEntity.ok("No live matches found to mark as completed");
+			}
+			
+			int count = 0;
+			int limit = Math.min(3, liveMatches.size());
+			
+			String[] sampleResults = {
+				"{\"battingTeam\":\"India A\",\"score\":\"328/5\",\"overs\":\"48.3\",\"final_result_text\":\"India A won by 5 wickets\",\"current_ball\":\"Match completed\",\"team1\":\"India A\",\"team2\":\"Oman\"}",
+				"{\"battingTeam\":\"Pakistan\",\"score\":\"148/10\",\"overs\":\"19.5\",\"final_result_text\":\"Zimbabwe won by 12 runs\",\"current_ball\":\"Match completed\",\"team1\":\"Pakistan\",\"team2\":\"Zimbabwe\"}",
+				"{\"battingTeam\":\"Northern Warriors\",\"score\":\"136/4\",\"overs\":\"9.4\",\"final_result_text\":\"Northern Warriors won by 6 wickets\",\"current_ball\":\"Match completed\",\"team1\":\"Northern Warriors\",\"team2\":\"Quetta Qavalry\"}"
+			};
+			
+			for (int i = 0; i < limit; i++) {
+				LiveMatch match = liveMatches.get(i);
+				match.setDeleted(true);
+				match.setLastKnownState(sampleResults[i]);
+				match.setDistributionDone(true);
+				liveMatchService.update(match);
+				count++;
+			}
+			
+			return ResponseEntity.ok("Successfully marked " + count + " matches as completed");
+			
+		} catch (Exception e) {
+			log.error("Error marking matches as completed", e);
+			return ResponseEntity.status(500).body("Error: " + e.getMessage());
+		}
+	}
 }

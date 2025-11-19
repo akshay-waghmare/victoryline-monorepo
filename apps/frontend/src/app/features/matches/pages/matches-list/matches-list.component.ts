@@ -2,6 +2,7 @@
  * Matches List Page Component
  * Purpose: Display all cricket matches in a grid with filtering and search
  * Created: 2025-11-06
+ * Last Modified: 2025-11-20 (Added completed matches debug logging)
  */
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
@@ -58,6 +59,8 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   constructor(private matchesService: MatchesService, private router: Router) {}
   
   ngOnInit(): void {
+    console.log('MatchesListComponent initialized');
+    console.log('Initial selectedStatus:', this.selectedStatus);
     this.loadMatches();
   }
   
@@ -127,7 +130,16 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    * Handle tab change from tab-nav component
    */
   onTabChange(tabId: string): void {
+    console.log('=== TAB CHANGE DEBUG ===');
+    console.log('Tab changed to:', tabId);
+    console.log('MatchStatus.COMPLETED value:', MatchStatus.COMPLETED);
+    console.log('Comparison result:', tabId === MatchStatus.COMPLETED);
+    console.log('Type of tabId:', typeof tabId);
+    console.log('Type of MatchStatus.COMPLETED:', typeof MatchStatus.COMPLETED);
     this.selectedStatus = tabId as MatchStatus | 'all';
+    console.log('Updated selectedStatus:', this.selectedStatus);
+    console.log('Will component render?', this.selectedStatus === MatchStatus.COMPLETED);
+    console.log('=== END TAB CHANGE DEBUG ===');
     this.applyFilters();
   }
   

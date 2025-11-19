@@ -1,21 +1,35 @@
 package com.devglan.model;
 
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  * DTO for completed match display (Feature 006-completed-matches-display)
- * Optimized projection to avoid N+1 queries and reduce payload size
+ * CORRECTED to work with LIVE_MATCH table data
+ * 
+ * This DTO is populated from LiveMatch entities where isDeleted=true.
+ * Match details are parsed from the 'lastKnownState' JSON field.
  */
-public class CompletedMatchDTO {
+public class CompletedMatchDTO implements Serializable {
+    
+    private static final long serialVersionUID = 1L;
 
     private Long matchId;
+    private String matchUrl; // Match URL from LIVE_MATCH.url
+    private String teamA; // Home team name (parsed from JSON)
+    private String teamB; // Away team name (parsed from JSON)
+    private String scoreA; // Team A score (parsed from JSON)
+    private String scoreB; // Team B score (parsed from JSON)
+    private String result; // Match result (parsed from JSON)
+    private String seriesName; // Derived from URL or competition field
+    private String format; // Match format (ODI/T20/Test)
+    private String location; // Venue
+
+    // Legacy fields (maintained for backwards compatibility)
     private String homeTeamName;
     private String awayTeamName;
-    private String result;
     private Date completionDate;
-    private String seriesName;
     private String seriesFormat;
-    private String location;
     private String sportType;
     private String matchLink;
 
@@ -24,17 +38,7 @@ public class CompletedMatchDTO {
     }
 
     /**
-     * Constructor for JPA query projections
-     * @param matchId Match identifier
-     * @param homeTeamName Home team name
-     * @param awayTeamName Away team name
-     * @param result Match result summary
-     * @param completionDate When match was completed
-     * @param seriesName Series name
-     * @param seriesFormat Series format (Test/ODI/T20)
-     * @param location Match location/venue
-     * @param sportType Sport type
-     * @param matchLink Link to match details
+     * Constructor for JPA query projections (legacy - kept for compatibility)
      */
     public CompletedMatchDTO(Long matchId, String homeTeamName, String awayTeamName, 
                             String result, Date completionDate, String seriesName, 
@@ -42,14 +46,18 @@ public class CompletedMatchDTO {
                             String matchLink) {
         this.matchId = matchId;
         this.homeTeamName = homeTeamName;
+        this.teamA = homeTeamName; // Alias
         this.awayTeamName = awayTeamName;
+        this.teamB = awayTeamName; // Alias
         this.result = result;
         this.completionDate = completionDate;
         this.seriesName = seriesName;
         this.seriesFormat = seriesFormat;
+        this.format = seriesFormat; // Alias
         this.location = location;
         this.sportType = sportType;
         this.matchLink = matchLink;
+        this.matchUrl = matchLink; // Alias
     }
 
     // Getters and Setters
@@ -61,20 +69,66 @@ public class CompletedMatchDTO {
         this.matchId = matchId;
     }
 
+    public String getMatchUrl() {
+        return matchUrl;
+    }
+
+    public void setMatchUrl(String matchUrl) {
+        this.matchUrl = matchUrl;
+        this.matchLink = matchUrl; // Keep legacy field in sync
+    }
+
+    public String getTeamA() {
+        return teamA != null ? teamA : homeTeamName;
+    }
+
+    public void setTeamA(String teamA) {
+        this.teamA = teamA;
+        this.homeTeamName = teamA; // Keep legacy field in sync
+    }
+
+    public String getTeamB() {
+        return teamB != null ? teamB : awayTeamName;
+    }
+
+    public void setTeamB(String teamB) {
+        this.teamB = teamB;
+        this.awayTeamName = teamB; // Keep legacy field in sync
+    }
+
+    public String getScoreA() {
+        return scoreA;
+    }
+
+    public void setScoreA(String scoreA) {
+        this.scoreA = scoreA;
+    }
+
+    public String getScoreB() {
+        return scoreB;
+    }
+
+    public void setScoreB(String scoreB) {
+        this.scoreB = scoreB;
+    }
+
+    // Legacy getters/setters (kept for backwards compatibility)
     public String getHomeTeamName() {
-        return homeTeamName;
+        return teamA != null ? teamA : homeTeamName;
     }
 
     public void setHomeTeamName(String homeTeamName) {
         this.homeTeamName = homeTeamName;
+        this.teamA = homeTeamName;
     }
 
     public String getAwayTeamName() {
-        return awayTeamName;
+        return teamB != null ? teamB : awayTeamName;
     }
 
     public void setAwayTeamName(String awayTeamName) {
         this.awayTeamName = awayTeamName;
+        this.teamB = awayTeamName;
     }
 
     public String getResult() {
@@ -102,11 +156,21 @@ public class CompletedMatchDTO {
     }
 
     public String getSeriesFormat() {
-        return seriesFormat;
+        return format != null ? format : seriesFormat;
     }
 
     public void setSeriesFormat(String seriesFormat) {
         this.seriesFormat = seriesFormat;
+        this.format = seriesFormat;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+        this.seriesFormat = format;
     }
 
     public String getLocation() {
@@ -126,10 +190,12 @@ public class CompletedMatchDTO {
     }
 
     public String getMatchLink() {
-        return matchLink;
+        return matchUrl != null ? matchUrl : matchLink;
     }
 
     public void setMatchLink(String matchLink) {
         this.matchLink = matchLink;
+        this.matchUrl = matchLink;
     }
 }
+

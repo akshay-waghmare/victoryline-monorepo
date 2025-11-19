@@ -24,9 +24,12 @@ export class CompletedMatchesComponent implements OnInit, OnDestroy {
   private retryCount = 0;
   private maxRetries = 3;
 
-  constructor(private matchesService: MatchesService) {}
+  constructor(private matchesService: MatchesService) {
+    console.log('CompletedMatchesComponent constructed');
+  }
 
   ngOnInit(): void {
+    console.log('CompletedMatchesComponent ngOnInit called');
     this.loadCompletedMatches();
   }
 

@@ -77,38 +77,60 @@ export function calculateStaleness(lastUpdated: Date): 'fresh' | 'warning' | 'er
   }
 }
 
+// Cache for formatTimeDisplay to prevent ExpressionChangedAfterItHasBeenCheckedError
+let timeDisplayCache: { date: number, value: string, timestamp: number } | null = null;
+const TIME_CACHE_TTL = 10000; // 10 seconds
+
 /**
- * Format time display relative to now
+ * Format time display relative to now (DEPRECATED - use TimeAgoPipe instead)
+ * This function is cached to prevent change detection errors
+ * @deprecated Use TimeAgoPipe in templates instead
  */
 export function formatTimeDisplay(date: Date): string {
-  const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
+  const now = Date.now();
+  const dateTime = date.getTime();
+  
+  // Return cached value if still valid
+  if (timeDisplayCache && 
+      timeDisplayCache.date === dateTime && 
+      (now - timeDisplayCache.timestamp) < TIME_CACHE_TTL) {
+    return timeDisplayCache.value;
+  }
+  
+  const diffMs = dateTime - now;
   const diffSeconds = Math.floor(Math.abs(diffMs) / 1000);
   const diffMinutes = Math.floor(diffSeconds / 60);
   const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
   
+  let result: string;
+  
   if (diffMs < 0) {
     // Past time
     if (diffSeconds < 60) {
-      return `${diffSeconds}s ago`;
+      result = `${diffSeconds}s ago`;
     } else if (diffMinutes < 60) {
-      return `${diffMinutes}m ago`;
+      result = `${diffMinutes}m ago`;
     } else if (diffHours < 24) {
-      return `${diffHours}h ago`;
+      result = `${diffHours}h ago`;
     } else {
-      return `${diffDays}d ago`;
+      result = `${diffDays}d ago`;
     }
   } else {
     // Future time
     if (diffSeconds < 60) {
-      return `in ${diffSeconds}s`;
+      result = `in ${diffSeconds}s`;
     } else if (diffMinutes < 60) {
-      return `in ${diffMinutes}m`;
+      result = `in ${diffMinutes}m`;
     } else if (diffHours < 24) {
-      return `in ${diffHours}h`;
+      result = `in ${diffHours}h`;
     } else {
-      return `in ${diffDays}d`;
+      result = `in ${diffDays}d`;
     }
   }
+  
+  // Cache the result
+  timeDisplayCache = { date: dateTime, value: result, timestamp: now };
+  
+  return result;
 }

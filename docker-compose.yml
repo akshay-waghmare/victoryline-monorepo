@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # MySQL Database
@@ -23,6 +22,24 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: victoryline-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Spring Boot Backend
   backend:
     build:
@@ -43,11 +60,20 @@ services:
       SPRING_JPA_SHOW_SQL: ${SHOW_SQL:-false}
       SPRING_H2_CONSOLE_ENABLED: true
       SPRING_H2_CONSOLE_PATH: /h2-console
+      # Flyway Configuration - Disable validation for H2 compatibility
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: false
+      # Redis Configuration
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_CACHE_TYPE: redis
       # JWT Configuration
       JWT_SECRET: ${JWT_SECRET:-victorylineSecretKey123456789012345678901234567890}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400}
     volumes:
       - backend_data:/app/data
+    depends_on:
+      - redis
     networks:
       - victoryline-network
     healthcheck:
@@ -98,8 +124,10 @@ services:
         NODE_VERSION: ${NODE_VERSION:-16.20.2}
     container_name: victoryline-frontend
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-80}:80"
+    # Port only exposed internally within Docker network
+    # Caddy will proxy external traffic to this container
+    expose:
+      - "80"
     environment:
       API_URL: http://backend:8099
     depends_on:
@@ -114,6 +142,29 @@ services:
       retries: 3
     volumes:
       - frontend_html:/usr/share/nginx/html
+
+  # Caddy Reverse Proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: victoryline-caddy
+    restart: unless-stopped
+    ports:
+      - "${CADDY_HTTP_PORT:-80}:80"
+      - "${CADDY_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Prerender Sidecar (periodic + webhook trigger)
   prerender:
@@ -145,6 +196,9 @@ volumes:
   mysql_data:
     driver: local
     name: victoryline-mysql-data
+  redis_data:
+    driver: local
+    name: victoryline-redis-data
   backend_data:
     driver: local
     name: victoryline-backend-data
@@ -154,3 +208,9 @@ volumes:
   frontend_html:
     driver: local
     name: victoryline-frontend-html
+  caddy_data:
+    driver: local
+    name: victoryline-caddy-data
+  caddy_config:
+    driver: local
+    name: victoryline-caddy-config

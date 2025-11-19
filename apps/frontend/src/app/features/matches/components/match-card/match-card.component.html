@@ -91,7 +91,7 @@
     
     <div class="match-card__info-item">
       <mat-icon class="match-card__info-icon">schedule</mat-icon>
-      <span class="match-card__info-text">{{ getTimeDisplay() }}</span>
+      <span class="match-card__info-text">{{ match.startTime | timeAgo }}</span>
     </div>
   </div>
   
