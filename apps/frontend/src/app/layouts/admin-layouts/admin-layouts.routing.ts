@@ -25,12 +25,14 @@ import { BannerComponent } from 'src/app/component/banner/banner.component';
 import { PrivacyPolicyComponent } from 'src/app/privacy-policy/privacy-policy.component';
 import { TermsOfServiceComponent } from 'src/app/terms-of-service/terms-of-service.component';
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
+import { FixturesListComponent } from 'src/app/features/matches/pages/fixtures-list/fixtures-list.component';
 
 
 export const AdminLayoutsRoute: Routes = [
   { path: 'Home', component: HomeComponent },
   { path: 'live-cricket-score', component: HomeComponent },
   { path: 'matches', component: MatchesListComponent },
+  { path: 'fixtures', component: FixturesListComponent },
   { path: 'dashboard', component: DashboardComponent },
   { path: 'add-service', component: AddServiceComponent },
   { path: 'football', component: ServiceListComponent },

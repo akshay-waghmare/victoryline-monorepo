@@ -67,6 +67,7 @@ import { TermsOfServiceComponent } from 'src/app/terms-of-service/terms-of-servi
 import { MatchCardComponent } from 'src/app/features/matches/components/match-card/match-card.component';
 import { SkeletonCardComponent } from 'src/app/shared/components/skeleton-card/skeleton-card.component';
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
+import { FixturesListComponent } from 'src/app/features/matches/pages/fixtures-list/fixtures-list.component';
 import { TabNavComponent } from 'src/app/shared/components/tab-nav/tab-nav.component';
 
 // 002-match-details-ux: Shared components
@@ -162,6 +163,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatchCardComponent,
     SkeletonCardComponent,
     MatchesListComponent,
+    FixturesListComponent,
     TabNavComponent,
     // 002-match-details-ux: Shared components
     StalenessIndicatorComponent,

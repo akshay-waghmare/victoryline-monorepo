@@ -1,0 +1,133 @@
+<div class="live-match-container">
+  <div class="container">
+    <!-- Header -->
+    <header class="match-header">
+      <button (click)="goBack()" class="btn-back" aria-label="Back to matches">
+        ← Back to Matches
+      </button>
+      <h1 class="page-title">Live Match Updates</h1>
+      <div class="match-id" *ngIf="matchId">Match ID: {{ matchId }}</div>
+    </header>
+
+    <!-- Connection Status Banner -->
+    <div class="status-banner" 
+         [ngClass]="{
+           'status-connected': connectionStatus.connected,
+           'status-reconnecting': connectionStatus.reconnecting,
+           'status-error': connectionStatus.error
+         }">
+      
+      <!-- Connected State -->
+      <div *ngIf="connectionStatus.connected && !connectionStatus.reconnecting" class="status-content">
+        <span class="status-icon">🟢</span>
+        <span class="status-text">Connected - Live updates enabled</span>
+      </div>
+
+      <!-- Reconnecting State -->
+      <div *ngIf="connectionStatus.reconnecting" class="status-content">
+        <span class="status-icon spinner">🔄</span>
+        <span class="status-text">
+          Reconnecting... (Attempt {{ connectionStatus.retryCount }})
+        </span>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="connectionStatus.error && !connectionStatus.reconnecting" class="status-content">
+        <span class="status-icon">🔴</span>
+        <span class="status-text">{{ connectionStatus.error }}</span>
+        <button (click)="reconnect()" class="btn btn-small btn-reconnect">
+          Reconnect
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner-large"></div>
+      <p>Connecting to live updates...</p>
+    </div>
+
+    <!-- Live Events Feed -->
+    <div *ngIf="!loading" class="events-feed">
+      <!-- Empty State -->
+      <div *ngIf="events.length === 0" class="empty-state">
+        <p class="empty-icon">🏏</p>
+        <p class="empty-title">No updates yet</p>
+        <p class="empty-subtitle">Live match events will appear here as they happen</p>
+      </div>
+
+      <!-- Events List -->
+      <div *ngIf="events.length > 0" class="events-list">
+        <div *ngFor="let event of events; trackBy: trackByEventId" 
+             class="event-item"
+             [ngClass]="getEventClass(event.eventType)"
+             role="article"
+             [attr.aria-label]="event.eventType + ': ' + event.message">
+          
+          <!-- Event Icon -->
+          <div class="event-icon">
+            {{ getEventIcon(event.eventType) }}
+          </div>
+
+          <!-- Event Content -->
+          <div class="event-content">
+            <!-- Event Header -->
+            <div class="event-header">
+              <span class="event-type">{{ event.eventType }}</span>
+              <span class="event-time">{{ formatTime(event.createdAt) }}</span>
+            </div>
+
+            <!-- Event Message -->
+            <p class="event-message">{{ event.message }}</p>
+
+            <!-- Event Meta -->
+            <div class="event-meta" *ngIf="event.overLabel || event.inningsLabel">
+              <span *ngIf="event.overLabel" class="meta-tag">
+                Over: {{ event.overLabel }}
+              </span>
+              <span *ngIf="event.inningsLabel" class="meta-tag">
+                {{ event.inningsLabel }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Count -->
+      <div *ngIf="events.length > 0" class="events-count">
+        Showing {{ events.length }} {{ events.length === 1 ? 'event' : 'events' }}
+      </div>
+    </div>
+
+    <!-- Accessibility: Live Region for Screen Readers -->
+    <div id="live-updates-announcer" 
+         class="sr-only" 
+         role="status" 
+         aria-live="polite" 
+         aria-atomic="true">
+    </div>
+
+    <!-- Help Text -->
+    <div class="help-section">
+      <details>
+        <summary>About Live Updates</summary>
+        <div class="help-content">
+          <p>This page shows real-time match events using Server-Sent Events (SSE).</p>
+          <ul>
+            <li>Updates appear automatically as they happen</li>
+            <li>Connection status is shown at the top</li>
+            <li>If disconnected, the page will try to reconnect automatically</li>
+            <li>You can manually reconnect using the "Reconnect" button</li>
+            <li>Latest events appear at the top</li>
+          </ul>
+          <p><strong>Troubleshooting:</strong></p>
+          <ul>
+            <li>If updates stop, check your internet connection</li>
+            <li>Try refreshing the page if reconnection fails</li>
+            <li>Some browsers may disconnect after extended inactivity</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>

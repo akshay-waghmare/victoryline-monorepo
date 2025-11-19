@@ -20,6 +20,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   readonly navLinks: MobileNavLink[] = [
     { label: 'Home', icon: 'home', route: '/', exact: true },
     { label: 'Matches', icon: 'sports_cricket', route: '/matches' },
+    { label: 'Fixtures', icon: 'event', route: '/fixtures' },
     { label: 'Players', icon: 'person', route: '/players' },
     { label: 'Teams', icon: 'groups', route: '/teams' }
   ];

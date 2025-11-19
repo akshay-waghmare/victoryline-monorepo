@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Cricket Updates Demo - Crickzen</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #718096;
+            font-size: 18px;
+        }
+
+        .matches {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .match-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .match-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .match-card h3 {
+            color: #1a202c;
+            margin-bottom: 12px;
+            font-size: 20px;
+        }
+
+        .match-card .match-info {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .match-card .live-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 12px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .features {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .features h2 {
+            color: #1a202c;
+            margin-bottom: 20px;
+        }
+
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .features li {
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        .features li:last-child {
+            border-bottom: none;
+        }
+
+        .features li::before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        .instructions {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .instructions h3 {
+            color: #856404;
+            margin-bottom: 12px;
+        }
+
+        .instructions p {
+            color: #856404;
+            line-height: 1.6;
+        }
+
+        .instructions code {
+            background: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #e83e8c;
+        }
+
+        .api-info {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .api-info h2 {
+            color: #1a202c;
+            margin-bottom: 20px;
+        }
+
+        .endpoint {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .endpoint .method {
+            color: #10b981;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .endpoint .url {
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏏 Live Cricket Updates - Demo</h1>
+            <p>Real-time cricket match updates using Server-Sent Events (SSE)</p>
+        </div>
+
+        <div class="instructions">
+            <h3>⚠️ Quick Setup Instructions</h3>
+            <p>
+                The dummy data has been loaded into the database! Click on any match card below to view live updates.
+                <br><br>
+                <strong>Note:</strong> The SSE endpoint currently requires authentication. To view live updates:
+                <br>
+                1. Navigate to: <code>http://localhost/live/matches/TEST_MATCH_001</code>
+                <br>
+                2. Or use: <code>http://localhost/live/matches/IPL_2025_FINAL</code>
+                <br><br>
+                <strong>Available Events:</strong>
+                <ul style="margin-top: 12px; margin-left: 20px;">
+                    <li>TEST_MATCH_001: 10 events (India vs Australia)</li>
+                    <li>IPL_2025_FINAL: 8 events (Mumbai Indians vs CSK)</li>
+                </ul>
+            </p>
+        </div>
+
+        <div class="matches">
+            <div class="match-card" onclick="window.location.href='/live/matches/TEST_MATCH_001'">
+                <h3>🇮🇳 India vs 🇦🇺 Australia</h3>
+                <div class="match-info">T20 International • Melbourne Cricket Ground</div>
+                <div class="match-info">India: 185/3 (20 overs)</div>
+                <div class="live-badge">● LIVE</div>
+            </div>
+
+            <div class="match-card" onclick="window.location.href='/live/matches/IPL_2025_FINAL'">
+                <h3>IPL 2025 Final</h3>
+                <div class="match-info">Mumbai Indians vs Chennai Super Kings</div>
+                <div class="match-info">MI: 175/6 (20 overs)</div>
+                <div class="live-badge">● LIVE</div>
+            </div>
+        </div>
+
+        <div class="features">
+            <h2>✨ Features Implemented</h2>
+            <ul>
+                <li>Real-time Server-Sent Events (SSE) streaming</li>
+                <li>Automatic reconnection with exponential backoff (2s → 30s)</li>
+                <li>Connection status indicator (connected/reconnecting/error)</li>
+                <li>Color-coded event types (wicket, boundary, over, innings)</li>
+                <li>Accessible ARIA live region for screen readers</li>
+                <li>Event history (last 100 events retained)</li>
+                <li>Responsive design for mobile/tablet/desktop</li>
+                <li>Screen reader announcements for accessibility</li>
+            </ul>
+        </div>
+
+        <div class="api-info">
+            <h2>🔌 API Endpoints</h2>
+            
+            <div class="endpoint">
+                <span class="method">GET</span>
+                <span class="url">/api/live/matches/{matchId}/stream</span>
+                <div style="color: #718096; margin-top: 8px;">
+                    Returns: text/event-stream (SSE connection)
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <span class="method">POST</span>
+                <span class="url">/api/live/matches/{matchId}/events</span>
+                <div style="color: #718096; margin-top: 8px;">
+                    Body: { message, eventType, over, innings }
+                    <br>Requires: ROLE_BLOG_EDITOR
+                </div>
+            </div>
+
+            <h3 style="margin: 24px 0 12px 0;">Test with curl:</h3>
+            <div class="endpoint">
+                curl -N http://localhost/api/live/matches/TEST_MATCH_001/stream
+            </div>
+
+            <h3 style="margin: 24px 0 12px 0;">Database Check:</h3>
+            <div class="endpoint">
+                docker exec -i victoryline-mysql mysql -uroot -proot cricket_db -e "SELECT * FROM live_events ORDER BY created_at DESC LIMIT 5;"
+            </div>
+        </div>
+    </div>
+</body>
+</html>

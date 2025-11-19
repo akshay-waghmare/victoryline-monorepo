@@ -1,0 +1,100 @@
+# robots.txt for Crickzen - Cricket Scores and News
+
+# Allow all crawlers by default
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://yourdomain.com/sitemap.xml
+
+# Allow specific paths
+Allow: /blog/
+Allow: /matches/
+Allow: /teams/
+Allow: /players/
+Allow: /live/
+
+# Disallow admin and API endpoints
+Disallow: /api/
+Disallow: /admin/
+Disallow: /login
+Disallow: /register
+Disallow: /user/
+
+# Disallow search and filter result pages to prevent duplicate content
+Disallow: /*?search=*
+Disallow: /*?filter=*
+Disallow: /*?page=*
+Disallow: /*?sort=*
+
+# Disallow private user content
+Disallow: /profile/
+Disallow: /settings/
+Disallow: /dashboard/
+
+# Crawl delay for aggressive bots (optional, adjust as needed)
+# User-agent: *
+# Crawl-delay: 1
+
+# Google-specific rules
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Googlebot for Images
+User-agent: Googlebot-Image
+Allow: /assets/
+Allow: /uploads/
+
+# Googlebot for News (prioritize blog content)
+User-agent: Googlebot-News
+Allow: /blog/
+Crawl-delay: 0
+
+# Bing-specific rules
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 0
+
+# Yandex (Russian search engine)
+User-agent: Yandex
+Allow: /
+Crawl-delay: 1
+
+# Baidu (Chinese search engine)
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 2
+
+# Block bad bots and scrapers
+User-agent: SemrushBot
+User-agent: AhrefsBot
+User-agent: DotBot
+User-agent: MJ12bot
+User-agent: BLEXBot
+Disallow: /
+
+# Block AI training scrapers (optional - uncomment to block)
+# User-agent: GPTBot
+# User-agent: ChatGPT-User
+# User-agent: CCBot
+# User-agent: anthropic-ai
+# User-agent: Claude-Web
+# Disallow: /
+
+# Media files - allow for better indexing
+User-agent: *
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.png$
+Allow: /*.webp$
+Allow: /*.svg$
+Allow: /*.css$
+Allow: /*.js$
+
+# Additional Notes:
+# - Update "https://yourdomain.com" with your actual domain
+# - Monitor crawl stats in Google Search Console and Bing Webmaster Tools
+# - Adjust crawl delays based on server capacity
+# - Review and update quarterly as site structure evolves
