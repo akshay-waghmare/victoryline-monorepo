@@ -85,3 +85,83 @@ No violations anticipated. Redis caching is optional and aligns with Constitutio
 - IV. Testing Requirements: PASS — Unit/integration test expectations captured in quickstart and contracts notes.
 - V. Performance Standards: PASS — Redis TTL chosen; indexes defined in data model; target <200ms achievable.
 - VI. Frontend UI/UX Standards: N/A — Phase 2 will ensure compliance.
+
+---
+
+## Phase 2: Frontend UI Implementation
+
+**Status**: Ready to start (Backend API complete and deployed)  
+**Framework**: Angular 15+ with TypeScript 4.9+  
+**Scope**: User-facing upcoming matches page with responsive design, filtering, and real-time updates
+
+### UI Goals
+
+1. **Responsive Design**: Mobile-first approach with CSS Grid/Flexbox
+2. **Performance**: Initial load <2s, smooth scrolling with virtual scroll
+3. **User Experience**: Clear match cards, intuitive filters, loading states
+4. **Accessibility**: WCAG 2.1 AA compliance, keyboard navigation
+5. **Real-time**: Auto-refresh every 5 minutes, manual refresh button
+
+### UI Components Structure
+
+```text
+apps/frontend/src/app/
+├── upcoming-matches/
+│   ├── upcoming-matches.module.ts
+│   ├── upcoming-matches-routing.module.ts
+│   ├── components/
+│   │   ├── upcoming-matches-list/
+│   │   │   ├── upcoming-matches-list.component.ts
+│   │   │   ├── upcoming-matches-list.component.html
+│   │   │   ├── upcoming-matches-list.component.scss
+│   │   │   └── upcoming-matches-list.component.spec.ts
+│   │   ├── match-card/
+│   │   │   ├── match-card.component.ts
+│   │   │   ├── match-card.component.html
+│   │   │   ├── match-card.component.scss
+│   │   │   └── match-card.component.spec.ts
+│   │   └── match-filters/
+│   │       ├── match-filters.component.ts
+│   │       ├── match-filters.component.html
+│   │       ├── match-filters.component.scss
+│   │       └── match-filters.component.spec.ts
+│   ├── services/
+│   │   ├── upcoming-matches.service.ts
+│   │   └── upcoming-matches.service.spec.ts
+│   └── models/
+│       └── upcoming-match.model.ts
+```
+
+### UI Features
+
+1. **Match List View**
+   - Card-based layout with team logos, names, series info
+   - Time countdown to match start
+   - Venue and status badges
+   - Pagination controls (10, 20, 50 per page)
+
+2. **Filtering & Search**
+   - Date range picker (from/to)
+   - Team search/filter (autocomplete)
+   - Series filter (dropdown)
+   - Status filter (scheduled/postponed/cancelled)
+
+3. **Real-time Updates**
+   - Auto-refresh every 5 minutes
+   - Manual refresh button with loading spinner
+   - Last updated timestamp display
+
+4. **Responsive Behavior**
+   - Desktop: 3-column grid
+   - Tablet: 2-column grid
+   - Mobile: Single column with optimized card layout
+
+### Technical Specifications
+
+- **HTTP Client**: Angular HttpClient with RxJS observables
+- **State Management**: Component-level state (no NgRx for this feature)
+- **Styling**: SCSS with BEM methodology, CSS Grid/Flexbox
+- **Icons**: Material Icons or custom SVG sprites
+- **Date Handling**: date-fns or native Intl API for timezone conversion
+- **Testing**: Jasmine + Karma for unit tests, TestBed for component tests
+

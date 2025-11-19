@@ -15,7 +15,10 @@ export const environment = {
   // This works for Docker builds. For local `ng serve`, configure proxy in angular.json
   apiUrl: '/api',
   REST_API_URL: '/api/',
-  REST_API_SCRAPING_URL: '/api/'
+  REST_API_SCRAPING_URL: '/api/',
+  // Blog/Strapi configuration
+  strapiApiUrl: '/api/blog',
+  strapiMediaUrl: '/api/blog/uploads'
 };
 
 /*

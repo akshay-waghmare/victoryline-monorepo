@@ -101,8 +101,8 @@ export class FixturesListComponent implements OnInit, OnDestroy {
       fixture.seriesName.toLowerCase().includes(query) ||
       fixture.teamA.name.toLowerCase().includes(query) ||
       fixture.teamB.name.toLowerCase().includes(query) ||
-      (fixture.venue?.name && fixture.venue.name.toLowerCase().includes(query)) ||
-      (fixture.venue?.city && fixture.venue.city.toLowerCase().includes(query))
+      (fixture.venue && fixture.venue.name && fixture.venue.name.toLowerCase().includes(query)) ||
+      (fixture.venue && fixture.venue.city && fixture.venue.city.toLowerCase().includes(query))
     );
   }
   
