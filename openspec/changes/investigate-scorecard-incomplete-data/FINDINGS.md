@@ -86,7 +86,35 @@ Batsmen: 158, G5, 13J, F8, 31R, 1CP, HZ, 2YJ, 2XP, GV, IE, 8VJ, 3LV, NH, D7O, 6K
 
 ## 🎯 Solution Required
 
-### Option 1: Wait for Full localStorage Population (RECOMMENDED)
+### Option 1: Click Scorecard Tab to Trigger localStorage Population (RECOMMENDED) ⭐
+**Strategy**: Navigate to/click scorecard tab to trigger full player data loading
+
+**Key Discovery**: 
+- localStorage is populated **on-demand** when user navigates to scorecard tab
+- Clicking the scorecard tab triggers JavaScript to load all player mappings
+- This is the website's natural mechanism for loading complete player data
+
+**Implementation**:
+1. After page load and initial wait, locate scorecard tab element
+2. Click/navigate to scorecard tab (trigger: `page.click('selector')`)
+3. Wait briefly (1-2 seconds) for localStorage to populate
+4. Extract localStorage (now complete with all player codes)
+5. Proceed with sC4 call and name replacement
+
+**Pros**:
+- ✅ **Most reliable** - uses website's natural loading mechanism
+- ✅ **Fast** - 1-2 second wait instead of 10 second polling
+- ✅ **Guaranteed complete** - website loads all players when tab opens
+- ✅ **Simple implementation** - single click action
+- ✅ **No polling logic** needed
+
+**Cons**:
+- ⚠️ Selector may change if website structure updates
+- ⚠️ Need to identify correct tab selector
+
+---
+
+### Option 2: Poll localStorage Until Complete (FALLBACK)
 **Strategy**: Poll localStorage until all expected player codes are present
 
 **Implementation**:
@@ -97,13 +125,13 @@ Batsmen: 158, G5, 13J, F8, 31R, 1CP, HZ, 2YJ, 2XP, GV, IE, 8VJ, 3LV, NH, D7O, 6K
 5. Fallback: Use codes as names if timeout exceeded
 
 **Pros**:
-- ✅ Most reliable - guarantees complete data
-- ✅ Respects website's natural loading sequence
-- ✅ No scraping of alternative sources needed
+- ✅ Works even if tab clicking fails
+- ✅ No dependency on UI elements
 
 **Cons**:
 - ⚠️ Adds 5-10 seconds delay per match
 - ⚠️ Timeout needs careful tuning
+- ⚠️ Less reliable than triggering via tab click
 
 ---
 
@@ -145,53 +173,69 @@ Batsmen: 158, G5, 13J, F8, 31R, 1CP, HZ, 2YJ, 2XP, GV, IE, 8VJ, 3LV, NH, D7O, 6K
 
 ---
 
-## 📋 Recommended Fix: Option 1 (localStorage Polling)
+## 📋 Recommended Fix: Option 1 (Scorecard Tab Click) ⭐
 
 ### Implementation Plan
 
-1. **Add localStorage polling function**:
+1. **Add scorecard tab trigger function**:
 ```python
-def wait_for_localstorage_complete(page, required_codes, timeout=10, poll_interval=0.5):
+def trigger_scorecard_tab_load(page, timeout=5):
     """
-    Poll localStorage until all required player codes are present.
+    Click/navigate to scorecard tab to trigger full localStorage population.
     
     Args:
         page: Playwright page object
-        required_codes: List of player codes (e.g., ['158', 'G5', 'D7O'])
-        timeout: Maximum wait time in seconds
-        poll_interval: Time between polls in seconds
+        timeout: Maximum wait time for tab to load
     
     Returns:
-        dict: Complete localStorage data or partial data if timeout
+        bool: True if successful, False if failed
     """
-    start_time = time.time()
-    while (time.time() - start_time) < timeout:
-        local_storage = page.evaluate("() => Object.fromEntries(Object.entries(localStorage))")
-        player_data = {k: v for k, v in local_storage.items() if k.startswith('p_')}
+    try:
+        # Find and click scorecard tab/link
+        # Common selectors to try:
+        selectors = [
+            'a[href*="scorecard"]',
+            'button:has-text("Scorecard")',
+            '[role="tab"]:has-text("Scorecard")',
+            '.nav-link:has-text("Scorecard")',
+            '#scorecard-tab'
+        ]
         
-        # Check if all required codes present
-        missing_codes = [code for code in required_codes 
-                        if f"p_{code}_name" not in player_data]
+        for selector in selectors:
+            try:
+                if page.locator(selector).count() > 0:
+                    api_logger.info(f"[SCORECARD_TAB] Found tab with selector: {selector}")
+                    page.click(selector, timeout=timeout * 1000)
+                    api_logger.info(f"[SCORECARD_TAB] Clicked successfully")
+                    
+                    # Wait for localStorage to populate (1-2 seconds)
+                    time.sleep(2)
+                    return True
+            except Exception as e:
+                api_logger.debug(f"[SCORECARD_TAB] Selector {selector} failed: {e}")
+                continue
         
-        if not missing_codes:
-            api_logger.info(f"[LOCALSTORAGE] All {len(required_codes)} player codes found")
-            return local_storage
+        api_logger.warning(f"[SCORECARD_TAB] No scorecard tab found with any selector")
+        return False
         
-        api_logger.debug(f"[LOCALSTORAGE] Waiting... {len(missing_codes)} codes still missing")
-        time.sleep(poll_interval)
-    
-    api_logger.warning(f"[LOCALSTORAGE] Timeout after {timeout}s, {len(missing_codes)} codes missing")
-    return local_storage
+    except Exception as e:
+        api_logger.error(f"[SCORECARD_TAB] Error triggering tab: {e}", exc_info=True)
+        return False
 ```
 
-2. **Modify sC4 flow**:
-   - Extract player codes from sC4 response first
-   - Call `wait_for_localstorage_complete()` with those codes
-   - Then proceed with name replacement
+2. **Modify fetchData() flow in crex_scraper.py**:
+   - After page.goto() and initial load
+   - Call `trigger_scorecard_tab_load(page)` 
+   - Then extract localStorage (now complete)
+   - Proceed with sC4 call and name replacement
 
-3. **Add configuration**:
-   - `LOCALSTORAGE_WAIT_TIMEOUT=10` (env variable)
-   - `LOCALSTORAGE_POLL_INTERVAL=0.5` (env variable)
+3. **Add fallback logic**:
+   - If tab click fails, try URL navigation: `page.goto(url.replace('/live', '/scorecard'))`
+   - If still incomplete, log warning and proceed with available data
+
+4. **Add configuration**:
+   - `SCORECARD_TAB_WAIT=2` (seconds to wait after clicking)
+   - `SCORECARD_TAB_TIMEOUT=5` (timeout for finding/clicking tab)
 
 ---
 

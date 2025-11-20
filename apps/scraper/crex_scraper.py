@@ -901,9 +901,10 @@ def fetchData(url, context=None):
 
             scraper_logger.info("Browser context and page created")
 
-            # **Step 1: Open /scorecard in a new tab**
+            # **Step 1: Open /scorecard in a new tab to trigger localStorage population**
             scorecard_url = url.replace('/live', '/scorecard')
             scraper_logger.info(f"Opening scorecard URL in a new tab: {scorecard_url}")
+            api_logger.info(f"[SCORECARD_TAB] Triggering scorecard page to populate localStorage")
             
             try:
                 scorecard_page = browser_context.new_page()
@@ -911,6 +912,20 @@ def fetchData(url, context=None):
                 scraper_logger.info(f"Attempting to navigate to: {scorecard_url}")
                 response = scorecard_page.goto(scorecard_url, timeout=30000, wait_until="domcontentloaded")
                 scraper_logger.info(f"Scorecard page loaded with status: {response.status if response else 'unknown'}")
+                
+                # **CRITICAL FIX: Extract localStorage from scorecard page after it loads**
+                # This page has all player data populated in localStorage
+                api_logger.info(f"[SCORECARD_TAB] Waiting 2 seconds for localStorage to fully populate")
+                time.sleep(2)  # Wait for JavaScript to populate localStorage
+                
+                try:
+                    scorecard_local_storage_data = categorize_local_storage_data(scorecard_page)
+                    data_store['local_storage_data'] = scorecard_local_storage_data
+                    api_logger.info(f"[SCORECARD_TAB] Successfully extracted complete localStorage from scorecard page")
+                    api_logger.info(f"[SCORECARD_TAB] Player codes available: {len(scorecard_local_storage_data.get('player_data', {}))} players")
+                except Exception as storage_error:
+                    api_logger.error(f"[SCORECARD_TAB] Failed to extract localStorage: {storage_error}")
+                    
             except Exception as e:
                 scraper_logger.error(f"Failed to load scorecard page {scorecard_url}: {e}")
                 # Skip scorecard page and continue with main scraping
@@ -926,6 +941,7 @@ def fetchData(url, context=None):
                 try:
                     scorecard_page.close()
                     scraper_logger.info("Scorecard tab closed")
+                    api_logger.info(f"[SCORECARD_TAB] Scorecard tab closed, localStorage preserved in browser context")
                 except Exception as e:
                     scraper_logger.warning(f"Error closing scorecard tab: {e}")
             
