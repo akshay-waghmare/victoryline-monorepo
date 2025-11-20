@@ -38,7 +38,7 @@ export class FixturesListComponent implements OnInit, OnDestroy {
   
   // Pagination
   currentPage = 0;
-  pageSize = 20;
+  pageSize = 100;  // Increased to fetch all matches at once
   totalItems = 0;
   
   // Auto-refresh
