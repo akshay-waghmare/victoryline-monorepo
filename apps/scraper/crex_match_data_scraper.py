@@ -935,13 +935,14 @@ def fetchData(url, context=None):
                 scorecard_page = browser_context.new_page()
                 scorecard_page.route("**/*", block_unnecessary_resources)
                 scraper_logger.info(f"Attempting to navigate to: {scorecard_url}")
-                response = scorecard_page.goto(scorecard_url, timeout=30000, wait_until="domcontentloaded")
+                response = scorecard_page.goto(scorecard_url, timeout=30000, wait_until="networkidle")
                 scraper_logger.info(f"Scorecard page loaded with status: {response.status if response else 'unknown'}")
                 
                 # **CRITICAL FIX: Extract localStorage from scorecard page after it loads**
                 # This page has all player data populated in localStorage
-                api_logger.info(f"[SCORECARD_TAB] Waiting 2 seconds for localStorage to fully populate")
-                time.sleep(2)  # Wait for JavaScript to populate localStorage
+                # Wait for network idle, then additional time for JS to populate localStorage
+                api_logger.info(f"[SCORECARD_TAB] Waiting 5 seconds for localStorage to fully populate")
+                time.sleep(5)  # Wait for JavaScript to populate localStorage
                 
                 try:
                     scorecard_local_storage_data = categorize_local_storage_data(scorecard_page)
