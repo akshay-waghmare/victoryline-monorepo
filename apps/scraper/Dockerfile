@@ -51,10 +51,10 @@ RUN mkdir -p ${PLAYWRIGHT_BROWSERS_PATH}
 # Install Playwright Chromium browser during build so runtime is ready
 RUN python -m playwright install chromium
 
-# Copy the standalone helper modules (shared utilities, services, etc.)
-COPY *.py ./
+# Copy the standalone helper modules (match data scraper, info scraper, services, etc.)
+COPY crex_match_data_scraper.py crex_info_url.py crex_main_url.py cricket_data_service.py cricket_data_service_batched.py shared.py ./
 
-# Copy the entire scraper application package
+# Copy the entire scraper application package (URL discovery scraper + infrastructure)
 COPY crex_scraper_python/ ./
 
 # Make the start script executable if it exists

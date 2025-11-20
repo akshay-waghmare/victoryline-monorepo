@@ -23,10 +23,10 @@ from src.core.scraper_context import (
     utcnow,
 )
 
-# Add parent directory to path to import root-level crex_scraper
+# Add parent directory to path to import root-level match data scraper
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, parent_dir)
-from crex_scraper import fetchData as fetch_match_data  # The detailed match scraper
+from crex_match_data_scraper import fetchData as fetch_match_data  # The detailed match scraper
 from src.shared import scraping_tasks
 from src.logging.adapters import get_logger, bind_correlation_id
 
