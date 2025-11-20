@@ -484,8 +484,22 @@ def handle_sC4_result(future, data_store):
         with data_store['lock']:
          match_stats_by_innings = future.result()
          if match_stats_by_innings:
+            # [FIX] Ensure localStorage is available before decoding
+            if not data_store.get('local_storage_data'):
+                api_logger.error(f"[CALLBACK ERROR] localStorage not available in data_store, cannot decode player names")
+                api_logger.warning(f"[CALLBACK] Proceeding without name decoding - player codes will be used as-is")
+                # Store raw data without decoding
+                data_store['sC4_stats'] = match_stats_by_innings
+                return
+            
             team_data = data_store.get('local_storage_data', {}).get('team_data', {})
             player_data = data_store.get('local_storage_data', {}).get('player_data', {})
+            
+            # [FIX] Verify localStorage has player data
+            if not player_data:
+                api_logger.warning(f"[CALLBACK] localStorage exists but player_data is empty")
+            else:
+                api_logger.info(f"[CALLBACK] localStorage available with {len(player_data)} player codes")
             
             for inning_label, inning_stats in match_stats_by_innings.get('innings', {}).items():
                 api_logger.debug(f"Processing {inning_label}: {inning_stats}")
@@ -728,23 +742,27 @@ def handle_api_responses(response, data_store):
                 api_logger.debug(f"bowler_stats Data: {data_store.get('bowler_stats', {})}")
 
                 # Retrieve and store local storage data if not already done
+                # [FIX] Check if localStorage was already extracted from scorecard page
                 if not data_store.get('local_storage_data'):
+                    api_logger.info("[LOCALSTORAGE] Not found in data_store, attempting to extract from live page")
                     try:
                         if response.frame and response.frame.page:
                             page = response.frame.page
                             local_storage_data = categorize_local_storage_data(page)
                             if local_storage_data:
                                 data_store['local_storage_data'] = local_storage_data
-                                api_logger.debug("Local storage data retrieved and stored in data_store.")
+                                api_logger.info("[LOCALSTORAGE] Extracted from live page and stored in data_store")
                             else:
                                 data_store['local_storage_data'] = {}
-                                api_logger.warning("Local storage data could not be retrieved.")
+                                api_logger.warning("[LOCALSTORAGE] Could not be retrieved from live page")
                         else:
-                            api_logger.warning("Response frame or page is None, cannot retrieve local storage data.")
+                            api_logger.warning("[LOCALSTORAGE] Response frame or page is None, cannot retrieve")
                             data_store['local_storage_data'] = {}
                     except Exception as e:
-                        api_logger.error(f"Error retrieving local storage data inside handle_api_responses: {e}")
+                        api_logger.error(f"[LOCALSTORAGE] Error retrieving from live page: {e}")
                         data_store['local_storage_data'] = {}
+                else:
+                    api_logger.info("[LOCALSTORAGE] Already available in data_store (from scorecard page), skipping live page extraction")
                         
                 key_parameter = extract_key_from_url(response.url)
                 if not key_parameter:
@@ -766,6 +784,13 @@ def handle_api_responses(response, data_store):
                 }
                 
                 api_logger.info(f"filtered_headers: {filtered_headers}") 
+                
+                # [FIX] Ensure localStorage is available before making sC4 call
+                if not data_store.get('local_storage_data'):
+                    api_logger.warning("[SC4_CALL] localStorage not yet available, sC4 call will proceed but decoding may fail")
+                else:
+                    player_count = len(data_store['local_storage_data'].get('player_data', {}))
+                    api_logger.info(f"[SC4_CALL] localStorage available with {player_count} player codes")
                 
                 # Make the sC4 API call asynchronously
                 # Uncomment the synchronous call if needed
