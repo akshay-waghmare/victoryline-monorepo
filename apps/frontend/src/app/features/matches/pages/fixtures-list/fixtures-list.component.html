@@ -5,7 +5,16 @@
       <mat-icon>schedule</mat-icon>
       Upcoming Cricket Fixtures
     </h1>
-    <p class="page-description">Browse all scheduled cricket matches</p>
+    <p class="page-description">
+      Browse all scheduled cricket matches
+      <span *ngIf="lastUpdated" class="last-updated">
+        • Last updated: {{ lastUpdated | date:'short' }}
+      </span>
+    </p>
+    <p class="auto-refresh-info">
+      <mat-icon class="small-icon">info</mat-icon>
+      Auto-refreshes every 15 minutes
+    </p>
   </div>
 
   <!-- Filters and Search -->
@@ -32,9 +41,9 @@
       </mat-select>
     </mat-form-field>
 
-    <button mat-raised-button color="primary" (click)="onRefresh()" class="refresh-btn">
+    <button mat-raised-button color="primary" (click)="onRefresh()" class="refresh-btn" [disabled]="isLoading">
       <mat-icon>refresh</mat-icon>
-      Refresh
+      Refresh Now
     </button>
   </div>
 

@@ -7,7 +7,7 @@
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
+import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { UpcomingMatchesService, UpcomingMatchDTO } from '../../services/upcoming-matches.service';
 
@@ -41,6 +41,10 @@ export class FixturesListComponent implements OnInit, OnDestroy {
   pageSize = 20;
   totalItems = 0;
   
+  // Auto-refresh
+  lastUpdated: Date = null;
+  private autoRefreshInterval = 15 * 60 * 1000; // 15 minutes in milliseconds
+  
   // Unsubscribe subject
   private destroy$ = new Subject<void>();
   
@@ -51,11 +55,53 @@ export class FixturesListComponent implements OnInit, OnDestroy {
   
   ngOnInit(): void {
     this.loadFixtures();
+    this.startAutoRefresh();
+    this.startTimeBasedFilter();
   }
   
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+  
+  /**
+   * Start auto-refresh timer (every 15 minutes)
+   */
+  private startAutoRefresh(): void {
+    interval(this.autoRefreshInterval)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        console.log('Auto-refreshing fixtures...');
+        this.loadFixtures();
+      });
+  }
+  
+  /**
+   * Start time-based filter (every 1 minute) to remove started matches
+   */
+  private startTimeBasedFilter(): void {
+    interval(60000) // Check every 1 minute
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.filterExpiredMatches();
+      });
+  }
+  
+  /**
+   * Filter out matches that have started
+   */
+  private filterExpiredMatches(): void {
+    const currentTime = Math.floor(Date.now() / 1000);
+    const beforeCount = this.fixtures.length;
+    
+    this.fixtures = this.fixtures.filter(fixture => 
+      fixture.startTime > currentTime
+    );
+    
+    if (beforeCount !== this.fixtures.length) {
+      console.log('Removed', beforeCount - this.fixtures.length, 'started matches');
+      this.applySearch();
+    }
   }
   
   /**
@@ -71,11 +117,27 @@ export class FixturesListComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         (response) => {
-          this.fixtures = response.items;
-          this.totalItems = response.total;
+          // Filter out matches that have already started (only show future matches)
+          const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
+          const allMatches = response.items;
+          
+          this.fixtures = allMatches.filter(fixture => {
+            const isUpcoming = fixture.startTime > currentTime;
+            if (!isUpcoming) {
+              const matchDate = new Date(fixture.startTime * 1000);
+              console.log('Filtered out started/past match:', fixture.matchTitle, 'Start time:', matchDate.toLocaleString());
+            }
+            return isUpcoming;
+          });
+          
+          this.totalItems = this.fixtures.length;
+          this.lastUpdated = new Date();
           this.applySearch();
           this.isLoading = false;
-          console.log('Loaded fixtures:', response.items.length, 'of', response.total);
+          
+          console.log('✅ Loaded', this.fixtures.length, 'upcoming matches (filtered out', 
+                      allMatches.length - this.fixtures.length, 'started/past matches from', 
+                      allMatches.length, 'total in DB)');
         },
         (error) => {
           this.hasError = true;
