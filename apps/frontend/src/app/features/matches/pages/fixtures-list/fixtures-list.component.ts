@@ -56,7 +56,6 @@ export class FixturesListComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadFixtures();
     this.startAutoRefresh();
-    this.startTimeBasedFilter();
   }
   
   ngOnDestroy(): void {
@@ -77,34 +76,6 @@ export class FixturesListComponent implements OnInit, OnDestroy {
   }
   
   /**
-   * Start time-based filter (every 1 minute) to remove started matches
-   */
-  private startTimeBasedFilter(): void {
-    interval(60000) // Check every 1 minute
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.filterExpiredMatches();
-      });
-  }
-  
-  /**
-   * Filter out matches that have started
-   */
-  private filterExpiredMatches(): void {
-    const currentTime = Math.floor(Date.now() / 1000);
-    const beforeCount = this.fixtures.length;
-    
-    this.fixtures = this.fixtures.filter(fixture => 
-      fixture.startTime > currentTime
-    );
-    
-    if (beforeCount !== this.fixtures.length) {
-      console.log('Removed', beforeCount - this.fixtures.length, 'started matches');
-      this.applySearch();
-    }
-  }
-  
-  /**
    * Load fixtures from API
    */
   loadFixtures(): void {
@@ -117,27 +88,24 @@ export class FixturesListComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         (response) => {
-          // Filter out matches that have already started (only show future matches)
+          // Filter: Only show matches that haven't started yet (future matches only)
           const currentTime = Math.floor(Date.now() / 1000); // Current Unix timestamp in seconds
           const allMatches = response.items;
           
-          this.fixtures = allMatches.filter(fixture => {
-            const isUpcoming = fixture.startTime > currentTime;
-            if (!isUpcoming) {
-              const matchDate = new Date(fixture.startTime * 1000);
-              console.log('Filtered out started/past match:', fixture.matchTitle, 'Start time:', matchDate.toLocaleString());
-            }
-            return isUpcoming;
-          });
+          this.fixtures = allMatches.filter(fixture => 
+            fixture.startTime > currentTime  // Only future matches
+          );
           
           this.totalItems = this.fixtures.length;
           this.lastUpdated = new Date();
           this.applySearch();
           this.isLoading = false;
           
-          console.log('✅ Loaded', this.fixtures.length, 'upcoming matches (filtered out', 
-                      allMatches.length - this.fixtures.length, 'started/past matches from', 
-                      allMatches.length, 'total in DB)');
+          const filteredCount = allMatches.length - this.fixtures.length;
+          console.log('✅ Showing', this.fixtures.length, 'upcoming matches');
+          if (filteredCount > 0) {
+            console.log('⏸️ Hidden', filteredCount, 'past/started matches');
+          }
         },
         (error) => {
           this.hasError = true;
