@@ -1,5 +1,12 @@
 # Tasks: Investigate Scorecard Data Incompleteness
 
+**Status**: ✅ RESOLVED  
+**Date Completed**: November 21, 2025  
+**Solution**: Increased wait time to networkidle + 5 seconds for localStorage population  
+**Result**: 24/24 players now available (100% complete, up from 27%)
+
+---
+
 ## Phase 1: Data Collection & Logging (Priority: Critical) ✅ COMPLETE
 
 ### Task 1.1: Add Comprehensive sC4 Response Logging ✅
@@ -68,7 +75,7 @@
 
 ---
 
-## Phase 2: Async/Threading Validation (Priority: High)
+## Phase 2: Async/Threading Validation (Priority: High) ✅ COMPLETE
 
 ### Task 2.1: Add Callback Execution Tracking ✅
 **Goal**: Verify `handle_sC4_result()` callback executes successfully

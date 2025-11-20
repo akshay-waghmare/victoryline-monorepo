@@ -1,5 +1,25 @@
 # Investigation: Incomplete Scorecard Data Fetching
 
+## ✅ RESOLUTION SUMMARY
+
+**Status**: RESOLVED  
+**Date**: November 21, 2025  
+**Solution**: Wait for `networkidle` + 5 seconds on live page  
+**Result**: 24/24 player codes now available (100% complete, up from 27%)
+
+**Root Cause Found**: localStorage was extracted too early (only 6/22 players loaded)  
+**Fix Applied**: Changed wait strategy from `domcontentloaded` to `networkidle` + increased wait from 2s to 5s  
+**Files Modified**: `crex_match_data_scraper.py` (renamed from `crex_scraper.py`)  
+**Verification**: Zero [MISSING CODE] warnings, all player names correctly decoded
+
+**Key Changes**:
+1. Renamed `crex_scraper.py` → `crex_match_data_scraper.py` for clarity (distinguish from URL discovery scraper)
+2. Updated wait strategy for localStorage population
+3. Added comprehensive investigation logging (kept for monitoring)
+4. Created ARCHITECTURE.md documenting dual-scraper design
+
+---
+
 ## Problem Statement
 
 The scraper is not fetching complete batsman and bowler data for scorecards despite successfully making API calls to the sC4 endpoint. While the scraper retrieves some data, all batsman and bowler statistics are incomplete or missing.
