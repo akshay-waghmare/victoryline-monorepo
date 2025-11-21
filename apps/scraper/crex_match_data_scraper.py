@@ -128,6 +128,23 @@ def categorize_local_storage_data(page):
         team_data = {k: v for k, v in local_storage.items() if k.startswith('t_')}
         series_data = {k: v for k, v in local_storage.items() if k.startswith('s_')}
 
+        # [INVESTIGATION] Task 1.2: Log localStorage counts
+        api_logger.info(f"[LOCALSTORAGE] Total entries: {len(local_storage)}")
+        api_logger.info(f"[LOCALSTORAGE] Player entries (p_*): {len(player_data)}")
+        api_logger.info(f"[LOCALSTORAGE] Team entries (t_*): {len(team_data)}")
+        api_logger.info(f"[LOCALSTORAGE] Series entries (s_*): {len(series_data)}")
+        
+        # [INVESTIGATION] Task 1.2: Save localStorage dump for debugging
+        try:
+            import time
+            timestamp = int(time.time())
+            dump_file = f"localStorage_dump_{timestamp}.json"
+            with open(dump_file, 'w', encoding='utf-8') as f:
+                json.dump(local_storage, f, indent=2, ensure_ascii=False)
+            api_logger.info(f"[LOCALSTORAGE] Saved dump to {dump_file}")
+        except Exception as dump_error:
+            api_logger.warning(f"[LOCALSTORAGE] Failed to save dump: {dump_error}")
+
         scraper_logger.info(f"Player Data Map: {player_data}")
         scraper_logger.info(f"Team Data Map: {team_data}")
         scraper_logger.debug(f"Series Data Map: {series_data}")
@@ -242,9 +259,14 @@ def parse_bowler_string(bowler_str):
     Returns:
         tuple: (bowler_code, stats_dict) or (None, None) if parsing fails
     """
+    # [INVESTIGATION] Task 1.3: Log incoming bowler string
+    api_logger.debug(f"[PARSE BOWLER] Parsing string: {bowler_str}")
+    
     try:
         parts = bowler_str.split('.')
         if len(parts) < 5:
+            # [INVESTIGATION] Task 1.3: Log parsing failure
+            api_logger.warning(f"[PARSE BOWLER FAIL] Invalid format (expected 5+ parts, got {len(parts)}): {bowler_str}")
             print(f"Invalid bowler string format: {bowler_str}")
             return None, None
 
@@ -266,8 +288,12 @@ def parse_bowler_string(bowler_str):
             "wickets": wickets
         }
 
+        # [INVESTIGATION] Task 1.3: Log successful parse
+        api_logger.debug(f"[PARSE BOWLER SUCCESS] Code: {bowler_code}, Stats: {bowler_stats}")
         return bowler_code, bowler_stats
     except Exception as e:
+        # [INVESTIGATION] Task 1.3: Log exception with full details
+        api_logger.error(f"[PARSE BOWLER ERROR] Exception parsing '{bowler_str}': {e}", exc_info=True)
         print(f"Error parsing bowler string '{bowler_str}': {e}")
         return None, None
 
@@ -281,6 +307,9 @@ def parse_batsman_string(batsman_str):
     Returns:
         tuple: (batsman_code, stats_dict) or (None, None) if parsing fails
     """
+    # [INVESTIGATION] Task 1.3: Log incoming batsman string
+    api_logger.debug(f"[PARSE BATSMAN] Parsing string: {batsman_str}")
+    
     try:
         # Split by '/' to separate main data from other details
         main_part = batsman_str.split('/')[0]  # e.g., "37X.44.39.7.0.66.86.2.PP.389"
@@ -301,6 +330,8 @@ def parse_batsman_string(batsman_str):
         else:
             # Undefined status for unexpected formats
             status = "unknown"
+            # [INVESTIGATION] Task 1.3: Log unknown status
+            api_logger.warning(f"[PARSE BATSMAN] Unknown status detected for '{batsman_str}' ({len(parts)} parts)")
 
         # Parse common fields
         runs = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 0
@@ -326,8 +357,12 @@ def parse_batsman_string(batsman_str):
             "status": status  # Added status field
         }
 
+        # [INVESTIGATION] Task 1.3: Log successful parse with status
+        api_logger.debug(f"[PARSE BATSMAN SUCCESS] Code: {batsman_code}, Status: {status}, Runs: {runs}/{balls_faced}")
         return batsman_code, batsman_stats
     except Exception as e:
+        # [INVESTIGATION] Task 1.3: Log exception with full details
+        api_logger.error(f"[PARSE BATSMAN ERROR] Exception parsing '{batsman_str}': {e}", exc_info=True)
         print(f"Error parsing batsman string '{batsman_str}': {e}")
         return None, None
 
@@ -345,7 +380,10 @@ def trigger_sC4_call_async(sc4_url, headers, data_store):
     Returns:
         None
     """
+    # [INVESTIGATION] Task 2.2: Log executor task submission
+    api_logger.info(f"[EXECUTOR] Submitting sC4 task for URL: {sc4_url}")
     future = executor.submit(trigger_sC4_call, sc4_url, headers)
+    api_logger.info(f"[EXECUTOR] Task submitted, future ID: {id(future)}")
     future.add_done_callback(functools.partial(handle_sC4_result, data_store=data_store))
         
 def trigger_sC4_call(sc4_url, headers):
@@ -366,7 +404,24 @@ def trigger_sC4_call(sc4_url, headers):
         if response.status_code == 200:
             try:
                 sc4_data = response.json()
-                api_logger.debug(f"sC4 Response Data: {sc4_data}")
+                
+                # [INVESTIGATION] Task 1.1: Log full sC4 response for data completeness validation
+                api_logger.info(f"[SC4_RESPONSE] Full response received from {sc4_url}")
+                api_logger.info(f"[SC4_RESPONSE] Response size: {len(json.dumps(sc4_data))} bytes")
+                api_logger.debug(f"[SC4_RESPONSE] Full JSON: {json.dumps(sc4_data, indent=2)}")
+                
+                # [INVESTIGATION] Task 1.1: Validate innings count
+                innings_count = len(sc4_data) if isinstance(sc4_data, list) else 0
+                api_logger.info(f"[SC4_RESPONSE] Number of innings in response: {innings_count}")
+                
+                # [INVESTIGATION] Task 1.1: Log array sizes for batsmen and bowlers per innings
+                for idx, inning_data in enumerate(sc4_data) if isinstance(sc4_data, list) else []:
+                    bowlers_array = inning_data.get('a', [])
+                    batsmen_array = inning_data.get('b', [])
+                    team_code = inning_data.get('c', 'Unknown')
+                    api_logger.info(f"[SC4_RESPONSE] Innings {idx+1} (Team: {team_code}): {len(bowlers_array)} bowlers, {len(batsmen_array)} batsmen")
+                    api_logger.debug(f"[SC4_RESPONSE] Innings {idx+1} bowlers array: {bowlers_array}")
+                    api_logger.debug(f"[SC4_RESPONSE] Innings {idx+1} batsmen array: {batsmen_array}")
 
                 # Extract bowlers_stats by innings using the provided function
                 bowlers_stats_by_innings = extract_match_stats_by_innings(sc4_data)
@@ -422,12 +477,29 @@ def handle_sC4_result(future, data_store):
     Returns:
         None
     """
+    # [INVESTIGATION] Task 2.1: Track callback execution
+    api_logger.info(f"[CALLBACK START] Processing sC4 result callback")
+    
     try:
         with data_store['lock']:
          match_stats_by_innings = future.result()
          if match_stats_by_innings:
+            # [FIX] Ensure localStorage is available before decoding
+            if not data_store.get('local_storage_data'):
+                api_logger.error(f"[CALLBACK ERROR] localStorage not available in data_store, cannot decode player names")
+                api_logger.warning(f"[CALLBACK] Proceeding without name decoding - player codes will be used as-is")
+                # Store raw data without decoding
+                data_store['sC4_stats'] = match_stats_by_innings
+                return
+            
             team_data = data_store.get('local_storage_data', {}).get('team_data', {})
             player_data = data_store.get('local_storage_data', {}).get('player_data', {})
+            
+            # [FIX] Verify localStorage has player data
+            if not player_data:
+                api_logger.warning(f"[CALLBACK] localStorage exists but player_data is empty")
+            else:
+                api_logger.info(f"[CALLBACK] localStorage available with {len(player_data)} player codes")
             
             for inning_label, inning_stats in match_stats_by_innings.get('innings', {}).items():
                 api_logger.debug(f"Processing {inning_label}: {inning_stats}")
@@ -435,6 +507,11 @@ def handle_sC4_result(future, data_store):
                 # Replace team_code
                 original_team_code = inning_stats.get('team_code')
                 if original_team_code:
+                    # [INVESTIGATION] Task 1.2: Check if team code exists in localStorage
+                    team_key = f"t_{original_team_code}_name"
+                    if team_key not in team_data:
+                        api_logger.warning(f"[MISSING CODE] Team code '{original_team_code}' not found in localStorage")
+                    
                     team_name = get_team_name(original_team_code, team_data)
                     inning_stats['team_code'] = team_name
                     api_logger.info(f"Replaced team_code '{original_team_code}' with '{team_name}' in {inning_label}")
@@ -443,6 +520,11 @@ def handle_sC4_result(future, data_store):
                 bowlers_stats = inning_stats.get('bowlers_stats', {})
                 api_logger.debug(f"Original bowlers_stats: {bowlers_stats}")
                 for bowler_code in list(bowlers_stats.keys()):
+                    # [INVESTIGATION] Task 1.2: Check if bowler code exists in localStorage
+                    player_key = f"p_{bowler_code}_name"
+                    if player_key not in player_data:
+                        api_logger.warning(f"[MISSING CODE] Bowler code '{bowler_code}' not found in localStorage")
+                    
                     bowler_stats = bowlers_stats[bowler_code]
                     player_name = get_player_name(bowler_code, player_data)
                     bowlers_stats[player_name] = bowler_stats
@@ -454,6 +536,11 @@ def handle_sC4_result(future, data_store):
                 batsman_stats = inning_stats.get('batsman_stats', {})
                 api_logger.debug(f"Original batsman_stats: {batsman_stats}")
                 for batsman_code in list(batsman_stats.keys()):
+                    # [INVESTIGATION] Task 1.2: Check if batsman code exists in localStorage
+                    player_key = f"p_{batsman_code}_name"
+                    if player_key not in player_data:
+                        api_logger.warning(f"[MISSING CODE] Batsman code '{batsman_code}' not found in localStorage")
+                    
                     batsman = batsman_stats[batsman_code]
                     player_name = get_player_name(batsman_code, player_data)
                     batsman_stats[player_name] = batsman
@@ -462,6 +549,10 @@ def handle_sC4_result(future, data_store):
                 api_logger.debug(f"Updated batsman_stats: {batsman_stats}")
                     
             data_store['sC4_stats'] = match_stats_by_innings
+            
+            # [INVESTIGATION] Task 2.1: Log callback completion
+            innings_processed = len(match_stats_by_innings.get('innings', {}))
+            api_logger.info(f"[CALLBACK END] Successfully processed {innings_processed} innings")
             api_logger.info("sC4 stats successfully retrieved and stored.")
             
             # Retrieve the bearer token
@@ -495,7 +586,8 @@ def handle_sC4_result(future, data_store):
                 api_logger.error("Failed to send sC4 stats to the backend.")
             
     except Exception as e:
-        api_logger.error(f"Error handling sC4 call result: {e}")
+        # [INVESTIGATION] Task 2.1: Log full exception with stack trace
+        api_logger.error(f"[CALLBACK ERROR] Error handling sC4 call result: {e}", exc_info=True)
 
         
 def handle_api_responses(response, data_store):
@@ -650,23 +742,27 @@ def handle_api_responses(response, data_store):
                 api_logger.debug(f"bowler_stats Data: {data_store.get('bowler_stats', {})}")
 
                 # Retrieve and store local storage data if not already done
+                # [FIX] Check if localStorage was already extracted from scorecard page
                 if not data_store.get('local_storage_data'):
+                    api_logger.info("[LOCALSTORAGE] Not found in data_store, attempting to extract from live page")
                     try:
                         if response.frame and response.frame.page:
                             page = response.frame.page
                             local_storage_data = categorize_local_storage_data(page)
                             if local_storage_data:
                                 data_store['local_storage_data'] = local_storage_data
-                                api_logger.debug("Local storage data retrieved and stored in data_store.")
+                                api_logger.info("[LOCALSTORAGE] Extracted from live page and stored in data_store")
                             else:
                                 data_store['local_storage_data'] = {}
-                                api_logger.warning("Local storage data could not be retrieved.")
+                                api_logger.warning("[LOCALSTORAGE] Could not be retrieved from live page")
                         else:
-                            api_logger.warning("Response frame or page is None, cannot retrieve local storage data.")
+                            api_logger.warning("[LOCALSTORAGE] Response frame or page is None, cannot retrieve")
                             data_store['local_storage_data'] = {}
                     except Exception as e:
-                        api_logger.error(f"Error retrieving local storage data inside handle_api_responses: {e}")
+                        api_logger.error(f"[LOCALSTORAGE] Error retrieving from live page: {e}")
                         data_store['local_storage_data'] = {}
+                else:
+                    api_logger.info("[LOCALSTORAGE] Already available in data_store (from scorecard page), skipping live page extraction")
                         
                 key_parameter = extract_key_from_url(response.url)
                 if not key_parameter:
@@ -688,6 +784,13 @@ def handle_api_responses(response, data_store):
                 }
                 
                 api_logger.info(f"filtered_headers: {filtered_headers}") 
+                
+                # [FIX] Ensure localStorage is available before making sC4 call
+                if not data_store.get('local_storage_data'):
+                    api_logger.warning("[SC4_CALL] localStorage not yet available, sC4 call will proceed but decoding may fail")
+                else:
+                    player_count = len(data_store['local_storage_data'].get('player_data', {}))
+                    api_logger.info(f"[SC4_CALL] localStorage available with {player_count} player codes")
                 
                 # Make the sC4 API call asynchronously
                 # Uncomment the synchronous call if needed
@@ -823,16 +926,32 @@ def fetchData(url, context=None):
 
             scraper_logger.info("Browser context and page created")
 
-            # **Step 1: Open /scorecard in a new tab**
+            # **Step 1: Open /scorecard in a new tab to trigger localStorage population**
             scorecard_url = url.replace('/live', '/scorecard')
             scraper_logger.info(f"Opening scorecard URL in a new tab: {scorecard_url}")
+            api_logger.info(f"[SCORECARD_TAB] Triggering scorecard page to populate localStorage")
             
             try:
                 scorecard_page = browser_context.new_page()
                 scorecard_page.route("**/*", block_unnecessary_resources)
                 scraper_logger.info(f"Attempting to navigate to: {scorecard_url}")
-                response = scorecard_page.goto(scorecard_url, timeout=30000, wait_until="domcontentloaded")
+                response = scorecard_page.goto(scorecard_url, timeout=30000, wait_until="networkidle")
                 scraper_logger.info(f"Scorecard page loaded with status: {response.status if response else 'unknown'}")
+                
+                # **CRITICAL FIX: Extract localStorage from scorecard page after it loads**
+                # This page has all player data populated in localStorage
+                # Wait for network idle, then additional time for JS to populate localStorage
+                api_logger.info(f"[SCORECARD_TAB] Waiting 5 seconds for localStorage to fully populate")
+                time.sleep(5)  # Wait for JavaScript to populate localStorage
+                
+                try:
+                    scorecard_local_storage_data = categorize_local_storage_data(scorecard_page)
+                    data_store['local_storage_data'] = scorecard_local_storage_data
+                    api_logger.info(f"[SCORECARD_TAB] Successfully extracted complete localStorage from scorecard page")
+                    api_logger.info(f"[SCORECARD_TAB] Player codes available: {len(scorecard_local_storage_data.get('player_data', {}))} players")
+                except Exception as storage_error:
+                    api_logger.error(f"[SCORECARD_TAB] Failed to extract localStorage: {storage_error}")
+                    
             except Exception as e:
                 scraper_logger.error(f"Failed to load scorecard page {scorecard_url}: {e}")
                 # Skip scorecard page and continue with main scraping
@@ -848,6 +967,7 @@ def fetchData(url, context=None):
                 try:
                     scorecard_page.close()
                     scraper_logger.info("Scorecard tab closed")
+                    api_logger.info(f"[SCORECARD_TAB] Scorecard tab closed, localStorage preserved in browser context")
                 except Exception as e:
                     scraper_logger.warning(f"Error closing scorecard tab: {e}")
             
