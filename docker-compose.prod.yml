@@ -174,7 +174,7 @@ services:
       - EMAIL=${LETSENCRYPT_EMAIL:-akshay.d.waghmare@gmail.com}
     volumes:
       # Use production Caddyfile for automatic HTTPS with Let's Encrypt
-      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
