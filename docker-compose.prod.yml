@@ -66,7 +66,7 @@ services:
       start_period: 60s
 
   scraper:
-    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.1.2}"
+    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.1.3}"
     container_name: victoryline-scraper
     restart: unless-stopped
     ports:
@@ -174,7 +174,7 @@ services:
       - EMAIL=${LETSENCRYPT_EMAIL:-akshay.d.waghmare@gmail.com}
     volumes:
       # Use production Caddyfile for automatic HTTPS with Let's Encrypt
-      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:
