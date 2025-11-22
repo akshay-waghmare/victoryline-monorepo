@@ -5,6 +5,15 @@
 **Status**: Draft  
 **Input**: User description: "Improve scraper efficiency, resource governance, freshness, resilience, observability, eliminate uncontrolled process growth and lag." 
 
+## Clarifications
+
+### Session 2025-11-22
+- Q: What exposure/auth policy should apply to the `/metrics` and `/status` endpoints? → A: `/metrics` internal-only; `/status` public read (no auth).
+- Q: Which per-domain rate limiting strategy should be used? → A: Token bucket (capacity + refill rate) per domain.
+- Q: How should multi-source reconciliation precedence be determined? → A: Static precedence weight combined with dynamic reliability score (penalize degrading domains).
+- Q: What retention policy should apply to recovery audit entries? → A: Keep last N (e.g., 200) entries in memory (ring buffer), ship all externally.
+- Q: What canonical match identity scheme should be used across domains? → A: Use backend authoritative match ID; map other domain IDs via lookup table.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Continuous Fresh Updates (Priority: P1)
@@ -90,14 +99,24 @@ If updates cease, the system detects stall conditions and initiates automated re
 - **FR-032**: System MUST allow dynamic enabling/disabling of a domain via configuration without restart.
 - **FR-033**: System MUST evict completed matches from hot cache while retaining final snapshot for archival (TTL 24h).
 - **FR-034**: System MUST ensure cache operations are O(1) per request and do not block scheduling loop (async operations).
+- **FR-035**: System MUST restrict `/metrics` endpoint to internal interface only (not internet-facing) while exposing `/status` publicly (read-only, no authentication) relying on infrastructure/network segmentation for security.
+- **FR-036**: System MUST implement per-domain token bucket rate limiting (capacity & refill rate configurable) enforcing domain-specific request pacing; tasks exceeding available tokens are deferred without blocking scheduler.
+- **FR-037**: System MUST compute a dynamic reliability score per domain (based on rolling failure rate and latency over a recent time window) and combine it with static precedence weight to rank sources during reconciliation; domains with reliability below threshold are temporarily demoted.
+- **FR-038**: System MUST retain only the last N (configurable, default 200) recovery audit entries in an in-memory ring buffer while emitting all entries to external logging; older entries evicted without blocking operations.
+- **FR-039**: System MUST use the backend authoritative match ID as canonical for all internal tracking and reconciliation, maintaining a mapping table from each domain-specific match identifier to the canonical ID; mismatches or unmapped IDs MUST be surfaced as a reconciliation warning.
 
 ### Key Entities
 - **Match Monitoring Record**: Identifier, last update time, freshness age, priority state, consecutive failure count, paused flag.
+	- Canonical ID: backend authoritative match ID.
+	- Mappings: dictionary of domain_id → domain_specific_match_id (runtime maintained, cached in memory; persisted indirectly via backend).
 - **Task Record**: Match identifier, scheduled time, priority, attempt count, status.
 - **Health Summary**: Grade, freshness statistics, queue depth, active tasks, failure ratio, configuration snapshot.
 - **Recovery Audit Entry**: Timestamp, action type, trigger condition, outcome status.
+	- Retention: Held in ring buffer of size AUDIT_MAX_ENTRIES (default 200); all entries also forwarded to external log sink.
 - **Cached Snapshot**: Match ID, normalized payload, created_at, provenance metadata, sequence number.
 - **Domain Adapter Descriptor**: Domain ID, rate limits, enabled flag, precedence weight, last discovery timestamp.
+	- Adds: token_bucket_capacity, token_bucket_refill_rate (tokens/sec), current_tokens (runtime only, not persisted).
+	- Adds: reliability_score (0–1), rolling_failure_rate (last N tasks), rolling_avg_latency_ms (last N tasks), precedence_effective (derived), last_reliability_update.
 
 ## Success Criteria *(mandatory)*
 
@@ -121,6 +140,9 @@ If updates cease, the system detects stall conditions and initiates automated re
 - **A-02**: Match priority classification logic is available from existing domain rules.
 - **A-03**: Configuration changes can be applied without full system restart.
 - **A-04**: Limited operational staff prefer clear health grades over granular raw metrics.
+- **A-05**: Network segmentation/firewall rules ensure only trusted internal systems can reach `/metrics`.
+- **A-06**: External logging/observability stack persists full audit history beyond in-memory ring buffer.
+- **A-07**: Backend exposes authoritative match IDs reliably before or during initial discovery phase.
 
 ## Constraints
 - **C-01**: Must avoid unbounded growth in pending tasks.

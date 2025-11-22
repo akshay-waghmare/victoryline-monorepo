@@ -1,21 +1,16 @@
 ﻿# Crickzen Development Guidelines
 
-Auto-generated from feature plans. Last updated: 2025-11-12
+Auto-generated from feature plans. Last updated: 2025-11-22
 
 ## Active Technologies
-- Frontend: Angular (CLI ~6.x/7.x), TypeScript ~3.2; Backend: Spring Boot (2.x, Java 8/11) [NEEDS CLARIFICATION]; Scraper: Python 3.x (Flask) + Angular, RxJS; Backend REST API (Spring); Scraper Flask API; axe-core (CI audit) [NEEDS CLARIFICATION on tooling integration] (002-match-details-ux)
-- Backend MySQL (per Constitution), Redis (optional cache) [NEEDS CLARIFICATION for usage in this feature] (002-match-details-ux)
-- [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION] (003-seo-optimization)
-- [if applicable, e.g., PostgreSQL, CoreData, files or N/A] (003-seo-optimization)
-- Angular Universal (SSR), Express server adapter, Helmet (security headers), Sharp (OG image resizing), Spring Boot Web + Jackson, MySQL JDBC, Redis client, Flask + requests, Lighthouse CI, axe-core (accessibility audit), sitemap + robots generator utility (custom or library), json-schema / OpenAPI tooling. (003-seo-optimization)
-- MySQL (authoritative match / team / player data); Redis (caching rendered SEO metadata & sitemap snapshot); File store or object storage (future) for generated OG/social images (initially build-time static assets). (003-seo-optimization)
+- Frontend: Angular (CLI ~6.x/7.x), TypeScript ~3.2; Backend: Spring Boot (2.x, Java 8/11); Scraper: Python 3.x (Flask) + Angular, RxJS; Backend REST API (Spring); Scraper Flask API; axe-core (CI audit) (002-match-details-ux)
+- Backend MySQL (per Constitution), Redis (optional cache) (002-match-details-ux)
+- Angular Universal (SSR), Express server adapter, Helmet (security headers), Sharp (OG image resizing), Spring Boot Web + Jackson, MySQL JDBC, Redis client, Flask + requests, Lighthouse CI, axe-core (accessibility audit), sitemap + robots generator utility (custom or library), json-schema / OpenAPI tooling (003-seo-optimization)
+- MySQL (authoritative match / team / player data); Redis (caching rendered SEO metadata & sitemap snapshot); File/object storage (future) for generated OG/social images (initially build-time static assets) (003-seo-optimization)
 - Python 3.x (Scraper), Java 8/11 with Spring Boot 2.x (Backend) (004-scraper-resilience)
-- TypeScript 3.2.x, Angular 7.2 + Angular Material 7 (layout, typography), RxJS 6 (streams), @stomp/ng2-stompjs (websocket updates), MatchesService / EventListService for data, existing scorecard API client (005-live-match-glance)
-- N/A (frontend state + in-memory services only) (005-live-match-glance)
-- TypeScript 3.2.x, Angular 7.2 CLI, HTML5, SCSS + Angular core & router, RxJS 6.x, Angular Material 7 (layout primitives), internal design tokens (005-live-match-glance)
-- N/A (consumes snapshot/scorecard REST endpoints only) (005-live-match-glance)
-
-- TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties)  <!-- + ACTION REQUIRED: Replace the content in this section with the technical details (001-modern-ui-redesign)
+- TypeScript 3.2.x, Angular 7.2 + Angular Material 7 (layout, typography), RxJS 6, @stomp/ng2-stompjs (websocket updates), MatchesService / EventListService, existing scorecard API client (005-live-match-glance)
+- TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties) (001-modern-ui-redesign)
+- Python 3.9+, Flask 2.2.2, async Playwright 1.40.0 (single browser + context pool), Redis (required caching layer), prometheus_client (metrics), backoff (retry), pytest + pytest-asyncio (async tests), docker pids_limit=512 (006-scraper-optimization)
 
 ## Project Structure
 
@@ -34,8 +29,8 @@ npm test; npm run lint
 TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties)  <!--: Follow standard conventions
 
 ## Recent Changes
+- 006-scraper-optimization: Added async Playwright pooling, Redis mandatory caching, metrics & health endpoints, retry/backoff strategy, resource governance (pids_limit, concurrency caps)
 - 005-live-match-glance: Added TypeScript 3.2.x, Angular 7.2 CLI, HTML5, SCSS + Angular core & router, RxJS 6.x, Angular Material 7 (layout primitives), internal design tokens
-- 005-live-match-glance: Added [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION] + [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
 - 005-live-match-glance: Added TypeScript 3.2.x, Angular 7.2 + Angular Material 7 (layout, typography), RxJS 6 (streams), @stomp/ng2-stompjs (websocket updates), MatchesService / EventListService for data, existing scorecard API client
 
 
