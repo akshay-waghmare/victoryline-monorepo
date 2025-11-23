@@ -215,3 +215,62 @@ The async migration MUST preserve all existing per-match data extraction semanti
 
 ### Success Condition
 All selectors accounted and tests green before beginning asynchronous Playwright refactor of per-match scraping.
+
+## Phases
+
+### Phase 1: Setup & Infrastructure (Async Foundation)
+**Goal**: Establish async runtime, Redis connectivity, and observability baseline.
+- [x] **Task 1.1**: Initialize `crex_scraper_python` package structure (src/tests/config).
+- [x] **Task 1.2**: Implement `config.py` (pydantic/dataclass) with env var loading.
+- [x] **Task 1.3**: Implement `logging` module (structured JSON logs).
+- [x] **Task 1.4**: Implement `metrics.py` (Prometheus registry & collectors).
+- [x] **Task 1.5**: Implement `cache.py` (Redis async client wrapper).
+- [x] **Task 1.6**: Create `Dockerfile` optimized for Playwright (browsers installed).
+
+### Phase 2: Core Scraper Engine (Async Browser Pool)
+**Goal**: Replace sync Playwright with robust async pool and resource management.
+- [x] **Task 2.1**: Implement `browser_pool.py` (AsyncBrowserPool class).
+- [x] **Task 2.2**: Implement `context_manager` (lifecycle, page creation, cleanup).
+- [x] **Task 2.3**: Implement `resource_monitor` (PID/Memory tracking).
+- [x] **Task 2.4**: Implement `adapters/base.py` (Abstract Base Class for scrapers).
+- [x] **Task 2.5**: Implement `adapters/crex.py` (Port existing logic to async adapter).
+
+### Phase 3: Scheduling & Task Management
+**Goal**: Intelligent task distribution with priority and rate limiting.
+- [x] **Task 3.1**: Implement `scheduler.py` (PriorityQueue, Task dataclass).
+- [x] **Task 3.2**: Implement `rate_limiter` (TokenBucket algorithm).
+- [x] **Task 3.3**: Implement `worker_loop` (Consumer logic, error handling).
+- [x] **Task 3.4**: Implement `circuit_breaker` (Failure detection & backoff).
+
+### Phase 4: API & Integration
+**Goal**: Expose control plane and integrate with Backend.
+- [x] **Task 4.1**: Implement `app.py` (Flask async routes: /health, /metrics).
+- [x] **Task 4.2**: Implement `health.py` (HealthGrader logic).
+- [x] **Task 4.3**: Implement `main.py` (Entry point, signal handling).
+- [x] **Task 4.4**: Update `docker-compose.yml` (Add Redis, update Scraper service).
+
+### Phase 5: Testing & Validation
+**Goal**: Verify resilience, performance, and correctness.
+- [x] **Task 5.1**: Unit Tests (Config, Scheduler, Metrics).
+- [x] **Task 5.2**: Integration Tests (Redis, Browser Pool).
+- [x] **Task 5.3**: Load Test (Simulate 50 concurrent matches).
+- [x] **Task 5.4**: Leak Test (Long-running scrape loop).
+
+### Phase 6: Migration & Cleanup
+**Goal**: Switch over from legacy scraper to new engine.
+- [x] **Task 6.1**: Move legacy code to `legacy/` folder.
+- [x] **Task 6.2**: Update documentation (README, Architecture).
+- [x] **Task 6.3**: Final deployment verification.
+
+### Phase 7: Polish
+**Goal**: Final code quality checks and minor fixes.
+- [x] **Task 7.1**: Run linters and formatters.
+- [x] **Task 7.2**: Address any TODOs in code.
+
+### Phase 8: Feature Parity Restoration (New)
+**Goal**: Restore full data fidelity (player stats, ball-by-ball) and backend push.
+- [ ] **Task 8.1**: Implement `localStorage` extraction in `CrexAdapter`.
+- [ ] **Task 8.2**: Implement Network Interception in `CrexAdapter` (capture JSON).
+- [ ] **Task 8.3**: Port data parsing logic (bowlers, batsman, innings) from legacy.
+- [ ] **Task 8.4**: Integrate `CricketDataService` to push data to Backend API.
+- [ ] **Task 8.5**: Verify data parity with legacy payload.

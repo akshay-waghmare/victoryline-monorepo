@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Callable, Optional, TypeVar
 
-from src.config import ScraperSettings, get_settings
+from ..config import ScraperSettings, get_settings
 
 T = TypeVar("T")
 

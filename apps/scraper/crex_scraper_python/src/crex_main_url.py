@@ -7,7 +7,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from playwright.sync_api import sync_playwright
 import requests
-from src.cricket_data_service import CricketDataService
+from .cricket_data_service import CricketDataService
 import threading
 import time
 import sqlite3
@@ -15,8 +15,8 @@ import sys
 import os
 import logging_config
 from src import monitoring
-from src.config import get_settings
-from src.core.scraper_context import (
+from .config import get_settings
+from .core.scraper_context import (
     ScraperContext,
     ScraperRegistry,
     derive_match_id,
@@ -27,8 +27,8 @@ from src.core.scraper_context import (
 parent_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, parent_dir)
 from crex_match_data_scraper import fetchData as fetch_match_data  # The detailed match scraper
-from src.shared import scraping_tasks
-from src.logging.adapters import get_logger, bind_correlation_id
+from .shared import scraping_tasks
+from .loggers.adapters import get_logger, bind_correlation_id
 
 app = Flask(__name__)
 CORS(app, resources={

@@ -13,9 +13,9 @@ try:  # Optional dependency for type checking
 except Exception:  # pragma: no cover - psutil is optional during static analysis
     psutil = None  # type: ignore
 
-from src.logging.adapters import get_logger
+from ..loggers.adapters import get_logger
 
-from src.config import ScraperSettings, get_settings
+from ..config import ScraperSettings, get_settings
 
 try:  # Avoid circular import during type checking
     from typing import TYPE_CHECKING
@@ -314,7 +314,7 @@ class ScraperContext:
         def graceful_exit():
             # Mark container as unhealthy immediately (503 responses)
             try:
-                from src.crex_main_url import CONTAINER_UNHEALTHY
+                from ..crex_main_url import CONTAINER_UNHEALTHY
                 CONTAINER_UNHEALTHY.set()
                 logger.warning("container_marked_unhealthy", metadata=metadata)
             except Exception:

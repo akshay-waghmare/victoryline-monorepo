@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: Scraper Metrics Endpoint
+  description: Prometheus-compatible metrics endpoint exposing scraper health, performance, and resource usage.
+  version: 1.0.0
+  contact:
+    name: VictoryLine Scraper Team
+
+servers:
+  - url: http://localhost:5000
+    description: Local development
+  - url: http://scraper:5000
+    description: Docker compose internal
+
+paths:
+  /metrics:
+    get:
+      summary: Prometheus metrics endpoint
+      description: |
+        Returns scraper metrics in Prometheus text format. Metrics include:
+        - Resource usage (PIDs, contexts, pages)
+        - Freshness distribution (histograms, quantiles)
+        - Scrape performance (durations, success/failure counts)
+        - Queue depth by priority
+        - Recycle events
+        
+        This endpoint is scraped by Prometheus every 15s.
+      operationId: getMetrics
+      tags:
+        - Monitoring
+      responses:
+        '200':
+          description: Successful response with Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP scraper_pids_current Current number of process IDs (PIDs)
+                  # TYPE scraper_pids_current gauge
+                  scraper_pids_current{instance="scraper-1"} 112
+                  
+                  # HELP scraper_contexts_active Active browser contexts
+                  # TYPE scraper_contexts_active gauge
+                  scraper_contexts_active{instance="scraper-1"} 38
+                  
+                  # HELP scraper_pages_open Currently open Playwright pages
+                  # TYPE scraper_pages_open gauge
+                  scraper_pages_open{instance="scraper-1"} 5
+                  
+                  # HELP scraper_browser_uptime_seconds Browser uptime in seconds
+                  # TYPE scraper_browser_uptime_seconds gauge
+                  scraper_browser_uptime_seconds{instance="scraper-1"} 18432.7
+                  
+                  # HELP scraper_queue_depth Tasks waiting in queue by priority
+                  # TYPE scraper_queue_depth gauge
+                  scraper_queue_depth{priority="live"} 3
+                  scraper_queue_depth{priority="imminent"} 12
+                  scraper_queue_depth{priority="completed"} 47
+                  
+                  # HELP scraper_freshness_seconds Freshness age distribution (histogram)
+                  # TYPE scraper_freshness_seconds histogram
+                  scraper_freshness_seconds_bucket{le="10"} 45
+                  scraper_freshness_seconds_bucket{le="30"} 89
+                  scraper_freshness_seconds_bucket{le="60"} 94
+                  scraper_freshness_seconds_bucket{le="120"} 98
+                  scraper_freshness_seconds_bucket{le="+Inf"} 100
+                  scraper_freshness_seconds_sum 2847.3
+                  scraper_freshness_seconds_count 100
+                  
+                  # HELP scraper_data_staleness_seconds Data staleness quantiles (summary)
+                  # TYPE scraper_data_staleness_seconds summary
+                  scraper_data_staleness_seconds{quantile="0.5"} 28.3
+                  scraper_data_staleness_seconds{quantile="0.95"} 54.7
+                  scraper_data_staleness_seconds{quantile="0.99"} 87.2
+                  scraper_data_staleness_seconds_sum 5638.9
+                  scraper_data_staleness_seconds_count 200
+                  
+                  # HELP scraper_scrape_duration_seconds Scrape duration by domain (histogram)
+                  # TYPE scraper_scrape_duration_seconds histogram
+                  scraper_scrape_duration_seconds_bucket{domain="crex",le="1"} 23
+                  scraper_scrape_duration_seconds_bucket{domain="crex",le="3"} 87
+                  scraper_scrape_duration_seconds_bucket{domain="crex",le="5"} 97
+                  scraper_scrape_duration_seconds_bucket{domain="crex",le="+Inf"} 100
+                  scraper_scrape_duration_seconds_sum{domain="crex"} 287.6
+                  scraper_scrape_duration_seconds_count{domain="crex"} 100
+                  
+                  # HELP scraper_scrapes_total Total scrapes by domain and status
+                  # TYPE scraper_scrapes_total counter
+                  scraper_scrapes_total{domain="crex",status="success"} 10234
+                  scraper_scrapes_total{domain="crex",status="failure"} 47
+                  
+                  # HELP scraper_navigation_failures_total Navigation failures by domain
+                  # TYPE scraper_navigation_failures_total counter
+                  scraper_navigation_failures_total{domain="crex"} 12
+                  
+                  # HELP scraper_recycles_total Browser recycle events by reason
+                  # TYPE scraper_recycles_total counter
+                  scraper_recycles_total{reason="uptime"} 4
+                  scraper_recycles_total{reason="task_count"} 1
+                  scraper_recycles_total{reason="manual"} 0
+                  scraper_recycles_total{reason="watchdog"} 0
+        '500':
+          description: Internal server error (metrics collection failed)
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "ERROR: Metrics collector unavailable"
+
+components:
+  schemas:
+    PrometheusMetrics:
+      type: string
+      format: prometheus-text
+      description: |
+        Prometheus text-based exposition format. Each metric follows pattern:
+        
+        # HELP <metric_name> <description>
+        # TYPE <metric_name> <type>
+        <metric_name>{label1="value1",label2="value2"} <value> [timestamp]
+        
+        Types: counter, gauge, histogram, summary, untyped
+
+externalDocs:
+  description: Prometheus Text Format Specification
+  url: https://prometheus.io/docs/instrumenting/exposition_formats/#text-based-format
+
+tags:
+  - name: Monitoring
+    description: Observability and health monitoring endpoints

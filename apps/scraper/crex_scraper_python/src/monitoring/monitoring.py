@@ -13,13 +13,13 @@ from prometheus_client import (
     start_http_server,
 )
 
-from src.config import ScraperSettings, get_settings
+from ..config import ScraperSettings, get_settings
 
 try:  # pragma: no cover - typing-only import
     from typing import TYPE_CHECKING
 
     if TYPE_CHECKING:
-        from src.core.scraper_context import ScraperContext
+        from ..core.scraper_context import ScraperContext
 except ImportError:  # pragma: no cover - mypy safety on partial installs
     TYPE_CHECKING = False  # type: ignore
 

@@ -51,14 +51,8 @@ RUN mkdir -p ${PLAYWRIGHT_BROWSERS_PATH}
 # Install Playwright Chromium browser during build so runtime is ready
 RUN python -m playwright install chromium
 
-# Copy the standalone helper modules (match data scraper, info scraper, services, etc.)
-COPY crex_match_data_scraper.py crex_info_url.py crex_main_url.py cricket_data_service.py cricket_data_service_batched.py shared.py ./
-
-# Copy the entire scraper application package (URL discovery scraper + infrastructure)
-COPY crex_scraper_python/ ./
-
-# Make the start script executable if it exists
-RUN if [ -f start.sh ]; then chmod +x start.sh; fi
+# Copy the entire scraper application package
+COPY crex_scraper_python/ crex_scraper_python/
 
 # Create storage directory
 RUN mkdir -p /app/storage
@@ -71,4 +65,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:5000/health || exit 1
 
 # Set the default command
-CMD ["python", "run_server.py"]
+ENV PYTHONPATH=/app
+CMD ["python", "-m", "crex_scraper_python.src.app"]

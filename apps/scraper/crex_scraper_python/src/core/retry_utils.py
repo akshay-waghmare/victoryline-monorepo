@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Optional, Tuple, Type, TypeVar
 
-from src.config import get_settings
+from ..config import get_settings
 
 T = TypeVar("T")
 

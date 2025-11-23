@@ -57,6 +57,24 @@ services:
       retries: 3
       start_period: 60s
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: victoryline-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "yes"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    networks:
+      - victoryline-network
+
   # Python Scraper
   scraper:
     build:
@@ -68,11 +86,14 @@ services:
       - "${SCRAPER_PORT:-5000}:5000"
     environment:
       # Backend API Configuration
+      BACKEND_URL: http://backend:8099
       TOKEN_URL: http://backend:8099/token/generate-token
       SERVICE_URL: http://backend:8099/cricket-data
       ADD_LIVE_MATCHES_URL: http://backend:8099/cricket-data/add-live-matches
       API_ENDPOINT: http://backend:8099/cricket-data/match-info/save
       API_ENDPOINT_SC4: http://backend:8099/cricket-data/sC4-stats/save
+      # Redis Configuration
+      REDIS_URL: redis://redis:6379/0
       # Scraper Configuration
       FLASK_ENV: ${FLASK_ENV:-production}
       FLASK_DEBUG: ${FLASK_DEBUG:-0}
@@ -92,6 +113,7 @@ services:
       - scraper_data:/app/storage
     depends_on:
       - backend
+      - redis
     networks:
       - victoryline-network
     deploy:
@@ -172,6 +194,9 @@ volumes:
   scraper_data:
     driver: local
     name: victoryline-scraper-data
+  redis_data:
+    driver: local
+    name: victoryline-redis-data
   frontend_html:
     driver: local
     name: victoryline-frontend-html

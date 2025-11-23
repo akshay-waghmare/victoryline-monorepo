@@ -1,61 +1,59 @@
-# Cricket Scraper Project
+# Cricket Scraper Project (Async)
 
 ## Overview
-The Cricket Scraper project is designed to scrape live cricket match data from the website "https://crex.live". It provides a backend API for managing scraping tasks, storing leads, and interacting with cricket data services.
+High-reliability asynchronous scraper for live cricket match data. Built with Python, Playwright (Async), Redis, and Flask. Designed for continuous freshness, graceful degradation under load, and self-recovery.
 
 ## Features
-- Scrapes live match URLs and data from the target website.
-- Stores scraped URLs and leads in a SQLite database.
-- Provides a RESTful API for starting and stopping scraping tasks.
-- Supports CORS for cross-origin requests.
-- Implements logging for monitoring and debugging.
+- **Async Architecture**: Uses `asyncio` and `playwright` for high-concurrency scraping.
+- **Freshness Guarantee**: Tracks data age (p50/p90/p99) and prioritizes live matches.
+- **Resilience**:
+  - **Rate Limiting**: Token bucket algorithm to respect upstream limits.
+  - **Circuit Breaking**: Automatically pauses failing domains.
+  - **Self-Recovery**: Detects stalls and recycles browser processes automatically.
+- **Caching**: Redis-based snapshot caching with delta computation.
+- **Observability**: Prometheus metrics (`/metrics`) and health status (`/status`).
 
 ## Installation
 1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/crex_scraper_python.git
-   cd crex_scraper_python
+   ```bash
+   git clone ...
+   cd apps/scraper/crex_scraper_python
    ```
 
 2. Set up a virtual environment:
-   ```
+   ```bash
    python -m venv venv
    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
    ```
 
-3. Install the required dependencies:
-   ```
+3. Install dependencies:
+   ```bash
    pip install -r requirements.txt
+   playwright install chromium
    ```
 
-4. (Optional) Install development dependencies:
-   ```
-   pip install -r requirements-dev.txt
-   ```
-
-5. Create a `.env` file based on the `.env.example` file to configure environment variables.
+4. Configure environment:
+   Copy `.env.example` to `.env` and set `REDIS_URL`.
 
 ## Usage
-To run the application, execute the following command:
-```
-python src/crex_main_url.py
+
+### Run Locally
+```bash
+python -m src.app
 ```
 
-The application will start a Flask server on `http://0.0.0.0:5000`.
+### Run with Docker
+```bash
+docker-compose up --build scraper
+```
 
 ## API Endpoints
-- **POST /start-scrape**: Start scraping for a specific URL.
-- **POST /stop-scrape**: Stop scraping for a specific URL.
-- **POST /add-lead**: Add a new lead to the database.
-- **GET /view-leads**: Retrieve all leads from the database.
-- **PUT /update-lead/<lead_id>**: Update an existing lead.
-- **DELETE /delete-lead/<lead_id>**: Delete a lead from the database.
+- **GET /status**: Service health, metrics, and state.
+- **GET /metrics**: Prometheus metrics.
+- **POST /submit-task**: Enqueue a URL for scraping.
 
-## Contributing
-Contributions are welcome! Please read the [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines on how to contribute to this project.
+## Monitoring
+See `MONITORING_GUIDE.md` for Grafana dashboards and alert rules.
 
 ## License
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-- Thanks to the contributors and the open-source community for their support and resources.
+MIT

@@ -13,8 +13,8 @@ try:
 except ImportError:
     psutil = None  # type: ignore
 
-from src.logging.adapters import get_logger
-from src.config import get_settings
+from ..loggers.adapters import get_logger
+from ..config import get_settings
 
 logger = get_logger(component="orphan_cleanup")
 

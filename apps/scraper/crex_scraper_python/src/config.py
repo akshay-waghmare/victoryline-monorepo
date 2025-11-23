@@ -112,6 +112,16 @@ class ScraperSettings:
     orphan_cleanup_interval_seconds: int = 1800
     pid_restart_threshold: int = 500  # New: restart scrapers if observed chrome/playwright PIDs exceed this
     container_restart_interval_minutes: int = 10  # Periodic container restart interval to prevent resource leaks
+    
+    # Async Scraper & Redis Config
+    redis_url: str = "redis://localhost:6379/0"
+    concurrency_cap: int = 10
+    cache_live_ttl: int = 15
+    pause_cooldown: int = 300
+    audit_max_entries: int = 1000
+    rate_limit_tokens_per_sec: float = 5.0
+    rate_limit_burst: int = 10
+    degraded_freshness_threshold: float = 30.0  # Seconds
 
     @property
     def is_tiny_profile(self) -> bool:
@@ -163,6 +173,11 @@ class ScraperSettings:
             "degraded_staleness_seconds": self.degraded_staleness_seconds,
             "orphan_cleanup_interval_seconds": self.orphan_cleanup_interval_seconds,
             "container_restart_interval_minutes": self.container_restart_interval_minutes,
+            "redis_url": self.redis_url,
+            "concurrency_cap": self.concurrency_cap,
+            "cache_live_ttl": self.cache_live_ttl,
+            "pause_cooldown": self.pause_cooldown,
+            "audit_max_entries": self.audit_max_entries,
         }
 
     @classmethod
@@ -212,6 +227,13 @@ class ScraperSettings:
         container_restart_interval_minutes = _coerce_int(env.get("CONTAINER_RESTART_INTERVAL_MINUTES"), 10, minimum=1)
         scraper_id = _coerce_str(env.get("SCRAPER_ID"), str(uuid.uuid4()))
 
+        # Async Scraper & Redis Config
+        redis_url = _coerce_str(env.get("REDIS_URL"), "redis://localhost:6379/0")
+        concurrency_cap = _coerce_int(env.get("CONCURRENCY_CAP"), 10, minimum=1)
+        cache_live_ttl = _coerce_int(env.get("CACHE_LIVE_TTL"), 15, minimum=1)
+        pause_cooldown = _coerce_int(env.get("PAUSE_COOLDOWN"), 300, minimum=10)
+        audit_max_entries = _coerce_int(env.get("AUDIT_MAX_ENTRIES"), 1000, minimum=10)
+
         if memory_soft_limit_mb > memory_hard_limit_mb:
             raise ValueError("MEMORY_SOFT_LIMIT_MB cannot be greater than MEMORY_HARD_LIMIT_MB")
         if failing_error_threshold < degraded_error_threshold:
@@ -259,6 +281,11 @@ class ScraperSettings:
             degraded_staleness_seconds=degraded_staleness_seconds,
             orphan_cleanup_interval_seconds=orphan_cleanup_interval_seconds,
             container_restart_interval_minutes=container_restart_interval_minutes,
+            redis_url=redis_url,
+            concurrency_cap=concurrency_cap,
+            cache_live_ttl=cache_live_ttl,
+            pause_cooldown=pause_cooldown,
+            audit_max_entries=audit_max_entries,
         )
 
 

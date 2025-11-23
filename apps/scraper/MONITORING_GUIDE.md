@@ -1,103 +1,122 @@
-# Scraper Performance Monitoring Guide
+# Scraper Performance Monitoring Guide (Async)
 
 ## 🎯 Purpose
 
-This monitoring system helps you decide **when batching becomes necessary** by tracking:
-- API call rates
-- Memory usage
-- Match concurrency
-- System health
-
-The batching implementation is **ready but not active**. Use these metrics to determine when to enable it.
+This monitoring system tracks the health, performance, and reliability of the async scraper service. It uses Prometheus metrics and a `/status` endpoint for real-time observability.
 
 ---
 
-## 📊 Monitoring Endpoint
+## 📊 Monitoring Endpoints
 
-### **GET /monitoring/performance**
+### **GET /status**
 
-Returns real-time performance metrics and batching recommendations.
+Returns service health, state, and key metrics.
 
 **Usage:**
-```powershell
-# Basic check
-curl http://localhost:5000/monitoring/performance | ConvertFrom-Json
-
-# Pretty formatted
-curl http://localhost:5000/monitoring/performance | ConvertFrom-Json | ConvertTo-Json -Depth 5
+```bash
+curl http://localhost:5000/status
 ```
 
 **Example Response:**
 ```json
 {
-  "timestamp": "2025-11-13T10:30:00Z",
-  "uptime_seconds": 3600,
-  "uptime_human": "1:00:00",
-  
-  "current_performance": {
-    "active_matches": 3,
-    "estimated_api_calls_per_minute": 72,
-    "total_memory_mb": 1200,
-    "avg_memory_per_scraper_mb": 400,
-    "avg_response_time_ms": 85
-  },
-  
-  "batching_recommendation": {
-    "should_enable_batching": false,
-    "readiness_score": 15,
-    "score_interpretation": "🟢 No batching needed",
-    "reasons": [
-      "✅ API call rate healthy (72/min vs 500 threshold)",
-      "✅ Memory usage healthy (1200 MB vs 4000 threshold)",
-      "✅ Match concurrency healthy (3 active)"
-    ]
-  },
-  
-  "thresholds": {
-    "api_calls_per_min_warn": 500,
-    "api_calls_per_min_critical": 1000,
-    "memory_mb_warn": 4000,
-    "memory_mb_critical": 8000,
-    "concurrent_matches_warn": 10,
-    "concurrent_matches_critical": 20
-  },
-  
-  "scraper_details": [
-    {
-      "match_id": "match_abc123",
-      "memory_mb": 380,
-      "age_seconds": 1200,
-      "error_count": 0,
-      "status": "healthy"
+  "status": "success",
+  "data": {
+    "state": "healthy",
+    "score": 100,
+    "uptime_seconds": 3600,
+    "pids_count": 12,
+    "memory_usage_mb": 450.5,
+    "last_scrape_timestamp": 1715000000.0,
+    "details": {
+      "freshness": {
+        "p50": 2.5,
+        "p90": 5.1,
+        "p99": 12.0
+      },
+      "consecutive_failures": 0,
+      "reconciliation_warnings": []
     }
-  ]
+  }
 }
+```
+
+### **GET /metrics**
+
+Prometheus exposition format.
+
+**Key Metrics:**
+- `scraper_freshness_seconds`: Time since last successful scrape per match.
+- `scraper_queue_depth`: Number of tasks waiting in scheduler.
+- `scraper_active_tasks`: Number of tasks currently processing.
+- `scraper_scrapes_total`: Counter of scrape attempts (success/failure).
+- `scraper_browser_restarts_total`: Counter of browser recycles (stall recovery).
+- `scraper_health_score`: Current health score (0-100).
+
+---
+
+## 🚨 Alerting Rules
+
+### **1. Freshness Lag (Critical)**
+Trigger if p90 freshness exceeds 60 seconds.
+```yaml
+- alert: ScraperFreshnessLag
+  expr: scraper_freshness_seconds{quantile="0.9"} > 60
+  for: 2m
+  labels:
+    severity: critical
+  annotations:
+    summary: "Scraper data is stale (>60s)"
+```
+
+### **2. Stall Detected (Critical)**
+Trigger if health score drops below 40 (FAILING state).
+```yaml
+- alert: ScraperStalled
+  expr: scraper_health_score < 40
+  for: 1m
+  labels:
+    severity: critical
+  annotations:
+    summary: "Scraper service is stalled or failing"
+```
+
+### **3. High Queue Depth (Warning)**
+Trigger if queue depth exceeds 100 tasks.
+```yaml
+- alert: ScraperHighQueue
+  expr: scraper_queue_depth > 100
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: "Scraper queue backing up"
 ```
 
 ---
 
-## 🚦 Decision Matrix: When to Enable Batching
+## 🚦 Health States
 
-### **Readiness Score Interpretation:**
+| State | Score | Description | Action |
+|-------|-------|-------------|--------|
+| **HEALTHY** | 100 | Normal operation | None |
+| **DEGRADED** | 70 | High latency or minor errors | Monitor closely |
+| **RECOVERING** | 50 | Automated recovery in progress | Wait for stabilization |
+| **FAILING** | 30 | Stalled or critical errors | Manual intervention if persists |
 
-| Score | Status | Action |
-|-------|--------|--------|
-| 0-39 | 🟢 **No batching needed** | Current system is fine |
-| 40-69 | 🟡 **Batching may help** | Monitor closely, prepare for implementation |
-| 70-100 | 🔴 **Batching recommended** | Implement batching now |
+---
 
-### **Key Indicators:**
+## 🔍 Troubleshooting
 
-#### **1. API Call Rate**
-- ✅ **< 500/min**: Healthy, no action needed
-- ⚠️ **500-1000/min**: Elevated, monitor closely
-- 🔴 **> 1000/min**: Critical, enable batching
+### **Stall Recovery**
+The service automatically attempts to recycle the browser pool if no successful scrapes occur for `STALENESS_THRESHOLD_SECONDS` (default 180s).
+- Check logs for `Triggering automated recovery...`
+- Check `scraper_browser_restarts_total` metric.
 
-**Calculation:**
-- Each active match generates ~24 API calls/minute
-- 3 matches = 72 calls/min ✅
-- 20 matches = 480 calls/min ⚠️
-- 50 matches = 1200 calls/min 🔴
+### **High Memory Usage**
+- Check `memory_usage_mb` in `/status`.
+- If > 2GB, consider restarting container or reducing `CONCURRENCY_CAP`.
+
 
 #### **2. Memory Usage**
 - ✅ **< 4 GB**: Healthy

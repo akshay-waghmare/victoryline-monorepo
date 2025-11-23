@@ -1,0 +1,353 @@
+openapi: 3.0.3
+info:
+  title: Scraper Status Endpoint
+  description: Detailed scraper health status with freshness statistics, queue state, and configuration snapshot.
+  version: 1.0.0
+  contact:
+    name: VictoryLine Scraper Team
+
+servers:
+  - url: http://localhost:5000
+    description: Local development
+  - url: http://scraper:5000
+    description: Docker compose internal
+
+paths:
+  /status:
+    get:
+      summary: Get scraper health status
+      description: |
+        Returns comprehensive health status including:
+        - Overall health grade (healthy/degraded/failing/recovering)
+        - Freshness statistics (median, p95, max)
+        - Active tasks and queue depth
+        - Paused matches
+        - Recent audit entries (recoveries, recycles)
+        - Current configuration snapshot
+        
+        Used by operational dashboards and alerting systems.
+      operationId: getStatus
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Successful response with health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              examples:
+                healthy:
+                  summary: Healthy system
+                  value:
+                    success: true
+                    data:
+                      grade: "healthy"
+                      freshness_stats:
+                        median: 28.3
+                        p50: 28.3
+                        p95: 54.7
+                        max: 87.2
+                        count: 100
+                      queue_depth: 15
+                      active_tasks: 38
+                      failure_ratio: 0.004
+                      paused_matches: []
+                      last_success_time: 1700000123.456
+                      config_snapshot:
+                        CONCURRENCY_CAP: 40
+                        RECYCLE_UPTIME: 21600
+                        RECYCLE_TASK_COUNT: 10000
+                        FRESHNESS_DEGRADED: 60
+                        FRESHNESS_FAILING: 120
+                      audit_entries:
+                        - entry_id: "a1b2c3d4-..."
+                          timestamp: 1700000000.0
+                          action_type: "browser_recycle"
+                          trigger_condition: "uptime_exceeded:6h"
+                          outcome: "success"
+                          duration_seconds: 12.3
+                    error: null
+                    timestamp: "2025-11-22T10:30:45.123Z"
+                
+                degraded:
+                  summary: Degraded system (freshness threshold breached)
+                  value:
+                    success: true
+                    data:
+                      grade: "degraded"
+                      freshness_stats:
+                        median: 72.1
+                        p50: 72.1
+                        p95: 98.4
+                        max: 115.7
+                        count: 100
+                      queue_depth: 47
+                      active_tasks: 40
+                      failure_ratio: 0.12
+                      paused_matches: ["crex_12345", "crex_67890"]
+                      last_success_time: 1700000123.456
+                      config_snapshot:
+                        CONCURRENCY_CAP: 40
+                        RECYCLE_UPTIME: 21600
+                        RECYCLE_TASK_COUNT: 10000
+                        FRESHNESS_DEGRADED: 60
+                        FRESHNESS_FAILING: 120
+                      audit_entries: []
+                    error: null
+                    timestamp: "2025-11-22T10:30:45.123Z"
+        
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                data: null
+                error:
+                  code: "HEALTH_CHECK_FAILED"
+                  message: "Unable to compute health status"
+                  field: null
+                timestamp: "2025-11-22T10:30:45.123Z"
+
+components:
+  schemas:
+    StatusResponse:
+      type: object
+      required:
+        - success
+        - data
+        - error
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/HealthSummary'
+        error:
+          type: object
+          nullable: true
+          example: null
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-22T10:30:45.123Z"
+    
+    HealthSummary:
+      type: object
+      required:
+        - grade
+        - freshness_stats
+        - queue_depth
+        - active_tasks
+        - failure_ratio
+        - paused_matches
+        - last_success_time
+        - config_snapshot
+        - audit_entries
+      properties:
+        grade:
+          type: string
+          enum: [healthy, degraded, failing, recovering]
+          description: Overall health grade
+          example: "healthy"
+        freshness_stats:
+          $ref: '#/components/schemas/FreshnessStats'
+        queue_depth:
+          type: integer
+          description: Total tasks waiting in priority queue
+          example: 15
+        active_tasks:
+          type: integer
+          description: Currently executing scrape tasks
+          example: 38
+        failure_ratio:
+          type: number
+          format: float
+          description: Failure rate (failures / total attempts) in rolling window
+          example: 0.004
+          minimum: 0.0
+          maximum: 1.0
+        paused_matches:
+          type: array
+          items:
+            type: string
+          description: List of match IDs currently paused due to repeated failures
+          example: ["crex_12345", "crex_67890"]
+        last_success_time:
+          type: number
+          format: double
+          description: Unix timestamp of most recent successful scrape (any match)
+          example: 1700000123.456
+        config_snapshot:
+          $ref: '#/components/schemas/ConfigSnapshot'
+        audit_entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEntry'
+          description: Recent recovery/recycle events (last 10)
+    
+    FreshnessStats:
+      type: object
+      required:
+        - median
+        - p50
+        - p95
+        - max
+        - count
+      properties:
+        median:
+          type: number
+          format: float
+          description: Median freshness age in seconds
+          example: 28.3
+        p50:
+          type: number
+          format: float
+          description: 50th percentile (same as median)
+          example: 28.3
+        p95:
+          type: number
+          format: float
+          description: 95th percentile freshness age
+          example: 54.7
+        max:
+          type: number
+          format: float
+          description: Maximum (worst-case) freshness age
+          example: 87.2
+        count:
+          type: integer
+          description: Number of samples in distribution
+          example: 100
+    
+    ConfigSnapshot:
+      type: object
+      required:
+        - CONCURRENCY_CAP
+        - RECYCLE_UPTIME
+        - RECYCLE_TASK_COUNT
+        - FRESHNESS_DEGRADED
+        - FRESHNESS_FAILING
+      properties:
+        CONCURRENCY_CAP:
+          type: integer
+          description: Maximum concurrent scrape tasks
+          example: 40
+        RECYCLE_UPTIME:
+          type: integer
+          description: Browser recycle uptime threshold (seconds)
+          example: 21600
+        RECYCLE_TASK_COUNT:
+          type: integer
+          description: Browser recycle task count threshold
+          example: 10000
+        FRESHNESS_DEGRADED:
+          type: integer
+          description: Freshness threshold for DEGRADED grade (seconds)
+          example: 60
+        FRESHNESS_FAILING:
+          type: integer
+          description: Freshness threshold for FAILING grade (seconds)
+          example: 120
+    
+    AuditEntry:
+      type: object
+      required:
+        - entry_id
+        - timestamp
+        - action_type
+        - trigger_condition
+        - outcome
+        - duration_seconds
+      properties:
+        entry_id:
+          type: string
+          format: uuid
+          description: Unique audit entry identifier
+          example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        timestamp:
+          type: number
+          format: double
+          description: Unix timestamp of recovery action
+          example: 1700000000.0
+        action_type:
+          type: string
+          enum: [browser_recycle, soft_restart, manual_trigger, context_pool_reset]
+          description: Type of recovery action
+          example: "browser_recycle"
+        trigger_condition:
+          type: string
+          description: Human-readable reason for recovery
+          example: "uptime_exceeded:6h"
+        outcome:
+          type: string
+          enum: [success, partial, failed]
+          description: Recovery outcome
+          example: "success"
+        duration_seconds:
+          type: number
+          format: float
+          description: Time taken for recovery action
+          example: 12.3
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional context (PIDs before/after, etc.)
+          example:
+            pids_before: 142
+            pids_after: 87
+            browser_uptime_hours: 6.02
+    
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - data
+        - error
+        - timestamp
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          type: object
+          nullable: true
+          example: null
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-11-22T10:30:45.123Z"
+    
+    ErrorDetail:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "HEALTH_CHECK_FAILED"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Unable to compute health status"
+        field:
+          type: string
+          nullable: true
+          description: Field name if validation error
+          example: null
+
+externalDocs:
+  description: VictoryLine REST API Standards
+  url: https://github.com/victoryline/docs/api-standards
+
+tags:
+  - name: Health
+    description: Health monitoring and status endpoints

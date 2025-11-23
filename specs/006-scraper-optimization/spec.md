@@ -102,7 +102,7 @@ If updates cease, the system detects stall conditions and initiates automated re
 - **FR-035**: System MUST restrict `/metrics` endpoint to internal interface only (not internet-facing) while exposing `/status` publicly (read-only, no authentication) relying on infrastructure/network segmentation for security.
 - **FR-036**: System MUST implement per-domain token bucket rate limiting (capacity & refill rate configurable) enforcing domain-specific request pacing; tasks exceeding available tokens are deferred without blocking scheduler.
 - **FR-037**: System MUST compute a dynamic reliability score per domain (based on rolling failure rate and latency over a recent time window) and combine it with static precedence weight to rank sources during reconciliation; domains with reliability below threshold are temporarily demoted.
-- **FR-038**: System MUST retain only the last N (configurable, default 200) recovery audit entries in an in-memory ring buffer while emitting all entries to external logging; older entries evicted without blocking operations.
+- **FR-038**: System MUST retain only the last N (configurable, default 200) recovery audit entries in an in-memory ring buffer while emitting all entries to external log sink; older entries evicted without blocking operations.
 - **FR-039**: System MUST use the backend authoritative match ID as canonical for all internal tracking and reconciliation, maintaining a mapping table from each domain-specific match identifier to the canonical ID; mismatches or unmapped IDs MUST be surfaced as a reconciliation warning.
 
 ### Key Entities
@@ -185,5 +185,20 @@ If updates cease, the system detects stall conditions and initiates automated re
 - Multi-domain adapter tests validate precedence and provenance correctness.
 
 ---
+
+## Known Limitations (v1.0)
+
+### Data Parity Gap
+The initial release of the optimized scraper (v1.0) focuses on **architectural resilience** (async, caching, stability). It currently uses a lightweight DOM-based extraction method which provides:
+- Match Result
+- Team Scores & Overs
+- Current Over Summary
+
+It does **not yet** provide the full data richness of the legacy scraper, specifically:
+- Detailed Player Stats (from localStorage)
+- Ball-by-ball data (from network interception)
+- Backend API Push (currently caches to Redis only)
+
+**Resolution Plan**: Phase 8 (Feature Parity Restoration) is scheduled to address these gaps by porting the advanced extraction logic and backend integration.
 
 *End of specification draft.*

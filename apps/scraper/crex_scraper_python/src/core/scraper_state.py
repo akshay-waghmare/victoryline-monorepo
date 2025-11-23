@@ -15,9 +15,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from src.logging.adapters import get_logger
+from ..loggers.adapters import get_logger
 
-from src.config import ScraperSettings, get_settings
+from ..config import ScraperSettings, get_settings
 
 logger = get_logger(component="scraper_state")
 

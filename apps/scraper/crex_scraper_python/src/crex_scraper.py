@@ -1,295 +1,314 @@
-from __future__ import annotations
+"""
+Main Scraper Service.
+Coordinates browser pool, scheduler, cache, and adapters.
+"""
 
-import time
-from contextlib import ExitStack, contextmanager
-from dataclasses import replace
-from typing import Any, Callable, Iterator, Optional, TypeVar
+import asyncio
+import logging
+import signal
+from typing import Optional
 
-from playwright.sync_api import (
-    Browser,
-    BrowserContext,
-    Error as PlaywrightError,
-    Page,
-    TimeoutError as PlaywrightTimeoutError,
-    sync_playwright,
-)
-from requests import RequestException
-from src.logging.adapters import get_logger
-from src.logging.diagnostics import capture_html_snapshot
+from .config import get_settings
+from .browser_pool import AsyncBrowserPool
+from .scheduler import AsyncScheduler, ScrapeTask
+from .cache import ScrapeCache
+from .metrics import MetricsCollector
+from .health import HealthGrader
+from .adapters.registry import AdapterRegistry
+from .cricket_data_service import CricketDataService
 
-from src.monitoring import record_scraper_retry
-try:  # Best-effort import; keep scraper decoupled if context not present
-    from src.core.scraper_context import ScraperContext  # type: ignore
-except Exception:  # pragma: no cover - fallback when running standalone
-    ScraperContext = None  # type: ignore
-from crex_scraper_python.parsers import (
-    SelectorResolutionError,
-    extract_match_href,
-    select_all,
-)
-from crex_scraper_python.retry_utils import RetryConfig, RetryError, retryable
+logger = logging.getLogger(__name__)
 
-logger = get_logger(component="crex_scraper")
+class CrexScraperService:
+    """
+    High-reliability async scraper service.
+    """
 
-T = TypeVar("T")
+    def __init__(self):
+        self.settings = get_settings()
+        self.pool = AsyncBrowserPool()
+        self.scheduler = AsyncScheduler()
+        self.cache = ScrapeCache()
+        self.metrics = MetricsCollector()
+        self.health = HealthGrader()
+        self.registry = AdapterRegistry()
+        self._running = False
+        self._workers = []
+        self._monitor_task: Optional[asyncio.Task] = None
+        self._poll_task: Optional[asyncio.Task] = None
+        self._auth_token: Optional[str] = None
 
-_RETRYABLE_ERRORS = (
-    RequestException,
-    PlaywrightTimeoutError,
-    PlaywrightError,
-)
+    async def start(self):
+        """Start the scraper service."""
+        logger.info("Starting CrexScraperService...")
+        self._running = True
+        
+        # Initialize components
+        await self.cache.connect()
+        await self.scheduler.setup()
+        await self.pool.setup()
+        
+        # Fetch initial auth token
+        try:
+            self._auth_token = await asyncio.to_thread(CricketDataService.get_bearer_token)
+            if self._auth_token:
+                logger.info("Initial auth token obtained.")
+            else:
+                logger.warning("Failed to obtain initial auth token.")
+        except Exception as e:
+            logger.error(f"Auth token fetch failed: {e}")
 
+        # Start worker tasks
+        for i in range(self.settings.concurrency_cap):
+            worker = asyncio.create_task(self._worker_loop(i))
+            self._workers.append(worker)
+            
+        # Start monitor task
+        self._monitor_task = asyncio.create_task(self._monitor_loop())
+        
+        # Start poll task
+        self._poll_task = asyncio.create_task(self._poll_loop())
+            
+        logger.info(f"Started {len(self._workers)} worker tasks.")
 
-class ScrapeError(Exception):
-    pass
+    async def stop(self):
+        """Stop the scraper service."""
+        logger.info("Stopping CrexScraperService...")
+        self._running = False
+        
+        if self._monitor_task:
+            self._monitor_task.cancel()
+        
+        if self._poll_task:
+            self._poll_task.cancel()
 
+        try:
+            if self._monitor_task: await self._monitor_task
+            if self._poll_task: await self._poll_task
+        except asyncio.CancelledError:
+            pass
 
-class NetworkError(ScrapeError):
-    pass
+        await self.scheduler.shutdown()
+        await self.pool.shutdown()
+        await self.cache.close()
+        
+        # Cancel workers
+        for worker in self._workers:
+            worker.cancel()
+        
+        await asyncio.gather(*self._workers, return_exceptions=True)
+        logger.info("CrexScraperService stopped.")
 
+    async def _poll_loop(self):
+        """Periodic backend polling loop."""
+        logger.info("Backend poller started.")
+        while self._running:
+            try:
+                # Refresh token if needed
+                if not self._auth_token:
+                     self._auth_token = await asyncio.to_thread(CricketDataService.get_bearer_token)
 
-class DOMChangeError(ScrapeError):
-    pass
+                matches = await asyncio.to_thread(CricketDataService.get_live_matches, self._auth_token)
+                
+                for match in matches:
+                    # Handle both dict (from JSON) and string (if backend returns list of strings)
+                    url = None
+                    if isinstance(match, dict):
+                        url = match.get('url') or match.get('matchUrl')
+                    elif isinstance(match, str):
+                        url = match
+                    
+                    if url:
+                        # Use URL as ID or extract it. For now URL is unique enough.
+                        match_id = url 
+                        await self.submit_task(match_id, url, "LIVE")
+                
+                await asyncio.sleep(self.settings.polling_interval_seconds)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Poll loop error: {e}")
+                await asyncio.sleep(5)
 
-
-@contextmanager
-def managed_browser(playwright, **launch_kwargs) -> Iterator[Browser]:
-    # Inject conservative flags to reduce process/CPU overhead
-    default_args = [
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-        "--disable-extensions",
-        "--disable-background-networking",
-        "--disable-background-timer-throttling",
-        "--mute-audio",
-    ]
-    args = list(launch_kwargs.pop("args", []))
-    # Prepend any defaults not already present
-    for flag in default_args:
-        if flag not in args:
-            args.append(flag)
-    browser = playwright.chromium.launch(args=args, **launch_kwargs)
-    try:
-        yield browser
-    finally:
-        _close_safely(browser, "browser")
-
-
-@contextmanager
-def managed_context(browser: Browser, **context_kwargs) -> Iterator[BrowserContext]:
-    context = browser.new_context(**context_kwargs)
-    try:
-        yield context
-    finally:
-        _close_safely(context, "browser_context")
-
-
-@contextmanager
-def managed_page(context: BrowserContext, **page_kwargs) -> Iterator[Page]:
-    page = context.new_page(**page_kwargs)
-    try:
-        yield page
-    finally:
-        _close_safely(page, "page")
-
-
-def _close_safely(resource, resource_name: str) -> None:
-    try:
-        close = getattr(resource, "close", None)
-        if callable(close):
-            close()
-    except Exception as exc:  # pragma: no cover - defensive logging
-        logger.warning(
-            "playwright.close_error",
-            metadata={
-                "resource": resource_name,
-                "error": str(exc),
-                "error_type": type(exc).__name__,
-            },
-        )
-
-
-def _run_with_retry(operation: str, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
-    base_config = RetryConfig.from_settings(overrides={"retry_exceptions": _RETRYABLE_ERRORS})
-
-    def _log_retry(payload: dict[str, Any]) -> None:
-        logger.warning("retry.attempt", metadata={"operation": operation, **payload})
-
-    config = replace(base_config, logger=_log_retry)
-
-    def _on_retry(attempt: int, exc: Exception, delay: float) -> None:
-        record_scraper_retry(operation)
-
-    wrapped = retryable(config=config, on_retry=_on_retry)(lambda: func(*args, **kwargs))
-    return wrapped()
-
-
-def _attempt_get_browser_pid(browser: Browser) -> Optional[int]:
-    """Attempt to extract the underlying Chromium process PID (best effort)."""
-    try:
-        impl = getattr(browser, "_impl_obj", None)
-        conn = getattr(impl, "_connection", None)
-        transport = getattr(conn, "_transport", None)
-        proc = getattr(transport, "_proc", None)
-        pid = getattr(proc, "pid", None)
-        if isinstance(pid, int):
-            return pid
-    except Exception:
-        return None
-    return None
-
-
-def scrape(url: str, context: Optional["ScraperContext"] = None) -> list[str]:
-    start_time = time.time()
-    stage_timings: dict[str, float] = {}
-
-    logger.info("scrape.start", metadata={"url": url})
-    try:
-        with sync_playwright() as playwright:
-            with ExitStack() as stack:
-                browser = stack.enter_context(managed_browser(playwright, headless=True))
-                browser_pid = _attempt_get_browser_pid(browser)
-                if context is not None and browser_pid is not None:
+    async def _monitor_loop(self):
+        """Periodic health monitoring loop."""
+        logger.info("Health monitor started.")
+        while self._running:
+            try:
+                # Check for stalls
+                if self.health.check_stall():
+                    logger.warning("Stall detected by monitor.")
+                
+                # Check for recovery trigger
+                if self.health.should_trigger_recovery():
+                    logger.warning("Triggering automated recovery...")
+                    self.health.record_recovery_attempt()
                     try:
-                        context.set_browser_pid(browser_pid)  # type: ignore[attr-defined]
-                    except Exception:
-                        pass
-                if context is not None:
-                    try:
-                        def _cleanup(_ctx: "ScraperContext") -> None:  # type: ignore[name-defined]
-                            _close_safely(browser, "browser")
-                        context.register_cleanup(_cleanup)  # type: ignore[attr-defined]
-                    except Exception:
-                        pass
-                browser_context = stack.enter_context(managed_context(browser))
-                page = stack.enter_context(managed_page(browser_context))
+                        await self.pool.recycle()
+                        self.metrics.browser_restarts.labels(reason="stall_recovery").inc()
+                        self.health.add_audit_log("recovery_executed", {"action": "browser_recycle"}, level="WARNING")
+                    except Exception as e:
+                        logger.error(f"Recovery failed: {e}")
+                        self.health.add_audit_log("recovery_failed", {"error": str(e)}, level="ERROR")
 
-                # Ensure page/context/browser are closed if outer context triggers shutdown
-                if context is not None:
-                    try:
-                        def _cleanup_full(_ctx: "ScraperContext") -> None:  # type: ignore[name-defined]
-                            _close_safely(page, "page")
-                            _close_safely(browser_context, "browser_context")
-                            _close_safely(browser, "browser")
-                        context.register_cleanup(_cleanup_full)  # type: ignore[attr-defined]
-                    except Exception:
-                        pass
+                await asyncio.sleep(5)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Monitor loop error: {e}")
+                await asyncio.sleep(5)
 
-                nav_start = time.time()
-                logger.info("navigation.start", metadata={"url": url})
+    async def _worker_loop(self, worker_id: int):
+        """Main worker loop processing tasks from scheduler."""
+        logger.debug(f"Worker {worker_id} started.")
+        while self._running:
+            try:
+                task = await self.scheduler.next_task()
+                self.metrics.queue_depth.set(self.scheduler.qsize)
+                self.metrics.active_tasks.inc()
+                
                 try:
-                    _run_with_retry("page.goto", page.goto, url)
-                except RetryError as exc:
-                    raise NetworkError(f"Navigation retries exhausted for {url}") from exc
+                    await self._process_task(task)
+                except Exception as e:
+                    logger.error(f"Worker {worker_id} failed task {task.match_id}: {e}")
+                    self.health.record_failure(str(e))
+                    self.metrics.domain_failures.labels(domain="crex", error_type=type(e).__name__).inc()
+                    
+                    # Record adapter failure if we can determine the adapter
+                    # For now assuming crex
+                    adapter = self.registry.get_adapter("crex")
+                    if adapter:
+                        adapter.reliability.record_failure()
+                finally:
+                    await self.scheduler.task_done(task)
+                    self.metrics.active_tasks.dec()
+                    
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Worker {worker_id} loop error: {e}")
+                await asyncio.sleep(1)
 
-                page.wait_for_timeout(5000)
-                stage_timings["navigation"] = time.time() - nav_start
-                logger.info(
-                    "navigation.complete",
-                    metadata={
-                        "url": url,
-                        "duration_ms": int(stage_timings["navigation"] * 1000),
-                    },
-                )
+    async def _process_task(self, task: ScrapeTask):
+        """Process a single scrape task."""
+        start_time = asyncio.get_running_loop().time()
+        
+        # Determine adapter (hardcoded to crex for now, logic can be expanded)
+        adapter = self.registry.get_adapter("crex")
+        if not adapter:
+            logger.warning("Adapter 'crex' not available/enabled")
+            return
 
-                dom_start = time.time()
-                logger.info("dom.check", metadata={"selector_key": "live_match_badge"})
+        # Check negative cache
+        canonical_id = adapter.get_canonical_id(task.match_id)
+        if await self.cache.is_negative_cached(canonical_id):
+            logger.info(f"Skipping {canonical_id} (negative cache)")
+            return
+
+        async with self.pool.get_context() as context:
+            data = await adapter.fetch_match(context, task.url)
+            
+            # Check validity (if only metadata exists, assume scrape failed/empty)
+            if len(data) <= 2: # source_url + adapter
+                logger.warning(f"Match {canonical_id} returned no content, setting negative cache")
+                await self.cache.set_negative_cache(canonical_id, ttl=60)
+                return
+
+            # Fetch match info if not present in cache
+            previous_snapshot = await self.cache.get_snapshot(canonical_id)
+            match_info = previous_snapshot.get("match_info") if previous_snapshot else None
+            match_info_fetched_now = False
+            info_url = None
+            
+            if not match_info:
                 try:
-                    live_badges = select_all(
-                        page,
-                        "live_match_badge",
-                        log_context={"url": url},
-                        required=True,
-                    )
-                except SelectorResolutionError as exc:
-                    html_content = page.content()
-                    artifact_path = capture_html_snapshot(html_content)
-                    logger.warning(
-                        "dom.selector.missing",
-                        metadata={
-                            "selector_key": exc.selector_key,
-                            "selectors": list(exc.selectors),
-                            "url": url,
-                            "artifact": str(artifact_path),
-                            "remediation": "Check if site markup changed or selector fallback needs update",
-                        },
-                    )
-                    raise DOMChangeError(
-                        f"Cannot locate essential selector set '{exc.selector_key}'"
-                    ) from exc
+                    # Construct info URL (assuming standard Crex URL structure)
+                    # e.g. .../live -> .../info
+                    info_url = task.url.replace("/live", "/info").replace("/scorecard", "/info")
+                    # If URL didn't change (no /live or /scorecard), append /info if not present
+                    if info_url == task.url and "/info" not in info_url:
+                         info_url = task.url.rstrip("/") + "/info"
+                         
+                    logger.info(f"Fetching match info for {canonical_id} from {info_url}")
+                    match_info = await adapter.fetch_match_info(context, info_url)
+                    if match_info:
+                        match_info_fetched_now = True
+                except Exception as e:
+                    logger.error(f"Failed to fetch match info for {canonical_id}: {e}")
+            
+            if match_info:
+                data["match_info"] = match_info
 
-                stage_timings["dom_eval"] = time.time() - dom_start
-                logger.info(
-                    "dom.ready",
-                    metadata={
-                        "duration_ms": int(stage_timings["dom_eval"] * 1000),
-                        "candidate_count": len(live_badges),
-                    },
+            # Canonical ID check
+            # canonical_id already computed above
+            if canonical_id != task.match_id:
+                logger.warning(f"ID mismatch: task={task.match_id} canonical={canonical_id}")
+
+            # Cache result
+            # previous_snapshot already fetched above
+            
+            status = str(data.get("status", "")).lower()
+            is_completed = status in ("completed", "result", "finished", "abandoned")
+
+            if is_completed:
+                logger.info(f"Match {canonical_id} completed ({status}), archiving.")
+                await self.cache.push_history(canonical_id, data)
+                await self.cache.archive_match(canonical_id)
+            else:
+                await self.cache.set_snapshot(canonical_id, data, ttl=self.settings.cache_live_ttl)
+                await self.cache.push_history(canonical_id, data)
+                await self.cache.update_freshness(canonical_id, start_time)
+            
+            # Delta emission
+            if previous_snapshot:
+                delta = self.cache.compute_delta(previous_snapshot, data)
+                if delta:
+                    logger.debug(f"Delta for {canonical_id}: {list(delta.keys())}")
+            
+            # Push to Backend (Task 8.4)
+            # We push even if no delta, to ensure backend is in sync (or we could optimize to only push on delta)
+            # For now, push every successful scrape to match legacy behavior
+            if self._auth_token:
+                # Run in thread to avoid blocking loop
+                push_success = await asyncio.to_thread(
+                    CricketDataService.push_match_data, 
+                    data, 
+                    self._auth_token, 
+                    task.url
                 )
+                if not push_success:
+                    logger.warning(f"Failed to push data for {canonical_id}")
+                
+                # Push match info if newly fetched
+                if match_info_fetched_now and match_info:
+                     # Use info_url if available, else derive it again
+                     if not info_url:
+                        info_url = task.url.replace("/live", "/info").replace("/scorecard", "/info")
+                        if info_url == task.url and "/info" not in info_url:
+                             info_url = task.url.rstrip("/") + "/info"
 
-                extract_start = time.time()
-                logger.info("extraction.start")
-                data: list[str] = []
-                for idx, live_badge in enumerate(live_badges):
-                    log_context = {"url": url, "badge_index": idx}
-                    try:
-                        item_url = extract_match_href(live_badge, log_context=log_context)
-                    except SelectorResolutionError as exc:
-                        html_content = page.content()
-                        artifact_path = capture_html_snapshot(html_content)
-                        logger.error(
-                            "extraction.selector_failure",
-                            metadata={
-                                "selector_key": exc.selector_key,
-                                "selectors": list(exc.selectors),
-                                "url": url,
-                                "badge_index": idx,
-                                "artifact": str(artifact_path),
-                            },
-                        )
-                        raise DOMChangeError(
-                            "Unable to resolve match link for live match badge"
-                        ) from exc
+                     await asyncio.to_thread(
+                        CricketDataService.push_match_info,
+                        match_info,
+                        self._auth_token,
+                        info_url
+                     )
+            else:
+                logger.warning(f"Skipping push for {canonical_id} (no auth token)")
 
-                    data.append(item_url)
+            # Metrics & Health
+            duration = asyncio.get_running_loop().time() - start_time
+            self.metrics.record_scrape_result("crex", "success", duration)
+            self.metrics.update_freshness(canonical_id, "crex", 0) # 0s age immediately after scrape
+            self.health.record_success()
+            self.health.record_freshness(0.0)
+            adapter.reliability.record_success()
+            
+            logger.info(f"Scraped {canonical_id} in {duration:.2f}s")
 
-                stage_timings["extraction"] = time.time() - extract_start
-                total_duration = time.time() - start_time
-
-                logger.info(
-                    "extraction.complete",
-                    metadata={
-                        "url_count": len(data),
-                        "duration_ms": int(stage_timings["extraction"] * 1000),
-                        "total_duration_ms": int(total_duration * 1000),
-                        "stage_timings": {k: int(v * 1000) for k, v in stage_timings.items()},
-                    },
-                )
-                return data
-
-    except NetworkError as exc:
-        logger.error("network.error", metadata={"error": str(exc), "url": url})
-        raise
-    except DOMChangeError as exc:
-        logger.error("dom.change_error", metadata={"error": str(exc), "url": url})
-        raise
-    except RetryError as exc:
-        logger.error("scrape.retry_error", metadata={"error": str(exc), "url": url})
-        raise NetworkError(str(exc)) from exc
-    except Exception as exc:
-        logger.error("scrape.error", metadata={"error": str(exc), "url": url})
-        raise ScrapeError(f"Error during scraping: {exc}") from exc
-
-
-fetchData = scrape
-
-
-__all__ = [
-    "scrape",
-    "fetchData",
-    "managed_browser",
-    "managed_context",
-    "managed_page",
-    "_run_with_retry",
-]
+    async def submit_task(self, match_id: str, url: str, task_type: str = "LIVE") -> bool:
+        """Submit a task to the scheduler."""
+        # Ensure canonical ID usage if possible, or rely on caller
+        result = await self.scheduler.enqueue(match_id, url, task_type)
+        self.metrics.queue_depth.set(self.scheduler.qsize)
+        return result

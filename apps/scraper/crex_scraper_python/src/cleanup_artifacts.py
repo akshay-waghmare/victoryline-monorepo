@@ -11,8 +11,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from crex_scraper_python.logging_config import setup_logging
-from src.logging.adapters import get_logger
-from src.logging.diagnostics import prune_expired_artifacts
+from .loggers.adapters import get_logger
+from .loggers.diagnostics import prune_expired_artifacts
 
 setup_logging()
 logger = get_logger(component="artifact_cleanup")
