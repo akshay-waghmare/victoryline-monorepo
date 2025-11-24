@@ -595,6 +595,21 @@ export class LiveHeroStateService {
   }
 
   private resolveCurrentBall(data: LegacyCricketData): string | number | null {
+    // Try runs_on_ball first if available (as requested by user)
+    if (data.runs_on_ball !== undefined && data.runs_on_ball !== null) {
+       if (Array.isArray(data.runs_on_ball)) {
+         // If it's an array, take the last one? Or is it just a value?
+         // The interface says string | string[] | null.
+         // But backend sends Integer.
+         // Let's assume if it's a value, use it.
+         if (data.runs_on_ball.length > 0) {
+            return data.runs_on_ball[data.runs_on_ball.length - 1];
+         }
+       } else {
+          return data.runs_on_ball as string | number;
+       }
+    }
+
     if (data.current_ball !== undefined && data.current_ball !== null) {
       if (typeof data.current_ball === 'number') {
         return isFinite(data.current_ball) ? data.current_ball : null;

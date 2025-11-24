@@ -77,6 +77,12 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
 
     result_spans = [s.get_text(strip=True) for s in soup.select(".result-box span")]
     final_result = next((s.get_text(strip=True) for s in soup.select(".final-result.m-none")), None)
+    
+    # Fallback for final_result if not found in .final-result.m-none
+    result_box_text = " ".join(result_spans) if result_spans else None
+    if not final_result and result_box_text:
+        final_result = result_box_text
+
     run_rate = next((s.get_text(strip=True) for s in soup.select(".team-run-rate .data")), None)
     venue = next((a.get_text(strip=True) for a in soup.select("a[href*='cricket-grounds']")), None)
 
@@ -99,9 +105,9 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
         total_el = slide.select_one(".total")
         ball_els = slide.select(".over-ball")
         overs.append({
-            "over": over_number_el.get_text(strip=True) if over_number_el else None,
+            "overNumber": over_number_el.get_text(strip=True) if over_number_el else None,
             "balls": [b.get_text(strip=True) for b in ball_els],
-            "total": total_el.get_text(strip=True) if total_el else None,
+            "totalRuns": total_el.get_text(strip=True) if total_el else None,
         })
 
     # Extract Batsman and Bowler data from Angular components
@@ -128,25 +134,24 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
                 # Bowler Extraction
                 # Score format: "0-2" (Wickets-Runs)
                 # Overs format: "(1.0)"
-                figures_el = score_div.select_one("p:nth-child(1)")
-                overs_el = score_div.select_one("p:nth-child(2)")
+                score_text = score_div.get_text(strip=True) if score_div else ""
+                overs_div = p.select_one(".batsmen-total-score")
+                overs_text = overs_div.get_text(strip=True) if overs_div else ""
                 
+                # Parse score "0-2" -> wickets=0, runs=2
                 wickets = "0"
-                runs_conceded = "0"
-                if figures_el:
-                    figures = figures_el.get_text(strip=True)
-                    if "-" in figures:
-                        parts = figures.split("-")
-                        wickets = parts[0]
-                        runs_conceded = parts[1]
+                runs = "0"
+                if "-" in score_text:
+                    parts = score_text.split("-")
+                    wickets = parts[0]
+                    runs = parts[1]
                 
-                bowler_overs = "0"
-                if overs_el:
-                    bowler_overs = overs_el.get_text(strip=True).replace("(", "").replace(")", "")
+                # Parse overs "(1.0)" -> "1.0"
+                overs = overs_text.replace("(", "").replace(")", "")
                 
                 # Calculate balls bowled
                 try:
-                    oparts = bowler_overs.split(".")
+                    oparts = overs.split(".")
                     o = int(oparts[0])
                     b = int(oparts[1]) if len(oparts) > 1 else 0
                     balls_bowled = o * 6 + b
@@ -168,8 +173,8 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
 
                 bowler_data.append({
                     "name": name,
-                    "score": runs_conceded,
-                    "runs_conceded": runs_conceded, # Legacy support
+                    "score": runs,
+                    "runs_conceded": runs, # Legacy support
                     "ballsBowled": balls_bowled,
                     "balls_bowled": balls_bowled, # Legacy support
                     "wicketsTaken": wickets,
@@ -300,9 +305,10 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
 
     return {
         "result": final_result,
+        "result_box": " ".join(result_spans) if result_spans else None,
         "run_rate": run_rate,
         "teams": teams,
-        "overs": overs,
+        "overs_data": overs,
         "odds": odds,
         "venue": venue,
         "batsman_data": batsman_data,

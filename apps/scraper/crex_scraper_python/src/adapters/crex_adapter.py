@@ -77,6 +77,23 @@ class CrexAdapter(SourceAdapter):
             
             if data_store["api_data"]:
                 final_data["live_data"] = data_store["api_data"]
+                self._process_live_data(final_data, data_store["api_data"], data_store["local_storage"])
+
+            # Fallback/Override: If result_box is present and indicates match end, use it
+            # Or if current_ball is missing, use result_box
+            # Also check 'result' field (from .final-result) as fallback
+            result_text = final_data.get("result_box") or final_data.get("result", "")
+            
+            if result_text:
+                # Check for common match end phrases
+                is_match_end = any(x in result_text.lower() for x in ["won by", "won the", "draw", "tie", "abandoned", "no result"])
+                
+                if is_match_end:
+                     final_data["current_ball"] = result_text
+                     logger.info(f"Match end detected. Setting current_ball to: {result_text}")
+                elif not final_data.get("current_ball"):
+                     final_data["current_ball"] = result_text
+                     logger.info(f"current_ball missing. Fallback to result text: {result_text}")
 
             # Add player/team maps from localStorage
             if data_store["local_storage"]:
@@ -220,6 +237,104 @@ class CrexAdapter(SourceAdapter):
                 logger.warning(f"Failed to fetch sC4 stats: {response.status}")
         except Exception as e:
             logger.error(f"Error triggering sC4 call: {e}")
+
+    def _process_live_data(self, final_data: Dict[str, Any], api_data: Dict[str, Any], local_storage: Dict[str, str] = None):
+        """
+        Process raw API data (sV3) into structured fields for the backend.
+        """
+        try:
+            # 1. Current Ball Info (Field B)
+            if "B" in api_data:
+                raw_b = str(api_data["B"])
+                final_data["current_ball"] = raw_b
+                
+                # Clean runs_on_ball (Integer expected)
+                # Remove '^' and handle non-numeric values gracefully
+                clean_b_str = raw_b.replace('^', '')
+                try:
+                    # If it's a number (e.g. "1", "4"), convert to int
+                    final_data["runs_on_ball"] = int(clean_b_str)
+                except ValueError:
+                    # If it's not a number (e.g. "W", "Nb"), maybe send 0 or skip?
+                    if clean_b_str.isdigit():
+                         final_data["runs_on_ball"] = int(clean_b_str)
+                    else:
+                        # Fallback: don't send runs_on_ball if we can't determine runs
+                        pass
+
+            # 2. Team Odds (Field R)
+            # Format: "back+diff" e.g. "90+2" -> Back 90, Lay 92
+            if "R" in api_data:
+                r_val = str(api_data["R"])
+                
+                # Resolve Favorite Team Name
+                fav_team_code = api_data.get("F", "").replace("^", "")
+                fav_team_name = fav_team_code
+                if local_storage:
+                    # Try t_{code}_name
+                    fav_team_name = local_storage.get(f"t_{fav_team_code}_name", fav_team_code)
+
+                if "+" in r_val:
+                    parts = r_val.split("+")
+                    back = parts[0]
+                    diff = parts[1]
+                    try:
+                        lay = str(int(back) + int(diff))
+                        final_data["team_odds"] = {
+                            "backOdds": back,
+                            "layOdds": lay,
+                            "favTeam": fav_team_name
+                        }
+                    except ValueError:
+                        logger.warning(f"Failed to parse team odds: {r_val}")
+                else:
+                     final_data["team_odds"] = {
+                            "backOdds": r_val,
+                            "layOdds": r_val, # Fallback
+                            "favTeam": fav_team_name
+                        }
+
+            # 3. Session Odds (Fields D and Z)
+            # D: "6,10,15" (Overs)
+            # Z: "45+1,78+2,110+3" (Odds)
+            if "D" in api_data and "Z" in api_data:
+                d_val = str(api_data["D"])
+                z_val = str(api_data["Z"])
+                
+                overs = d_val.split(",") if d_val else []
+                odds = z_val.split(",") if z_val else []
+                
+                session_list = []
+                for i, over in enumerate(overs):
+                    if i < len(odds):
+                        odd_str = odds[i]
+                        back = "0"
+                        lay = "0"
+                        if "+" in odd_str:
+                            parts = odd_str.split("+")
+                            back = parts[0]
+                            try:
+                                lay = str(int(back) + int(parts[1]))
+                            except ValueError:
+                                lay = back
+                        else:
+                            back = odd_str
+                            lay = odd_str
+                            
+                        session_list.append({
+                            "sessionOver": over,
+                            "sessionBackOdds": back,
+                            "sessionLayOdds": lay
+                        })
+                
+                if session_list:
+                    final_data["session_odds"] = session_list
+
+            # Log extraction results
+            logger.info(f"Extracted live data: runs_on_ball={final_data.get('runs_on_ball')}, team_odds={final_data.get('team_odds')}, session_odds_count={len(final_data.get('session_odds', []))}")
+
+        except Exception as e:
+            logger.error(f"Error processing live data: {e}")
 
     async def discover_matches(self, context: BrowserContext) -> Dict[str, str]:
         """

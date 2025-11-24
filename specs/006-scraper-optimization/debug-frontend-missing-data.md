@@ -60,3 +60,26 @@ From the provided frontend logs:
 1.  [ ] Inspect Scraper extraction logic for `overs_data`.
 2.  [ ] Inspect Backend `CricketDataController` for websocket publishing logic.
 3.  [ ] Compare Scraper payload vs Frontend expectation.
+
+## Resolution (2025-11-25)
+
+### Issue: Missing Current Ball for Completed Matches
+**Symptoms**: 
+- Completed matches (e.g., "West Indies U19 won by 98 runs") were showing blank or null for the "Current Ball" field on the frontend.
+- Database showed `CURRENT_BALL` as `null`.
+
+**Root Cause**:
+1.  **Scraper**: The scraper relies on the live API field "B" for `current_ball`. For completed matches, this field is often missing. The match result text (e.g., "Team A won") is available in the DOM (`.result-box` or `.final-result`) but wasn't being used as a fallback for `current_ball`.
+2.  **Backend/Scraper Mismatch**: The backend `JacksonCustomCricketDeserializer` expects the current ball text to be in a field named `score_update` (legacy reason), but the scraper was sending it as `current_ball`. The deserializer was ignoring `current_ball`.
+
+**Fix Implemented**:
+1.  **Scraper Adapter (`crex_adapter.py`)**: 
+    - Added logic to extract `result_box` or `result` text from the DOM.
+    - If `current_ball` is missing (or if match end is detected via keywords), the scraper now uses the result text as `current_ball`.
+2.  **Scraper Service (`cricket_data_service.py`)**:
+    - Updated the payload construction to map `data["current_ball"]` to `payload["score_update"]`.
+    - This ensures the backend deserializer picks it up correctly without requiring backend code changes.
+
+**Verification**:
+- Scraper logs show: `matches.push.payload ... 'score_update': 'West Indies U19 won by 98 runs 🏆'`
+- Frontend now displays the result text in the current ball indicator.

@@ -104,7 +104,18 @@ class CricketDataService:
                 }
 
                 # Map Overs
-                if data.get("overs"):
+                if data.get("overs_data"):
+                    payload["overs_data"] = []
+                    for o in data["overs_data"]:
+                        if isinstance(o, dict):
+                            payload["overs_data"].append({
+                                "overNumber": o.get("overNumber"),
+                                "balls": o.get("balls"),
+                                "totalRuns": o.get("totalRuns", "").replace("= ", "") if o.get("totalRuns") else "0"
+                            })
+                        else:
+                            logger.warning(f"Skipping invalid over data: {type(o)} {o}")
+                elif data.get("overs"): # Fallback for legacy format
                     payload["overs_data"] = []
                     for o in data["overs"]:
                         if isinstance(o, dict):
@@ -167,6 +178,22 @@ class CricketDataService:
                                 "layOdds": vals[1]
                             })
                 
+                # Map Live API Data (Odds, Session, Runs on Ball)
+                if data.get("team_odds"):
+                    payload["team_odds"] = data["team_odds"]
+                    if "favTeam" in data["team_odds"]:
+                        payload["fav_team"] = data["team_odds"]["favTeam"]
+                
+                if data.get("session_odds"):
+                    payload["session_odds"] = data["session_odds"]
+                
+                if data.get("runs_on_ball") is not None:
+                    payload["runs_on_ball"] = data["runs_on_ball"]
+                
+                if data.get("current_ball"):
+                    # Backend expects 'score_update' for current_ball field
+                    payload["score_update"] = data["current_ball"]
+
                 # Map Batsman Data
                 if data.get("batsman_data"):
                     payload["batsman_data"] = data["batsman_data"]
