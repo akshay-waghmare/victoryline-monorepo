@@ -35,11 +35,12 @@ class AsyncBrowserPool:
         if self._lock is None:
             self._lock = asyncio.Lock()
 
-        if self._playwright:
+        if self._playwright and self._browser:
             return
 
         logger.info("Initializing AsyncBrowserPool...")
-        self._playwright = await async_playwright().start()
+        if not self._playwright:
+            self._playwright = await async_playwright().start()
         
         # Launch browser with optimized args
         launch_args = [
@@ -50,14 +51,18 @@ class AsyncBrowserPool:
             "--disable-extensions",
         ]
         
-        self._browser = await self._playwright.chromium.launch(
-            headless=True,  # Always headless in prod
-            args=launch_args
-        )
+        if not self._browser:
+            self._browser = await self._playwright.chromium.launch(
+                headless=True,  # Always headless in prod
+                args=launch_args
+            )
         logger.info("Browser launched successfully.")
 
     async def _create_context(self) -> BrowserContext:
         """Create a new configured context."""
+        if not self._browser:
+            await self.setup()
+            
         context = await self._browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             viewport={"width": 1920, "height": 1080},
