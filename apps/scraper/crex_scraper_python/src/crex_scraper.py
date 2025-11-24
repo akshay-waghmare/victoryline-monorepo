@@ -16,6 +16,7 @@ from .metrics import MetricsCollector
 from .health import HealthGrader
 from .adapters.registry import AdapterRegistry
 from .cricket_data_service import CricketDataService
+from .discovery import LiveMatchDiscoverer
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class CrexScraperService:
         self.metrics = MetricsCollector()
         self.health = HealthGrader()
         self.registry = AdapterRegistry()
+        self.discovery = LiveMatchDiscoverer(self.pool)
         self._running = False
         self._workers = []
         self._monitor_task: Optional[asyncio.Task] = None
@@ -68,6 +70,9 @@ class CrexScraperService:
         
         # Start poll task
         self._poll_task = asyncio.create_task(self._poll_loop())
+
+        # Start discovery task
+        await self.discovery.start()
             
         logger.info(f"Started {len(self._workers)} worker tasks.")
 
@@ -81,6 +86,8 @@ class CrexScraperService:
         
         if self._poll_task:
             self._poll_task.cancel()
+
+        await self.discovery.stop()
 
         try:
             if self._monitor_task: await self._monitor_task
