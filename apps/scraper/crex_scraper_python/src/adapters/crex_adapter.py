@@ -125,11 +125,14 @@ class CrexAdapter(SourceAdapter):
                     batsman_list.append({
                         "name": name,
                         "score": str(runs),
+                        "runs": str(runs), # Legacy support
                         "ballsFaced": str(balls),
+                        "balls_faced": str(balls), # Legacy support
                         "fours": str(stats.get("fours", 0)),
                         "sixes": str(stats.get("sixes", 0)),
                         "strikeRate": sr,
-                        "onStrike": stats.get("status") == "currently_batting"
+                        "onStrike": stats.get("status") == "currently_batting",
+                        "on_strike": stats.get("status") == "currently_batting" # Legacy support
                     })
                 final_data["batsman_data"] = batsman_list
                 logger.info(f"Enriched {len(batsman_list)} batsmen from sC4")
@@ -155,10 +158,14 @@ class CrexAdapter(SourceAdapter):
                     bowler_list.append({
                         "name": name,
                         "score": str(runs),
+                        "runs_conceded": str(runs), # Legacy support
                         "ballsBowled": total_balls,
+                        "balls_bowled": total_balls, # Legacy support
                         "wicketsTaken": str(stats.get("wickets", 0)),
+                        "wickets_taken": str(stats.get("wickets", 0)), # Legacy support
                         "economyRate": econ,
-                        "dotBalls": "0"
+                        "dotBalls": "0",
+                        "dot_balls": "0" # Legacy support
                     })
                 final_data["bowler_data"] = bowler_list
                 logger.info(f"Enriched {len(bowler_list)} bowlers from sC4")

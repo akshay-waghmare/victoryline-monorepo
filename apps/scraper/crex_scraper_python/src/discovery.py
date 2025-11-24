@@ -53,6 +53,10 @@ class LiveMatchDiscoverer:
                 break
             except Exception as e:
                 logger.error(f"Discovery loop error: {e}")
+                print(f"[DISCOVERY] Error: {e}", flush=True)
+                # If we hit a connection error here, it might be transient or fatal for the browser
+                # The pool should handle invalidation, but we should back off a bit
+                await asyncio.sleep(10)
             
             # Wait for next cycle (default 60s)
             await asyncio.sleep(60)
@@ -64,96 +68,88 @@ class LiveMatchDiscoverer:
         
         try:
             async with self.pool.get_context() as context:
-                page = await context.new_page()
-                # Use the specific live matches URL
-                target_url = "https://crex.com/live-matches"
-                logger.info(f"Navigating to {target_url} for discovery...")
-                print(f"[DISCOVERY] Navigating to {target_url}...", flush=True)
-                
-                await page.goto(target_url, timeout=60000)
-                
-                # Wait for content to load - try multiple selectors
+                page = None
                 try:
-                    # Try the list item selector from the provided HTML
-                    await page.wait_for_selector("li.live-card", timeout=15000)
-                    print("[DISCOVERY] Found li.live-card elements.", flush=True)
-                except Exception:
+                    page = await context.new_page()
+                    # Use the specific live matches URL
+                    target_url = "https://crex.com/live-matches"
+                    logger.info(f"Navigating to {target_url} for discovery...")
+                    print(f"[DISCOVERY] Navigating to {target_url}...", flush=True)
+                    
+                    await page.goto(target_url, timeout=60000)
+                    
+                    # Wait for content to load - try multiple selectors
                     try:
-                        # Fallback to div.live-card (legacy)
-                        await page.wait_for_selector("div.live-card", timeout=5000)
-                        print("[DISCOVERY] Found div.live-card elements.", flush=True)
+                        # Try the list item selector from the provided HTML
+                        await page.wait_for_selector("li.live-card", timeout=15000)
+                        print("[DISCOVERY] Found li.live-card elements.", flush=True)
                     except Exception:
-                        logger.warning("No live cards found on live-matches page (timeout).")
-                        print("[DISCOVERY] No live cards found (timeout).", flush=True)
-                        await page.close()
-                        return
+                        try:
+                            # Fallback to div.live-card (legacy)
+                            await page.wait_for_selector("div.live-card", timeout=5000)
+                            print("[DISCOVERY] Found div.live-card elements.", flush=True)
+                        except Exception:
+                            logger.warning("No live cards found on live-matches page (timeout).")
+                            print("[DISCOVERY] No live cards found (timeout).", flush=True)
+                            await page.close()
+                            return
 
-                # Extract URLs using robust logic based on provided HTML
-                urls = await page.evaluate("""() => {
-                    const urls = [];
-                    
-                    // Strategy 1: Look for li.live-card > a (New structure)
-                    const listItems = document.querySelectorAll('li.live-card a');
-                    listItems.forEach(a => {
-                        const href = a.getAttribute('href');
-                        if (href && href.includes('/scoreboard/')) {
-                            urls.push(href);
-                        }
-                    });
-                    
-                    // Strategy 2: Look for div.live-card (Legacy structure) if Strategy 1 found nothing
-                    if (urls.length === 0) {
-                        const liveDivs = document.querySelectorAll('div.live-card .live');
-                        liveDivs.forEach(div => {
-                            try {
-                                // Legacy traversal: div.live -> parent -> grandparent -> sibling -> href
-                                // Or just find the closest anchor tag
-                                const card = div.closest('a');
-                                if (card) {
-                                    const href = card.getAttribute('href');
-                                    if (href) urls.push(href);
-                                } else {
-                                    // Try finding anchor within the card wrapper
-                                    const wrapper = div.closest('.live-card');
-                                    if (wrapper) {
-                                        const anchor = wrapper.querySelector('a');
-                                        if (anchor) urls.push(anchor.getAttribute('href'));
-                                    }
-                                }
-                            } catch (e) {
-                                console.error(e);
+                    # Extract URLs using robust logic based on provided HTML
+                    urls = await page.evaluate("""() => {
+                        const urls = [];
+                        
+                        // Strategy 1: Look for li.live-card > a (New structure)
+                        const listItems = document.querySelectorAll('li.live-card a');
+                        listItems.forEach(a => {
+                            const href = a.getAttribute('href');
+                            if (href && href.includes('/scoreboard/')) {
+                                urls.push(href);
                             }
                         });
-                    }
-                    
-                    return urls;
-                }""")
-                
-                # Clean and format URLs
-                valid_urls = []
-                for url in urls:
-                    if url:
-                        if not url.startswith("http"):
-                            url = "https://crex.com" + url
-                        valid_urls.append(url)
-                
-                # Remove duplicates
-                valid_urls = list(set(valid_urls))
-                
-                logger.info(f"Discovered {len(valid_urls)} live matches: {valid_urls}")
-                print(f"[DISCOVERY] Found {len(valid_urls)} matches: {valid_urls}", flush=True)
-                
-                if valid_urls:
-                    # Sync with backend
-                    token = await asyncio.to_thread(CricketDataService.get_bearer_token)
-                    await asyncio.to_thread(CricketDataService.add_live_matches, valid_urls, token)
-                    logger.info("Synced live matches with backend.")
-                    print("[DISCOVERY] Synced with backend.", flush=True)
-                else:
-                    print("[DISCOVERY] No valid URLs found to sync.", flush=True)
-                
-                await page.close()
-            
+                        
+                        // Strategy 2: Look for div.live-card > a (Legacy structure)
+                        if (urls.length === 0) {
+                            const divItems = document.querySelectorAll('div.live-card a');
+                            divItems.forEach(a => {
+                                const href = a.getAttribute('href');
+                                if (href && href.includes('/scoreboard/')) {
+                                    urls.push(href);
+                                }
+                            });
+                        }
+
+                        return urls;
+                    }""")
+                finally:
+                    if page:
+                        try:
+                            await page.close()
+                        except Exception:
+                            pass
         except Exception as e:
-            logger.error(f"Error during discovery scrape: {e}")
-            print(f"[DISCOVERY] Error: {e}", flush=True)
+            logger.error(f"Discovery failed: {e}")
+            raise e
+                
+        # Clean and format URLs
+        valid_urls = []
+        for url in urls:
+            if url:
+                if not url.startswith("http"):
+                    url = "https://crex.com" + url
+                valid_urls.append(url)
+        
+        # Remove duplicates
+        valid_urls = list(set(valid_urls))
+        
+        logger.info(f"Discovered {len(valid_urls)} live matches: {valid_urls}")
+        print(f"[DISCOVERY] Found {len(valid_urls)} matches: {valid_urls}", flush=True)
+        
+        if valid_urls:
+            # Sync with backend
+            token = await asyncio.to_thread(CricketDataService.get_bearer_token)
+            await asyncio.to_thread(CricketDataService.add_live_matches, valid_urls, token)
+            logger.info("Synced live matches with backend.")
+            print("[DISCOVERY] Synced with backend.", flush=True)
+        else:
+            print("[DISCOVERY] No valid URLs found to sync.", flush=True)
+

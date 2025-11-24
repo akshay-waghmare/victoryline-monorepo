@@ -169,10 +169,14 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
                 bowler_data.append({
                     "name": name,
                     "score": runs_conceded,
+                    "runs_conceded": runs_conceded, # Legacy support
                     "ballsBowled": balls_bowled,
+                    "balls_bowled": balls_bowled, # Legacy support
                     "wicketsTaken": wickets,
+                    "wickets_taken": wickets, # Legacy support
                     "economyRate": econ,
-                    "dotBalls": "0"
+                    "dotBalls": "0",
+                    "dot_balls": "0" # Legacy support
                 })
                 
             else:
@@ -207,11 +211,14 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
                 batsman_data.append({
                     "name": name,
                     "score": runs,
+                    "runs": runs, # Legacy support
                     "ballsFaced": balls,
+                    "balls_faced": balls, # Legacy support
                     "fours": fours,
                     "sixes": sixes,
                     "strikeRate": sr,
-                    "onStrike": on_strike
+                    "onStrike": on_strike,
+                    "on_strike": on_strike # Legacy support
                 })
 
     # Fallback to table extraction if Angular components not found (legacy support)
