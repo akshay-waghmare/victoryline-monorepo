@@ -83,9 +83,88 @@ class CrexAdapter(SourceAdapter):
                 final_data["player_map"] = {k: v for k, v in data_store["local_storage"].items() if k.startswith('p_')}
                 final_data["team_map"] = {k: v for k, v in data_store["local_storage"].items() if k.startswith('t_')}
 
+            # Enrich with sC4 data if DOM extraction failed
+            if (not final_data.get("batsman_data") or not final_data.get("bowler_data")) and data_store["sC4_stats"]:
+                self._enrich_from_sc4(final_data, data_store["sC4_stats"], data_store["local_storage"])
+
             return final_data
         finally:
             await page.close()
+
+    def _enrich_from_sc4(self, final_data: Dict[str, Any], sc4_stats: Dict[str, Any], local_storage: Dict[str, str]):
+        """
+        Enrich final_data with stats from sC4 if available.
+        """
+        try:
+            innings = sc4_stats.get("innings", {})
+            if not innings:
+                return
+
+            # Determine current inning (last one)
+            # Keys are like "1st_inning", "2nd_inning"
+            # Sort by numeric prefix
+            sorted_keys = sorted(innings.keys(), key=lambda k: int(k.split('_')[0][:-2]) if k[0].isdigit() else 0)
+            if not sorted_keys:
+                return
+            
+            current_inning_key = sorted_keys[-1]
+            current_inning = innings[current_inning_key]
+            
+            # Map Batsman Data
+            if not final_data.get("batsman_data"):
+                batsman_list = []
+                for code, stats in current_inning.get("batsman_stats", {}).items():
+                    # Resolve name
+                    name = local_storage.get(f"p_{code}_name", code)
+                    
+                    # Calculate SR
+                    runs = int(stats.get("runs", 0))
+                    balls = int(stats.get("balls_faced", 0))
+                    sr = "{:.2f}".format((runs / balls) * 100) if balls > 0 else "0.00"
+                    
+                    batsman_list.append({
+                        "name": name,
+                        "score": str(runs),
+                        "ballsFaced": str(balls),
+                        "fours": str(stats.get("fours", 0)),
+                        "sixes": str(stats.get("sixes", 0)),
+                        "strikeRate": sr,
+                        "onStrike": stats.get("status") == "currently_batting"
+                    })
+                final_data["batsman_data"] = batsman_list
+                logger.info(f"Enriched {len(batsman_list)} batsmen from sC4")
+
+            # Map Bowler Data
+            if not final_data.get("bowler_data"):
+                bowler_list = []
+                for code, stats in current_inning.get("bowlers_stats", {}).items():
+                    # Resolve name
+                    name = local_storage.get(f"p_{code}_name", code)
+                    
+                    # Calculate Economy
+                    runs = int(stats.get("runs", 0))
+                    overs = float(stats.get("overs", 0))
+                    # Convert overs to balls for accurate econ
+                    # 1.3 overs = 1*6 + 3 = 9 balls
+                    o_int = int(overs)
+                    o_dec = int(round((overs - o_int) * 10))
+                    total_balls = o_int * 6 + o_dec
+                    
+                    econ = "{:.2f}".format((runs / total_balls) * 6) if total_balls > 0 else "0.00"
+                    
+                    bowler_list.append({
+                        "name": name,
+                        "score": str(runs),
+                        "ballsBowled": total_balls,
+                        "wicketsTaken": str(stats.get("wickets", 0)),
+                        "economyRate": econ,
+                        "dotBalls": "0"
+                    })
+                final_data["bowler_data"] = bowler_list
+                logger.info(f"Enriched {len(bowler_list)} bowlers from sC4")
+
+        except Exception as e:
+            logger.error(f"Error enriching from sC4: {e}")
 
     async def _extract_local_storage(self, page: Page) -> Dict[str, str]:
         try:
