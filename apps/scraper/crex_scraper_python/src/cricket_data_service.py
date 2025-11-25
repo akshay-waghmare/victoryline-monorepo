@@ -1,5 +1,6 @@
 import requests
 import os
+from typing import Dict, Any
 from .loggers.adapters import get_logger
 from .core.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 
@@ -273,6 +274,51 @@ class CricketDataService:
             return False
         except Exception as e:
             logger.error("matches.push_info.error", metadata={"error": str(e), "url": service_url})
+            return False
+
+    @staticmethod
+    def push_sc4_stats(data: Dict[str, Any], token: str, source_url: str) -> bool:
+        """
+        Pushes full scorecard (sC4) stats to the backend.
+        Endpoint: /cricket-data/sC4-stats/save
+        """
+        logger.info("matches.push_sc4.start", metadata={"url": source_url})
+        
+        # Use env var for endpoint, default to localhost for dev
+        service_url = os.getenv('API_ENDPOINT_SC4', 'http://127.0.0.1:8099/cricket-data/sC4-stats/save')
+        # In Docker, use the service name
+        if os.getenv('DOCKER_ENV'):
+             service_url = 'http://backend:8099/cricket-data/sC4-stats/save'
+        
+        def _push():
+            headers = {"Content-Type": "application/json"}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            
+            # Construct payload matching legacy format
+            # The backend expects the raw sC4 stats object + url
+            # Legacy code wrapped it in "match_stats_by_innings"
+            payload = {
+                "match_stats_by_innings": data,
+                "url": source_url
+            }
+            
+            # Log payload size rather than content as it can be large
+            logger.info("matches.push_sc4.payload_size", metadata={"size_bytes": len(str(payload))})
+
+            response = requests.post(service_url, json=payload, headers=headers)
+            response.raise_for_status()
+            return response
+
+        try:
+            _api_breaker.call(_push)
+            logger.info("matches.push_sc4.success", metadata={"url": source_url})
+            return True
+        except CircuitBreakerOpenError:
+            logger.warning("matches.push_sc4.circuit_open", metadata={"breaker": "backend_api"})
+            return False
+        except Exception as e:
+            logger.error("matches.push_sc4.error", metadata={"error": str(e), "url": service_url})
             return False
 
     @staticmethod

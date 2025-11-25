@@ -319,6 +319,16 @@ class CrexScraperService:
                         self._auth_token,
                         info_url
                      )
+                
+                # Push sC4 stats if available
+                if data.get("match_stats"):
+                     logger.info(f"Pushing sC4 stats for {canonical_id}. Data keys: {list(data['match_stats'].keys()) if isinstance(data['match_stats'], dict) else 'Not a dict'}")
+                     await asyncio.to_thread(
+                        CricketDataService.push_sc4_stats,
+                        data["match_stats"],
+                        self._auth_token,
+                        task.url
+                     )
             else:
                 logger.warning(f"Skipping push for {canonical_id} (no auth token)")
 

@@ -32,12 +32,48 @@ class CrexAdapter(SourceAdapter):
         """
         Fetch match data from Crex.
         """
-        page = await context.new_page()
         data_store: Dict[str, Any] = {
             "sC4_stats": None,
             "api_data": {},
             "local_storage": {}
         }
+
+        # Pre-fetch localStorage from Scorecard and Info pages (Legacy Behavior)
+        # This ensures we have all player/team mappings before scraping live data
+        if "/live" in url:
+            # 1. Scorecard
+            scorecard_url = url.replace("/live", "/scorecard")
+            try:
+                logger.info(f"Pre-fetching localStorage from {scorecard_url}")
+                scorecard_page = await context.new_page()
+                try:
+                    await scorecard_page.goto(scorecard_url, wait_until="domcontentloaded", timeout=30000)
+                    await scorecard_page.wait_for_timeout(5000)
+                    pre_ls = await self._extract_local_storage(scorecard_page)
+                    data_store["local_storage"].update(pre_ls)
+                    logger.info(f"Pre-fetched {len(pre_ls)} items from Scorecard localStorage")
+                finally:
+                    await scorecard_page.close()
+            except Exception as e:
+                logger.warning(f"Failed to pre-fetch Scorecard LS: {e}")
+
+            # 2. Info
+            info_url = url.replace("/live", "/info")
+            try:
+                logger.info(f"Pre-fetching localStorage from {info_url}")
+                info_page = await context.new_page()
+                try:
+                    await info_page.goto(info_url, wait_until="domcontentloaded", timeout=30000)
+                    await info_page.wait_for_timeout(5000)
+                    pre_ls_info = await self._extract_local_storage(info_page)
+                    data_store["local_storage"].update(pre_ls_info)
+                    logger.info(f"Pre-fetched {len(pre_ls_info)} items from Info localStorage")
+                finally:
+                    await info_page.close()
+            except Exception as e:
+                logger.warning(f"Failed to pre-fetch Info LS: {e}")
+
+        page = await context.new_page()
 
         try:
             # Setup network interception
@@ -61,7 +97,8 @@ class CrexAdapter(SourceAdapter):
                 logger.warning(f"Timeout waiting for sV3 response on {url}")
 
             # Extract localStorage
-            data_store["local_storage"] = await self._extract_local_storage(page)
+            current_ls = await self._extract_local_storage(page)
+            data_store["local_storage"].update(current_ls)
 
             content = await page.content()
             dom_data = extract_match_dom_fields(content)
@@ -73,7 +110,13 @@ class CrexAdapter(SourceAdapter):
             
             # Add rich data
             if data_store["sC4_stats"]:
+                logger.info(f"sC4 stats present. LocalStorage items: {len(data_store['local_storage'])}")
+                # Decode player names using localStorage if available
+                if data_store["local_storage"]:
+                     self._decode_sc4_stats(data_store["sC4_stats"], data_store["local_storage"])
                 final_data["match_stats"] = data_store["sC4_stats"]
+            else:
+                logger.info("sC4 stats NOT present in data_store")
             
             if data_store["api_data"]:
                 final_data["live_data"] = data_store["api_data"]
@@ -107,6 +150,50 @@ class CrexAdapter(SourceAdapter):
             return final_data
         finally:
             await page.close()
+
+    def _decode_sc4_stats(self, sc4_stats: Dict[str, Any], local_storage: Dict[str, str]):
+        """
+        Decodes player names in sC4 stats using localStorage mapping.
+        Replaces player codes with names in the keys.
+        """
+        try:
+            innings = sc4_stats.get("innings", {})
+            logger.info(f"Decoding sC4 stats. LocalStorage has {len(local_storage)} items.")
+            
+            for inning_key, inning_data in innings.items():
+                # Decode Team Name
+                team_code = inning_data.get("team_code")
+                if team_code:
+                    team_name = local_storage.get(f"t_{team_code}_name")
+                    if team_name:
+                        inning_data["team_name"] = team_name
+                        inning_data["teamName"] = team_name
+                        inning_data["team_code"] = team_name  # Overwrite code with name for frontend compatibility
+                        logger.info(f"Decoded team {team_code} -> {team_name}")
+                    else:
+                        logger.warning(f"Could not find name for team code: {team_code}")
+                        inning_data["team_name"] = team_code
+
+                # Decode Batsmen
+                batsman_stats = inning_data.get("batsman_stats", {})
+                decoded_batsmen = {}
+                for code, stats in batsman_stats.items():
+                    name = local_storage.get(f"p_{code}_name", code)
+                    stats["player_name"] = name
+                    decoded_batsmen[name] = stats
+                inning_data["batsman_stats"] = decoded_batsmen
+                
+                # Decode Bowlers
+                bowlers_stats = inning_data.get("bowlers_stats", {})
+                decoded_bowlers = {}
+                for code, stats in bowlers_stats.items():
+                    name = local_storage.get(f"p_{code}_name", code)
+                    stats["player_name"] = name
+                    decoded_bowlers[name] = stats
+                inning_data["bowlers_stats"] = decoded_bowlers
+                
+        except Exception as e:
+            logger.error(f"Error decoding sC4 stats: {e}")
 
     def _enrich_from_sc4(self, final_data: Dict[str, Any], sc4_stats: Dict[str, Any], local_storage: Dict[str, str]):
         """
