@@ -246,11 +246,31 @@ class CrexAdapter(SourceAdapter):
             # 1. Current Ball Info (Field B)
             if "B" in api_data:
                 raw_b = str(api_data["B"])
-                final_data["current_ball"] = raw_b
+                
+                # Clean up the value
+                # Remove '^' which seems to be a prefix for runs (e.g. "^4" -> "4")
+                clean_b_str = raw_b.replace('^', '')
+                
+                # Handle specific codes
+                # 'o' = Over completion
+                # 'b' = Ball start
+                # 'wd' = Wide
+                lower_b = clean_b_str.lower()
+                if lower_b == 'o':
+                    final_data["current_ball"] = "Over"
+                elif lower_b == 'wd':
+                    final_data["current_ball"] = "Wide"
+                elif lower_b == 'b':
+                    # 'b' usually means ball start, might not want to show anything yet
+                    # or show a placeholder. For now, keeping it as is or maybe empty?
+                    # User said "means it is a Ball start". 
+                    # Let's pass it through cleaned, or maybe ignore?
+                    # If we pass "b", frontend shows "b". 
+                    final_data["current_ball"] = clean_b_str
+                else:
+                    final_data["current_ball"] = clean_b_str
                 
                 # Clean runs_on_ball (Integer expected)
-                # Remove '^' and handle non-numeric values gracefully
-                clean_b_str = raw_b.replace('^', '')
                 try:
                     # If it's a number (e.g. "1", "4"), convert to int
                     final_data["runs_on_ball"] = int(clean_b_str)

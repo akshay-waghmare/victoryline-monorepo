@@ -77,12 +77,6 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
 
     result_spans = [s.get_text(strip=True) for s in soup.select(".result-box span")]
     final_result = next((s.get_text(strip=True) for s in soup.select(".final-result.m-none")), None)
-    
-    # Fallback for final_result if not found in .final-result.m-none
-    result_box_text = " ".join(result_spans) if result_spans else None
-    if not final_result and result_box_text:
-        final_result = result_box_text
-
     run_rate = next((s.get_text(strip=True) for s in soup.select(".team-run-rate .data")), None)
     venue = next((a.get_text(strip=True) for a in soup.select("a[href*='cricket-grounds']")), None)
 
