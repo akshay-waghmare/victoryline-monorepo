@@ -334,39 +334,36 @@ class CrexAdapter(SourceAdapter):
             if "B" in api_data:
                 raw_b = str(api_data["B"])
                 
-                # Clean up the value
-                # Remove '^' which seems to be a prefix for runs (e.g. "^4" -> "4")
-                clean_b_str = raw_b.replace('^', '')
+                # Special codes mapping
+                # ^2 = Caught Out, ^4 = Run Out, B = Ball Start, etc.
+                special_codes = {
+                    "^2": "Caught Out",
+                    "^4": "Run Out",
+                    "B": "Ball Start",
+                    "o": "Over",
+                    "bc": "Boundary Check",
+                    "wd": "Wide",
+                    "nb": "No Ball",
+                    "w": "Wicket"
+                }
                 
-                # Handle specific codes
-                # 'o' = Over completion
-                # 'b' = Ball start
-                # 'wd' = Wide
-                lower_b = clean_b_str.lower()
-                if lower_b == 'o':
-                    final_data["current_ball"] = "Over"
-                elif lower_b == 'wd':
-                    final_data["current_ball"] = "Wide"
-                elif lower_b == 'b':
-                    # 'b' usually means ball start, might not want to show anything yet
-                    # or show a placeholder. For now, keeping it as is or maybe empty?
-                    # User said "means it is a Ball start". 
-                    # Let's pass it through cleaned, or maybe ignore?
-                    # If we pass "b", frontend shows "b". 
-                    final_data["current_ball"] = clean_b_str
+                if raw_b in special_codes:
+                    final_data["current_ball"] = special_codes[raw_b]
+                    # For special events, runs are typically 0 unless specified otherwise
+                    # We don't set runs_on_ball here to avoid incorrect parsing (e.g. ^2 -> 2 runs)
+                elif raw_b.lower() in special_codes:
+                     final_data["current_ball"] = special_codes[raw_b.lower()]
                 else:
+                    # Clean up the value for standard runs/text
+                    # Remove '^' which seems to be a prefix for runs (e.g. "^4" -> "4")
+                    clean_b_str = raw_b.replace('^', '')
                     final_data["current_ball"] = clean_b_str
-                
-                # Clean runs_on_ball (Integer expected)
-                try:
-                    # If it's a number (e.g. "1", "4"), convert to int
-                    final_data["runs_on_ball"] = int(clean_b_str)
-                except ValueError:
-                    # If it's not a number (e.g. "W", "Nb"), maybe send 0 or skip?
-                    if clean_b_str.isdigit():
-                         final_data["runs_on_ball"] = int(clean_b_str)
-                    else:
-                        # Fallback: don't send runs_on_ball if we can't determine runs
+                    
+                    # Try to parse runs only if it wasn't a special code
+                    try:
+                        if clean_b_str.isdigit():
+                            final_data["runs_on_ball"] = int(clean_b_str)
+                    except ValueError:
                         pass
 
             # 2. Team Odds (Field R)
