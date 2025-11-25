@@ -54,6 +54,10 @@ class LiveMatchDiscoverer:
             except Exception as e:
                 logger.error(f"Discovery loop error: {e}")
                 print(f"[DISCOVERY] Error: {e}", flush=True)
+                
+                if "Connection closed" in str(e) or "Target closed" in str(e):
+                    print("[DISCOVERY] Critical browser error detected. Pool should auto-recover on next cycle.", flush=True)
+                
                 # If we hit a connection error here, it might be transient or fatal for the browser
                 # The pool should handle invalidation, but we should back off a bit
                 await asyncio.sleep(10)

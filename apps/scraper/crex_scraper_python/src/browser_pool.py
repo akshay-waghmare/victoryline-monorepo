@@ -122,9 +122,21 @@ class AsyncBrowserPool:
                 logger.warning(f"Context usage failed: {e}")
                 # If it's a critical error, we might want to recycle the whole pool
                 if "Target closed" in str(e) or "Connection closed" in str(e):
-                     logger.error("Browser connection lost, invalidating browser.")
+                     logger.error("Browser connection lost, invalidating browser and playwright.")
                      if self._browser:
-                         self._browser = None # Mark for recreation
+                         try:
+                             await self._browser.close()
+                         except Exception:
+                             pass
+                         self._browser = None
+                     
+                     # Restart Playwright as well to ensure driver is clean
+                     if self._playwright:
+                         try:
+                             await self._playwright.stop()
+                         except Exception:
+                             pass
+                         self._playwright = None
                 raise
             finally:
                 async with self._lock:

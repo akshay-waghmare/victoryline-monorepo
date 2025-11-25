@@ -31,3 +31,16 @@ Modified the `scrape()` function to iterate through **all** currently visible li
     - **Primary**: `rb` (Recent Balls) field - contains detailed ball-by-ball data.
     - **Fallback**: `l` (Last), `n` (Next to last), `m` (3rd last) fields - parsed as over strings.
 - Relaxed network interception to match `"sV3"` instead of strict `"sV3.php"` to ensure API responses are captured.
+
+## 3. Browser Pool Recovery
+**Files**:
+- `apps/scraper/crex_scraper_python/src/browser_pool.py`
+- `apps/scraper/crex_scraper_python/src/discovery.py`
+
+**Issue**:
+The discovery service encountered `Connection closed while reading from the driver` errors, causing the discovery loop to fail repeatedly. The browser pool was not correctly invalidating the broken Playwright instance, leading to a loop of failed attempts to use a dead driver.
+
+**Fix**:
+- Updated `AsyncBrowserPool.get_context` to aggressively clean up both the `Browser` and `Playwright` instances when a critical error (Target closed/Connection closed) occurs.
+- This forces a complete re-initialization of the browser stack on the next cycle, ensuring recovery from driver crashes.
+- Added explicit logging in `discovery.py` to indicate when this recovery mechanism is triggered.
