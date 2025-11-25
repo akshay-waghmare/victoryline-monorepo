@@ -723,22 +723,37 @@ def scrape(page, url):
         except Exception as e:
             logger.warning("backend.sync_live_matches.error", metadata={"error": str(e), "message": "Backend sync failed, continuing with local scraping"})
         
-        if added_urls or deleted_urls:
-            if added_urls:
-                logger.info("matches.new_detected", metadata={"count": len(added_urls), "urls": list(added_urls)})
-                for i, url in enumerate(added_urls):
-                    # URL is already absolute (contains https://crex.com)
-                    logger.info("matches.trigger_scrape", metadata={"url": url, "index": i+1, "total": len(added_urls)})
-                    
-                    # Add a small delay between requests to avoid overwhelming the system
-                    if i > 0:
-                        time.sleep(2)
-                    
+        # Log changes for visibility
+        if added_urls:
+            logger.info("matches.new_detected", metadata={"count": len(added_urls), "urls": list(added_urls)})
+        if deleted_urls:
+            logger.info("matches.deleted_detected", metadata={"count": len(deleted_urls), "urls": list(deleted_urls)})
+
+        # Ensure scraper is running for ALL current live URLs
+        # This handles both new matches AND matches that were interrupted/stopped (e.g. Stumps)
+        for i, url in enumerate(urls):
+            is_running = False
+            if url in scraping_tasks:
+                task = scraping_tasks[url]
+                thread = task.get('thread')
+                if thread and thread.is_alive():
+                    is_running = True
+            
+            if not is_running:
+                logger.info("matches.ensure_running", metadata={"url": url, "reason": "live_but_not_running"})
+                
+                # Add a small delay between requests to avoid overwhelming the system
+                if i > 0:
+                    time.sleep(2)
+                
+                try:
                     response = requests.post('http://127.0.0.1:5000/start-scrape', json={'url': url})
                     if response.status_code == 200:
                         logger.info("matches.scrape_started", metadata={"url": url})
                     else:
                         logger.error("matches.scrape_failed", metadata={"url": url, "status_code": response.status_code})
+                except Exception as e:
+                    logger.error("matches.scrape_request_failed", metadata={"url": url, "error": str(e)})
                 
         time.sleep(60)                
         return {'status': 'Scraping finished', 'match_urls': urls}

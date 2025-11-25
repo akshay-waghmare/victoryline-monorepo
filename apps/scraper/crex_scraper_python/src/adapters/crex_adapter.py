@@ -54,11 +54,11 @@ class CrexAdapter(SourceAdapter):
             # Wait for sV3 response (which triggers sC4)
             try:
                 # Wait up to 5 seconds for the API call
-                await page.wait_for_response(lambda res: "sV3.php" in res.url, timeout=5000)
+                await page.wait_for_response(lambda res: "sV3" in res.url, timeout=5000)
                 # Give a little more time for sC4 to complete if it was triggered
                 await asyncio.sleep(2) 
             except Exception:
-                logger.warning(f"Timeout waiting for sV3.php response on {url}")
+                logger.warning(f"Timeout waiting for sV3 response on {url}")
 
             # Extract localStorage
             data_store["local_storage"] = await self._extract_local_storage(page)
@@ -199,7 +199,7 @@ class CrexAdapter(SourceAdapter):
 
     async def _setup_network_interception(self, page: Page, data_store: Dict[str, Any]):
         async def handle_response(response: Response):
-            if "sV3.php" in response.url:
+            if "sV3" in response.url:
                 try:
                     await self._handle_api_response(response, data_store, page)
                 except Exception as e:
@@ -349,6 +349,79 @@ class CrexAdapter(SourceAdapter):
                 
                 if session_list:
                     final_data["session_odds"] = session_list
+
+            # 4. Overs Data (Fields A, l, n, m)
+            # A: Current over (e.g. "4.0.2" -> 4th over, 0 runs, 2 balls?) - Actually user says A is current over
+            # l: Last over (e.g. "43:0.0.0.1.0.0")
+            # n: 2nd last over
+            # m: 3rd last over
+            
+            # Debug logging for overs extraction
+            logger.info(f"Checking overs data. Existing: {len(final_data.get('overs_data', []))}. API Keys: {list(api_data.keys())}")
+            
+            if not final_data.get("overs_data"):
+                try:
+                    overs_list = []
+                    
+                    # Helper to parse over string "OverNum:b1.b2.b3..."
+                    def parse_over_str(over_str):
+                        if not over_str or ":" not in over_str: return None
+                        parts = over_str.split(":")
+                        over_num = parts[0]
+                        balls_str = parts[1]
+                        balls = balls_str.split(".")
+                        
+                        total_runs = 0
+                        for b in balls:
+                            if b.isdigit():
+                                total_runs += int(b)
+                            # Handle other cases like 'W', 'Nb' if needed
+                        
+                        return {
+                            "overNumber": over_num,
+                            "balls": balls,
+                            "totalRuns": str(total_runs)
+                        }
+
+                    # Parse m (3rd last), n (2nd last), l (last)
+                    for field in ["m", "n", "l"]:
+                        if field in api_data:
+                            over_data = parse_over_str(str(api_data[field]))
+                            if over_data:
+                                overs_list.append(over_data)
+                    
+                    rb_overs = []
+                    if "rb" in api_data and isinstance(api_data["rb"], list):
+                        # rb contains detailed over info
+                        # We can use this instead of l, m, n if available as it's richer
+                        
+                        # Let's rebuild overs_list from rb if available, as it seems to cover everything
+                        for over_obj in api_data["rb"]:
+                            o_num = str(over_obj.get("o", ""))
+                            balls_data = over_obj.get("b", [])
+                            balls = []
+                            total_runs = 0
+                            for b_obj in balls_data:
+                                u_val = str(b_obj.get("u", "0")) # Runs? Ensure string
+                                balls.append(u_val)
+                                if u_val.isdigit():
+                                    total_runs += int(u_val)
+                            
+                            rb_overs.append({
+                                "overNumber": o_num,
+                                "balls": balls,
+                                "totalRuns": str(total_runs)
+                            })
+                        
+                    if rb_overs:
+                        final_data["overs_data"] = rb_overs
+                        logger.info(f"Extracted {len(rb_overs)} overs from rb field")
+                    elif overs_list:
+                        final_data["overs_data"] = overs_list
+                        logger.info(f"Extracted {len(overs_list)} overs from l,n,m fields")
+
+                except Exception as e:
+                    logger.warning(f"Failed to parse overs data: {e}")
 
             # Log extraction results
             logger.info(f"Extracted live data: runs_on_ball={final_data.get('runs_on_ball')}, team_odds={final_data.get('team_odds')}, session_odds_count={len(final_data.get('session_odds', []))}")

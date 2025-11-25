@@ -190,9 +190,18 @@ class CricketDataService:
                 if data.get("runs_on_ball") is not None:
                     payload["runs_on_ball"] = data["runs_on_ball"]
                 
+                if data.get("overs_data"):
+                    payload["overs_data"] = data["overs_data"]
+
                 if data.get("current_ball"):
                     # Backend expects 'score_update' for current_ball field
-                    payload["score_update"] = data["current_ball"]
+                    cb = data["current_ball"]
+                    if cb == 'e':
+                        payload["score_update"] = "player entering"
+                    elif cb == 'B':
+                        payload["score_update"] = "ball start"
+                    else:
+                        payload["score_update"] = cb
 
                 # Map Batsman Data
                 if data.get("batsman_data"):
