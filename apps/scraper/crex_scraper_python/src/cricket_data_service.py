@@ -208,8 +208,16 @@ class CricketDataService:
                     payload["batsman_data"] = data["batsman_data"]
 
                 # Map Bowler Data
+                # Backend expects a single object for bowler_data, but scraper provides a list.
+                # We take the first bowler from the list.
                 if data.get("bowler_data"):
-                    payload["bowler_data"] = data["bowler_data"]
+                    bowlers = data["bowler_data"]
+                    if isinstance(bowlers, list) and len(bowlers) > 0:
+                        payload["bowler_data"] = bowlers[0]
+                    elif isinstance(bowlers, dict):
+                        payload["bowler_data"] = bowlers
+                    else:
+                        logger.warning(f"Unexpected bowler_data format: {type(bowlers)}")
                 
                 # Include raw data for debugging or other fields
                 # payload["raw_data"] = data

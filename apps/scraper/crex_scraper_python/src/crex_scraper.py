@@ -227,6 +227,11 @@ class CrexScraperService:
             match_info_fetched_now = False
             info_url = None
             
+            # Check persistent cache for match info if not in snapshot
+            # This handles cases where snapshot expired but we still have the static info
+            if not match_info:
+                match_info = await self.cache.get_match_info(canonical_id)
+
             if not match_info:
                 try:
                     # Construct info URL (assuming standard Crex URL structure)
@@ -240,6 +245,8 @@ class CrexScraperService:
                     match_info = await adapter.fetch_match_info(context, info_url)
                     if match_info:
                         match_info_fetched_now = True
+                        # Persist match info separately with long TTL
+                        await self.cache.set_match_info(canonical_id, match_info)
                 except Exception as e:
                     logger.error(f"Failed to fetch match info for {canonical_id}: {e}")
             

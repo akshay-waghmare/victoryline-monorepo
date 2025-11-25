@@ -58,6 +58,31 @@ class ScrapeCache:
     def _key_negative(self, match_id: str) -> str:
         return f"match:{match_id}:missing"
 
+    def _key_info(self, match_id: str) -> str:
+        return f"match:{match_id}:info"
+
+    async def set_match_info(self, match_id: str, data: Dict[str, Any], ttl: int = 86400):
+        """
+        Cache static match info with long TTL (24h).
+        """
+        if not self._redis:
+            return
+        key = self._key_info(match_id)
+        serialized = json.dumps(data)
+        await self._redis.set(key, serialized, ex=ttl)
+
+    async def get_match_info(self, match_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve cached match info.
+        """
+        if not self._redis:
+            return None
+        key = self._key_info(match_id)
+        data = await self._redis.get(key)
+        if data:
+            return json.loads(data)
+        return None
+
     async def set_snapshot(self, match_id: str, data: Dict[str, Any], ttl: int = 300):
         """
         Cache the latest match snapshot.
