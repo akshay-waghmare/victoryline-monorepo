@@ -253,6 +253,18 @@ class CrexScraperService:
             if match_info:
                 data["match_info"] = match_info
 
+            # Overs Data Caching Logic
+            # If current scrape has overs, cache them.
+            # If current scrape has NO overs, try to retrieve from cache.
+            current_overs = data.get("overs_data")
+            if current_overs and isinstance(current_overs, list) and len(current_overs) > 0:
+                await self.cache.set_latest_overs(canonical_id, current_overs)
+            elif not current_overs:
+                cached_overs = await self.cache.get_latest_overs(canonical_id)
+                if cached_overs:
+                    data["overs_data"] = cached_overs
+                    logger.info(f"Used cached overs_data for {canonical_id} (fallback)")
+
             # Canonical ID check
             # canonical_id already computed above
             if canonical_id != task.match_id:

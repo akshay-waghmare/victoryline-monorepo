@@ -49,6 +49,39 @@ class ScrapeCache:
     def _key_snapshot(self, match_id: str) -> str:
         return f"match:{match_id}:snapshot"
 
+    def _key_overs(self, match_id: str) -> str:
+        return f"match:{match_id}:overs"
+
+    async def set_latest_overs(self, match_id: str, overs_data: List[Dict[str, Any]], ttl: int = 60):
+        """
+        Cache the latest overs data for a match.
+        TTL is short (default 60s) because overs change frequently.
+        """
+        if not self._redis or not overs_data:
+            return
+
+        key = self._key_overs(match_id)
+        try:
+            await self._redis.set(key, json.dumps(overs_data), ex=ttl)
+        except Exception as e:
+            logger.warning(f"Failed to cache overs data for {match_id}: {e}")
+
+    async def get_latest_overs(self, match_id: str) -> Optional[List[Dict[str, Any]]]:
+        """
+        Retrieve cached overs data.
+        """
+        if not self._redis:
+            return None
+
+        key = self._key_overs(match_id)
+        try:
+            data = await self._redis.get(key)
+            if data:
+                return json.loads(data)
+        except Exception as e:
+            logger.warning(f"Failed to get cached overs data for {match_id}: {e}")
+        return None
+
     def _key_history(self, match_id: str) -> str:
         return f"match:{match_id}:history"
 
