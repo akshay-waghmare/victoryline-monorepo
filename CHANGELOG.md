@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration**: Switched production Caddy configuration to use `Caddyfile.local` temporarily for local testing of production stack.
 - **Env**: Updated `.env.production.example` with optimized resilience settings.
 
+### Deployed Images
+| Service | Image Tag |
+|---------|-----------|
+| **Scraper** | `macubex/victoryline-scraper:v1.1.4` |
+| **Backend** | `macubex/victoryline-backend:v1.0.0` |
+| **Frontend** | `macubex/victoryline-frontend:v1.0.1` |
+| **Prerender** | `macubex/victoryline-prerender:v1.0.0` |
+| **MySQL** | `mysql:8.0` |
+| **Redis** | `redis:7-alpine` |
+
 ## [1.1.3] - 2025-11-25
 
 ### Fixed
