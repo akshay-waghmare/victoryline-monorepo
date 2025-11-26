@@ -189,7 +189,7 @@ class ScraperSettings:
         polling_interval_seconds = _coerce_float(env.get("POLLING_INTERVAL_SECONDS"), 2.5, minimum=0.1)
         # Increased default from 60s to 180s (3 min) to prevent premature restarts
         # Minimum kept at 30s to avoid hyper‑aggressive restart loops
-        staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 180, minimum=30)
+        staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 60, minimum=30)
         max_queue_size = _coerce_int(env.get("MAX_QUEUE_SIZE"), 1000, minimum=10)
         max_queue_size_mb = _coerce_int(env.get("MAX_QUEUE_SIZE_MB"), 10, minimum=1)
         circuit_breaker_threshold = _coerce_int(env.get("CIRCUIT_BREAKER_THRESHOLD"), 5, minimum=1)
