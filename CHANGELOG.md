@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-11-27
+
+### Fixed
+- **SEO Indexing**: Fixed Google not indexing cric-live match pages.
+  - Removed static canonical URL from `index.html` that was causing all pages to point to homepage.
+  - Replaced generic `SportsEvent` JSON-LD with `WebSite` schema as neutral fallback.
+  - Implemented dynamic canonical URLs per match page via `MetaTagsService`.
+- **Match Result Display**: Fixed match result ("won by X wickets") not persisting in UI.
+  - Added `_matchResult` state in `LiveHeroStateService` to preserve result across WebSocket updates.
+  - Handle `current_ball` messages containing "won" to update final result immediately.
+- **Series Name Extraction**: Fixed "Th Match" appearing in keywords instead of proper series name.
+
+### Added
+- **Dynamic SEO Meta Tags**: Match-specific title, description, and keywords.
+  - `MetaTagsService.buildMatchKeywords()` generates contextual keywords.
+  - Keywords include team names, series, venue, and common search terms.
+- **OpenSpec Change Proposal**: Added `openspec/changes/fix-seo-canonical-indexing/` documentation.
+
+### Changed
+- **JSON-LD Schema**: Changed from `SportsEvent` (generic) to `WebSite` (neutral) in `index.html`.
+- **Meta Tags**: Now dynamically injected per page instead of static fallbacks.
+
+### Deployed Images
+| Service | Image Tag |
+|---------|-----------|
+| **Frontend** | `victoryline-monorepo-frontend:v1.2.0` |
+| **Scraper** | `macubex/victoryline-scraper:v1.1.4` |
+| **Backend** | `macubex/victoryline-backend:v1.0.0` |
+| **Prerender** | `macubex/victoryline-prerender:v1.0.0` |
+
 ## [1.1.4] - 2025-11-26
 
 ### Fixed
