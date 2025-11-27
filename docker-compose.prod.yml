@@ -154,7 +154,7 @@ services:
       start_period: 20s
 
   frontend:
-    image: "${FRONTEND_IMAGE:-victoryline-monorepo-frontend:v1.2.0}"
+    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:v1.2.0}"
     container_name: victoryline-frontend
     restart: unless-stopped
     # No external port mapping - accessed via Caddy reverse proxy only
@@ -192,8 +192,8 @@ services:
       - ACME_AGREE=true
       - EMAIL=${LETSENCRYPT_EMAIL:-akshay.d.waghmare@gmail.com}
     volumes:
-      # Using Caddyfile.local for testing (switch to Caddyfile.prod for production)
-      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      # Production Caddyfile with HTTPS and Let's Encrypt
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     networks:

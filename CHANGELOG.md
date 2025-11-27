@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deployed Images
 | Service | Image Tag |
 |---------|-----------|
-| **Frontend** | `victoryline-monorepo-frontend:v1.2.0` |
+| **Frontend** | `macubex/victoryline-frontend:v1.2.0` |
 | **Scraper** | `macubex/victoryline-scraper:v1.1.4` |
 | **Backend** | `macubex/victoryline-backend:v1.0.0` |
 | **Prerender** | `macubex/victoryline-prerender:v1.0.0` |
