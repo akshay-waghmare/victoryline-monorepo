@@ -34,6 +34,7 @@ export class LiveHeroStateService {
   private currentConfig: LiveHeroConfig | undefined;
   private pollingEnabled = false;
   private lastValidStriker: LiveHeroBatterView | null = null;
+  private _matchResult: string | null = null; // Stores match result to persist across updates
 
   readonly state$: Observable<LiveHeroState> = this.stateSubject.asObservable();
   readonly view$: Observable<LiveHeroViewModel | null> = this.viewSubject.asObservable();
@@ -212,6 +213,15 @@ export class LiveHeroStateService {
       return;
     }
 
+    // Handle current_ball message containing match result
+    if (payload.current_ball !== undefined) {
+      const currentBall = payload.current_ball;
+      if (typeof currentBall === 'string' && currentBall.includes('won')) {
+        // Store match result to persist across updates
+        this._matchResult = currentBall;
+      }
+    }
+
     // Normalize payload onto LegacyCricketData so the adapter can stay agnostic of transport shape.
     const normalized = this.normalizeLegacyPayload(payload, markFresh);
     const next: LegacyCricketData = {
@@ -225,6 +235,12 @@ export class LiveHeroStateService {
         return;
       }
 
+      // Preserve final_result_text if we have a stored result and incoming is null
+      if (key === 'final_result_text' && value === null && this._matchResult) {
+        target[key as string] = this._matchResult;
+        return;
+      }
+
       if (Array.isArray(value)) {
         target[key as string] = value.slice();
       } else if (value && typeof value === 'object') {
@@ -233,6 +249,11 @@ export class LiveHeroStateService {
         target[key as string] = value;
       }
     });
+
+    // If incoming final_result_text has a value, store it
+    if (normalized.final_result_text) {
+      this._matchResult = normalized.final_result_text;
+    }
 
     this.currentLegacyData = next;
     this.updateSnapshotFromLegacy();

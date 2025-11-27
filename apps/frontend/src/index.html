@@ -81,8 +81,8 @@
   <!-- Optimized Keywords -->
   <meta name="keywords" content="Crickzen, live cricket scores, cricket live updates, international cricket, domestic cricket, real-time cricket scores, live cricket commentary, cricket match updates, ball by ball cricket">
 
-  <!-- Canonical URL -->
-  <link rel="canonical" href="https://www.crickzen.com/">
+  <!-- Canonical URL: Dynamically set by MetaTagsService per page -->
+  <!-- Do NOT add static canonical here - causes all pages to be treated as homepage duplicates -->
 
   <!-- Viewport for Mobile Optimization + iOS Safe Area Support -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
@@ -123,34 +123,19 @@
   <link href="node_modules/@angular/material/prebuilt-themes/indigo-pink.css" rel="stylesheet" defer>
 
   <!-- Structured Data for SEO (Schema.org) -->
+  <!-- JSON-LD is dynamically injected by MetaTagsService per page -->
+  <!-- Do NOT add generic SportsEvent here - causes duplicate content signals -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
-    "@type": "SportsEvent",
-    "name": "Live Cricket Scores",
-    "description": "Live cricket scores for all international and domestic matches.",
-    "url": "https://victoryline.live/live-cricket-score",
-    "sport": "Cricket",
-    "eventStatus": "https://schema.org/EventScheduled",
-    "location": {
-      "@type": "Place",
-      "name": "Various Locations Worldwide"
-    },
-    "startDate": "2024-09-02T00:00:00Z",
-    "endDate": "2024-09-02T23:59:59Z",
-    "organizer": {
-      "@type": "Organization",
-      "name": "VictoryLine",
-      "url": "https://victoryline.live"
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "VictoryLine",
-      "url": "https://victoryline.live"
-    },
-    "author": {
-      "@type": "Person",
-      "name": "VictoryLine Team"
+    "@type": "WebSite",
+    "name": "Crickzen",
+    "url": "https://www.crickzen.com",
+    "description": "Live cricket scores and real-time match updates",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://www.crickzen.com/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
     }
   }
   </script>

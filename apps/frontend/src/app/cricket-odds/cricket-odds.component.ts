@@ -9,6 +9,7 @@ import { EventListService } from '../component/event-list.service';
 import { AuthService } from '../auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabChangeEvent } from '@angular/material/tabs';
+import { MetaTagsService } from '../seo/meta-tags.service';
 
 interface FormattedExposure {
   win: number;
@@ -79,6 +80,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   last6Balls: { score: any }[] = []; // Initialize empty array, will be populated from API data
   cricetTopicSubscription: any;
   cricObj: any;
+  private _matchResult: string = null; // Stores match result from current_ball to persist across full updates
 
   private tossWonCountrySubject: Subject<string> = new Subject<string>();
   private batOrBallSelectedSubject: Subject<string> = new Subject<string>();
@@ -106,7 +108,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   // Toggle to hide/show odds sections
   showOdds: boolean = true;
 
-
+  // SEO: Track if we've already set meta for this match
+  private seoMetaApplied: boolean = false;
 
   teamComparisonKeys: string[] = [];
   teamComparisonSubKeys: string[] = [];
@@ -125,7 +128,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private snackBar: MatSnackBar,
               private eventListService:EventListService,
               private authService : AuthService,
-              private activatedRoute: ActivatedRoute,private router: Router) { }
+              private activatedRoute: ActivatedRoute,
+              private router: Router,
+              private metaTagsService: MetaTagsService) { }
 
   ngOnDestroy() {
     this.tossWonCountrySubject.complete();
@@ -201,6 +206,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.fetchMatchInfo(this.matchUrl || this.currentUrl);
     }
 
+    // SEO: Set initial meta tags based on URL
+    this.updateSeoMeta();
+
   }
   
 
@@ -230,11 +238,50 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private parseCricObjData(data) {
     console.log(data);
     // Check if 'data' has a 'body' property
+    let parsedData;
     if(data && 'body' in data){
       console.log('Subscribed to data:', data.body);
-      this.cricObj = JSON.parse(data.body);
+      parsedData = JSON.parse(data.body);
     } else {
-      this.cricObj = data;
+      parsedData = data;
+    }
+
+    // Handle current_ball messages (partial updates from /topic/cricket.*.current_ball)
+    if (parsedData && parsedData.current_ball !== undefined) {
+      const currentBall = parsedData.current_ball;
+      console.log('Current ball update:', currentBall);
+      
+      // Check if it's a match result (contains "won")
+      if (typeof currentBall === 'string' && currentBall.includes('won')) {
+        // Match is over - update cricObj with the final result
+        if (this.cricObj) {
+          this.cricObj.score_update = currentBall;
+          this.cricObj.final_result_text = currentBall;
+        }
+        // Store the result so it persists across full updates
+        this._matchResult = currentBall;
+        console.log('Match result received:', currentBall);
+      }
+      // Don't replace cricObj for partial current_ball updates
+      return;
+    }
+
+    // Preserve match result from current_ball if new data has null
+    const previousResult = this._matchResult;
+
+    // Full match data update - replace cricObj
+    this.cricObj = parsedData;
+
+    // If the incoming payload has a valid final_result_text, store it
+    if (this.cricObj && this.cricObj.final_result_text) {
+      this._matchResult = this.cricObj.final_result_text;
+    }
+    // Otherwise restore previously stored result if new data has null
+    else if (previousResult && this.cricObj) {
+      this.cricObj.final_result_text = previousResult;
+      if (!this.cricObj.score_update || !this.cricObj.score_update.includes('won')) {
+        this.cricObj.score_update = previousResult;
+      }
     }
 
     // Your existing logic for handling received cricket data...s
@@ -808,6 +855,9 @@ fetchMatchInfo(matchUrl:string) {
       this.teamFormKeys = Object.keys(this.matchInfo.team_form || {});
 
       this.setVenuePercentages();
+
+      // SEO: Update meta tags with enriched match info (venue, teams)
+      this.updateSeoMeta();
     },
     error => {
       console.error('Error fetching match info:', error);
@@ -972,6 +1022,139 @@ placeSessionBet() {
       if (match && match[1]) {
         return match[1];
       }
+    }
+    
+    return null;
+  }
+
+  /**
+   * SEO: Update meta tags with match-specific data
+   * Called after route params resolve and when matchInfo loads
+   */
+  private updateSeoMeta(): void {
+    if (!this.matchUrl && !this.currentUrl) return;
+
+    const matchPath = this.matchUrl || this.currentUrl;
+    const canonicalUrl = `https://www.crickzen.com/cric-live/${matchPath}`;
+
+    // Debug: Log available data sources
+    console.log('[SEO Debug] matchInfo:', this.matchInfo);
+    console.log('[SEO Debug] cricObj:', this.cricObj);
+
+    // Extract team names from various sources
+    let team1 = 'Team 1';
+    let team2 = 'Team 2';
+    let venue = '';
+    let series = '';
+    let isLive = true;
+
+    // Try to extract from matchInfo if available
+    if (this.matchInfo) {
+      // Extract team names from playing XI keys or team comparison
+      if (this.playingXIKeys && this.playingXIKeys.length >= 2) {
+        team1 = this.playingXIKeys[0] || team1;
+        team2 = this.playingXIKeys[1] || team2;
+      } else if (this.teamComparisonKeys && this.teamComparisonKeys.length >= 2) {
+        team1 = this.teamComparisonKeys[0] || team1;
+        team2 = this.teamComparisonKeys[1] || team2;
+      }
+      
+      // Extract venue from matchInfo.venue
+      if (this.matchInfo.venue) {
+        venue = this.matchInfo.venue;
+      }
+      
+      // Extract series from matchInfo.series_name
+      if (this.matchInfo.series_name) {
+        series = this.matchInfo.series_name;
+      }
+    }
+
+    // Try to extract from cricObj if available (may have different field names)
+    if (this.cricObj) {
+      if (this.cricObj.team1) team1 = this.cricObj.team1;
+      if (this.cricObj.team2) team2 = this.cricObj.team2;
+      if (this.cricObj.venue && !venue) venue = this.cricObj.venue;
+      if (this.cricObj.series && !series) series = this.cricObj.series;
+      // Also try batting_team format fields
+      if (this.cricObj.batting_team && team1 === 'Team 1') {
+        team1 = this.cricObj.batting_team;
+      }
+    }
+
+    // Fallback: Extract series from URL (e.g., "jkb-vs-pka-14th-match-nepal-premier-league-2025")
+    if (!series && matchPath) {
+      // Remove team names and match number prefix, extract series name
+      // Pattern: skip "teamA-vs-teamB-" and "Nth-match-" prefix
+      const seriesMatch = matchPath.match(/(?:^[a-z]+-vs-[a-z]+-)?(?:\d+(?:st|nd|rd|th)-match-)?(.+?-\d{4})$/i);
+      if (seriesMatch && seriesMatch[1]) {
+        // Convert kebab-case to Title Case
+        series = seriesMatch[1]
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase());
+      }
+    }
+
+    // Fallback: Extract team names from URL path
+    if (team1 === 'Team 1' && matchPath) {
+      const urlTeams = this.extractTeamsFromUrl(matchPath);
+      if (urlTeams) {
+        team1 = urlTeams.team1;
+        team2 = urlTeams.team2;
+      }
+    }
+
+    // Build SEO metadata
+    const title = this.metaTagsService.buildMatchTitle(team1, team2, series, isLive);
+    const description = this.metaTagsService.buildMatchDescription(team1, team2, venue, isLive);
+    const keywords = this.metaTagsService.buildMatchKeywords(team1, team2, series, venue);
+
+    // Build JSON-LD structured data
+    const jsonLd = this.metaTagsService.buildMatchJsonLd({
+      name: `${team1} vs ${team2}`,
+      team1,
+      team2,
+      startDate: new Date().toISOString(),
+      url: canonicalUrl,
+      venue: venue || undefined,
+      description,
+      status: 'InProgress'
+    });
+
+    // Build and apply meta
+    const meta = this.metaTagsService.buildMatchMeta({
+      path: `/cric-live/${matchPath}`,
+      title,
+      description,
+      ogImage: 'https://www.crickzen.com/assets/img/logos/crickzen-og-image.png',
+      isLive: true
+    });
+
+    // Add JSON-LD and keywords to meta object
+    meta.jsonLd = jsonLd;
+    meta.keywords = keywords;
+
+    // Apply meta tags
+    this.metaTagsService.setPageMeta(`/cric-live/${matchPath}`, meta);
+    this.seoMetaApplied = true;
+
+    console.log('[SEO] Meta tags updated for match:', { team1, team2, venue, canonicalUrl });
+  }
+
+  /**
+   * Extract team names from URL path
+   * Example: "ind-vs-aus-3rd-test-2025" => { team1: "IND", team2: "AUS" }
+   */
+  private extractTeamsFromUrl(path: string): { team1: string; team2: string } | null {
+    if (!path) return null;
+    
+    // Common pattern: "team1-vs-team2-..."
+    const vsMatch = path.match(/^([a-z]+)-vs-([a-z]+)/i);
+    if (vsMatch) {
+      return {
+        team1: vsMatch[1].toUpperCase(),
+        team2: vsMatch[2].toUpperCase()
+      };
     }
     
     return null;
