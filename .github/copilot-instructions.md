@@ -11,6 +11,8 @@ Auto-generated from feature plans. Last updated: 2025-11-22
 - TypeScript 3.2.x, Angular 7.2 + Angular Material 7 (layout, typography), RxJS 6, @stomp/ng2-stompjs (websocket updates), MatchesService / EventListService, existing scorecard API client (005-live-match-glance)
 - TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties) (001-modern-ui-redesign)
 - Python 3.9+, Flask 2.2.2, async Playwright 1.40.0 (single browser + context pool), Redis (required caching layer), prometheus_client (metrics), backoff (retry), pytest + pytest-asyncio (async tests), docker pids_limit=512 (006-scraper-optimization)
+- Python 3.9+ (Scraper), Java 8/11 (Backend Spring Boot) + Flask 2.2.2, async Playwright 1.40.0, Redis, prometheus_client, backoff (007-fast-updates)
+- Redis (caching layer), MySQL (Backend persistence via Spring Boot) (007-fast-updates)
 
 ## Project Structure
 
@@ -29,9 +31,9 @@ npm test; npm run lint
 TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties)  <!--: Follow standard conventions
 
 ## Recent Changes
+- 007-fast-updates: Added Python 3.9+ (Scraper), Java 8/11 (Backend Spring Boot) + Flask 2.2.2, async Playwright 1.40.0, Redis, prometheus_client, backoff
 - 006-scraper-optimization: Added async Playwright pooling, Redis mandatory caching, metrics & health endpoints, retry/backoff strategy, resource governance (pids_limit, concurrency caps)
 - 005-live-match-glance: Added TypeScript 3.2.x, Angular 7.2 CLI, HTML5, SCSS + Angular core & router, RxJS 6.x, Angular Material 7 (layout primitives), internal design tokens
-- 005-live-match-glance: Added TypeScript 3.2.x, Angular 7.2 + Angular Material 7 (layout, typography), RxJS 6 (streams), @stomp/ng2-stompjs (websocket updates), MatchesService / EventListService for data, existing scorecard API client
 
 
 <!-- MANUAL ADDITIONS START -->

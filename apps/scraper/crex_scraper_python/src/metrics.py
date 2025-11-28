@@ -74,6 +74,57 @@ class MetricsCollector:
             registry=self.registry
         )
 
+        # Fast Updates Metrics (Feature 007)
+        self.ball_updates_total = Counter(
+            'scraper_ball_updates_total',
+            'Total number of ball updates processed',
+            ['match_id', 'status'],  # status: success, gap_detected, dropped
+            registry=self.registry
+        )
+        self.ball_gaps_total = Counter(
+            'scraper_ball_gaps_total',
+            'Total number of ball gaps detected',
+            ['match_id'],
+            registry=self.registry
+        )
+        self.score_updates_total = Counter(
+            'scraper_score_updates_total',
+            'Total number of score updates pushed',
+            ['match_id', 'update_type'],  # update_type: immediate, polled
+            registry=self.registry
+        )
+        self.update_latency = Histogram(
+            'scraper_update_latency_seconds',
+            'Time from sV3 intercept to backend push',
+            ['match_id'],
+            buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0),
+            registry=self.registry
+        )
+        self.scorecard_staleness = Gauge(
+            'scraper_scorecard_staleness_seconds',
+            'Time since last scorecard update per match',
+            ['match_id'],
+            registry=self.registry
+        )
+        self.immediate_push_total = Counter(
+            'scraper_immediate_push_total',
+            'Total number of immediate push operations',
+            ['match_id', 'type', 'status'],  # type: sv3, sc4; status: success, failure
+            registry=self.registry
+        )
+        self.match_priority_score = Gauge(
+            'scraper_match_priority_score',
+            'Current priority score per match',
+            ['match_id'],
+            registry=self.registry
+        )
+        self.adaptive_polling_interval = Gauge(
+            'scraper_adaptive_polling_interval_seconds',
+            'Current adaptive polling interval per match',
+            ['match_id'],
+            registry=self.registry
+        )
+
     def record_scrape_result(self, domain: str, status: str, duration: float):
         """Record the outcome of a scrape attempt."""
         self.scrapes_total.labels(domain=domain, status=status).inc()
@@ -87,3 +138,39 @@ class MetricsCollector:
         """Update queue depth and active task counts."""
         self.queue_depth.set(depth)
         self.active_tasks.set(active)
+
+    # Fast Updates Metrics Methods (Feature 007)
+    
+    def record_ball_update(self, match_id: str, status: str):
+        """Record a ball update event."""
+        self.ball_updates_total.labels(match_id=match_id, status=status).inc()
+        if status == "gap_detected":
+            self.ball_gaps_total.labels(match_id=match_id).inc()
+
+    def record_score_update(self, match_id: str, update_type: str):
+        """Record a score update push."""
+        self.score_updates_total.labels(match_id=match_id, update_type=update_type).inc()
+
+    def record_update_latency(self, match_id: str, latency_seconds: float):
+        """Record the latency from intercept to push."""
+        self.update_latency.labels(match_id=match_id).observe(latency_seconds)
+
+    def update_scorecard_staleness(self, match_id: str, staleness_seconds: float):
+        """Update the scorecard staleness gauge."""
+        self.scorecard_staleness.labels(match_id=match_id).set(staleness_seconds)
+
+    def record_immediate_push(self, match_id: str, push_type: str, status: str):
+        """Record an immediate push operation."""
+        self.immediate_push_total.labels(
+            match_id=match_id,
+            type=push_type,
+            status=status
+        ).inc()
+
+    def update_match_priority(self, match_id: str, priority_score: float):
+        """Update the priority score for a match."""
+        self.match_priority_score.labels(match_id=match_id).set(priority_score)
+
+    def update_adaptive_polling(self, match_id: str, interval_seconds: float):
+        """Update the adaptive polling interval for a match."""
+        self.adaptive_polling_interval.labels(match_id=match_id).set(interval_seconds)

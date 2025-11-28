@@ -5,7 +5,7 @@ Crex Source Adapter.
 import logging
 import asyncio
 import json
-from typing import Dict, Any
+from typing import Callable, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import BrowserContext, Page, Response
 from bs4 import BeautifulSoup
@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 from .base import SourceAdapter
 from ..dom_match_extract import extract_match_dom_fields
 from ..parsers.crex_parser import extract_match_stats_by_innings, parse_runs_and_balls, parse_batsman_stats
+from ..config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +22,53 @@ class CrexAdapter(SourceAdapter):
     Adapter for scraping Crex.
     """
 
+    def __init__(
+        self,
+        on_sv3_update: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        on_sc4_update: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+    ):
+        """
+        Initialize the CrexAdapter.
+        
+        Args:
+            on_sv3_update: Callback fired immediately when sV3 data is received.
+                          Signature: (match_id: str, data: dict) -> None
+            on_sc4_update: Callback fired when sC4 scorecard data is received.
+                          Signature: (match_id: str, data: dict) -> None
+        
+        Feature: 007-fast-updates
+        """
+        self.on_sv3_update = on_sv3_update
+        self.on_sc4_update = on_sc4_update
+        self._settings = get_settings()
+
     @property
     def domain(self) -> str:
         return "crex"
 
     def get_canonical_id(self, raw_id: str) -> str:
         return f"crex:{raw_id}"
+
+    def _extract_match_id_from_url(self, url: str) -> Optional[str]:
+        """
+        Extract match ID from Crex URL.
+        
+        Expected formats:
+        - https://crex.live/match/1234567/live
+        - https://crex.live/match/1234567/scorecard
+        
+        Returns:
+            Match ID string or None if not found
+        """
+        try:
+            # URL pattern: /match/{id}/...
+            parts = url.split("/match/")
+            if len(parts) >= 2:
+                match_part = parts[1].split("/")[0]
+                return self.get_canonical_id(match_part)
+        except Exception as e:
+            logger.warning(f"Failed to extract match_id from URL {url}: {e}")
+        return None
 
     async def fetch_match(self, context: BrowserContext, url: str) -> Dict[str, Any]:
         """
@@ -76,8 +118,11 @@ class CrexAdapter(SourceAdapter):
         page = await context.new_page()
 
         try:
-            # Setup network interception
-            await self._setup_network_interception(page, data_store)
+            # Extract match_id from URL for callbacks
+            match_id = self._extract_match_id_from_url(url)
+            
+            # Setup network interception with match_id for immediate push
+            await self._setup_network_interception(page, data_store, match_id)
 
             await page.goto(url, wait_until="domcontentloaded", timeout=30000)
             
@@ -91,8 +136,13 @@ class CrexAdapter(SourceAdapter):
             try:
                 # Wait up to 5 seconds for the API call
                 await page.wait_for_response(lambda res: "sV3" in res.url, timeout=5000)
-                # Give a little more time for sC4 to complete if it was triggered
-                await asyncio.sleep(2) 
+                # Feature 007: Only sleep if fast updates is disabled
+                # When fast updates enabled, sV3 data is pushed immediately via callback
+                if not self._settings.enable_fast_updates:
+                    await asyncio.sleep(2)  # Legacy: Give time for sC4 to complete
+                else:
+                    # Minimal wait for sC4 - it runs in parallel
+                    await asyncio.sleep(0.5)
             except Exception:
                 logger.warning(f"Timeout waiting for sV3 response on {url}")
 
@@ -284,20 +334,40 @@ class CrexAdapter(SourceAdapter):
             logger.error(f"Error extracting localStorage: {e}")
             return {}
 
-    async def _setup_network_interception(self, page: Page, data_store: Dict[str, Any]):
+    async def _setup_network_interception(self, page: Page, data_store: Dict[str, Any], match_id: Optional[str] = None):
+        """
+        Setup network interception for sV3 and sC4 API calls.
+        
+        Feature 007: Added match_id for immediate push callbacks.
+        """
         async def handle_response(response: Response):
             if "sV3" in response.url:
                 try:
-                    await self._handle_api_response(response, data_store, page)
+                    await self._handle_api_response(response, data_store, page, match_id)
                 except Exception as e:
                     logger.error(f"Error handling API response: {e}")
 
         page.on("response", handle_response)
 
-    async def _handle_api_response(self, response: Response, data_store: Dict[str, Any], page: Page):
+    async def _handle_api_response(
+        self,
+        response: Response,
+        data_store: Dict[str, Any],
+        page: Page,
+        match_id: Optional[str] = None,
+    ):
         try:
             api_data = await response.json()
             data_store["api_data"] = api_data
+            
+            # Feature 007: Immediate push of sV3 data
+            if self._settings.enable_fast_updates and self._settings.enable_immediate_push:
+                if self.on_sv3_update and match_id:
+                    try:
+                        self.on_sv3_update(match_id, api_data)
+                        logger.debug(f"[{match_id}] sV3 immediate push completed")
+                    except Exception as e:
+                        logger.error(f"[{match_id}] Error in sV3 callback: {e}")
             
             # Extract key for sC4 call
             parsed_url = urlparse(response.url)
@@ -307,11 +377,23 @@ class CrexAdapter(SourceAdapter):
             if key:
                 sc4_url = f"https://api-v1.com/v10/sC4.php?key={key}"
                 headers = await response.all_headers() # Use headers from original request
-                await self._trigger_sc4_call(sc4_url, headers, data_store, page)
+                await self._trigger_sc4_call(sc4_url, headers, data_store, page, match_id)
         except Exception as e:
             logger.error(f"Error processing sV3 response: {e}")
 
-    async def _trigger_sc4_call(self, url: str, headers: Dict[str, str], data_store: Dict[str, Any], page: Page):
+    async def _trigger_sc4_call(
+        self,
+        url: str,
+        headers: Dict[str, str],
+        data_store: Dict[str, Any],
+        page: Page,
+        match_id: Optional[str] = None,
+    ):
+        """
+        Trigger sC4 API call for scorecard data.
+        
+        Feature 007: Added match_id for immediate push callbacks.
+        """
         try:
             # Use page.request to make the call with browser context (cookies, etc)
             response = await page.request.get(url, headers=headers)
@@ -320,6 +402,14 @@ class CrexAdapter(SourceAdapter):
                 stats = extract_match_stats_by_innings(sc4_data)
                 data_store["sC4_stats"] = stats
                 logger.info(f"Successfully fetched sC4 stats for {url}")
+                
+                # Feature 007: Immediate push of sC4 data
+                if self._settings.enable_fast_updates and self.on_sc4_update and match_id:
+                    try:
+                        self.on_sc4_update(match_id, stats)
+                        logger.debug(f"[{match_id}] sC4 immediate push completed")
+                    except Exception as e:
+                        logger.error(f"[{match_id}] Error in sC4 callback: {e}")
             else:
                 logger.warning(f"Failed to fetch sC4 stats: {response.status}")
         except Exception as e:

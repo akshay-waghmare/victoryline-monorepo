@@ -116,12 +116,21 @@ class ScraperSettings:
     # Async Scraper & Redis Config
     redis_url: str = "redis://localhost:6379/0"
     concurrency_cap: int = 10
-    cache_live_ttl: int = 15
+    cache_live_ttl: int = 5  # Reduced from 15 for fast updates (Feature 007)
     pause_cooldown: int = 300
     audit_max_entries: int = 1000
     rate_limit_tokens_per_sec: float = 5.0
     rate_limit_burst: int = 10
     degraded_freshness_threshold: float = 30.0  # Seconds
+
+    # Fast Updates Config (Feature 007)
+    enable_fast_updates: bool = True  # Master toggle for fast update features
+    enable_immediate_push: bool = True  # Push sV3 data immediately on intercept
+    scorecard_polling_interval_seconds: float = 10.0  # Dedicated sC4 polling interval
+    cache_scorecard_ttl: int = 10  # TTL for scorecard data in seconds
+    max_ball_gap_before_alert: int = 2  # Alert if more than N balls skipped
+    adaptive_polling_min_seconds: float = 0.5  # Minimum adaptive polling interval
+    adaptive_polling_max_seconds: float = 5.0  # Maximum adaptive polling interval
 
     @property
     def is_tiny_profile(self) -> bool:
@@ -178,6 +187,14 @@ class ScraperSettings:
             "cache_live_ttl": self.cache_live_ttl,
             "pause_cooldown": self.pause_cooldown,
             "audit_max_entries": self.audit_max_entries,
+            # Fast Updates Config (Feature 007)
+            "enable_fast_updates": self.enable_fast_updates,
+            "enable_immediate_push": self.enable_immediate_push,
+            "scorecard_polling_interval_seconds": self.scorecard_polling_interval_seconds,
+            "cache_scorecard_ttl": self.cache_scorecard_ttl,
+            "max_ball_gap_before_alert": self.max_ball_gap_before_alert,
+            "adaptive_polling_min_seconds": self.adaptive_polling_min_seconds,
+            "adaptive_polling_max_seconds": self.adaptive_polling_max_seconds,
         }
 
     @classmethod
@@ -230,9 +247,18 @@ class ScraperSettings:
         # Async Scraper & Redis Config
         redis_url = _coerce_str(env.get("REDIS_URL"), "redis://localhost:6379/0")
         concurrency_cap = _coerce_int(env.get("CONCURRENCY_CAP"), 10, minimum=1)
-        cache_live_ttl = _coerce_int(env.get("CACHE_LIVE_TTL"), 15, minimum=1)
+        cache_live_ttl = _coerce_int(env.get("CACHE_LIVE_TTL"), 5, minimum=1)  # Reduced for fast updates
         pause_cooldown = _coerce_int(env.get("PAUSE_COOLDOWN"), 300, minimum=10)
         audit_max_entries = _coerce_int(env.get("AUDIT_MAX_ENTRIES"), 1000, minimum=10)
+
+        # Fast Updates Config (Feature 007)
+        enable_fast_updates = _coerce_bool(env.get("ENABLE_FAST_UPDATES"), True)
+        enable_immediate_push = _coerce_bool(env.get("ENABLE_IMMEDIATE_PUSH"), True)
+        scorecard_polling_interval_seconds = _coerce_float(env.get("SCORECARD_POLLING_INTERVAL_SECONDS"), 10.0, minimum=1.0)
+        cache_scorecard_ttl = _coerce_int(env.get("CACHE_SCORECARD_TTL"), 10, minimum=1)
+        max_ball_gap_before_alert = _coerce_int(env.get("MAX_BALL_GAP_BEFORE_ALERT"), 2, minimum=1)
+        adaptive_polling_min_seconds = _coerce_float(env.get("ADAPTIVE_POLLING_MIN_SECONDS"), 0.5, minimum=0.1)
+        adaptive_polling_max_seconds = _coerce_float(env.get("ADAPTIVE_POLLING_MAX_SECONDS"), 5.0, minimum=adaptive_polling_min_seconds)
 
         if memory_soft_limit_mb > memory_hard_limit_mb:
             raise ValueError("MEMORY_SOFT_LIMIT_MB cannot be greater than MEMORY_HARD_LIMIT_MB")
@@ -286,6 +312,14 @@ class ScraperSettings:
             cache_live_ttl=cache_live_ttl,
             pause_cooldown=pause_cooldown,
             audit_max_entries=audit_max_entries,
+            # Fast Updates Config (Feature 007)
+            enable_fast_updates=enable_fast_updates,
+            enable_immediate_push=enable_immediate_push,
+            scorecard_polling_interval_seconds=scorecard_polling_interval_seconds,
+            cache_scorecard_ttl=cache_scorecard_ttl,
+            max_ball_gap_before_alert=max_ball_gap_before_alert,
+            adaptive_polling_min_seconds=adaptive_polling_min_seconds,
+            adaptive_polling_max_seconds=adaptive_polling_max_seconds,
         )
 
 
