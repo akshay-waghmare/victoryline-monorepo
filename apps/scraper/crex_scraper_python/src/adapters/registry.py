@@ -3,7 +3,7 @@ Adapter Registry.
 Manages available source adapters.
 """
 
-from typing import Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type
 from .base import SourceAdapter
 from .crex_adapter import CrexAdapter
 
@@ -12,13 +12,29 @@ class AdapterRegistry:
     Registry for source adapters.
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        on_sv3_update: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        on_sc4_update: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+    ):
+        """
+        Initialize the registry with optional callbacks for adapters.
+        
+        Args:
+            on_sv3_update: Callback for sV3 live data updates (Feature 007)
+            on_sc4_update: Callback for sC4 scorecard updates (Feature 007)
+        """
         self._adapters: Dict[str, SourceAdapter] = {}
         self._enabled_status: Dict[str, bool] = {}
+        self._on_sv3_update = on_sv3_update
+        self._on_sc4_update = on_sc4_update
         self._register_defaults()
 
     def _register_defaults(self):
-        self.register(CrexAdapter())
+        self.register(CrexAdapter(
+            on_sv3_update=self._on_sv3_update,
+            on_sc4_update=self._on_sc4_update,
+        ))
 
     def register(self, adapter: SourceAdapter):
         """Register a new adapter."""

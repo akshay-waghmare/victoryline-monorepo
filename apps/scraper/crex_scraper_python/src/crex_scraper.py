@@ -32,13 +32,33 @@ class CrexScraperService:
         self.cache = ScrapeCache()
         self.metrics = MetricsCollector()
         self.health = HealthGrader()
-        self.registry = AdapterRegistry()
         self.discovery = LiveMatchDiscoverer(self.pool)
         self._running = False
         self._workers = []
         self._monitor_task: Optional[asyncio.Task] = None
         self._poll_task: Optional[asyncio.Task] = None
         self._auth_token: Optional[str] = None
+        
+        # Fast update manager (Feature 007)
+        # Must be initialized before registry so we can wire callbacks
+        self.fast_update_manager = None
+        on_sv3_callback = None
+        on_sc4_callback = None
+        
+        if self.settings.enable_fast_updates:
+            from .core.fast_update_manager import FastUpdateManager
+            self.fast_update_manager = FastUpdateManager(
+                metrics=self.metrics,
+                settings=self.settings
+            )
+            on_sv3_callback = self.fast_update_manager.on_sv3_update
+            on_sc4_callback = self.fast_update_manager.on_sc4_update
+        
+        # Create registry with callbacks wired
+        self.registry = AdapterRegistry(
+            on_sv3_update=on_sv3_callback,
+            on_sc4_update=on_sc4_callback,
+        )
 
     async def start(self):
         """Start the scraper service."""
@@ -73,6 +93,11 @@ class CrexScraperService:
 
         # Start discovery task
         await self.discovery.start()
+        
+        # Start fast update manager (Feature 007)
+        if self.fast_update_manager:
+            await self.fast_update_manager.start()
+            logger.info("FastUpdateManager started.")
             
         logger.info(f"Started {len(self._workers)} worker tasks.")
 
@@ -88,6 +113,11 @@ class CrexScraperService:
             self._poll_task.cancel()
 
         await self.discovery.stop()
+        
+        # Stop fast update manager (Feature 007)
+        if self.fast_update_manager:
+            await self.fast_update_manager.stop()
+            logger.info("FastUpdateManager stopped.")
 
         try:
             if self._monitor_task: await self._monitor_task

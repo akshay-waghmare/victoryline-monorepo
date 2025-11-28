@@ -1,8 +1,10 @@
 import requests
 import os
-from typing import Dict, Any
+import time
+from typing import Dict, Any, Optional
 from .loggers.adapters import get_logger
 from .core.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
+from .core.retry_utils import RetryConfig, retryable, RetryError
 
 logger = get_logger(component="cricket_data_service")
 
@@ -83,12 +85,30 @@ class CricketDataService:
 
     @staticmethod
     def push_match_data(data, token, source_url):
-        """Pushes match data to the backend service."""
+        """
+        Pushes match data to the backend service.
+        
+        Uses exponential backoff with jitter for retries (Feature 007).
+        """
         logger.info("matches.push.start", metadata={"url": source_url})
+        start_time = time.time()
         
         service_url = os.getenv('SERVICE_URL', 'http://127.0.0.1:8099/cricket-data')
         
-        def _push():
+        # Retry config for push operations (Feature 007)
+        push_retry_config = RetryConfig(
+            max_attempts=3,
+            base_delay=0.5,
+            max_delay=4.0,
+            jitter=0.25,
+            retry_exceptions=(requests.RequestException, requests.Timeout, ConnectionError),
+        )
+        
+        @retryable(config=push_retry_config, on_retry=lambda attempt, exc, delay: logger.warning(
+            "matches.push.retry",
+            metadata={"attempt": attempt, "error": str(exc), "delay": delay, "url": source_url}
+        ))
+        def _push_with_retry():
             headers = {"Content-Type": "application/json"}
             if token:
                 headers["Authorization"] = f"Bearer {token}"
@@ -233,14 +253,24 @@ class CricketDataService:
                 raise e
 
         try:
-            _api_breaker.call(_push)
-            logger.info("matches.push.success", metadata={"url": source_url})
+            _api_breaker.call(_push_with_retry)
+            elapsed = time.time() - start_time
+            logger.info("matches.push.success", metadata={"url": source_url, "elapsed_ms": elapsed * 1000})
             return True
         except CircuitBreakerOpenError:
             logger.warning("matches.push.circuit_open", metadata={"breaker": "backend_api"})
             return False
+        except RetryError as e:
+            elapsed = time.time() - start_time
+            logger.error("matches.push.retry_exhausted", metadata={
+                "error": str(e), 
+                "url": source_url,
+                "elapsed_ms": elapsed * 1000,
+            })
+            return False
         except Exception as e:
-            logger.error("matches.push.error", metadata={"error": str(e), "url": service_url})
+            elapsed = time.time() - start_time
+            logger.error("matches.push.error", metadata={"error": str(e), "url": service_url, "elapsed_ms": elapsed * 1000})
             return False
 
     @staticmethod

@@ -11,6 +11,7 @@ from .cleanup_orphans import (
     start_cleanup_thread,
     stop_cleanup_thread,
 )
+from .fast_update_manager import FastUpdateManager, MatchState
 
 __all__ = [
     # Circuit breaker
@@ -32,4 +33,7 @@ __all__ = [
     "cleanup_orphans_once",
     "start_cleanup_thread",
     "stop_cleanup_thread",
+    # Fast updates
+    "FastUpdateManager",
+    "MatchState",
 ]
