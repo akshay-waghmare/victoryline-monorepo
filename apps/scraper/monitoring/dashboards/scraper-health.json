@@ -3,43 +3,556 @@
     "list": []
   },
   "editable": true,
-  "gnetId": null,
-  "graphTooltip": 0,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
   "id": null,
   "links": [],
+  "liveNow": true,
   "panels": [
     {
-      "title": "Scraper Health",
-      "type": "stat",
+      "title": "🏥 Health Score",
+      "type": "gauge",
       "id": 1,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
+      "gridPos": { "h": 6, "w": 4, "x": 0, "y": 0 },
+      "options": {
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 50 },
+              { "color": "yellow", "value": 70 },
+              { "color": "green", "value": 90 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "scraper_health_score", "refId": "A" }]
+    },
+    {
+      "title": "📊 Active Tasks",
+      "type": "stat",
+      "id": 2,
+      "gridPos": { "h": 6, "w": 4, "x": 4, "y": 0 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "scraper_active_tasks", "refId": "A" }]
+    },
+    {
+      "title": "📬 Queue Depth",
+      "type": "stat",
+      "id": 3,
+      "gridPos": { "h": 6, "w": 4, "x": 8, "y": 0 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 5 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "scraper_queue_depth", "refId": "A" }]
+    },
+    {
+      "title": "✅ Scrapes Success Rate",
+      "type": "stat",
+      "id": 4,
+      "gridPos": { "h": 6, "w": 4, "x": 12, "y": 0 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.8 },
+              { "color": "green", "value": 0.95 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum(rate(scraper_scrapes_total{status=\"success\"}[5m])) / sum(rate(scraper_scrapes_total[5m]))", "refId": "A" }]
+    },
+    {
+      "title": "🔢 Total Scrapes",
+      "type": "stat",
+      "id": 5,
+      "gridPos": { "h": 6, "w": 4, "x": 16, "y": 0 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum(scraper_scrapes_total)", "refId": "A" }]
+    },
+    {
+      "title": "🔄 Browser Restarts",
+      "type": "stat",
+      "id": 6,
+      "gridPos": { "h": 6, "w": 4, "x": 20, "y": 0 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 3 },
+              { "color": "red", "value": 10 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum(scraper_browser_restarts_total)", "refId": "A" }]
+    },
+    {
+      "title": "📈 Scrape Rate (per minute)",
+      "type": "timeseries",
+      "id": 7,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisLabel": "",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": { "mode": "none" }
+          },
+          "unit": "reqpm"
+        },
+        "overrides": []
       },
       "targets": [
-        {
-          "expr": "scraper_health_score",
-          "refId": "A"
-        }
+        { "expr": "rate(scraper_scrapes_total{status=\"success\"}[1m]) * 60", "legendFormat": "Success", "refId": "A" },
+        { "expr": "sum(rate(scraper_domain_failures_total[1m])) * 60", "legendFormat": "Failures", "refId": "B" }
       ]
+    },
+    {
+      "title": "⏱️ Scrape Duration (p50, p90, p99)",
+      "type": "timeseries",
+      "id": 8,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisLabel": "",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(scraper_scrape_duration_seconds_bucket[5m]))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.90, rate(scraper_scrape_duration_seconds_bucket[5m]))", "legendFormat": "p90", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, rate(scraper_scrape_duration_seconds_bucket[5m]))", "legendFormat": "p99", "refId": "C" }
+      ]
+    },
+    {
+      "title": "❌ Failures by Type",
+      "type": "piechart",
+      "id": 9,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
+      "options": {
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "pieType": "donut",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "tooltip": { "mode": "multi" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum by (error_type) (scraper_domain_failures_total)", "legendFormat": "{{error_type}}", "refId": "A" }]
+    },
+    {
+      "title": "🏏 Match Freshness (seconds since last scrape)",
+      "type": "table",
+      "id": 10,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 14 },
+      "options": {
+        "footer": { "show": false },
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": { "align": "auto", "displayMode": "color-background" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "red", "value": 60 }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "transformations": [
+        { "id": "labelsToFields", "options": {} },
+        { "id": "organize", "options": { "excludeByName": { "Time": true }, "renameByName": { "Value": "Freshness (s)", "match_id": "Match ID" } } }
+      ],
+      "targets": [{ "expr": "scraper_freshness_seconds", "format": "table", "instant": true, "refId": "A" }]
+    },
+    {
+      "title": "🎯 Health Score Over Time",
+      "type": "timeseries",
+      "id": 11,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 14 },
+      "options": {
+        "legend": { "calcs": ["mean", "min"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisLabel": "",
+            "drawStyle": "line",
+            "fillOpacity": 30,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false,
+            "thresholdsStyle": { "mode": "area" }
+          },
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 50 },
+              { "color": "yellow", "value": 70 },
+              { "color": "green", "value": 90 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "scraper_health_score", "legendFormat": "Health Score", "refId": "A" }]
+    },
+    {
+      "title": "⚡ Fast Updates - Ball Updates",
+      "type": "stat",
+      "id": 12,
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 22 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum(scraper_ball_updates_total) or vector(0)", "refId": "A" }]
+    },
+    {
+      "title": "⚠️ Ball Gaps Detected",
+      "type": "stat",
+      "id": 13,
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 22 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum(scraper_ball_gaps_total) or vector(0)", "refId": "A" }]
+    },
+    {
+      "title": "📤 Score Updates",
+      "type": "stat",
+      "id": 14,
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 22 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum(scraper_score_updates_total) or vector(0)", "refId": "A" }]
+    },
+    {
+      "title": "🚀 Immediate Pushes",
+      "type": "stat",
+      "id": 15,
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 22 },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "sum(scraper_immediate_push_total) or vector(0)", "refId": "A" }]
+    },
+    {
+      "title": "📊 Update Latency (p50, p90, p99)",
+      "type": "timeseries",
+      "id": 16,
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 22 },
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisLabel": "",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(scraper_update_latency_seconds_bucket[5m]))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.90, rate(scraper_update_latency_seconds_bucket[5m]))", "legendFormat": "p90", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, rate(scraper_update_latency_seconds_bucket[5m]))", "legendFormat": "p99", "refId": "C" }
+      ]
+    },
+    {
+      "title": "🏏 Match Priority Scores",
+      "type": "bargauge",
+      "id": 17,
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 26 },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-BlYlRd" },
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "scraper_match_priority_score", "legendFormat": "{{match_id}}", "refId": "A" }]
+    },
+    {
+      "title": "⏰ Scorecard Staleness",
+      "type": "bargauge",
+      "id": 18,
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 26 },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 30 },
+              { "color": "red", "value": 60 }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "scraper_scorecard_staleness_seconds", "legendFormat": "{{match_id}}", "refId": "A" }]
+    },
+    {
+      "title": "🔄 Adaptive Polling Interval",
+      "type": "bargauge",
+      "id": 19,
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 26 },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "scraper_adaptive_polling_interval_seconds", "legendFormat": "{{match_id}}", "refId": "A" }]
     }
   ],
+  "refresh": "5s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["scraper"],
+  "tags": ["scraper", "cricket", "fast-updates"],
   "templating": {
     "list": []
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-15m",
     "to": "now"
   },
-  "timepicker": {},
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+  },
   "timezone": "",
   "title": "Scraper Health Dashboard",
   "uid": "scraper-health",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

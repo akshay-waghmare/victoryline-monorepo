@@ -49,7 +49,6 @@ class CrexScraperService:
             from .core.fast_update_manager import FastUpdateManager
             self.fast_update_manager = FastUpdateManager(
                 metrics=self.metrics,
-                settings=self.settings
             )
             on_sv3_callback = self.fast_update_manager.on_sv3_update
             on_sc4_callback = self.fast_update_manager.on_sc4_update
@@ -187,6 +186,10 @@ class CrexScraperService:
                     except Exception as e:
                         logger.error(f"Recovery failed: {e}")
                         self.health.add_audit_log("recovery_failed", {"error": str(e)}, level="ERROR")
+
+                # Update health score metric for Prometheus
+                summary = self.health.get_summary()
+                self.metrics.health_score.set(summary.score)
 
                 await asyncio.sleep(5)
             except asyncio.CancelledError:

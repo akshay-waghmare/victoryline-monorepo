@@ -21,10 +21,10 @@ rule_files:
 
 # Scrape configurations
 scrape_configs:
-  # Scraper metrics
+  # Scraper metrics (Flask /metrics endpoint on port 5000)
   - job_name: 'scraper'
     static_configs:
-      - targets: ['scraper:9090']
+      - targets: ['scraper:5000']
         labels:
           service: 'cricket-scraper'
     
