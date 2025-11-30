@@ -3,9 +3,12 @@ Adapter Registry.
 Manages available source adapters.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING
 from .base import SourceAdapter
 from .crex_adapter import CrexAdapter
+
+if TYPE_CHECKING:
+    from ..cache import ScrapeCache
 
 class AdapterRegistry:
     """
@@ -16,6 +19,8 @@ class AdapterRegistry:
         self,
         on_sv3_update: Optional[Callable[[str, Dict[str, Any]], None]] = None,
         on_sc4_update: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        auth_token_provider: Optional[Callable[[], Optional[str]]] = None,
+        cache: Optional["ScrapeCache"] = None,
     ):
         """
         Initialize the registry with optional callbacks for adapters.
@@ -23,17 +28,23 @@ class AdapterRegistry:
         Args:
             on_sv3_update: Callback for sV3 live data updates (Feature 007)
             on_sc4_update: Callback for sC4 scorecard updates (Feature 007)
+            auth_token_provider: Callback to get auth token for immediate pushes (Feature 007)
+            cache: ScrapeCache instance for localStorage caching (Feature 007)
         """
         self._adapters: Dict[str, SourceAdapter] = {}
         self._enabled_status: Dict[str, bool] = {}
         self._on_sv3_update = on_sv3_update
         self._on_sc4_update = on_sc4_update
+        self._auth_token_provider = auth_token_provider
+        self._cache = cache
         self._register_defaults()
 
     def _register_defaults(self):
         self.register(CrexAdapter(
             on_sv3_update=self._on_sv3_update,
             on_sc4_update=self._on_sc4_update,
+            auth_token_provider=self._auth_token_provider,
+            cache=self._cache,
         ))
 
     def register(self, adapter: SourceAdapter):

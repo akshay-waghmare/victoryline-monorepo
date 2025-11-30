@@ -94,6 +94,34 @@ class ScrapeCache:
     def _key_info(self, match_id: str) -> str:
         return f"match:{match_id}:info"
 
+    def _key_local_storage(self, match_id: str) -> str:
+        return f"match:{match_id}:localStorage"
+
+    async def set_local_storage(self, match_id: str, data: Dict[str, str], ttl: int = 3600):
+        """
+        Cache localStorage data (player/team mappings) with 1h TTL.
+        This avoids re-fetching Scorecard/Info pages on every scrape.
+        Feature 007: Fast updates optimization.
+        """
+        if not self._redis or not data:
+            return
+        key = self._key_local_storage(match_id)
+        serialized = json.dumps(data)
+        await self._redis.set(key, serialized, ex=ttl)
+        logger.debug(f"Cached {len(data)} localStorage items for {match_id}")
+
+    async def get_local_storage(self, match_id: str) -> Optional[Dict[str, str]]:
+        """
+        Retrieve cached localStorage data.
+        """
+        if not self._redis:
+            return None
+        key = self._key_local_storage(match_id)
+        data = await self._redis.get(key)
+        if data:
+            return json.loads(data)
+        return None
+
     async def set_match_info(self, match_id: str, data: Dict[str, Any], ttl: int = 86400):
         """
         Cache static match info with long TTL (24h).

@@ -42,6 +42,13 @@ def auto_start_periodic_job(stop_event: Optional[threading.Event] = None) -> Non
     job(stop_event=shutdown_event)
 
 if __name__ == "__main__":
+    # Feature 007: Support staggered startup delay for multi-instance deployments
+    startup_delay = int(os.environ.get("STARTUP_DELAY_SECONDS", "0"))
+    if startup_delay > 0:
+        print(f"⏳ Startup delay: waiting {startup_delay} seconds before starting...")
+        time.sleep(startup_delay)
+        print("✅ Startup delay complete. Starting service...")
+    
     print("Starting Cricket Scraper Service...")
     print("Initializing database...")
     initialize_database()

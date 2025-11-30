@@ -5,6 +5,7 @@ Crex Source Adapter.
 import logging
 import asyncio
 import json
+import os
 from typing import Callable, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import BrowserContext, Page, Response
@@ -14,6 +15,8 @@ from .base import SourceAdapter
 from ..dom_match_extract import extract_match_dom_fields
 from ..parsers.crex_parser import extract_match_stats_by_innings, parse_runs_and_balls, parse_batsman_stats
 from ..config import get_settings
+from ..cricket_data_service import CricketDataService
+from ..cache import ScrapeCache
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +29,8 @@ class CrexAdapter(SourceAdapter):
         self,
         on_sv3_update: Optional[Callable[[str, Dict[str, Any]], None]] = None,
         on_sc4_update: Optional[Callable[[str, Dict[str, Any]], None]] = None,
+        auth_token_provider: Optional[Callable[[], Optional[str]]] = None,
+        cache: Optional[ScrapeCache] = None,
     ):
         """
         Initialize the CrexAdapter.
@@ -35,13 +40,18 @@ class CrexAdapter(SourceAdapter):
                           Signature: (match_id: str, data: dict) -> None
             on_sc4_update: Callback fired when sC4 scorecard data is received.
                           Signature: (match_id: str, data: dict) -> None
+            auth_token_provider: Callback to get current auth token for immediate pushes.
+                                Signature: () -> Optional[str]
+            cache: ScrapeCache instance for localStorage caching (Feature 007).
         
         Feature: 007-fast-updates
         """
         super().__init__()  # Initialize base class (reliability tracker)
         self.on_sv3_update = on_sv3_update
         self.on_sc4_update = on_sc4_update
+        self._auth_token_provider = auth_token_provider
         self._settings = get_settings()
+        self._cache = cache
 
     @property
     def domain(self) -> str:
@@ -55,14 +65,24 @@ class CrexAdapter(SourceAdapter):
         Extract match ID from Crex URL.
         
         Expected formats:
-        - https://crex.live/match/1234567/live
-        - https://crex.live/match/1234567/scorecard
+        - https://crex.com/scoreboard/WJR/1VB/37th-Match/GV/H9/kar-vs-raj-37th-match.../live
+        - https://crex.live/match/1234567/live (legacy)
         
         Returns:
             Match ID string or None if not found
         """
         try:
-            # URL pattern: /match/{id}/...
+            # New URL format: /scoreboard/{codes}/{slug}/live
+            # Extract the slug (e.g., "kar-vs-raj-37th-match-...")
+            if "/scoreboard/" in url:
+                # Split and get the slug part before /live or /scorecard
+                parts = url.split("/scoreboard/")[1].split("/")
+                # The slug is typically the 6th part (0-indexed: code/code/match-num/code/code/slug)
+                if len(parts) >= 6:
+                    slug = parts[5].split("/")[0]  # Remove trailing /live etc
+                    return f"crex:{slug}"
+            
+            # Legacy URL pattern: /match/{id}/...
             parts = url.split("/match/")
             if len(parts) >= 2:
                 match_part = parts[1].split("/")[0]
@@ -74,6 +94,11 @@ class CrexAdapter(SourceAdapter):
     async def fetch_match(self, context: BrowserContext, url: str) -> Dict[str, Any]:
         """
         Fetch match data from Crex.
+        
+        Performance optimized (Feature 007):
+        - CACHE localStorage to skip pre-fetch on subsequent scrapes (NEW)
+        - Pre-fetches Scorecard/Info pages in PARALLEL if needed
+        - Reduced wait times from 5s to 2s
         """
         data_store: Dict[str, Any] = {
             "sC4_stats": None,
@@ -81,40 +106,68 @@ class CrexAdapter(SourceAdapter):
             "local_storage": {}
         }
 
-        # Pre-fetch localStorage from Scorecard and Info pages (Legacy Behavior)
-        # This ensures we have all player/team mappings before scraping live data
-        if "/live" in url:
-            # 1. Scorecard
-            scorecard_url = url.replace("/live", "/scorecard")
+        # Extract match_id early for cache key
+        match_id = self._extract_match_id_from_url(url)
+        
+        # Try to get cached localStorage first (Feature 007: Fast updates)
+        cached_ls = None
+        if self._cache and match_id:
             try:
-                logger.info(f"Pre-fetching localStorage from {scorecard_url}")
-                scorecard_page = await context.new_page()
-                try:
-                    await scorecard_page.goto(scorecard_url, wait_until="domcontentloaded", timeout=30000)
-                    await scorecard_page.wait_for_timeout(5000)
-                    pre_ls = await self._extract_local_storage(scorecard_page)
-                    data_store["local_storage"].update(pre_ls)
-                    logger.info(f"Pre-fetched {len(pre_ls)} items from Scorecard localStorage")
-                finally:
-                    await scorecard_page.close()
+                cached_ls = await self._cache.get_local_storage(match_id)
+                if cached_ls and len(cached_ls) > 5:
+                    data_store["local_storage"] = cached_ls
+                    logger.info(f"[FAST] Using cached localStorage ({len(cached_ls)} items) for {match_id}")
             except Exception as e:
-                logger.warning(f"Failed to pre-fetch Scorecard LS: {e}")
+                logger.warning(f"Failed to get cached localStorage: {e}")
 
-            # 2. Info
+        # Only pre-fetch if we don't have cached localStorage
+        if "/live" in url and not cached_ls:
+            scorecard_url = url.replace("/live", "/scorecard")
             info_url = url.replace("/live", "/info")
-            try:
-                logger.info(f"Pre-fetching localStorage from {info_url}")
-                info_page = await context.new_page()
+            
+            async def fetch_scorecard_ls():
                 try:
-                    await info_page.goto(info_url, wait_until="domcontentloaded", timeout=30000)
-                    await info_page.wait_for_timeout(5000)
-                    pre_ls_info = await self._extract_local_storage(info_page)
-                    data_store["local_storage"].update(pre_ls_info)
-                    logger.info(f"Pre-fetched {len(pre_ls_info)} items from Info localStorage")
-                finally:
-                    await info_page.close()
-            except Exception as e:
-                logger.warning(f"Failed to pre-fetch Info LS: {e}")
+                    scorecard_page = await context.new_page()
+                    try:
+                        await scorecard_page.goto(scorecard_url, wait_until="domcontentloaded", timeout=20000)
+                        await scorecard_page.wait_for_timeout(2000)  # Reduced from 5000
+                        return await self._extract_local_storage(scorecard_page)
+                    finally:
+                        await scorecard_page.close()
+                except Exception as e:
+                    logger.warning(f"Failed to pre-fetch Scorecard LS: {e}")
+                    return {}
+            
+            async def fetch_info_ls():
+                try:
+                    info_page = await context.new_page()
+                    try:
+                        await info_page.goto(info_url, wait_until="domcontentloaded", timeout=20000)
+                        await info_page.wait_for_timeout(2000)  # Reduced from 5000
+                        return await self._extract_local_storage(info_page)
+                    finally:
+                        await info_page.close()
+                except Exception as e:
+                    logger.warning(f"Failed to pre-fetch Info LS: {e}")
+                    return {}
+            
+            # Run both pre-fetches in PARALLEL (saves ~5+ seconds)
+            logger.info(f"Pre-fetching localStorage from Scorecard+Info in parallel for {url}")
+            scorecard_ls, info_ls = await asyncio.gather(
+                fetch_scorecard_ls(),
+                fetch_info_ls()
+            )
+            data_store["local_storage"].update(scorecard_ls)
+            data_store["local_storage"].update(info_ls)
+            logger.info(f"Pre-fetched {len(scorecard_ls)} + {len(info_ls)} localStorage items in parallel")
+            
+            # Cache the localStorage for future scrapes (Feature 007)
+            if self._cache and match_id and len(data_store["local_storage"]) > 5:
+                try:
+                    await self._cache.set_local_storage(match_id, data_store["local_storage"])
+                    logger.info(f"[FAST] Cached localStorage for {match_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to cache localStorage: {e}")
 
         page = await context.new_page()
 
@@ -122,31 +175,26 @@ class CrexAdapter(SourceAdapter):
             # Extract match_id from URL for callbacks
             match_id = self._extract_match_id_from_url(url)
             
-            # Setup network interception with match_id for immediate push
+            # Setup network interception with match_id and source_url for immediate push
             # Returns an event that signals when sV3 data is fully processed
-            sv3_ready = await self._setup_network_interception(page, data_store, match_id)
+            sv3_ready = await self._setup_network_interception(page, data_store, match_id, url)
 
             await page.goto(url, wait_until="domcontentloaded", timeout=30000)
             
             # Wait for key element to ensure dynamic content loaded
             try:
-                await page.wait_for_selector(".match-header", timeout=5000)
+                await page.wait_for_selector(".match-header", timeout=3000)  # Reduced from 5000
             except Exception:
                 pass # Proceed anyway, parser handles missing data
 
             # Wait for sV3 response to be fully processed
             try:
-                # Wait up to 8 seconds for sV3 data to be ready (includes processing time)
-                await asyncio.wait_for(sv3_ready.wait(), timeout=8.0)
+                # Wait up to 5 seconds for sV3 data (reduced from 8s after parallelization)
+                await asyncio.wait_for(sv3_ready.wait(), timeout=5.0)
                 logger.debug(f"[{match_id}] sV3 data ready in data_store")
                 
-                # Feature 007: Only sleep if fast updates is disabled
-                # When fast updates enabled, sV3 data is pushed immediately via callback
-                if not self._settings.enable_fast_updates:
-                    await asyncio.sleep(2)  # Legacy: Give time for sC4 to complete
-                else:
-                    # Minimal wait for sC4 - it runs in parallel
-                    await asyncio.sleep(0.5)
+                # Feature 007: Minimal wait for sC4 to complete in parallel
+                await asyncio.sleep(0.3)  # Reduced from 0.5/2.0
             except asyncio.TimeoutError:
                 logger.warning(f"Timeout waiting for sV3 response on {url}")
 
@@ -341,7 +389,7 @@ class CrexAdapter(SourceAdapter):
             logger.error(f"Error extracting localStorage: {e}")
             return {}
 
-    async def _setup_network_interception(self, page: Page, data_store: Dict[str, Any], match_id: Optional[str] = None) -> asyncio.Event:
+    async def _setup_network_interception(self, page: Page, data_store: Dict[str, Any], match_id: Optional[str] = None, source_url: Optional[str] = None) -> asyncio.Event:
         """
         Setup network interception for sV3 and sC4 API calls.
         
@@ -353,7 +401,7 @@ class CrexAdapter(SourceAdapter):
         async def handle_response(response: Response):
             if "sV3" in response.url:
                 try:
-                    await self._handle_api_response(response, data_store, page, match_id)
+                    await self._handle_api_response(response, data_store, page, match_id, source_url)
                 except Exception as e:
                     logger.error(f"Error handling API response: {e}")
                 finally:
@@ -368,19 +416,42 @@ class CrexAdapter(SourceAdapter):
         data_store: Dict[str, Any],
         page: Page,
         match_id: Optional[str] = None,
+        source_url: Optional[str] = None,
     ):
         try:
             api_data = await response.json()
             data_store["api_data"] = api_data
             
-            # Feature 007: Immediate push of sV3 data
-            if self._settings.enable_fast_updates and self._settings.enable_immediate_push:
-                if self.on_sv3_update and match_id:
-                    try:
-                        self.on_sv3_update(match_id, api_data)
-                        logger.debug(f"[{match_id}] sV3 immediate push completed")
-                    except Exception as e:
-                        logger.error(f"[{match_id}] Error in sV3 callback: {e}")
+            # Feature 007: Immediate push of sV3 data directly to backend
+            # DISABLED: The immediate push sends partial data that overwrites 
+            # good data in the backend. Need to fix backend to handle partial updates
+            # or ensure immediate push only sends additive fields.
+            # if self._settings.enable_fast_updates and self._settings.enable_immediate_push:
+            #     # Get auth token for push
+            #     auth_token = None
+            #     if self._auth_token_provider:
+            #         auth_token = self._auth_token_provider()
+            #     
+            #     if auth_token and source_url:
+            #         try:
+            #             # Push immediately in a separate thread to not block
+            #             import asyncio
+            #             asyncio.create_task(asyncio.to_thread(
+            #                 CricketDataService.push_immediate_sv3,
+            #                 api_data,
+            #                 auth_token,
+            #                 source_url,
+            #             ))
+            #             logger.info(f"[FAST] sV3 immediate push queued for {source_url}")
+            #         except Exception as e:
+            #             logger.error(f"[FAST] Error queuing immediate push: {e}")
+            
+            # Call the callback if provided (for metrics etc)
+            if self._settings.enable_fast_updates and self.on_sv3_update and match_id:
+                try:
+                    self.on_sv3_update(match_id, api_data)
+                except Exception as e:
+                    logger.error(f"[{match_id}] Error in sV3 callback: {e}")
             
             # Extract key for sC4 call
             parsed_url = urlparse(response.url)

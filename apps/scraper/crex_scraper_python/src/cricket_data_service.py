@@ -372,3 +372,159 @@ class CricketDataService:
         except Exception as e:
             logger.error("matches.list.error", metadata={"error": str(e)})
             return []
+
+    @staticmethod
+    def push_immediate_sv3(api_data: dict, token: str, source_url: str) -> bool:
+        """
+        Push sV3 data immediately for fast updates.
+        
+        This is a lightweight push that sends only the essential live data:
+        - Score, over, current ball
+        - Odds (team and session)
+        - Recent balls/overs
+        
+        Feature: 007-fast-updates
+        """
+        import time
+        start_time = time.time()
+        
+        service_url = os.getenv('SERVICE_URL', 'http://127.0.0.1:8099/cricket-data')
+        
+        try:
+            headers = {"Content-Type": "application/json"}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            
+            # Build lightweight payload from raw sV3 data
+            payload = {
+                "url": source_url,
+                "is_immediate": True,  # Flag for backend to handle differently if needed
+                "match_update": {},
+            }
+            
+            # Extract score: field 'S' contains score like "120/3"
+            if api_data.get("S"):
+                score_str = api_data["S"]
+                payload["score"] = score_str
+                # Parse team from score (first part before score)
+                # Format might be "120/3" or include team
+                payload["match_update"]["score"] = {"score": score_str}
+            
+            # Extract over: field 'v' contains current over like "15.3"
+            if api_data.get("v"):
+                try:
+                    over_val = float(api_data["v"])
+                    payload["over"] = over_val
+                    payload["match_update"]["over"] = over_val
+                except (ValueError, TypeError):
+                    pass
+            
+            # Extract current ball: field 'A' contains current ball outcome
+            if api_data.get("A"):
+                ball_val = api_data["A"]
+                # A might be like "1" for runs, "W" for wicket, "e" for entering, "B" for ball start
+                if ball_val == 'e':
+                    payload["score_update"] = "player entering"
+                elif ball_val == 'B':
+                    payload["score_update"] = "ball start"
+                else:
+                    payload["score_update"] = str(ball_val)
+                payload["runs_on_ball"] = ball_val
+            
+            # Extract odds: field 'R' contains "back+diff" format e.g. "65+2"
+            # Field 'F' contains favorite team code
+            if api_data.get("R"):
+                r_val = str(api_data["R"])
+                fav_team = str(api_data.get("F", "")).replace("^", "")
+                
+                if "+" in r_val:
+                    parts = r_val.split("+")
+                    back = parts[0]
+                    try:
+                        lay = str(int(back) + int(parts[1]))
+                    except (ValueError, IndexError):
+                        lay = back
+                    
+                    payload["team_odds"] = {
+                        "backOdds": back,
+                        "layOdds": lay,
+                        "favTeam": fav_team,
+                    }
+                    payload["fav_team"] = fav_team
+                else:
+                    payload["team_odds"] = {
+                        "backOdds": r_val,
+                        "layOdds": r_val,
+                        "favTeam": fav_team,
+                    }
+                    payload["fav_team"] = fav_team
+            
+            # Extract session odds: fields 'D' (overs) and 'Z' (odds)
+            # D: "6,10,15" Z: "45+1,78+2,110+3"
+            if api_data.get("D") and api_data.get("Z"):
+                d_val = str(api_data["D"])
+                z_val = str(api_data["Z"])
+                
+                overs = d_val.split(",") if d_val else []
+                odds = z_val.split(",") if z_val else []
+                
+                session_odds = []
+                for i, over in enumerate(overs):
+                    if i < len(odds):
+                        odd_str = odds[i]
+                        back = "0"
+                        lay = "0"
+                        if "+" in odd_str:
+                            parts = odd_str.split("+")
+                            back = parts[0]
+                            try:
+                                lay = str(int(back) + int(parts[1]))
+                            except (ValueError, IndexError):
+                                lay = back
+                        else:
+                            back = odd_str
+                            lay = odd_str
+                        
+                        session_odds.append({
+                            "sessionOver": over,
+                            "sessionBackOdds": back,
+                            "sessionLayOdds": lay,
+                        })
+                
+                if session_odds:
+                    payload["session_odds"] = session_odds
+            
+            # Extract recent overs from rb field
+            if api_data.get("rb"):
+                overs_data = []
+                for over_obj in api_data["rb"]:
+                    if isinstance(over_obj, dict) and "b" in over_obj:
+                        balls = [str(b.get("u", "0")) if isinstance(b, dict) else str(b) for b in over_obj["b"]]
+                        overs_data.append({
+                            "overNumber": str(over_obj.get("o", "")),
+                            "balls": balls,
+                            "totalRuns": str(over_obj.get("r", 0)),
+                        })
+                if overs_data:
+                    payload["overs_data"] = overs_data
+            
+            logger.debug("matches.push_immediate.payload", metadata={"url": source_url, "keys": list(payload.keys())})
+            
+            response = requests.post(service_url, json=payload, headers=headers, timeout=2.0)
+            response.raise_for_status()
+            
+            elapsed = time.time() - start_time
+            logger.info("matches.push_immediate.success", metadata={
+                "url": source_url, 
+                "elapsed_ms": elapsed * 1000,
+            })
+            return True
+            
+        except Exception as e:
+            elapsed = time.time() - start_time
+            logger.warning("matches.push_immediate.error", metadata={
+                "error": str(e), 
+                "url": source_url,
+                "elapsed_ms": elapsed * 1000,
+            })
+            return False

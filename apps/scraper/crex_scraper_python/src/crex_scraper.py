@@ -53,10 +53,13 @@ class CrexScraperService:
             on_sv3_callback = self.fast_update_manager.on_sv3_update
             on_sc4_callback = self.fast_update_manager.on_sc4_update
         
-        # Create registry with callbacks wired
+        # Create registry with callbacks wired and auth token provider for immediate push
+        # Also pass cache for localStorage caching (Feature 007)
         self.registry = AdapterRegistry(
             on_sv3_update=on_sv3_callback,
             on_sc4_update=on_sc4_callback,
+            auth_token_provider=lambda: self._auth_token,  # Provide current token for immediate pushes
+            cache=self.cache,  # Pass cache for localStorage caching
         )
 
     async def start(self):
