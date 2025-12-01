@@ -6,7 +6,7 @@ Coordinates browser pool, scheduler, cache, and adapters.
 import asyncio
 import logging
 import signal
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from .config import get_settings
 from .browser_pool import AsyncBrowserPool
@@ -37,7 +37,28 @@ class CrexScraperService:
         self._workers = []
         self._monitor_task: Optional[asyncio.Task] = None
         self._poll_task: Optional[asyncio.Task] = None
+        self._fast_poll_task: Optional[asyncio.Task] = None  # Persistent pages poll loop
         self._auth_token: Optional[str] = None
+        
+        # Persistent page pool and fast poll service (Feature 007 - Phase 2)
+        self.persistent_page_pool = None
+        self.fast_poll_service = None
+        self._active_match_ids: set = set()  # Track matches being polled
+        
+        if self.settings.enable_persistent_pages:
+            from .core.persistent_page_pool import PersistentPagePool
+            from .core.fast_poll_service import FastPollService
+            
+            self.persistent_page_pool = PersistentPagePool(
+                max_pages=self.settings.persistent_page_max_count,
+                max_age_seconds=self.settings.persistent_page_max_age_seconds,
+                max_errors=self.settings.persistent_page_max_errors,
+            )
+            self.fast_poll_service = FastPollService(
+                poll_interval_ms=self.settings.fast_poll_interval_ms,
+                timeout_ms=5000,
+            )
+            logger.info("Persistent pages feature enabled")
         
         # Fast update manager (Feature 007)
         # Must be initialized before registry so we can wire callbacks
@@ -92,6 +113,11 @@ class CrexScraperService:
         
         # Start poll task
         self._poll_task = asyncio.create_task(self._poll_loop())
+        
+        # Start fast poll task for persistent pages (Feature 007 - Phase 2)
+        if self.persistent_page_pool and self.fast_poll_service:
+            self._fast_poll_task = asyncio.create_task(self._fast_poll_loop())
+            logger.info("Fast poll loop started for persistent pages")
 
         # Start discovery task
         await self.discovery.start()
@@ -113,6 +139,9 @@ class CrexScraperService:
         
         if self._poll_task:
             self._poll_task.cancel()
+        
+        if self._fast_poll_task:
+            self._fast_poll_task.cancel()
 
         await self.discovery.stop()
         
@@ -120,10 +149,19 @@ class CrexScraperService:
         if self.fast_update_manager:
             await self.fast_update_manager.stop()
             logger.info("FastUpdateManager stopped.")
+        
+        # Stop persistent page pool and fast poll service (Feature 007 - Phase 2)
+        if self.fast_poll_service:
+            await self.fast_poll_service.stop_all()
+            logger.info("FastPollService stopped.")
+        if self.persistent_page_pool:
+            await self.persistent_page_pool.close_all()
+            logger.info("PersistentPagePool closed.")
 
         try:
             if self._monitor_task: await self._monitor_task
             if self._poll_task: await self._poll_task
+            if self._fast_poll_task: await self._fast_poll_task
         except asyncio.CancelledError:
             pass
 
@@ -168,6 +206,174 @@ class CrexScraperService:
             except Exception as e:
                 logger.error(f"Poll loop error: {e}")
                 await asyncio.sleep(5)
+
+    async def _fast_poll_loop(self):
+        """
+        Fast poll loop for persistent pages (Feature 007 - Phase 2).
+        
+        For each live match:
+        1. Get or create persistent page
+        2. Poll sV3 data via JavaScript fetch
+        3. Push data to backend immediately on change
+        """
+        logger.info("Fast poll loop started.")
+        
+        while self._running:
+            try:
+                if not self._auth_token:
+                    await asyncio.sleep(1)
+                    continue
+                
+                # Get current live matches from backend
+                matches = await asyncio.to_thread(
+                    CricketDataService.get_live_matches, 
+                    self._auth_token
+                )
+                
+                current_match_urls = set()
+                
+                for match in matches:
+                    url = None
+                    if isinstance(match, dict):
+                        url = match.get('url') or match.get('matchUrl')
+                    elif isinstance(match, str):
+                        url = match
+                    
+                    if not url:
+                        continue
+                    
+                    current_match_urls.add(url)
+                    
+                    # Extract match ID from URL
+                    match_id = self._extract_match_id(url)
+                    if not match_id:
+                        continue
+                    
+                    # Check if we already have a persistent page with interceptor
+                    if self.persistent_page_pool.is_page_active(match_id):
+                        # Page already active with network interceptor - no action needed
+                        # sV3 updates come automatically via response listener
+                        continue
+                    else:
+                        # Create new persistent page and attach interceptor
+                        try:
+                            async with self.pool.get_context() as context:
+                                page = await self.persistent_page_pool.get_or_create(
+                                    match_id=match_id,
+                                    context=context,
+                                    url=url,
+                                )
+                                # Attach network interceptor - sV3 updates flow via callback
+                                await self.fast_poll_service.attach_to_page(
+                                    page=page,
+                                    match_id=match_id,
+                                    match_url=url,
+                                    on_data=self._on_sv3_intercepted,
+                                )
+                                logger.info(f"[FASTPOLL] Attached interceptor to {match_id}")
+                        except Exception as e:
+                            logger.error(f"[FASTPOLL] Failed to create page for {match_id}: {e}")
+                
+                # Clean up pages for matches that are no longer live
+                pool_match_ids = self.persistent_page_pool.match_ids.copy()
+                for match_id in pool_match_ids:
+                    # Match ID is like "crex:karb-vs-sial-final-quaid-e-azam-trophy-2025"
+                    # URL contains the slug like "/karb-vs-sial-final-quaid-e-azam-trophy-2025/"
+                    # Extract slug from match_id (remove "crex:" prefix)
+                    slug = match_id.replace("crex:", "") if match_id.startswith("crex:") else match_id
+                    still_live = any(slug in url for url in current_match_urls)
+                    if not still_live:
+                        logger.debug(f"[FASTPOLL] Match {match_id} slug={slug} not found in {len(current_match_urls)} URLs")
+                        logger.info(f"[FASTPOLL] Match {match_id} no longer live, removing page")
+                        self.fast_poll_service.detach(match_id)
+                        await self.persistent_page_pool.remove(match_id)
+                    else:
+                        logger.debug(f"[FASTPOLL] Match {match_id} still live")
+                
+                # Log pool stats periodically
+                if self.persistent_page_pool.size > 0:
+                    stats = self.persistent_page_pool.get_stats()
+                    poll_stats = self.fast_poll_service.get_stats()
+                    logger.debug(f"[FASTPOLL] Pool: {stats}, Intercepts: {poll_stats}")
+                
+                # Wait before checking for new matches (interceptors run passively)
+                await asyncio.sleep(5)  # Check for new/ended matches every 5s
+                
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"[FASTPOLL] Fast poll loop error: {e}")
+                await asyncio.sleep(2)
+    
+    async def _on_sv3_intercepted(self, match_url: str, data: Dict):
+        """Callback when sV3 data is intercepted from a persistent page."""
+        try:
+            match_id = self._extract_match_id(match_url) or match_url
+            
+            # Record success metric
+            self.metrics.record_fast_poll(match_id, "success", 0, "intercept")
+            
+            # Get cached localStorage for team name decoding (Feature 007)
+            local_storage = None
+            if match_id:
+                try:
+                    local_storage = await self.cache.get_local_storage(match_id)
+                    if local_storage:
+                        logger.debug(f"[FASTPOLL] Got localStorage for {match_id}: {len(local_storage)} items")
+                    else:
+                        logger.debug(f"[FASTPOLL] No localStorage cached for {match_id}")
+                except Exception as e:
+                    logger.debug(f"Failed to get localStorage for {match_id}: {e}")
+            
+            # Push to backend
+            if self._auth_token:
+                push_success = await asyncio.to_thread(
+                    CricketDataService.push_immediate_sv3,
+                    data,
+                    self._auth_token,
+                    match_url,  # source_url parameter
+                    local_storage,  # Pass localStorage for team name decoding
+                )
+                if push_success:
+                    logger.info(f"[FASTPOLL] Pushed intercepted sV3 for {match_id}")
+                    self.metrics.record_scrape_result("crex_fastpoll", "success", 0.001)
+                else:
+                    logger.warning(f"[FASTPOLL] Failed to push sV3 for {match_id}")
+                    self.metrics.record_persistent_page_error(match_id, "push_failed")
+            
+            # Update pool metrics
+            self.metrics.update_pool_size(self.persistent_page_pool.size)
+            
+        except Exception as e:
+            logger.error(f"[FASTPOLL] Error in sV3 callback: {e}")
+    
+    async def _poll_and_push_DEPRECATED(self, match_id: str, page):
+        """DEPRECATED: Replaced by network interception approach."""
+        pass
+    
+    def _extract_match_id(self, url: str) -> Optional[str]:
+        """Extract match ID from URL in the same format as crex_adapter.
+        
+        Expected: /scoreboard/{codes}/{codes}/{match-type}/{codes}/{codes}/{slug}/live
+        Returns: crex:{slug}
+        """
+        try:
+            if "/scoreboard/" in url:
+                # Split and get the slug part before /live or /scorecard
+                parts = url.split("/scoreboard/")[1].split("/")
+                # The slug is typically the 6th part (0-indexed: code/code/match-num/code/code/slug)
+                if len(parts) >= 6:
+                    slug = parts[5].split("/")[0]  # Remove trailing /live etc
+                    return f"crex:{slug}"
+            
+            # Legacy URL pattern: /match/{id}/...
+            import re
+            match = re.search(r'/match/(\d+)', url)
+            if match:
+                return f"crex:{match.group(1)}"
+        except Exception:
+            pass
+        return None
 
     async def _monitor_loop(self):
         """Periodic health monitoring loop."""

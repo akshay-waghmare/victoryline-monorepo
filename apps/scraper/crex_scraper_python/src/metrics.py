@@ -125,6 +125,38 @@ class MetricsCollector:
             registry=self.registry
         )
 
+        # Persistent Page Pool Metrics (Feature 007 - Phase 2)
+        self.persistent_pool_size = Gauge(
+            'scraper_persistent_pool_size',
+            'Number of persistent pages in the pool',
+            registry=self.registry
+        )
+        self.persistent_page_age = Gauge(
+            'scraper_persistent_page_age_seconds',
+            'Age of persistent page per match',
+            ['match_id'],
+            registry=self.registry
+        )
+        self.fast_poll_latency = Histogram(
+            'scraper_fast_poll_latency_ms',
+            'Latency of fast poll operations',
+            ['source'],  # source: api, page, localStorage
+            buckets=(10, 50, 100, 250, 500, 1000, 2500, 5000),
+            registry=self.registry
+        )
+        self.fast_poll_total = Counter(
+            'scraper_fast_poll_total',
+            'Total number of fast poll operations',
+            ['match_id', 'status'],  # status: success, failure, unchanged
+            registry=self.registry
+        )
+        self.persistent_page_errors = Counter(
+            'scraper_persistent_page_errors_total',
+            'Total number of persistent page errors',
+            ['match_id', 'error_type'],
+            registry=self.registry
+        )
+
     def record_scrape_result(self, domain: str, status: str, duration: float):
         """Record the outcome of a scrape attempt."""
         self.scrapes_total.labels(domain=domain, status=status).inc()
@@ -174,3 +206,22 @@ class MetricsCollector:
     def update_adaptive_polling(self, match_id: str, interval_seconds: float):
         """Update the adaptive polling interval for a match."""
         self.adaptive_polling_interval.labels(match_id=match_id).set(interval_seconds)
+
+    # Persistent Page Pool Metrics Methods (Feature 007 - Phase 2)
+
+    def update_pool_size(self, size: int):
+        """Update the persistent page pool size."""
+        self.persistent_pool_size.set(size)
+
+    def update_page_age(self, match_id: str, age_seconds: float):
+        """Update the age of a persistent page."""
+        self.persistent_page_age.labels(match_id=match_id).set(age_seconds)
+
+    def record_fast_poll(self, match_id: str, status: str, latency_ms: float, source: str = "api"):
+        """Record a fast poll operation."""
+        self.fast_poll_total.labels(match_id=match_id, status=status).inc()
+        self.fast_poll_latency.labels(source=source).observe(latency_ms)
+
+    def record_persistent_page_error(self, match_id: str, error_type: str):
+        """Record a persistent page error."""
+        self.persistent_page_errors.labels(match_id=match_id, error_type=error_type).inc()

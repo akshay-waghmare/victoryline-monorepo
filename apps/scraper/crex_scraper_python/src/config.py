@@ -131,6 +131,13 @@ class ScraperSettings:
     max_ball_gap_before_alert: int = 2  # Alert if more than N balls skipped
     adaptive_polling_min_seconds: float = 0.5  # Minimum adaptive polling interval
     adaptive_polling_max_seconds: float = 5.0  # Maximum adaptive polling interval
+    
+    # Persistent Pages Config (Feature 007 - Phase 2)
+    enable_persistent_pages: bool = False  # Feature flag - disabled by default until tested
+    persistent_page_max_count: int = 15  # Max pages in pool
+    persistent_page_max_age_seconds: int = 7200  # Max age before recycle (2 hours)
+    persistent_page_max_errors: int = 5  # Recycle after N errors
+    fast_poll_interval_ms: int = 1000  # Polling interval for sV3 (1 second)
 
     @property
     def is_tiny_profile(self) -> bool:
@@ -195,6 +202,12 @@ class ScraperSettings:
             "max_ball_gap_before_alert": self.max_ball_gap_before_alert,
             "adaptive_polling_min_seconds": self.adaptive_polling_min_seconds,
             "adaptive_polling_max_seconds": self.adaptive_polling_max_seconds,
+            # Persistent Pages Config (Feature 007 - Phase 2)
+            "enable_persistent_pages": self.enable_persistent_pages,
+            "persistent_page_max_count": self.persistent_page_max_count,
+            "persistent_page_max_age_seconds": self.persistent_page_max_age_seconds,
+            "persistent_page_max_errors": self.persistent_page_max_errors,
+            "fast_poll_interval_ms": self.fast_poll_interval_ms,
         }
 
     @classmethod
@@ -260,6 +273,13 @@ class ScraperSettings:
         adaptive_polling_min_seconds = _coerce_float(env.get("ADAPTIVE_POLLING_MIN_SECONDS"), 0.5, minimum=0.1)
         adaptive_polling_max_seconds = _coerce_float(env.get("ADAPTIVE_POLLING_MAX_SECONDS"), 5.0, minimum=adaptive_polling_min_seconds)
 
+        # Persistent Pages Config (Feature 007 - Phase 2)
+        enable_persistent_pages = _coerce_bool(env.get("ENABLE_PERSISTENT_PAGES"), False)
+        persistent_page_max_count = _coerce_int(env.get("PERSISTENT_PAGE_MAX_COUNT"), 15, minimum=1)
+        persistent_page_max_age_seconds = _coerce_int(env.get("PERSISTENT_PAGE_MAX_AGE_SECONDS"), 7200, minimum=60)
+        persistent_page_max_errors = _coerce_int(env.get("PERSISTENT_PAGE_MAX_ERRORS"), 5, minimum=1)
+        fast_poll_interval_ms = _coerce_int(env.get("FAST_POLL_INTERVAL_MS"), 1000, minimum=100)
+
         if memory_soft_limit_mb > memory_hard_limit_mb:
             raise ValueError("MEMORY_SOFT_LIMIT_MB cannot be greater than MEMORY_HARD_LIMIT_MB")
         if failing_error_threshold < degraded_error_threshold:
@@ -320,6 +340,12 @@ class ScraperSettings:
             max_ball_gap_before_alert=max_ball_gap_before_alert,
             adaptive_polling_min_seconds=adaptive_polling_min_seconds,
             adaptive_polling_max_seconds=adaptive_polling_max_seconds,
+            # Persistent Pages Config (Feature 007 - Phase 2)
+            enable_persistent_pages=enable_persistent_pages,
+            persistent_page_max_count=persistent_page_max_count,
+            persistent_page_max_age_seconds=persistent_page_max_age_seconds,
+            persistent_page_max_errors=persistent_page_max_errors,
+            fast_poll_interval_ms=fast_poll_interval_ms,
         )
 
 
