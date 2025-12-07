@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -151,6 +153,16 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
 	public List<LiveMatch> findAllFinishedMatches() {
 		return liveMatchRepository.findByIsDeletedTrue();
+	}
+	
+	/**
+	 * Get up to 20 most recently completed matches
+	 * Feature 008-completed-matches (US1 - T012)
+	 */
+	@Override
+	public List<LiveMatch> getCompletedMatches() {
+		Pageable pageable = PageRequest.of(0, 20);
+		return liveMatchRepository.findCompletedMatches(pageable);
 	}
 	
 	public LiveMatch findByUrl(String url) {

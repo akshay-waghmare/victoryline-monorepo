@@ -578,4 +578,55 @@ export class MatchesService {
     // Fallback to timestamp-based ID
     return `match-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
+  
+  /**
+   * Get completed matches (up to 20 most recent)
+   * Feature: 008-completed-matches (US1 - T022)
+   * Endpoint: GET /api/v1/matches/completed
+   * @returns Observable of completed matches as MatchCardViewModel array
+   */
+  getCompletedMatches(): Observable<MatchCardViewModel[]> {
+    const url = environment.REST_API_URL + 'api/v1/matches/completed';
+    
+    return this.http.get<any[]>(url).pipe(
+      switchMap((response: any[]) => {
+        console.log('Completed matches API response:', response);
+        
+        if (!Array.isArray(response) || response.length === 0) {
+          return of([]);
+        }
+        
+        // Fetch scorecard data for all completed matches
+        const scorecardRequests = response.map((match: any) => 
+          this.fetchScorecardData(match.url).pipe(
+            catchError(error => {
+              console.error('Error fetching scorecard for completed match:', match.url, error);
+              return of(null);
+            })
+          )
+        );
+        
+        // Wait for all scorecard requests
+        return forkJoin(scorecardRequests).pipe(
+          map((scorecardDataArray: any[]) => {
+            return response.map((match, index) => {
+              const scorecardData = scorecardDataArray[index];
+              // Transform to view model, marking as completed
+              const viewModel = this.transformToViewModel(match, scorecardData);
+              // Force status to COMPLETED since these are finished matches
+              viewModel.status = MatchStatus.COMPLETED;
+              viewModel.displayStatus = 'Completed';
+              return viewModel;
+            });
+          })
+        );
+      }),
+      // Feature 008-completed-matches (US1 - T023: Error handling)
+      catchError(error => {
+        console.error('Error fetching completed matches:', error);
+        // Return empty array on error to allow retry
+        return of([]);
+      })
+    );
+  }
 }

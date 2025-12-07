@@ -50,12 +50,12 @@
   </div>
   
   <!-- Loading State -->
-  <div class="matches-list__grid" *ngIf="isLoading">
+  <div class="matches-list__grid" *ngIf="isLoading || (selectedStatus === 'COMPLETED' && isLoadingCompleted)">
     <app-skeleton-card [count]="6"></app-skeleton-card>
   </div>
   
-  <!-- Error State -->
-  <div class="matches-list__error" *ngIf="hasError && !isLoading">
+  <!-- Error State (for live/upcoming matches) -->
+  <div class="matches-list__error" *ngIf="hasError && !isLoading && selectedStatus !== 'COMPLETED'">
     <svg class="matches-list__error-icon" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
       <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2"/>
       <path d="M24 14v12M24 32v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -70,8 +70,24 @@
     </button>
   </div>
   
+  <!-- Error State (for completed matches) - Feature 008-completed-matches (US1 - T027) -->
+  <div class="matches-list__error" *ngIf="hasCompletedError && !isLoadingCompleted && selectedStatus === 'COMPLETED'">
+    <svg class="matches-list__error-icon" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2"/>
+      <path d="M24 14v12M24 32v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <p class="matches-list__error-message">{{ completedErrorMessage }}</p>
+    <button 
+      type="button"
+      class="matches-list__retry-btn"
+      (click)="retryLoadCompletedMatches()"
+    >
+      Try Again
+    </button>
+  </div>
+  
   <!-- Matches Grid -->
-  <div class="matches-list__grid" *ngIf="!isLoading && !hasError">
+  <div class="matches-list__grid" *ngIf="!isLoading && !hasError && !isLoadingCompleted && !hasCompletedError">
     
     <!-- No Matches State -->
     <div class="matches-list__empty" *ngIf="filteredMatches.length === 0">

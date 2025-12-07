@@ -31,11 +31,15 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   // Match data
   allMatches: MatchCardViewModel[] = [];
   filteredMatches: MatchCardViewModel[] = [];
+  completedMatches: MatchCardViewModel[] = []; // Feature 008-completed-matches (US1)
   
   // Loading states
   isLoading = true;
+  isLoadingCompleted = false; // Feature 008-completed-matches (US1 - T026)
   hasError = false;
   errorMessage = '';
+  hasCompletedError = false; // Feature 008-completed-matches (US1 - T027)
+  completedErrorMessage = ''; // Feature 008-completed-matches (US1 - T027)
   
   // Filter state
   selectedStatus: MatchStatus | 'all' = 'all';
@@ -93,13 +97,50 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   }
   
   /**
+   * Load completed matches from API
+   * Feature: 008-completed-matches (US1 - T024)
+   */
+  loadCompletedMatches(): void {
+    this.isLoadingCompleted = true;
+    this.hasCompletedError = false;
+    
+    this.matchesService.getCompletedMatches()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (matches) => {
+          this.completedMatches = matches;
+          this.updateTabCounts();
+          this.isLoadingCompleted = false;
+          console.log('Completed matches loaded:', matches.length);
+        },
+        (error) => {
+          this.hasCompletedError = true;
+          this.completedErrorMessage = 'Unable to load completed matches. Tap to retry';
+          this.isLoadingCompleted = false;
+          console.error('Error loading completed matches:', error);
+        }
+      );
+  }
+  
+  /**
+   * Retry loading completed matches
+   * Feature: 008-completed-matches (US1 - T028)
+   */
+  retryLoadCompletedMatches(): void {
+    this.loadCompletedMatches();
+  }
+  
+  /**
    * Apply filters and search to matches
    */
   applyFilters(): void {
-    let matches = [...this.allMatches];
+    // Feature 008-completed-matches (US1): Use completed matches when tab is selected
+    let matches = this.selectedStatus === MatchStatus.COMPLETED 
+      ? [...this.completedMatches] 
+      : [...this.allMatches];
     
     // Apply status filter
-    if (this.selectedStatus !== 'all') {
+    if (this.selectedStatus !== 'all' && this.selectedStatus !== MatchStatus.COMPLETED) {
       matches = filterMatchesByStatus(matches, this.selectedStatus);
     }
     
@@ -128,6 +169,12 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    */
   onTabChange(tabId: string): void {
     this.selectedStatus = tabId as MatchStatus | 'all';
+    
+    // Feature 008-completed-matches (US1 - T025: Wire Completed tab click)
+    if (tabId === MatchStatus.COMPLETED && this.completedMatches.length === 0) {
+      this.loadCompletedMatches();
+    }
+    
     this.applyFilters();
   }
   
@@ -222,9 +269,10 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   
   /**
    * Get completed matches count
+   * Feature: 008-completed-matches (US1 - Updated for actual completed matches)
    */
   get completedMatchesCount(): number {
-    return filterCompletedMatches(this.allMatches).length;
+    return this.completedMatches.length;
   }
   
   /**
