@@ -323,8 +323,13 @@ public class GoogleSearchConsoleService {
                     .publish(notification)
                     .execute();
                 
+                String notifyTime = (response != null && response.getUrlNotificationMetadata() != null 
+                    && response.getUrlNotificationMetadata().getLatestUpdate() != null)
+                    ? response.getUrlNotificationMetadata().getLatestUpdate().getNotifyTime()
+                    : "unknown";
+                
                 logger.info("[GSC-Indexing] Successfully requested indexing for: {} (notifyTime: {})", 
-                    url, response.getUrlNotificationMetadata().getLatestUpdate().getNotifyTime());
+                    url, notifyTime);
                 return true;
                 
             } catch (IOException e) {
