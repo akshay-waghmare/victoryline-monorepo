@@ -6,6 +6,7 @@
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -55,9 +56,15 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   // Unsubscribe subject
   private destroy$ = new Subject<void>();
   
-  constructor(private matchesService: MatchesService, private router: Router) {}
+  constructor(
+    private matchesService: MatchesService, 
+    private router: Router,
+    private titleService: Title  // T044: Inject Angular Title service
+  ) {}
   
   ngOnInit(): void {
+    // T044: Set page title for matches list page
+    this.titleService.setTitle('Live Cricket Matches | Ball by Ball Scores | Crickzen');
     this.loadMatches();
   }
   

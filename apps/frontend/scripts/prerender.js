@@ -180,7 +180,9 @@ function renderMatchItem(m, matchInfo = null) {
   const title = deriveTitle(m, matchInfo);
   const matchName = matchInfo && matchInfo.match_name ? escapeHtml(matchInfo.match_name) : '';
   const status = deriveStatus(m.lastKnownState || m.status || m.matchStatus || '');
-  const linkPath = m.id ? `/cric-live/${m.id}` : '#';
+  // Use slug for SEO-friendly URLs (matching sitemap format)
+  const urlSlug = extractUrlSlug(m.url);
+  const linkPath = urlSlug ? `/cric-live/${urlSlug}` : '#';
   const matchState = m.finished ? 'Completed' : 'Live';
   const venue = matchInfo && matchInfo.venue ? escapeHtml(matchInfo.venue) : 'Cricket Stadium';
   const playingXiHtml = matchInfo && matchInfo.playing_xi ? renderPlayingXI(matchInfo.playing_xi) : '';
@@ -270,6 +272,9 @@ function buildMatchesJsonLd(matchesWithInfo) {
       const venue = info && info.venue ? info.venue : 'Cricket Stadium';
       const matchName = info && info.match_name ? info.match_name : title;
       
+      // Use slug for SEO-friendly URLs
+      const urlSlug = extractUrlSlug(m.url) || m.id;
+      
       // Extract all players from playing XI for rich schema
       const performers = [];
       if (info && info.playing_xi) {
@@ -294,12 +299,20 @@ function buildMatchesJsonLd(matchesWithInfo) {
         'position': idx + 1,
         'name': matchName,
         'description': status || `${m.finished ? 'Completed' : 'Live'} Cricket Match`,
-        'url': `https://www.crickzen.com/cric-live/${m.id}`,
+        'url': `https://www.crickzen.com/cric-live/${urlSlug}`,
+        'startDate': (info && info.start_date) 
+          ? new Date(info.start_date).toISOString() 
+          : (m.startDate ? new Date(m.startDate).toISOString() : new Date().toISOString()),
         'eventStatus': `https://schema.org/${eventStatus}`,
         'sport': 'Cricket',
         'location': {
           '@type': 'Place',
           'name': venue
+        },
+        'organizer': {
+          '@type': 'Organization',
+          'name': 'Crickzen',
+          'url': 'https://www.crickzen.com'
         }
       };
       
@@ -442,7 +455,241 @@ async function build() {
     jsonLd: combinedJsonLd
   });
   fs.writeFileSync(path.join(OUT_DIR, 'matches.html'), matchesHtml, 'utf8');
+
+  // Individual match pages (Feature 008 - Dynamic SEO Titles)
+  const matchPagesDir = path.join(OUT_DIR, 'cric-live');
+  ensureDir(matchPagesDir);
+  
+  for (const item of matchesWithInfo) {
+    const m = item.match;
+    const info = item.info;
+    
+    // Use URL slug for SEO-friendly URLs (matches sitemap format)
+    const urlSlug = extractUrlSlug(m.url);
+    if (!urlSlug) continue;
+    
+    // Generate SEO-optimized title following Feature 008 spec
+    const matchTitle = generateMatchPageTitle(m, info);
+    const matchDescription = generateMatchPageDescription(m, info);
+    const matchStatus = m.finished ? 'completed' : 'live';
+    
+    // Build match-specific JSON-LD
+    const matchJsonLd = buildMatchPageJsonLd(m, info, urlSlug);
+    
+    // Build match page content
+    const matchContentHtml = renderMatchPageContent(m, info, urlSlug);
+    
+    const matchPageHtml = pageTemplate({
+      title: matchTitle,
+      description: matchDescription,
+      canonical: `https://www.crickzen.com/cric-live/${urlSlug}`,
+      contentHtml: matchContentHtml,
+      jsonLd: matchJsonLd
+    });
+    
+    fs.writeFileSync(path.join(matchPagesDir, `${urlSlug}.html`), matchPageHtml, 'utf8');
+  }
+  
+  console.log(`[prerender] Generated ${matchesWithInfo.length} individual match pages in ${matchPagesDir}`);
 }
+
+/**
+ * Generate SEO-optimized title for match page (Feature 008)
+ * Format: "{Team A} vs {Team B} Live Score Ball by Ball" (live)
+ *         "{Team A} vs {Team B} Final Score | Full Scorecard" (completed)
+ */
+function generateMatchPageTitle(m, info) {
+  // Extract team names from match info or derive from URL
+  let team1 = null;
+  let team2 = null;
+  
+  if (info) {
+    // Try to get team names from direct properties
+    if (info.team1_name) team1 = info.team1_name;
+    if (info.team2_name) team2 = info.team2_name;
+    
+    // Fallback: parse from match_name like "India vs Australia, 1st Test"
+    if ((!team1 || !team2) && info.match_name) {
+      const vsMatch = info.match_name.match(/^([^,]+)\s+vs\s+([^,]+)/i);
+      if (vsMatch) {
+        team1 = team1 || vsMatch[1].trim();
+        team2 = team2 || vsMatch[2].trim();
+      }
+    }
+  }
+  
+  // Fallback: parse from URL slug (handles both short codes and full names)
+  if ((!team1 || !team2) && m.url) {
+    const urlSlug = extractUrlSlug(m.url);
+    if (urlSlug) {
+      // Match pattern like "ind-vs-aus-..." or "india-vs-australia-..."
+      const vsMatch = urlSlug.match(/^([a-z0-9]+)-vs-([a-z0-9]+)-/i);
+      if (vsMatch) {
+        // Convert to uppercase for short codes (3-4 chars) or title case for longer
+        const formatTeam = (t) => {
+          if (t.length <= 4) return t.toUpperCase();
+          return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+        };
+        team1 = team1 || formatTeam(vsMatch[1]);
+        team2 = team2 || formatTeam(vsMatch[2]);
+      }
+    }
+  }
+  
+  // Final fallback: use deriveTitle if still no teams found
+  if (!team1 || !team2) {
+    const derivedTitle = deriveTitle(m, info);
+    // Try to extract "X vs Y" from derived title
+    const vsMatch = derivedTitle.match(/^([^-]+)\s+vs\s+([^-]+)/i);
+    if (vsMatch) {
+      team1 = team1 || vsMatch[1].trim();
+      team2 = team2 || vsMatch[2].trim();
+    }
+  }
+  
+  // If still nothing, use generic fallback
+  if (!team1) team1 = 'Team A';
+  if (!team2) team2 = 'Team B';
+  
+  const teams = `${team1} vs ${team2}`;
+  const isCompleted = m.finished || (m.lastKnownState && /won by|match drawn|match tied/i.test(m.lastKnownState));
+  
+  let suffix;
+  if (isCompleted) {
+    suffix = ' Final Score | Full Scorecard';
+  } else {
+    suffix = ' Live Score Ball by Ball';
+  }
+  
+  const fullTitle = teams + suffix;
+  
+  // Truncate if exceeds 60 chars
+  if (fullTitle.length > 60) {
+    const maxTeamsLength = 60 - suffix.length - 3;
+    const truncatedTeams = teams.substring(0, maxTeamsLength);
+    const lastSpace = truncatedTeams.lastIndexOf(' ');
+    return (lastSpace > 0 ? truncatedTeams.substring(0, lastSpace) : truncatedTeams) + '...' + suffix;
+  }
+  
+  return fullTitle;
+}
+
+/**
+ * Generate meta description for match page (Feature 008)
+ */
+function generateMatchPageDescription(m, info) {
+  let team1 = null;
+  let team2 = null;
+  
+  if (info) {
+    if (info.team1_name) team1 = info.team1_name;
+    if (info.team2_name) team2 = info.team2_name;
+    
+    if ((!team1 || !team2) && info.match_name) {
+      const vsMatch = info.match_name.match(/^([^,]+)\s+vs\s+([^,]+)/i);
+      if (vsMatch) {
+        team1 = team1 || vsMatch[1].trim();
+        team2 = team2 || vsMatch[2].trim();
+      }
+    }
+  }
+  
+  // Fallback: parse from URL slug
+  if ((!team1 || !team2) && m.url) {
+    const urlSlug = extractUrlSlug(m.url);
+    if (urlSlug) {
+      const vsMatch = urlSlug.match(/^([a-z0-9]+)-vs-([a-z0-9]+)-/i);
+      if (vsMatch) {
+        const formatTeam = (t) => t.length <= 4 ? t.toUpperCase() : t.charAt(0).toUpperCase() + t.slice(1);
+        team1 = team1 || formatTeam(vsMatch[1]);
+        team2 = team2 || formatTeam(vsMatch[2]);
+      }
+    }
+  }
+  
+  // Final fallback from derived title
+  if (!team1 || !team2) {
+    const derivedTitle = deriveTitle(m, info);
+    const vsMatch = derivedTitle.match(/^([^-]+)\s+vs\s+([^-]+)/i);
+    if (vsMatch) {
+      team1 = team1 || vsMatch[1].trim();
+      team2 = team2 || vsMatch[2].trim();
+    }
+  }
+  
+  if (!team1) team1 = 'Team A';
+  if (!team2) team2 = 'Team B';
+  
+  const teams = `${team1} vs ${team2}`;
+  const isCompleted = m.finished || (m.lastKnownState && /won by|match drawn|match tied/i.test(m.lastKnownState));
+  
+  if (isCompleted) {
+    return `${teams} final score, full scorecard, match summary, and highlights on Crickzen.`;
+  }
+  return `${teams} live score, ball by ball commentary, latest runs, wickets, overs, and match updates.`;
+}
+
+/**
+ * Build JSON-LD for individual match page
+ */
+function buildMatchPageJsonLd(m, info, urlSlug) {
+  const title = generateMatchPageTitle(m, info);
+  const isCompleted = m.finished || (m.lastKnownState && /won by|match drawn|match tied/i.test(m.lastKnownState));
+  const venue = info && info.venue ? info.venue : 'Cricket Stadium';
+  const matchName = info && info.match_name ? info.match_name : title;
+  
+  // Generate startDate - use match info date, or current date as fallback
+  const startDate = (info && info.start_date) 
+    ? new Date(info.start_date).toISOString() 
+    : (m.startDate ? new Date(m.startDate).toISOString() : new Date().toISOString());
+  
+  const jsonLdObj = {
+    '@context': 'https://schema.org',
+    '@type': 'SportsEvent',
+    'name': matchName,
+    'description': generateMatchPageDescription(m, info),
+    'url': `https://www.crickzen.com/cric-live/${urlSlug}`,
+    'startDate': startDate,
+    'eventStatus': isCompleted ? 'https://schema.org/EventScheduled' : 'https://schema.org/EventLive',
+    'sport': 'Cricket',
+    'location': {
+      '@type': 'Place',
+      'name': venue
+    },
+    'organizer': {
+      '@type': 'Organization',
+      'name': 'Crickzen',
+      'url': 'https://www.crickzen.com'
+    }
+  };
+  
+  return `<script type="application/ld+json">${JSON.stringify(jsonLdObj, null, 2)}</script>`;
+}
+
+/**
+ * Render content for individual match page
+ */
+function renderMatchPageContent(m, info, urlSlug) {
+  const title = deriveTitle(m, info);
+  const status = deriveStatus(m.lastKnownState || m.status || '');
+  const venue = info && info.venue ? escapeHtml(info.venue) : 'Cricket Stadium';
+  const matchName = info && info.match_name ? escapeHtml(info.match_name) : '';
+  const tossInfo = info && info.toss_info ? escapeHtml(info.toss_info) : '';
+  const playingXiHtml = info && info.playing_xi ? renderPlayingXI(info.playing_xi) : '';
+  
+  return `
+    <h1>${escapeHtml(title)}</h1>
+    ${matchName ? `<p class="match-series"><strong>${matchName}</strong></p>` : ''}
+    ${status ? `<p class="match-status">${escapeHtml(status)}</p>` : ''}
+    <p class="match-venue">📍 ${venue}</p>
+    ${tossInfo ? `<p class="toss-info">🪙 ${tossInfo}</p>` : ''}
+    ${playingXiHtml}
+    <p style="margin-top: 30px;">
+      <a href="/matches" style="color: #1a73e8;">← Back to All Matches</a>
+    </p>
+  `;
+}
+
 module.exports = { build };
 
 if (require.main === module) {

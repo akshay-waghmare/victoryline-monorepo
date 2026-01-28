@@ -42,3 +42,43 @@ Testing with H2:
 	- `spring.jpa.properties.hibernate.hbm2ddl.import_files=` (empty)
 
 See `src/test/java/com/devglan/seo/SitemapRepositoryBackedTest.java` for a working example.
+
+## Google Search Console Integration (Feature 008)
+
+Automated sitemap submission to Google Search Console for improved SEO indexing.
+
+### Services
+
+- `GoogleSearchConsoleService` - GSC API integration with service account authentication
+  - `submitSitemap(url)` - Submit sitemap with exponential backoff retry (3 attempts)
+  - `listSitemaps()` - List all registered sitemaps for the site
+  
+- `SitemapScheduler` - Daily scheduled job (3 AM) for automatic sitemap submission
+
+### Configuration
+
+Add these properties to `application.properties`:
+
+```properties
+# Google Search Console Integration
+gsc.enabled=true
+gsc.service-account-path=classpath:gsc_service_account.json
+gsc.site-url=https://www.crickzen.com/
+gsc.sitemap-url=https://www.crickzen.com/sitemap.xml
+```
+
+### Setup Requirements
+
+1. Create Google Cloud Project and enable Search Console API
+2. Create service account with JSON key credentials
+3. Add service account email as Owner in Google Search Console
+4. Place credentials file at `src/main/resources/gsc_service_account.json`
+5. Ensure file is gitignored (already configured in `.gitignore`)
+
+### Manual Trigger
+
+For testing, inject `SitemapScheduler` and call:
+```java
+sitemapScheduler.triggerManualSubmission();
+```
+

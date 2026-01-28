@@ -1,0 +1,183 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MatchMetadata",
+  "description": "SEO metadata contract for match pages, including title, description, and social sharing tags",
+  "type": "object",
+  "required": [
+    "title",
+    "description",
+    "canonicalUrl",
+    "ogTitle",
+    "ogDescription",
+    "ogImage",
+    "twitterCard",
+    "jsonLd"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "SEO-optimized page title for search engines and browser tabs",
+      "maxLength": 60,
+      "pattern": "^.+ vs .+( Live Score Ball by Ball| Final Score \\| Full Scorecard| Match Scorecard)$",
+      "examples": [
+        "India vs Australia Live Score Ball by Ball",
+        "Mumbai Indians vs Chennai... Final Score | Full Scorecard",
+        "RCB vs KKR Match Scorecard"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "Meta description for search result snippets",
+      "maxLength": 155,
+      "examples": [
+        "Bangladesh vs Afghanistan live score, ball by ball commentary, latest runs, wickets, overs, and match updates.",
+        "India vs Australia final score, full scorecard, match summary, and highlights on VictoryLine."
+      ]
+    },
+    "canonicalUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Canonical URL for this match page (prevents duplicate content)",
+      "pattern": "^https://victoryline\\.live/cric-live/[a-z0-9-]+$",
+      "examples": [
+        "https://victoryline.live/cric-live/ban-vs-afg-asia-cup-2026"
+      ]
+    },
+    "ogTitle": {
+      "type": "string",
+      "description": "Open Graph title for social media sharing (Facebook, LinkedIn)",
+      "maxLength": 60,
+      "examples": [
+        "India vs Australia Live Score Ball by Ball"
+      ]
+    },
+    "ogDescription": {
+      "type": "string",
+      "description": "Open Graph description for social media previews",
+      "maxLength": 155,
+      "examples": [
+        "Bangladesh vs Afghanistan live score, ball by ball commentary, latest runs, wickets, overs, and match updates."
+      ]
+    },
+    "ogImage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Open Graph image URL (minimum 1200x630px recommended)",
+      "pattern": "^https://victoryline\\.live/og-images/[a-z0-9-]+\\.(jpg|png)$",
+      "examples": [
+        "https://victoryline.live/og-images/ban-vs-afg-2026.jpg"
+      ]
+    },
+    "twitterCard": {
+      "type": "string",
+      "enum": ["summary_large_image"],
+      "description": "Twitter card type (always summary_large_image for match pages)"
+    },
+    "twitterTitle": {
+      "type": "string",
+      "description": "Twitter card title (same as main title)",
+      "maxLength": 60
+    },
+    "twitterDescription": {
+      "type": "string",
+      "description": "Twitter card description (same as meta description)",
+      "maxLength": 155
+    },
+    "jsonLd": {
+      "type": "object",
+      "description": "Schema.org structured data (JSON-LD format) for rich results",
+      "required": ["@context", "@type", "name", "startDate", "eventStatus", "homeTeam", "awayTeam"],
+      "properties": {
+        "@context": {
+          "type": "string",
+          "const": "https://schema.org",
+          "description": "Schema.org context URL"
+        },
+        "@type": {
+          "type": "string",
+          "const": "SportsEvent",
+          "description": "Schema.org type for cricket matches"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full match name with team names",
+          "pattern": "^.+ vs .+$",
+          "examples": ["Bangladesh vs Afghanistan"]
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Match start date/time in ISO 8601 format",
+          "examples": ["2026-01-28T14:00:00Z"]
+        },
+        "eventStatus": {
+          "type": "string",
+          "enum": [
+            "EventScheduled",
+            "EventInProgress",
+            "EventCompleted",
+            "EventCancelled",
+            "EventPostponed"
+          ],
+          "description": "Schema.org event status vocabulary"
+        },
+        "homeTeam": {
+          "type": "object",
+          "required": ["@type", "name"],
+          "properties": {
+            "@type": {
+              "type": "string",
+              "const": "SportsTeam"
+            },
+            "name": {
+              "type": "string",
+              "description": "Home team official name"
+            }
+          }
+        },
+        "awayTeam": {
+          "type": "object",
+          "required": ["@type", "name"],
+          "properties": {
+            "@type": {
+              "type": "string",
+              "const": "SportsTeam"
+            },
+            "name": {
+              "type": "string",
+              "description": "Away team official name"
+            }
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "title": "Bangladesh vs Afghanistan Live Score Ball by Ball",
+      "description": "Bangladesh vs Afghanistan live score, ball by ball commentary, latest runs, wickets, overs, and match updates.",
+      "canonicalUrl": "https://victoryline.live/cric-live/ban-vs-afg-asia-cup-2026",
+      "ogTitle": "Bangladesh vs Afghanistan Live Score Ball by Ball",
+      "ogDescription": "Bangladesh vs Afghanistan live score, ball by ball commentary, latest runs, wickets, overs, and match updates.",
+      "ogImage": "https://victoryline.live/og-images/ban-vs-afg-2026.jpg",
+      "twitterCard": "summary_large_image",
+      "twitterTitle": "Bangladesh vs Afghanistan Live Score Ball by Ball",
+      "twitterDescription": "Bangladesh vs Afghanistan live score, ball by ball commentary, latest runs, wickets, overs, and match updates.",
+      "jsonLd": {
+        "@context": "https://schema.org",
+        "@type": "SportsEvent",
+        "name": "Bangladesh vs Afghanistan",
+        "startDate": "2026-01-28T14:00:00Z",
+        "eventStatus": "EventInProgress",
+        "homeTeam": {
+          "@type": "SportsTeam",
+          "name": "Bangladesh"
+        },
+        "awayTeam": {
+          "@type": "SportsTeam",
+          "name": "Afghanistan"
+        }
+      }
+    }
+  ]
+}

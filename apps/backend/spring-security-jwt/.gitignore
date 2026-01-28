@@ -1,1 +1,16 @@
 /target/
+
+# Google Search Console credentials (sensitive - do not commit)
+gsc-service-account.json
+gsc_service_account.json
+src/main/resources/gsc-service-account.json
+src/main/resources/gsc_service_account.json
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Environment variables
+.env
+.env.local

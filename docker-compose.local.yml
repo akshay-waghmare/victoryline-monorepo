@@ -1,0 +1,124 @@
+# Docker Compose for LOCAL testing with Caddy
+# Uses Caddyfile.local (HTTP only, no HTTPS)
+# Builds images locally instead of pulling from registry
+
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: victoryline-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./apps/backend/spring-security-jwt
+      dockerfile: Dockerfile
+    container_name: victoryline-backend
+    restart: unless-stopped
+    ports:
+      - "8099:8099"
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      SERVER_PORT: "8099"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    depends_on:
+      - redis
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8099/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  prerender:
+    build:
+      context: ./apps/frontend
+      dockerfile: prerender-sidecar/Dockerfile
+    container_name: victoryline-prerender
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    environment:
+      BACKEND_URL: http://backend:8099
+      PRERENDER_OUT_DIR: /shared-html/prerender
+    volumes:
+      - prerender_html:/shared-html
+    depends_on:
+      - backend
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9100/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: victoryline-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+    volumes:
+      - prerender_html:/shared-html
+    environment:
+      API_URL: http://backend:8099
+    entrypoint: ["/bin/sh", "-c", "rm -rf /usr/share/nginx/html/prerender && ln -sf /shared-html/prerender /usr/share/nginx/html/prerender && nginx -g 'daemon off;'"]
+    depends_on:
+      - backend
+      - prerender
+    networks:
+      - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:80 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  caddy:
+    image: caddy:2
+    container_name: victoryline-caddy
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    ports:
+      - "8080:80"
+    volumes:
+      # Use LOCAL Caddyfile for HTTP-only testing
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - victoryline-network
+
+networks:
+  victoryline-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local
+  prerender_html:
+    driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local

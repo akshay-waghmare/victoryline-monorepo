@@ -1,0 +1,25 @@
+project:
+  name: victoryline-monorepo
+  type: software
+  description: null
+  goals: []
+  constraints: {}
+  created_at: '2026-01-28T05:01:16.494257'
+  last_interaction_at: '2026-01-28T05:03:25.309672'
+current_bottleneck:
+  description: No one can discover your app—you have working live match data but zero distribution channels to reach cricket
+    fans actively searching for scores.
+  identified_at: '2026-01-28T05:03:25.305676'
+  last_validated_at: '2026-01-28T05:03:25.305678'
+  category: unclear
+  metric: null
+  status: active
+  resolved_at: null
+ai_provider: copilot
+ai_model: gpt-4o
+active_personas:
+- Game Theory Copilot
+- Growth Strategy Expert
+- StoryBrand Advisor
+created_at: '2026-01-28T05:01:16.494336'
+updated_at: '2026-01-28T05:03:25.309721'

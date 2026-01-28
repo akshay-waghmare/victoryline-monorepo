@@ -301,6 +301,64 @@ npm run build:analyze
 # Docker build
 docker build -t crickzen-frontend .
 docker run -p 80:80 crickzen-frontend
+
+# SSR Development
+npm run serve:ssr
+# SSR runs at http://localhost:4000
+```
+
+## 🔍 SEO & Dynamic Titles (Feature 008)
+
+Match pages use server-side rendered (SSR) titles for optimal search engine visibility.
+
+### Title Format by Match Status
+
+| Status | Title Format |
+|--------|--------------|
+| Live | `{Team A} vs {Team B} Live Score Ball by Ball` |
+| Completed | `{Team A} vs {Team B} Final Score \| Full Scorecard` |
+| Abandoned | `{Team A} vs {Team B} Match Scorecard` |
+
+### SSR Configuration
+
+The SSR server (`server.ts`) includes:
+
+- `fetchMatchData(id)` - Fetches team names from backend API (200ms timeout)
+- `generateMatchTitle(homeTeam, awayTeam, status)` - Generates SEO-optimized title (≤60 chars)
+- `generateMatchDescription(homeTeam, awayTeam, status)` - CTR-optimized description (≤155 chars)
+- `escapeHtml(str)` - Escapes special characters for safe HTML rendering
+
+### Environment Variables for SSR
+
+Set the backend API URL:
+```bash
+BACKEND_URL=http://localhost:8080  # Default: http://backend-service:8080
+```
+
+### Testing SSR Titles
+
+```bash
+# Start SSR server
+npm run serve:ssr
+
+# Test dynamic title
+curl http://localhost:4000/cric-live/match-id | grep '<title>'
+# Should show: <title>Team A vs Team B Live Score Ball by Ball</title>
+
+# Test OG tags
+curl http://localhost:4000/cric-live/match-id | grep 'og:title'
+```
+
+### Client-Side Title Updates
+
+For SPA navigation, inject `Title` service:
+```typescript
+import { Title } from '@angular/platform-browser';
+
+constructor(private titleService: Title) {}
+
+// Update title on match data load
+this.titleService.setTitle(`${match.team1} vs ${match.team2} Live Score Ball by Ball`);
 ```
 
 ## 🔧 Configuration

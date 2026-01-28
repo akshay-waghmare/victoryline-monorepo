@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { Subject } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
@@ -125,6 +126,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private snackBar: MatSnackBar,
               private eventListService:EventListService,
               private authService : AuthService,
+              private titleService: Title,  // T043: Inject Angular Title service
               private activatedRoute: ActivatedRoute,private router: Router) { }
 
   ngOnDestroy() {
@@ -798,6 +800,9 @@ fetchMatchInfo(matchUrl:string) {
       this.matchInfo = data;
       console.log('Match Info:', this.matchInfo);
 
+      // T045: Update browser tab title with team names (Feature 008 - SEO)
+      this.updatePageTitle();
+
       // Extract keys
       this.teamComparisonKeys = Object.keys(this.matchInfo.team_comparison || {});
       if (this.teamComparisonKeys.length) {
@@ -814,6 +819,92 @@ fetchMatchInfo(matchUrl:string) {
     }
   );
 }
+
+  /**
+   * T045: Update browser tab title with team names and match status
+   * Feature 008 - Match Page Title SEO Optimization
+   * 
+   * Implements client-side title updates during SPA navigation
+   * CRITICAL: Must match prerender.js generateMatchPageTitle() exactly to avoid ranking risk
+   */
+  private updatePageTitle(): void {
+    if (!this.matchInfo) {
+      return;
+    }
+
+    // Extract team names - same order as prerender.js
+    let team1: string | null = null;
+    let team2: string | null = null;
+
+    // Try to get team names from direct properties (matches prerender.js)
+    if (this.matchInfo.team1_name) team1 = this.matchInfo.team1_name;
+    if (this.matchInfo.team2_name) team2 = this.matchInfo.team2_name;
+
+    // Fallback: parse from match_name like "India vs Australia, 1st Test"
+    if ((!team1 || !team2) && this.matchInfo.match_name) {
+      const vsMatch = this.matchInfo.match_name.match(/^([^,]+)\s+vs\s+([^,]+)/i);
+      if (vsMatch) {
+        team1 = team1 || vsMatch[1].trim();
+        team2 = team2 || vsMatch[2].trim();
+      }
+    }
+
+    // Fallback: parse from URL slug (matches prerender.js extractUrlSlug + formatTeam)
+    if ((!team1 || !team2) && this.matchUrl) {
+      const urlSlug = this.extractUrlSlug(this.matchUrl);
+      if (urlSlug) {
+        const vsMatch = urlSlug.match(/^([a-z0-9]+)-vs-([a-z0-9]+)-/i);
+        if (vsMatch) {
+          const formatTeam = (t: string): string => {
+            if (t.length <= 4) return t.toUpperCase();
+            return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+          };
+          team1 = team1 || formatTeam(vsMatch[1]);
+          team2 = team2 || formatTeam(vsMatch[2]);
+        }
+      }
+    }
+
+    // Final fallback - MUST match prerender.js fallback ("Team A"/"Team B")
+    if (!team1) team1 = 'Team A';
+    if (!team2) team2 = 'Team B';
+    
+    const teams = `${team1} vs ${team2}`;
+    const status = (this.matchInfo.match_status || this.matchInfo.status || 'live').toLowerCase();
+    
+    // Determine suffix based on status - must match prerender.js isCompleted logic
+    const isCompleted = status === 'completed' || status === 'finished' || status === 'result' ||
+      (this.matchInfo.lastKnownState && /won by|match drawn|match tied/i.test(this.matchInfo.lastKnownState));
+    
+    let suffix: string;
+    if (isCompleted) {
+      suffix = ' Final Score | Full Scorecard';
+    } else {
+      suffix = ' Live Score Ball by Ball';
+    }
+    
+    let fullTitle = teams + suffix;
+    
+    // Truncate if >60 chars - same algorithm as prerender.js
+    if (fullTitle.length > 60) {
+      const maxTeamsLength = 60 - suffix.length - 3;
+      const truncated = teams.substring(0, maxTeamsLength);
+      const lastSpace = truncated.lastIndexOf(' ');
+      fullTitle = (lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated) + '...' + suffix;
+    }
+    
+    this.titleService.setTitle(fullTitle);
+  }
+
+  /**
+   * Extract URL slug from match URL - matches prerender.js extractUrlSlug()
+   */
+  private extractUrlSlug(url: string): string | null {
+    if (!url) return null;
+    const parts = url.split('/').filter(p => p && p !== 'live' && p !== 'scoreboard' && !p.startsWith('http'));
+    return parts.pop() || null;
+  }
+
   setVenuePercentages() {
     // Ensure that win_bat_first exists and is a string
     const batFirstStr: string = this.matchInfo.venue_stats.win_bat_first || '0%';

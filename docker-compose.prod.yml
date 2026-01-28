@@ -67,8 +67,15 @@ services:
       SPRING_H2_CONSOLE_PATH: "${SPRING_H2_CONSOLE_PATH:-/h2-console}"
       JWT_SECRET: "${JWT_SECRET:-change_me}"
       JWT_EXPIRATION: "${JWT_EXPIRATION:-86400}"
+      # Google Search Console / Indexing API settings
+      GSC_ENABLED: "${GSC_ENABLED:-true}"
+      GSC_SITE_URL: "${GSC_SITE_URL:-https://www.crickzen.com/}"
+      GSC_SITEMAP_URL: "${GSC_SITEMAP_URL:-https://www.crickzen.com/sitemap.xml}"
+      GSC_SERVICE_ACCOUNT_PATH: "${GSC_SERVICE_ACCOUNT_PATH:-/app/config/gsc-service-account.json}"
     volumes:
       - backend_data:/app/data
+      # Mount GSC service account file (if using file-based auth)
+      - ${GSC_SERVICE_ACCOUNT_FILE:-./gsc-service-account.json}:/app/config/gsc-service-account.json:ro
     networks:
       - victoryline-network
     healthcheck:
@@ -135,7 +142,7 @@ services:
       start_period: 45s
 
   prerender:
-    image: "${PRERENDER_IMAGE:-macubex/victoryline-prerender:v1.0.0}"
+    image: "${PRERENDER_IMAGE:-macubex/victoryline-prerender:v1.1.0}"
     container_name: victoryline-prerender
     restart: unless-stopped
     ports:
@@ -154,7 +161,7 @@ services:
       start_period: 20s
 
   frontend:
-    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:v1.0.1}"
+    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:v1.1.0}"
     container_name: victoryline-frontend
     restart: unless-stopped
     # No external port mapping - accessed via Caddy reverse proxy only

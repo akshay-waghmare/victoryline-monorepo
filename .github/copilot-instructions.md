@@ -33,7 +33,6 @@ TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties
 ## Recent Changes
 - 007-fast-updates: Added Python 3.9+ (Scraper), Java 8/11 (Backend Spring Boot) + Flask 2.2.2, async Playwright 1.40.0, Redis, prometheus_client, backoff
 - 006-scraper-optimization: Added async Playwright pooling, Redis mandatory caching, metrics & health endpoints, retry/backoff strategy, resource governance (pids_limit, concurrency caps)
-- 005-live-match-glance: Added TypeScript 3.2.x, Angular 7.2 CLI, HTML5, SCSS + Angular core & router, RxJS 6.x, Angular Material 7 (layout primitives), internal design tokens
 
 
 <!-- MANUAL ADDITIONS START -->
