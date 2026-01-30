@@ -1,5 +1,6 @@
 package com.devglan.controller.seo;
 
+import com.devglan.scheduler.LiveMatchIndexingScheduler;
 import com.devglan.scheduler.SitemapScheduler;
 import com.devglan.service.seo.GoogleSearchConsoleService;
 import org.slf4j.Logger;
@@ -15,6 +16,7 @@ import java.util.Map;
  * Controller for Google Search Console operations including:
  * - Manual sitemap submission trigger
  * - URL indexing requests via Indexing API
+ * - Live match indexing status and trigger
  * - Status information
  * 
  * Feature 008 - Match Page Title SEO Optimization
@@ -27,10 +29,15 @@ public class IndexingController {
     
     private final GoogleSearchConsoleService gscService;
     private final SitemapScheduler sitemapScheduler;
+    private final LiveMatchIndexingScheduler liveMatchIndexingScheduler;
     
-    public IndexingController(GoogleSearchConsoleService gscService, SitemapScheduler sitemapScheduler) {
+    public IndexingController(
+            GoogleSearchConsoleService gscService, 
+            SitemapScheduler sitemapScheduler,
+            LiveMatchIndexingScheduler liveMatchIndexingScheduler) {
         this.gscService = gscService;
         this.sitemapScheduler = sitemapScheduler;
+        this.liveMatchIndexingScheduler = liveMatchIndexingScheduler;
     }
     
     /**
@@ -43,6 +50,8 @@ public class IndexingController {
         status.put("indexingInitialized", gscService.isIndexingInitialized());
         status.put("siteUrl", gscService.getSiteUrl());
         status.put("schedulerStatus", sitemapScheduler.getStatus());
+        status.put("liveMatchIndexerStatus", liveMatchIndexingScheduler.getStatus());
+        status.put("indexedMatchCount", liveMatchIndexingScheduler.getIndexedCount());
         
         return ResponseEntity.ok(status);
     }
@@ -166,6 +175,43 @@ public class IndexingController {
         result.put("success", success);
         result.put("url", url);
         result.put("message", success ? "URL removal notification sent successfully" : "URL removal notification failed");
+        
+        return ResponseEntity.ok(result);
+    }
+    
+    /**
+     * Manually trigger live match indexing (runs every 15 min automatically)
+     */
+    @PostMapping("/live-matches/trigger")
+    public ResponseEntity<Map<String, Object>> triggerLiveMatchIndexing() {
+        logger.info("[IndexingController] Manual live match indexing triggered");
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        if (!gscService.isIndexingInitialized()) {
+            result.put("success", false);
+            result.put("message", "Indexing API is not initialized");
+            return ResponseEntity.ok(result);
+        }
+        
+        liveMatchIndexingScheduler.triggerManualIndexing();
+        
+        result.put("success", true);
+        result.put("message", "Live match indexing triggered");
+        result.put("indexedCount", liveMatchIndexingScheduler.getIndexedCount());
+        
+        return ResponseEntity.ok(result);
+    }
+    
+    /**
+     * Get live match indexing status
+     */
+    @GetMapping("/live-matches/status")
+    public ResponseEntity<Map<String, Object>> getLiveMatchIndexingStatus() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", liveMatchIndexingScheduler.getStatus());
+        result.put("indexedCount", liveMatchIndexingScheduler.getIndexedCount());
+        result.put("schedule", "Every 15 minutes");
         
         return ResponseEntity.ok(result);
     }

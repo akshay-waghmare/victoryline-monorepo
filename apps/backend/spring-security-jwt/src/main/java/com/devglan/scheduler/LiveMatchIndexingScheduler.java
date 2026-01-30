@@ -1,0 +1,242 @@
+package com.devglan.scheduler;
+
+import com.devglan.service.seo.GoogleSearchConsoleService;
+import com.devglan.service.seo.LiveMatchesService;
+import com.devglan.service.seo.LiveMatchesService.LiveMatchEntry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * Scheduled job for automatic URL indexing of live matches.
+ * Runs every 15 minutes to ensure new live matches get indexed quickly.
+ * 
+ * Feature 008 - Match Page Title SEO Optimization
+ * 
+ * Quota Management:
+ * - Google Indexing API has ~200 requests/day quota
+ * - Tracks indexed URLs in memory to avoid duplicate requests
+ * - Only indexes matches not previously indexed in current session
+ */
+@Component
+public class LiveMatchIndexingScheduler {
+    
+    private static final Logger logger = LoggerFactory.getLogger(LiveMatchIndexingScheduler.class);
+    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    
+    private final GoogleSearchConsoleService googleSearchConsoleService;
+    private final LiveMatchesService liveMatchesService;
+    
+    // Track indexed slugs to avoid duplicate API calls (quota protection)
+    // Using ConcurrentHashMap as Set for thread safety
+    private final Set<String> indexedSlugs = ConcurrentHashMap.newKeySet();
+    
+    // Track when we last cleared the indexed set (clear daily to allow re-indexing)
+    private LocalDateTime lastClearTime = LocalDateTime.now();
+    
+    @Value("${gsc.enabled:false}")
+    private boolean gscEnabled;
+    
+    @Value("${gsc.live-match-indexing.enabled:true}")
+    private boolean liveMatchIndexingEnabled;
+    
+    @Value("${gsc.live-match-indexing.max-per-run:10}")
+    private int maxIndexingPerRun;
+    
+    public LiveMatchIndexingScheduler(
+            GoogleSearchConsoleService googleSearchConsoleService,
+            LiveMatchesService liveMatchesService) {
+        this.googleSearchConsoleService = googleSearchConsoleService;
+        this.liveMatchesService = liveMatchesService;
+    }
+    
+    /**
+     * Index new live matches every 15 minutes.
+     * 
+     * Cron alternative: @Scheduled(cron = "0 0/15 * * * *")
+     * Using fixedRate for simplicity and immediate start after deployment.
+     */
+    @Scheduled(fixedRate = 900000) // 15 minutes = 900,000 ms
+    public void indexNewLiveMatches() {
+        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        
+        if (!gscEnabled) {
+            logger.debug("[LiveMatchIndexer] GSC disabled, skipping live match indexing");
+            return;
+        }
+        
+        if (!liveMatchIndexingEnabled) {
+            logger.debug("[LiveMatchIndexer] Live match indexing disabled");
+            return;
+        }
+        
+        if (!googleSearchConsoleService.isIndexingInitialized()) {
+            logger.warn("[LiveMatchIndexer] Indexing API not initialized, skipping");
+            return;
+        }
+        
+        // Clear indexed set daily to allow re-indexing of still-live matches
+        clearIndexedSetIfNeeded();
+        
+        logger.info("[LiveMatchIndexer] Starting live match indexing at {}", timestamp);
+        
+        try {
+            List<LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
+            
+            if (liveMatches == null || liveMatches.isEmpty()) {
+                logger.info("[LiveMatchIndexer] No live matches found");
+                return;
+            }
+            
+            int indexed = 0;
+            int skipped = 0;
+            int failed = 0;
+            
+            for (LiveMatchEntry match : liveMatches) {
+                // Respect max per run to stay within quota
+                if (indexed >= maxIndexingPerRun) {
+                    logger.info("[LiveMatchIndexer] Reached max indexing limit ({}) for this run", maxIndexingPerRun);
+                    break;
+                }
+                
+                String slug = extractSlugFromUrl(match.getUrl());
+                
+                if (slug == null || slug.isEmpty()) {
+                    logger.warn("[LiveMatchIndexer] Could not extract slug from URL: {}", match.getUrl());
+                    continue;
+                }
+                
+                // Skip if already indexed in this session
+                if (indexedSlugs.contains(slug)) {
+                    skipped++;
+                    continue;
+                }
+                
+                // Request indexing
+                boolean success = googleSearchConsoleService.requestIndexingForMatch(slug);
+                
+                if (success) {
+                    indexedSlugs.add(slug);
+                    indexed++;
+                    logger.info("[LiveMatchIndexer] Indexed match: {}", slug);
+                } else {
+                    failed++;
+                    logger.warn("[LiveMatchIndexer] Failed to index match: {}", slug);
+                }
+                
+                // Small delay between requests to avoid rate limiting
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+            
+            logger.info("[LiveMatchIndexer] Completed: {} indexed, {} skipped (already indexed), {} failed", 
+                indexed, skipped, failed);
+            
+        } catch (Exception e) {
+            logger.error("[LiveMatchIndexer] Error during live match indexing: {}", e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Extract match slug from the full URL.
+     * 
+     * Input formats:
+     * - https://crex.com/scoreboard/X1M/1YQ/1st-TEST/Z/W/ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025/live
+     * - /cric-live/ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025
+     * 
+     * Output: ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025
+     */
+    public String extractSlugFromUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // Remove trailing /live if present
+            String cleanUrl = url.replaceAll("/live$", "");
+            
+            // Get the last path segment
+            String[] parts = cleanUrl.split("/");
+            if (parts.length > 0) {
+                String lastPart = parts[parts.length - 1];
+                
+                // Validate it looks like a slug (contains hyphens, alphanumeric)
+                if (lastPart.contains("-") && lastPart.matches("^[a-zA-Z0-9-]+$")) {
+                    return lastPart;
+                }
+            }
+            
+            return null;
+        } catch (Exception e) {
+            logger.warn("[LiveMatchIndexer] Error extracting slug from URL {}: {}", url, e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Clear the indexed set once per day to allow re-indexing.
+     * This helps with matches that are still live for multiple days.
+     */
+    private void clearIndexedSetIfNeeded() {
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Clear if more than 24 hours since last clear
+        if (now.isAfter(lastClearTime.plusHours(24))) {
+            int previousSize = indexedSlugs.size();
+            indexedSlugs.clear();
+            lastClearTime = now;
+            logger.info("[LiveMatchIndexer] Cleared indexed slugs cache ({} entries)", previousSize);
+        }
+    }
+    
+    /**
+     * Manual trigger for testing
+     */
+    public void triggerManualIndexing() {
+        logger.info("[LiveMatchIndexer] Manual indexing triggered");
+        indexNewLiveMatches();
+    }
+    
+    /**
+     * Get current status
+     */
+    public String getStatus() {
+        StringBuilder status = new StringBuilder();
+        status.append("LiveMatchIndexingScheduler Status:\n");
+        status.append("  GSC Enabled: ").append(gscEnabled).append("\n");
+        status.append("  Live Match Indexing Enabled: ").append(liveMatchIndexingEnabled).append("\n");
+        status.append("  Indexing API Initialized: ").append(googleSearchConsoleService.isIndexingInitialized()).append("\n");
+        status.append("  Max Per Run: ").append(maxIndexingPerRun).append("\n");
+        status.append("  Already Indexed (this session): ").append(indexedSlugs.size()).append("\n");
+        status.append("  Last Cache Clear: ").append(lastClearTime.format(TIMESTAMP_FORMAT)).append("\n");
+        status.append("  Schedule: Every 15 minutes\n");
+        return status.toString();
+    }
+    
+    /**
+     * Get count of indexed slugs
+     */
+    public int getIndexedCount() {
+        return indexedSlugs.size();
+    }
+    
+    /**
+     * Check if a slug has been indexed
+     */
+    public boolean isIndexed(String slug) {
+        return indexedSlugs.contains(slug);
+    }
+}
