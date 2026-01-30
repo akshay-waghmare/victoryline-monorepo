@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-01-30
+
+### Fixed
+- **Scraper Timeouts**: Increased `BACKEND_TIMEOUT` from 2s to 30s to prevent timeouts on slow backend responses.
+- **Live Match Discovery**: 
+  - Added `isFinishedText()` filter to exclude completed matches ("won by", "match tied", "no result", "match abandoned").
+  - Added `isLive()` helper to check for `div.live` class presence.
+  - Combined selector with 20s timeout: `li.live-card, div.live-card, a[href*='/scoreboard/']`.
+  - 3-strategy extraction for robust match discovery.
+
+### Changed
+- **Docker Compose**: Added volume mounts for `cricket_data_service.py` and `discovery.py` for hot-reload during debugging.
+- **Docker Compose**: Removed `pids_limit: 512` constraint (was causing issues).
+
+### Deployed Images
+| Service | Image Tag | Digest |
+|---------|-----------|--------|
+| **Scraper** | `macubex/victoryline-scraper:v1.2.1` | `sha256:98eb0259...` |
+| **Backend** | `macubex/victoryline-backend:v1.2.1` | `sha256:0ced94d3...` |
+| **Frontend** | `macubex/victoryline-frontend:v1.2.1` | `sha256:b85cf12f...` |
+| **Prerender** | `macubex/victoryline-prerender:v1.2.1` | `sha256:82bbd784...` |
+| **MySQL** | `mysql:8.0` | - |
+| **Redis** | `redis:7-alpine` | - |
+
+### Deployment Commands
+```bash
+# Pull all images on server
+docker pull macubex/victoryline-scraper:v1.2.1
+docker pull macubex/victoryline-backend:v1.2.1
+docker pull macubex/victoryline-frontend:v1.2.1
+docker pull macubex/victoryline-prerender:v1.2.1
+
+# Update docker-compose.prod.yml with new tags and restart
+docker-compose -f docker-compose.prod.yml pull
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+---
+
 ## [1.1.4] - 2025-11-26
 
 ### Fixed
