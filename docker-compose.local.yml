@@ -53,9 +53,28 @@ services:
     ports:
       - "5000:5000"
     environment:
+      # Backend API Configuration
+      BACKEND_URL: http://backend:8099
+      TOKEN_URL: http://backend:8099/token/generate-token
+      SERVICE_URL: http://backend:8099/cricket-data
+      ADD_LIVE_MATCHES_URL: http://backend:8099/cricket-data/add-live-matches
+      API_ENDPOINT: http://backend:8099/cricket-data/match-info/save
+      API_ENDPOINT_SC4: http://backend:8099/cricket-data/sC4-stats/save
+      # Redis Configuration  
+      REDIS_URL: redis://redis:6379/0
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      # Scraper Configuration
+      FLASK_ENV: development
+      FLASK_DEBUG: "0"
+      ENABLE_PROMETHEUS_METRICS: "true"
+      POLLING_INTERVAL_SECONDS: "2.5"
+      STALENESS_THRESHOLD_SECONDS: "60"
+      ENABLE_PERSISTENT_PAGES: "true"
+    volumes:
+      - scraper_data:/app/storage
     depends_on:
+      - backend
       - redis
     networks:
       - victoryline-network
@@ -140,6 +159,8 @@ volumes:
   redis_data:
     driver: local
   prerender_html:
+    driver: local
+  scraper_data:
     driver: local
   caddy_data:
     driver: local
