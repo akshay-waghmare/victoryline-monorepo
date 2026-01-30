@@ -111,6 +111,8 @@ services:
       CONTAINER_RESTART_INTERVAL_MINUTES: "${CONTAINER_RESTART_INTERVAL_MINUTES:-10}"
     volumes:
       - scraper_data:/app/storage
+      - ./apps/scraper/crex_scraper_python/src/cricket_data_service.py:/app/crex_scraper_python/src/cricket_data_service.py
+      - ./apps/scraper/crex_scraper_python/src/discovery.py:/app/crex_scraper_python/src/discovery.py
     depends_on:
       - backend
       - redis
@@ -119,7 +121,6 @@ services:
     deploy:
       resources:
         limits:
-          pids: 512
           cpus: "2.0"
           memory: 2560M
         reservations:

@@ -84,40 +84,79 @@ class LiveMatchDiscoverer:
                     
                     # Wait for content to load - try multiple selectors
                     try:
-                        # Try the list item selector from the provided HTML
-                        await page.wait_for_selector("li.live-card", timeout=15000)
-                        print("[DISCOVERY] Found li.live-card elements.", flush=True)
+                        # Try a broad selector for any match link or card
+                        await page.wait_for_selector("li.live-card, div.live-card, a[href*='/scoreboard/']", timeout=20000)
+                        print("[DISCOVERY] Found match elements.", flush=True)
                     except Exception:
-                        try:
-                            # Fallback to div.live-card (legacy)
-                            await page.wait_for_selector("div.live-card", timeout=5000)
-                            print("[DISCOVERY] Found div.live-card elements.", flush=True)
-                        except Exception:
-                            logger.warning("No live cards found on live-matches page (timeout).")
-                            print("[DISCOVERY] No live cards found (timeout).", flush=True)
-                            await page.close()
-                            return
+                        logger.warning("No live cards found on live-matches page (timeout).")
+                        print("[DISCOVERY] No live cards found (timeout).", flush=True)
+                        await page.close()
+                        return
 
                     # Extract URLs using robust logic based on provided HTML
                     urls = await page.evaluate("""() => {
                         const urls = [];
                         
-                        // Strategy 1: Look for li.live-card > a (New structure)
-                        const listItems = document.querySelectorAll('li.live-card a');
-                        listItems.forEach(a => {
-                            const href = a.getAttribute('href');
-                            if (href && href.includes('/scoreboard/')) {
-                                urls.push(href);
-                            }
-                        });
+                        // Helper to check if text indicates a finished match
+                        const isFinishedText = (text) => {
+                            const t = (text || "").toLowerCase();
+                            return t.includes("won by") || 
+                                   t.includes("match tied") || 
+                                   t.includes("no result") || 
+                                   t.includes("match abandoned");
+                        };
+
+                        // Helper to check if card is actually live
+                        const isLive = (element) => {
+                            // Check for the "live" class div inside the card
+                            return element.querySelector('div.live') !== null;
+                        };
+
+                        // Strategy 1: Look for li.live-card (New structure)
+                        const listItems = document.querySelectorAll('li.live-card');
+                        if (listItems.length > 0) {
+                            listItems.forEach(li => {
+                                if (isLive(li) && !isFinishedText(li.innerText)) {
+                                    const a = li.querySelector('a');
+                                    if (a) {
+                                        const href = a.getAttribute('href');
+                                        if (href && href.includes('/scoreboard/')) {
+                                            urls.push(href);
+                                        }
+                                    }
+                                }
+                            });
+                        }
                         
-                        // Strategy 2: Look for div.live-card > a (Legacy structure)
+                        // Strategy 2: Look for div.live-card (Legacy structure)
                         if (urls.length === 0) {
-                            const divItems = document.querySelectorAll('div.live-card a');
-                            divItems.forEach(a => {
-                                const href = a.getAttribute('href');
-                                if (href && href.includes('/scoreboard/')) {
-                                    urls.push(href);
+                            const divItems = document.querySelectorAll('div.live-card');
+                            if (divItems.length > 0) {
+                                divItems.forEach(div => {
+                                    if (isLive(div) && !isFinishedText(div.innerText)) {
+                                        const a = div.querySelector('a');
+                                        if (a) {
+                                            const href = a.getAttribute('href');
+                                            if (href && href.includes('/scoreboard/')) {
+                                                urls.push(href);
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        }
+
+                        // Strategy 3: Fallback - Look for any scoreboard links
+                        if (urls.length === 0) {
+                            const links = document.querySelectorAll('a[href*="/scoreboard/"]');
+                            links.forEach(a => {
+                                // Check the link text itself or its parent text
+                                const textToCheck = a.innerText + " " + (a.parentElement ? a.parentElement.innerText : "");
+                                if (!isFinishedText(textToCheck)) {
+                                    // For fallback, we might want to be stricter or check for live indicator nearby
+                                    // But if strategies 1 & 2 failed, we might just take what we can get, 
+                                    // or skip fallback if we want to be strict about "live" class.
+                                    // Let's skip fallback if we want to enforce "live" class presence.
                                 }
                             });
                         }

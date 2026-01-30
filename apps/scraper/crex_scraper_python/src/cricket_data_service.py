@@ -13,6 +13,7 @@ _api_breaker = CircuitBreaker.from_settings("backend_api")
 class CricketDataService:
     BASE_URL = os.getenv('BACKEND_URL', 'http://127.0.0.1:8099')
     TOKEN_URL = os.getenv('TOKEN_URL', 'http://127.0.0.1:8099/token/generate-token')
+    BACKEND_TIMEOUT = 30  # Increased timeout for backend operations
 
     @staticmethod
     def get_bearer_token():
@@ -25,7 +26,7 @@ class CricketDataService:
         }
         
         def _fetch_token():
-            response = requests.post(CricketDataService.TOKEN_URL, json=credentials, timeout=2)
+            response = requests.post(CricketDataService.TOKEN_URL, json=credentials, timeout=CricketDataService.BACKEND_TIMEOUT)
             response.raise_for_status()
             return response.json().get("token")
         
@@ -53,7 +54,7 @@ class CricketDataService:
             headers = {"Content-Type": "application/json"}
             if token:
                 headers["Authorization"] = f"Bearer {token}"
-            response = requests.post(add_matches_url, json=urls, headers=headers, timeout=2)
+            response = requests.post(add_matches_url, json=urls, headers=headers, timeout=CricketDataService.BACKEND_TIMEOUT)
             response.raise_for_status()
             return response
         
@@ -225,7 +226,7 @@ class CricketDataService:
 
                 logger.info("matches.push.payload", metadata={"payload": payload})
 
-                response = requests.post(service_url, json=payload, headers=headers)
+                response = requests.post(service_url, json=payload, headers=headers, timeout=CricketDataService.BACKEND_TIMEOUT)
                 response.raise_for_status()
                 return response
             except Exception as e:
@@ -261,7 +262,7 @@ class CricketDataService:
             
             logger.info("matches.push_info.payload", metadata={"payload": payload})
 
-            response = requests.post(service_url, json=payload, headers=headers)
+            response = requests.post(service_url, json=payload, headers=headers, timeout=CricketDataService.BACKEND_TIMEOUT)
             response.raise_for_status()
             return response
 
@@ -306,7 +307,7 @@ class CricketDataService:
             # Log payload size rather than content as it can be large
             logger.info("matches.push_sc4.payload_size", metadata={"size_bytes": len(str(payload))})
 
-            response = requests.post(service_url, json=payload, headers=headers)
+            response = requests.post(service_url, json=payload, headers=headers, timeout=CricketDataService.BACKEND_TIMEOUT)
             response.raise_for_status()
             return response
 
@@ -331,7 +332,7 @@ class CricketDataService:
             headers = {}
             if token:
                 headers["Authorization"] = f"Bearer {token}"
-            response = requests.get(url, headers=headers, timeout=5)
+            response = requests.get(url, headers=headers, timeout=CricketDataService.BACKEND_TIMEOUT)
             response.raise_for_status()
             return response.json()
 
