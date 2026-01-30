@@ -107,3 +107,7 @@ apps/backend/spring-security-jwt/testdb.mv.db
 *.exe
 *.o
 *.so
+
+# Google service account credentials (DO NOT COMMIT)
+gsc-service-account.json
+**/gsc-service-account.json

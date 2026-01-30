@@ -75,10 +75,20 @@ services:
       GSC_SITE_URL: "${GSC_SITE_URL:-https://www.crickzen.com/}"
       GSC_SITEMAP_URL: "${GSC_SITEMAP_URL:-https://www.crickzen.com/sitemap.xml}"
       GSC_SERVICE_ACCOUNT_PATH: "${GSC_SERVICE_ACCOUNT_PATH:-/app/config/gsc-service-account.json}"
+      # Google credentials - also supports GOOGLE_APPLICATION_CREDENTIALS env var
+      GOOGLE_APPLICATION_CREDENTIALS: "${GOOGLE_APPLICATION_CREDENTIALS:-/app/config/gsc-service-account.json}"
+      # Live Match Indexing Scheduler settings
+      INDEXING_SCHEDULER_ENABLED: "${INDEXING_SCHEDULER_ENABLED:-true}"
+      INDEXING_SCHEDULER_INTERVAL_MS: "${INDEXING_SCHEDULER_INTERVAL_MS:-900000}"
+      INDEXING_MAX_PER_RUN: "${INDEXING_MAX_PER_RUN:-10}"
     volumes:
       - backend_data:/app/data
-      # Mount GSC service account file (if using file-based auth)
+      # Mount GSC service account file - create empty file if not using GSC
+      # To disable: touch gsc-service-account.json && set GSC_ENABLED=false
       - ${GSC_SERVICE_ACCOUNT_FILE:-./gsc-service-account.json}:/app/config/gsc-service-account.json:ro
+    depends_on:
+      redis:
+        condition: service_healthy
     networks:
       - victoryline-network
     healthcheck:
