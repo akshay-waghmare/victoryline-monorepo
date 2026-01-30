@@ -38,7 +38,7 @@ services:
     networks:
       - victoryline-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8099/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8099/api/v1/seo/indexing/status || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
