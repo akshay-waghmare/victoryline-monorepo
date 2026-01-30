@@ -3,6 +3,7 @@ package com.devglan.scheduler;
 import com.devglan.service.seo.GoogleSearchConsoleService;
 import com.devglan.service.seo.LiveMatchesService;
 import com.devglan.service.seo.LiveMatchesService.LiveMatchEntry;
+import com.devglan.service.seo.SeoCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,10 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Scheduled job for automatic URL indexing of live matches.
@@ -24,8 +22,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * 
  * Quota Management:
  * - Google Indexing API has ~200 requests/day quota
- * - Tracks indexed URLs in memory to avoid duplicate requests
- * - Only indexes matches not previously indexed in current session
+ * - Tracks indexed URLs in Redis (via SeoCache) to persist across restarts
+ * - Daily auto-expiration via Redis TTL (25 hours)
+ * - Falls back to in-memory if Redis unavailable
  */
 @Component
 public class LiveMatchIndexingScheduler {
@@ -35,13 +34,7 @@ public class LiveMatchIndexingScheduler {
     
     private final GoogleSearchConsoleService googleSearchConsoleService;
     private final LiveMatchesService liveMatchesService;
-    
-    // Track indexed slugs to avoid duplicate API calls (quota protection)
-    // Using ConcurrentHashMap as Set for thread safety
-    private final Set<String> indexedSlugs = ConcurrentHashMap.newKeySet();
-    
-    // Track when we last cleared the indexed set (clear daily to allow re-indexing)
-    private LocalDateTime lastClearTime = LocalDateTime.now();
+    private final SeoCache seoCache;
     
     @Value("${gsc.enabled:false}")
     private boolean gscEnabled;
@@ -54,9 +47,11 @@ public class LiveMatchIndexingScheduler {
     
     public LiveMatchIndexingScheduler(
             GoogleSearchConsoleService googleSearchConsoleService,
-            LiveMatchesService liveMatchesService) {
+            LiveMatchesService liveMatchesService,
+            SeoCache seoCache) {
         this.googleSearchConsoleService = googleSearchConsoleService;
         this.liveMatchesService = liveMatchesService;
+        this.seoCache = seoCache;
     }
     
     /**
@@ -83,9 +78,6 @@ public class LiveMatchIndexingScheduler {
             logger.warn("[LiveMatchIndexer] Indexing API not initialized, skipping");
             return;
         }
-        
-        // Clear indexed set daily to allow re-indexing of still-live matches
-        clearIndexedSetIfNeeded();
         
         logger.info("[LiveMatchIndexer] Starting live match indexing at {}", timestamp);
         
@@ -115,8 +107,8 @@ public class LiveMatchIndexingScheduler {
                     continue;
                 }
                 
-                // Skip if already indexed in this session
-                if (indexedSlugs.contains(slug)) {
+                // Skip if already indexed today (persisted in Redis)
+                if (seoCache.isSlugIndexed(slug)) {
                     skipped++;
                     continue;
                 }
@@ -125,7 +117,7 @@ public class LiveMatchIndexingScheduler {
                 boolean success = googleSearchConsoleService.requestIndexingForMatch(slug);
                 
                 if (success) {
-                    indexedSlugs.add(slug);
+                    seoCache.markSlugIndexed(slug);
                     indexed++;
                     logger.info("[LiveMatchIndexer] Indexed match: {}", slug);
                 } else {
@@ -187,22 +179,6 @@ public class LiveMatchIndexingScheduler {
     }
     
     /**
-     * Clear the indexed set once per day to allow re-indexing.
-     * This helps with matches that are still live for multiple days.
-     */
-    private void clearIndexedSetIfNeeded() {
-        LocalDateTime now = LocalDateTime.now();
-        
-        // Clear if more than 24 hours since last clear
-        if (now.isAfter(lastClearTime.plusHours(24))) {
-            int previousSize = indexedSlugs.size();
-            indexedSlugs.clear();
-            lastClearTime = now;
-            logger.info("[LiveMatchIndexer] Cleared indexed slugs cache ({} entries)", previousSize);
-        }
-    }
-    
-    /**
      * Manual trigger for testing
      */
     public void triggerManualIndexing() {
@@ -220,23 +196,23 @@ public class LiveMatchIndexingScheduler {
         status.append("  Live Match Indexing Enabled: ").append(liveMatchIndexingEnabled).append("\n");
         status.append("  Indexing API Initialized: ").append(googleSearchConsoleService.isIndexingInitialized()).append("\n");
         status.append("  Max Per Run: ").append(maxIndexingPerRun).append("\n");
-        status.append("  Already Indexed (this session): ").append(indexedSlugs.size()).append("\n");
-        status.append("  Last Cache Clear: ").append(lastClearTime.format(TIMESTAMP_FORMAT)).append("\n");
+        status.append("  Already Indexed (today): ").append(seoCache.getIndexedSlugCount()).append("\n");
+        status.append("  Persistence: Redis (25h TTL) with in-memory fallback\n");
         status.append("  Schedule: Every 15 minutes\n");
         return status.toString();
     }
     
     /**
-     * Get count of indexed slugs
+     * Get count of indexed slugs for today
      */
-    public int getIndexedCount() {
-        return indexedSlugs.size();
+    public long getIndexedCount() {
+        return seoCache.getIndexedSlugCount();
     }
     
     /**
-     * Check if a slug has been indexed
+     * Check if a slug has been indexed today
      */
     public boolean isIndexed(String slug) {
-        return indexedSlugs.contains(slug);
+        return seoCache.isSlugIndexed(slug);
     }
 }
