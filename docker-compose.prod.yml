@@ -67,6 +67,9 @@ services:
       SPRING_H2_CONSOLE_PATH: "${SPRING_H2_CONSOLE_PATH:-/h2-console}"
       JWT_SECRET: "${JWT_SECRET:-change_me}"
       JWT_EXPIRATION: "${JWT_EXPIRATION:-86400}"
+      # Redis configuration
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
       # Google Search Console / Indexing API settings
       GSC_ENABLED: "${GSC_ENABLED:-true}"
       GSC_SITE_URL: "${GSC_SITE_URL:-https://www.crickzen.com/}"
@@ -81,7 +84,7 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - "curl -fsS http://localhost:8099/actuator/health || [ $$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8099/actuator/health) -eq 401 ]"
+        - "curl -fsS http://localhost:8099/api/v1/seo/indexing/status || exit 1"
       interval: 30s
       timeout: 10s
       retries: 3
@@ -116,6 +119,7 @@ services:
       PROMETHEUS_PORT: "${PROMETHEUS_PORT:-9090}"
       STALENESS_THRESHOLD_SECONDS: "${STALENESS_THRESHOLD_SECONDS:-60}"
       CONTAINER_RESTART_INTERVAL_MINUTES: "${CONTAINER_RESTART_INTERVAL_MINUTES:-10}"
+      ENABLE_PERSISTENT_PAGES: "${ENABLE_PERSISTENT_PAGES:-true}"
     volumes:
       - scraper_data:/app/storage
     depends_on:
@@ -147,8 +151,13 @@ services:
     restart: unless-stopped
     ports:
       - "${PRERENDER_PORT:-9100}:9100"
+    environment:
+      BACKEND_URL: "${BACKEND_URL:-http://backend:8099}"
+      PRERENDER_OUT_DIR: /shared-html/prerender
     volumes:
-      - prerender_html:/shared-html/prerender
+      - prerender_html:/shared-html
+    depends_on:
+      - backend
     networks:
       - victoryline-network
     healthcheck:
@@ -168,11 +177,13 @@ services:
     expose:
       - "80"
     volumes:
-      - prerender_html:/usr/share/nginx/html/prerender
+      - prerender_html:/shared-html
     environment:
       API_URL: "${API_URL:-http://backend:8099}"
+    entrypoint: ["/bin/sh", "-c", "rm -rf /usr/share/nginx/html/prerender && ln -sf /shared-html/prerender /usr/share/nginx/html/prerender && nginx -g 'daemon off;'"]
     depends_on:
       - backend
+      - prerender
       - scraper
     networks:
       - victoryline-network
