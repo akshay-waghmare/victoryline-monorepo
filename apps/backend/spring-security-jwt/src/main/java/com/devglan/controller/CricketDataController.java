@@ -383,6 +383,22 @@ public class CricketDataController {
 		}
 	}
 
+	/**
+	 * Get ALL matches (live, scheduled, finished) for sitemap generation.
+	 * Google Search Console requires all indexable URLs in sitemap.
+	 * Map to "/cricket-data/matches"
+	 */
+	@GetMapping("/matches")
+	public ResponseEntity<List<LiveMatch>> getAllMatches() {
+		try {
+			List<LiveMatch> allMatches = liveMatchService.findAllMatches();
+			return ResponseEntity.ok(allMatches);
+		} catch (Exception e) {
+			log.error("Error fetching all matches for sitemap", e);
+			return ResponseEntity.status(500).body(null);
+		}
+	}
+
 	@GetMapping("/bets")
 	public ResponseEntity<BetResponse> getBetsForMatch(@RequestParam String url) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
