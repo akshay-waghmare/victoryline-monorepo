@@ -103,24 +103,24 @@ p, span, li {
 }
 
 :root {
-  /* Color Palette */
-  --primary-color: #1e3a8a;
-  --secondary-color: #ffffff;
-  --accent-color: #f59e0b;
-  --muted-color: #6b7280;
-  --background-color: #f3f4f6;
+  /* Legacy aliases → map to design system tokens from styles.scss */
+  --primary-color: var(--color-primary, #1976d2);
+  --secondary-color: var(--color-background-elevated, #ffffff);
+  --accent-color: var(--color-warning, #f59e0b);
+  --muted-color: var(--color-text-secondary, #757575);
+  --background-color: var(--color-background, #f5f5f5);
 
   /* Typography */
-  --font-family-primary: 'Poppins', sans-serif;
+  --font-family-primary: var(--font-family, 'Roboto', sans-serif);
   --font-family-secondary: 'Roboto', sans-serif;
   --font-size-small: 0.875rem;
   --font-size-medium: 1rem;
   --font-size-large: 1.25rem;
 
-  /* Additional Colors for Hover and Active States */
-  --primary-dark: #163e7a;
-  --primary-darker: #0f2e63;
-  --text-color: #333333;
+  /* Additional Colors — aliased to tokens */
+  --primary-dark: var(--color-primary-hover, #1565c0);
+  --primary-darker: var(--color-primary-active, #0d47a1);
+  --text-color: var(--color-text, #333333);
 
   /* Responsive Typography Scaling */
   --font-scale-min: 15px;
@@ -128,13 +128,13 @@ p, span, li {
 }
 
 body {
-  background-color: var(--background-color);
-  font-family: var(--font-family-primary);
-  color: var(--muted-color);
+  background-color: var(--color-background, var(--background-color));
+  font-family: var(--font-family, var(--font-family-primary));
+  color: var(--color-text, var(--muted-color));
   margin: 0;
   padding: 0;
   font-size: clamp(15px, 1.8vw, 18px);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .wrapper{
@@ -778,7 +778,9 @@ body, html {
   }
 }
 
-/* Mobile responsive fixes - Complete edge-to-edge layout */
+/* Mobile responsive fixes — edge-to-edge layout
+   NOTE: !important is required on most rules here to override Bootstrap 4's
+   own !important utility classes and grid system. Do not remove without testing. */
 @media (max-width: 768px) {
   /* Global resets for edge-to-edge layout */
   html, body {
@@ -787,12 +789,11 @@ body, html {
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    position: relative !important;
   }
   
-  /* Reset all elements to prevent overflow */
-  * {
-    box-sizing: border-box !important;
+  /* box-sizing is set globally — no need for !important on wildcard */
+  *, *::before, *::after {
+    box-sizing: border-box;
   }
   
   /* App root and main containers - completely full width */

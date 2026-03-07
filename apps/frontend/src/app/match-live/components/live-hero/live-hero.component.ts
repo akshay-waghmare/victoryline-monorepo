@@ -14,6 +14,9 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
   @Input() matchId!: string;
   @Input() config?: LiveHeroConfig;
   @Input() matchInfo?: any;
+  @Input() last6Balls?: any[] = [];
+  @Input() batsmanDataList?: any[] = [];
+  @Input() bowlerDataList?: any[] = [];
 
   readonly state$: Observable<LiveHeroState> = this.heroState.state$;
   readonly view$: Observable<LiveHeroViewModel | null> = this.heroState.view$;

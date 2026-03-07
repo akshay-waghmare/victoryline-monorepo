@@ -23,5 +23,17 @@
     <div class="condensed__current-ball" *ngIf="view.score.currentBall">
       <span class="ball-value">{{ view.score.currentBall }}</span>
     </div>
+
+    <!-- Compact Batter + Bowler inline -->
+    <div class="condensed__players" *ngIf="view.batters.length">
+      <ng-container *ngFor="let b of view.batters">
+        <span class="condensed__player" [class.condensed__player--strike]="b.isOnStrike">
+          {{ b.name }} {{ b.runs }}{{ b.isOnStrike ? '*' : '' }}({{ b.balls }})
+        </span>
+      </ng-container>
+      <span class="condensed__player condensed__player--bowler" *ngIf="view.bowler">
+        {{ view.bowler.name }} {{ view.bowler.wickets }}-{{ view.bowler.runs }}
+      </span>
+    </div>
   </div>
 </div>

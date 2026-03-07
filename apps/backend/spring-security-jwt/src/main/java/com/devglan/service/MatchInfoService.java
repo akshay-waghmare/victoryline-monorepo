@@ -6,6 +6,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import com.devglan.dao.MatchInfoDetailEntity;
+import com.devglan.model.LiveMatch;
+import com.devglan.repository.LiveMatchRepository;
 import com.devglan.repository.MatchInfoDetailRepository;
 import com.devglan.service.seo.events.SeoContentChangeEvent;
 
@@ -13,11 +15,14 @@ import com.devglan.service.seo.events.SeoContentChangeEvent;
 public class MatchInfoService {
 
     private final MatchInfoDetailRepository matchInfoDetailRepository;
+    private final LiveMatchRepository liveMatchRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public MatchInfoService(MatchInfoDetailRepository matchInfoDetailRepository,
+            LiveMatchRepository liveMatchRepository,
             ApplicationEventPublisher eventPublisher) {
         this.matchInfoDetailRepository = matchInfoDetailRepository;
+        this.liveMatchRepository = liveMatchRepository;
         this.eventPublisher = eventPublisher;
     }
 
@@ -30,14 +35,47 @@ public class MatchInfoService {
     }
 
     public String getMatchInfo(String url) {
-        
-    	 Optional<MatchInfoDetailEntity> optionalMatchInfo = matchInfoDetailRepository.findFirstByUrlContaining(url);
-    	    if (optionalMatchInfo.isPresent()) {
-    	        MatchInfoDetailEntity matchInfo = optionalMatchInfo.get();
-    	        return matchInfo.getData();
-    	    } else {
-    	        return null;
-    	    }
+        String resolvedInfoUrl = resolveInfoUrl(url);
+
+        if (resolvedInfoUrl != null) {
+            Optional<MatchInfoDetailEntity> exactMatchInfo = matchInfoDetailRepository.findById(resolvedInfoUrl);
+            if (exactMatchInfo.isPresent()) {
+                return exactMatchInfo.get().getData();
+            }
+        }
+
+        Optional<MatchInfoDetailEntity> optionalMatchInfo = matchInfoDetailRepository
+                .findFirstByUrlContaining(resolvedInfoUrl != null ? resolvedInfoUrl : url);
+        if (optionalMatchInfo.isPresent()) {
+            return optionalMatchInfo.get().getData();
+        }
+
+        if (resolvedInfoUrl != null && url != null && !resolvedInfoUrl.equals(url)) {
+            Optional<MatchInfoDetailEntity> fallbackMatchInfo = matchInfoDetailRepository.findFirstByUrlContaining(url);
+            if (fallbackMatchInfo.isPresent()) {
+                return fallbackMatchInfo.get().getData();
+            }
+        }
+
+        return null;
+    }
+
+    private String resolveInfoUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return url;
+        }
+
+        String trimmedUrl = url.trim();
+        if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
+            return trimmedUrl.replace("/live", "/info").replace("/scorecard", "/info");
+        }
+
+        LiveMatch liveMatch = liveMatchRepository.findByUrlContaining(trimmedUrl);
+        if (liveMatch != null && liveMatch.getUrl() != null && !liveMatch.getUrl().trim().isEmpty()) {
+            return liveMatch.getUrl().replace("/live", "/info").replace("/scorecard", "/info");
+        }
+
+        return trimmedUrl;
     }
 
     public boolean existsByUrl(String url) {

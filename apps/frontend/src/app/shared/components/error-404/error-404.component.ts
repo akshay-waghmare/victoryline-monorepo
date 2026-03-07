@@ -74,7 +74,7 @@ import { Router } from '@angular/router';
   styles: [`
     .error-page {
       min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
       display: flex;
       align-items: center;
       justify-content: center;

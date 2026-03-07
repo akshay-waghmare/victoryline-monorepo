@@ -4,7 +4,7 @@
   --hero-pod-gap-sm: 12px;
   --hero-pod-text-primary: #1a202c;
   --hero-pod-text-secondary: #64748b;
-  --hero-pod-accent: #667eea;
+  --hero-pod-accent: var(--color-primary, #1976d2);
   --hero-pod-warning: #f59e0b;
   --hero-pod-error: #dc2626;
   display: flex;
@@ -76,8 +76,8 @@
 }
 
 :host(.hero-pod--accent) .hero-pod__badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: #667eea;
+  background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
+  border-color: var(--color-primary, #1976d2);
   color: #ffffff;
 }
 

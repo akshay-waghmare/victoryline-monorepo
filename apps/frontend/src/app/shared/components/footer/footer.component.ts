@@ -72,16 +72,16 @@ import { Component } from '@angular/core';
   `,
   styles: [`
     .footer {
-      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-      color: #fff;
+      background: var(--color-background-footer, linear-gradient(135deg, #1a1a2e 0%, #16213e 100%));
+      color: var(--color-text-inverse, #f0f0f0);
       margin-top: auto;
-      padding: 3rem 0 1rem;
+      padding: 2.5rem 0 1rem;
     }
 
     .footer__container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0 1rem;
+      padding: 0 1.5rem;
     }
 
     .footer__branding {
@@ -95,9 +95,10 @@ import { Component } from '@angular/core';
     }
 
     .footer__tagline {
-      color: #b0b0b0;
-      font-size: 0.9rem;
+      color: var(--color-text-muted, #9e9e9e);
+      font-size: 0.875rem;
       margin: 0;
+      letter-spacing: 0.02em;
     }
 
     .footer__links {
@@ -108,12 +109,14 @@ import { Component } from '@angular/core';
     }
 
     .footer__section-title {
-      color: #4fc3f7;
-      font-size: 1.1rem;
+      color: var(--color-info, #29b6f6);
+      font-size: 1rem;
       font-weight: 600;
-      margin-bottom: 1rem;
-      border-bottom: 2px solid #4fc3f7;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid var(--color-info, #29b6f6);
       padding-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
     .footer__list {
@@ -127,17 +130,19 @@ import { Component } from '@angular/core';
     }
 
     .footer__link {
-      color: #b0b0b0;
+      color: var(--color-text-muted, #9e9e9e);
       text-decoration: none;
-      transition: color 0.2s ease;
+      font-size: 0.875rem;
+      transition: color 0.2s ease, padding-left 0.2s ease;
     }
 
     .footer__link:hover {
-      color: #4fc3f7;
+      color: var(--color-info, #29b6f6);
+      padding-left: 4px;
     }
 
     .footer__bottom {
-      border-top: 1px solid #404040;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
       padding-top: 1rem;
       display: flex;
       justify-content: space-between;
@@ -145,8 +150,8 @@ import { Component } from '@angular/core';
     }
 
     .footer__copyright {
-      color: #808080;
-      font-size: 0.9rem;
+      color: var(--color-text-disabled, #616161);
+      font-size: 0.8rem;
     }
 
     .footer__social {
@@ -155,17 +160,22 @@ import { Component } from '@angular/core';
     }
 
     .footer__social-link {
-      color: #b0b0b0;
-      font-size: 1.2rem;
+      color: var(--color-text-muted, #9e9e9e);
+      font-size: 1.1rem;
       text-decoration: none;
-      transition: color 0.2s ease;
+      transition: color 0.2s ease, transform 0.2s ease;
     }
 
     .footer__social-link:hover {
-      color: #4fc3f7;
+      color: var(--color-info, #29b6f6);
+      transform: translateY(-2px);
     }
 
     @media (max-width: 768px) {
+      .footer {
+        padding: 2rem 0 1rem;
+      }
+
       .footer__links {
         grid-template-columns: 1fr;
         gap: 1.5rem;

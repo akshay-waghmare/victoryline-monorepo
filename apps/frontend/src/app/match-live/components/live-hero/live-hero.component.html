@@ -39,59 +39,81 @@
       </div>
     </header>
 
-    <div class="live-hero__grid">
-      <!-- Top row: Score and Current Ball side by side -->
-      <div class="live-hero__top-row">
-        <!-- LEFT: Score and Team Info -->
+            <div class="live-hero__grid">
+      <!-- COLUMN 1: Score & Chase Area -->
+      <div class="live-hero__score-area">
         <div class="live-hero__pod live-hero__pod--score">
-          <!-- Main score content -->
-          <div class="score-main">
-            <div class="scoreline__team-name">{{ view.score.teamName }}</div>
-            <div class="scoreline" aria-label="Current score">
-              <span class="scoreline__runs">{{ view.score.runs }}</span>
-              <span class="scoreline__separator">/</span>
-              <span class="scoreline__wickets">{{ view.score.wickets }}</span>
-            </div>
-            <div class="scoreline__meta">
-              <span>{{ view.score.overs }} ov</span>
-              <span>{{ view.score.runRateLabel }}</span>
-            </div>
-            
-            <!-- Recent balls - positioned below main score -->
-            <div class="recent-balls" *ngIf="view.batters.length && view.batters[0].recentBalls.length">
-              <span class="recent-balls__label">This over:</span>
-              <ul class="recent-balls__list" aria-label="Recent balls">
-                <li class="recent-balls__item" *ngFor="let ball of view.batters[0].recentBalls; trackBy: trackBall">
-                  {{ ball }}
-                </li>
-              </ul>
-            </div>
+          <div class="scoreline__team-name">{{ view.score.teamName }}</div>
+          <div class="scoreline" aria-label="Current score">
+            <span class="scoreline__runs">{{ view.score.runs }}</span>
+            <span class="scoreline__separator">/</span>
+            <span class="scoreline__wickets">{{ view.score.wickets }}</span>
           </div>
-
-          <!-- Striker info - positioned to the right on desktop -->
-          <div class="score-meta">
-            <div class="striker-info" *ngIf="view.currentStriker">
-              <span class="striker-label">
-                {{ view.currentStriker === view.lastValidStriker ? 'On Strike:' : 'Last Known:' }}
-              </span>
-              <span class="striker-name">{{ view.currentStriker.name }} ({{ view.currentStriker.runs }}*)</span>
-            </div>
+          <div class="scoreline__meta">
+            <span>{{ view.score.overs }} ov</span>
+            <span>{{ view.score.runRateLabel }}</span>
           </div>
         </div>
 
-        <!-- RIGHT: Current Ball (Large Circle) -->
-        <div class="current-ball" *ngIf="view.score.currentBall">
-          <span class="current-ball__value">{{ view.score.currentBall }}</span>
+        <div class="live-hero__pod live-hero__pod--context">
+          <div class="chase-summary" *ngIf="view.score.resultSummary">
+            {{ view.score.resultSummary }}
+          </div>
+          <div class="chase-summary" *ngIf="!view.score.resultSummary && view.chase.isChasing">
+            {{ view.score.teamName }} need {{ view.chase.runsRemaining }} runs in {{ view.chase.ballsRemaining }} balls
+          </div>
         </div>
       </div>
 
-      <!-- Bottom row: Chase Context (Full Width) -->
-      <div class="live-hero__pod live-hero__pod--context">
-        <div class="chase-summary" *ngIf="view.score.resultSummary">
-          {{ view.score.resultSummary }}
+      <!-- COLUMN 2: Recent Activity Area -->
+      <div class="live-hero__recent-area">
+        <div class="current-ball" *ngIf="view.score.currentBall">
+          <span class="current-ball__value">{{ view.score.currentBall }}</span>
         </div>
-        <div class="chase-summary" *ngIf="!view.score.resultSummary && view.chase.isChasing">
-          {{ view.score.teamName }} need {{ view.chase.runsRemaining }} runs in {{ view.chase.ballsRemaining }} balls
+        
+        <div class="recent-balls" *ngIf="last6Balls && last6Balls.length > 0">
+          <span class="recent-balls-label">Recent</span>
+          <div class="recent-balls-timeline">
+            <span class="recent-ball-circle" *ngFor="let ball of last6Balls">
+              {{ ball.score }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUMN 3: Batsman / Bowler Stats Area -->
+      <div class="live-hero__stats-area">
+        <!-- Batsmen -->
+        <div class="stats-group">
+          <div class="stats-grid stats-grid--header">
+            <span>Batter</span><span>R</span><span>B</span><span>4s</span><span>6s</span><span class="hide-mobile">SR</span>
+          </div>
+          <div class="stats-grid" *ngFor="let batsman of batsmanDataList">
+            <span class="stats-grid__name">
+              {{ batsman.name }}
+              <span *ngIf="batsman.onStrike" style="color: #10b981; font-weight: bold;">*</span>
+            </span>
+            <span>{{ batsman.score }}</span>
+            <span>{{ batsman.ballsFaced }}</span>
+            <span>{{ batsman.fours }}</span>
+            <span>{{ batsman.sixes }}</span>
+            <span class="hide-mobile">{{ batsman.strikeRate }}</span>
+          </div>
+        </div>
+
+        <!-- Bowler -->
+        <div class="stats-group" style="margin-top: 12px;">
+          <div class="stats-grid stats-grid--header">
+            <span>Bowler</span><span>O</span><span>M</span><span>R</span><span>W</span><span class="hide-mobile">ECO</span>
+          </div>
+          <div class="stats-grid" *ngFor="let bowler of bowlerDataList">
+            <span class="stats-grid__name">{{ bowler.name }}</span>
+            <span>{{ bowler.ballsBowled }}</span>
+            <span>{{ bowler.dotBalls }}</span>
+            <span>{{ bowler.score }}</span>
+            <span style="font-weight: bold; color: #f87171;">{{ bowler.wicketsTaken }}</span>
+            <span class="hide-mobile">{{ bowler.economyRate }}</span>
+          </div>
         </div>
       </div>
     </div>

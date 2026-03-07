@@ -172,8 +172,6 @@ const myRxStompConfig: InjectableRxStompConfig = {
     
   ],
   providers: [
-    
-    RxStompService,
     {
       provide: DateAdapter,
       useClass: MomentDateAdapter,

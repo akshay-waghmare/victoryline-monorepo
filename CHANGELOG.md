@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **Scorecard Scraping**: Hardened Crex scorecard decoding by waiting for sufficiently populated `localStorage` before extracting player/team mappings, ignoring incomplete cached mappings, and caching only validated player/team data in [apps/scraper/crex_scraper_python/src/adapters/crex_adapter.py](apps/scraper/crex_scraper_python/src/adapters/crex_adapter.py).
+- **Frontend Production Build**:
+  - Deferred `prebid.js` loading from [apps/frontend/src/index.html](apps/frontend/src/index.html) to avoid Angular 7 production minification failures on modern syntax.
+  - Added frontend TypeScript exclusions and `skipLibCheck` safeguards in [apps/frontend/src/tsconfig.app.json](apps/frontend/src/tsconfig.app.json) and [apps/frontend/tsconfig.json](apps/frontend/tsconfig.json) so legacy/orphan component files no longer break production builds.
+
+### Changed
+- **Live Match UI**: Compressed the live hero and odds layouts, moved active batter/bowler context into the hero, and added an odds/probability toggle across [apps/frontend/src/app/cricket-odds/cricket-odds.component.html](apps/frontend/src/app/cricket-odds/cricket-odds.component.html), [apps/frontend/src/app/cricket-odds/cricket-odds.component.css](apps/frontend/src/app/cricket-odds/cricket-odds.component.css), [apps/frontend/src/app/cricket-odds/cricket-odds.component.ts](apps/frontend/src/app/cricket-odds/cricket-odds.component.ts), and the live hero components under [apps/frontend/src/app/match-live/components/live-hero](apps/frontend/src/app/match-live/components/live-hero).
+- **Theme Consistency**: Replaced remaining purple gradients with design-token-based blue gradients across several frontend components, including [apps/frontend/src/app/scorecard/scorecard.component.css](apps/frontend/src/app/scorecard/scorecard.component.css), [apps/frontend/src/app/home/home.component.css](apps/frontend/src/app/home/home.component.css), and related match-detail components.
+
+### Notes
+- Live end-to-end scorecard validation is still pending a fresh live match window. The scraper fix was rebuilt and the scraper container returned to a healthy state, but no final live backfill verification was possible once live matches ended.
+
 ## [1.2.1] - 2026-01-30
 
 ### Fixed

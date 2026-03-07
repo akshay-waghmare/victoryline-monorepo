@@ -1,9 +1,12 @@
 # Stage 1: Build the Angular application
-ARG NODE_VERSION=16.20.2
+ARG NODE_VERSION=14.21.3
 FROM node:${NODE_VERSION}-alpine AS build
 
 # Set working directory
 WORKDIR /app
+
+# Install native build tools needed by node-sass
+RUN apk add --no-cache python3 make g++
 
 # Copy package files
 COPY package*.json ./

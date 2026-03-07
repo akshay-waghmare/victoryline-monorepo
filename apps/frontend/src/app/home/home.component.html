@@ -2,8 +2,8 @@
   
   <!-- ===== PAGE HEADER ===== -->
   <header class="home__header">
-    <h1 class="home__title">Live Cricket Scores & Real-time Updates</h1>
-    <p class="home__subtitle">Stay updated with live matches, upcoming fixtures, and recent results on Crickzen</p>
+    <h1 class="home__title">Live Cricket Scores</h1>
+    <p class="home__subtitle">Real-time scores, fixtures & results</p>
   </header>
   
   <!-- ===== LIVE MATCHES SECTION ===== -->
@@ -12,6 +12,7 @@
       <div class="home__section-title-wrapper">
         <span class="live-indicator"></span>
         <h2 class="home__section-title">Live Now</h2>
+        <span class="home__section-count home__section-count--live">{{ liveMatches.length }}</span>
       </div>
       <div class="home__section-actions">
         <button 
@@ -53,7 +54,8 @@
     <div class="home__section-header">
       <div class="home__section-title-wrapper">
         <i class="material-icons home__section-icon">schedule</i>
-        <h2 class="home__section-title">Upcoming Matches</h2>
+        <h2 class="home__section-title">Upcoming</h2>
+        <span class="home__section-count">{{ upcomingMatches.length }}</span>
       </div>
       <div class="home__section-actions">
         <button 
@@ -95,7 +97,8 @@
     <div class="home__section-header">
       <div class="home__section-title-wrapper">
         <i class="material-icons home__section-icon">check_circle</i>
-        <h2 class="home__section-title">Recent Results</h2>
+        <h2 class="home__section-title">Results</h2>
+        <span class="home__section-count">{{ recentMatches.length }}</span>
       </div>
       <div class="home__section-actions">
         <button 

@@ -25,7 +25,7 @@ import { Component, Input } from '@angular/core';
   `,
   styles: [`
     .live-banner {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
       color: white;
       padding: 12px 16px;
       border-radius: 8px;

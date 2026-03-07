@@ -98,7 +98,7 @@ class CrexAdapter(SourceAdapter):
         Performance optimized (Feature 007):
         - CACHE localStorage to skip pre-fetch on subsequent scrapes (NEW)
         - Pre-fetches Scorecard/Info pages in PARALLEL if needed
-        - Reduced wait times from 5s to 2s
+        - Waits for localStorage readiness before decoding/caching player mappings
         """
         data_store: Dict[str, Any] = {
             "sC4_stats": None,
@@ -114,9 +114,15 @@ class CrexAdapter(SourceAdapter):
         if self._cache and match_id:
             try:
                 cached_ls = await self._cache.get_local_storage(match_id)
-                if cached_ls and len(cached_ls) > 5:
+                if cached_ls and self._has_complete_local_storage(cached_ls):
                     data_store["local_storage"] = cached_ls
                     logger.info(f"[FAST] Using cached localStorage ({len(cached_ls)} items) for {match_id}")
+                elif cached_ls:
+                    counts = self._count_local_storage_entities(cached_ls)
+                    logger.warning(
+                        f"[FAST] Ignoring incomplete cached localStorage for {match_id} "
+                        f"(player_names={counts['player_names']}, team_names={counts['team_names']})"
+                    )
             except Exception as e:
                 logger.warning(f"Failed to get cached localStorage: {e}")
 
@@ -130,8 +136,7 @@ class CrexAdapter(SourceAdapter):
                     scorecard_page = await context.new_page()
                     try:
                         await scorecard_page.goto(scorecard_url, wait_until="domcontentloaded", timeout=20000)
-                        await scorecard_page.wait_for_timeout(2000)  # Reduced from 5000
-                        return await self._extract_local_storage(scorecard_page)
+                        return await self._wait_for_local_storage_ready(scorecard_page, "scorecard")
                     finally:
                         await scorecard_page.close()
                 except Exception as e:
@@ -143,8 +148,7 @@ class CrexAdapter(SourceAdapter):
                     info_page = await context.new_page()
                     try:
                         await info_page.goto(info_url, wait_until="domcontentloaded", timeout=20000)
-                        await info_page.wait_for_timeout(2000)  # Reduced from 5000
-                        return await self._extract_local_storage(info_page)
+                        return await self._wait_for_local_storage_ready(info_page, "info")
                     finally:
                         await info_page.close()
                 except Exception as e:
@@ -162,7 +166,7 @@ class CrexAdapter(SourceAdapter):
             logger.info(f"Pre-fetched {len(scorecard_ls)} + {len(info_ls)} localStorage items in parallel")
             
             # Cache the localStorage for future scrapes (Feature 007)
-            if self._cache and match_id and len(data_store["local_storage"]) > 5:
+            if self._cache and match_id and self._has_complete_local_storage(data_store["local_storage"]):
                 try:
                     await self._cache.set_local_storage(match_id, data_store["local_storage"])
                     logger.info(f"[FAST] Cached localStorage for {match_id}")
@@ -199,7 +203,7 @@ class CrexAdapter(SourceAdapter):
                 logger.warning(f"Timeout waiting for sV3 response on {url}")
 
             # Extract localStorage
-            current_ls = await self._extract_local_storage(page)
+            current_ls = await self._wait_for_local_storage_ready(page, "live")
             data_store["local_storage"].update(current_ls)
 
             content = await page.content()
@@ -388,6 +392,45 @@ class CrexAdapter(SourceAdapter):
         except Exception as e:
             logger.error(f"Error extracting localStorage: {e}")
             return {}
+
+    def _count_local_storage_entities(self, local_storage: Dict[str, str]) -> Dict[str, int]:
+        player_names = sum(1 for key in local_storage.keys() if key.startswith("p_") and key.endswith("_name"))
+        team_names = sum(1 for key in local_storage.keys() if key.startswith("t_") and key.endswith("_name"))
+        return {
+            "player_names": player_names,
+            "team_names": team_names,
+        }
+
+    def _has_complete_local_storage(self, local_storage: Dict[str, str]) -> bool:
+        counts = self._count_local_storage_entities(local_storage)
+        return counts["player_names"] >= 18 and counts["team_names"] >= 2
+
+    async def _wait_for_local_storage_ready(self, page: Page, page_label: str) -> Dict[str, str]:
+        try:
+            await page.wait_for_load_state("networkidle", timeout=7000)
+        except Exception as e:
+            logger.debug(f"{page_label} page did not reach networkidle before timeout: {e}")
+
+        try:
+            await page.wait_for_function(
+                """() => {
+                    const keys = Object.keys(localStorage || {});
+                    const playerNames = keys.filter((key) => key.startsWith('p_') && key.endsWith('_name')).length;
+                    const teamNames = keys.filter((key) => key.startsWith('t_') && key.endsWith('_name')).length;
+                    return playerNames >= 18 && teamNames >= 2;
+                }""",
+                timeout=5000,
+            )
+        except Exception:
+            await page.wait_for_timeout(5000)
+
+        local_storage = await self._extract_local_storage(page)
+        counts = self._count_local_storage_entities(local_storage)
+        logger.info(
+            f"Extracted localStorage from {page_label} page: {len(local_storage)} items "
+            f"(player_names={counts['player_names']}, team_names={counts['team_names']})"
+        )
+        return local_storage
 
     async def _setup_network_interception(self, page: Page, data_store: Dict[str, Any], match_id: Optional[str] = None, source_url: Optional[str] = None) -> asyncio.Event:
         """

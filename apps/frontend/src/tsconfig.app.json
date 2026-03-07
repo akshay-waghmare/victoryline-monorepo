@@ -2,10 +2,17 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "../out-tsc/app",
-    "types": []
+    "types": [],
+    "skipLibCheck": true
   },
   "exclude": [
     "test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "app/components/live-banner/live-banner.component.ts",
+    "app/core/layout/navbar/navbar.component.ts",
+    "app/cricket-odds/components/commentary-list/commentary-list.component.ts",
+    "app/shared/components/error-404/error-404.component.ts",
+    "app/shared/components/splash-screen/splash-screen.component.ts",
+    "app/shared/components/theme-toggle/theme-toggle.component.ts"
   ]
 }

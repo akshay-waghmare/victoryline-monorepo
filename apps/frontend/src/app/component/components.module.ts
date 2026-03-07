@@ -77,7 +77,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     FooterComponent
   ],
 
-  providers: [RxStompService,
+  providers: [
     {
       provide: InjectableRxStompConfig,
       useValue: myRxStompConfig

@@ -1,18 +1,13 @@
-<div class="courses-panel" style="margin-top: 170px;">
+<div class="courses-panel" style="margin-top: 48px;">
   <mat-card>
     <!-- ARIA landmark: header region for snapshot (T009) -->
-    <header role="banner" aria-label="Match snapshot header">
-      <mat-card-header class="mat-card-header-danger">
-        <mat-card-title>LIVE</mat-card-title>
-      </mat-card-header>
-      
+
       <!-- 002-match-details-ux: Snapshot Header Component (T016-T020) -->
       <!-- NOTE: Using existing cricket-odds data until WebSocket/API integration complete -->
       <!-- <app-snapshot-header 
         *ngIf="matchId"
         [matchId]="matchId">
       </app-snapshot-header> -->
-    </header>
 
     <!-- Main content area (T009) -->
     <main role="main" aria-label="Match details content">
@@ -21,7 +16,10 @@
           class="cricket-odds__hero"
           *ngIf="matchId"
           [matchId]="matchId"
-          [matchInfo]="matchInfo">
+          [matchInfo]="matchInfo"
+          [last6Balls]="last6Balls"
+          [batsmanDataList]="batsmanDataList"
+          [bowlerDataList]="bowlerDataList">
         </app-live-hero>
 
       <mat-tab-group (selectedTabChange)="onTabChange($event)">
@@ -32,47 +30,12 @@
           <!-- ... -->
           <div *ngIf="isBetProcessing" class="loader-container">
             <div class="loader"></div>
-            <!-- Optional: Add text like 'Confirming bet...' -->
           </div>
           <div class="live-match-container">
 
-            <!-- Left Ad Container -->
-            <div class="ad-container left-ad">
-              <!-- Google AdSense Script (Load Once in index.html) -->
-              <!-- AdSense ads should be initialized once, preferably in index.html -->
-              <!-- If not already loaded, you can include it here, but it's recommended to load it once globally -->
-              
-              <!-- AdSense Ad Unit -->
-              <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8903030190783903"
-                crossorigin="anonymous"></script>
-              <!-- right_add_vertical -->
-              <ins class="adsbygoogle"
-                  style="display:block"
-                  data-ad-client="ca-pub-8903030190783903"
-                  data-ad-slot="9439699334"
-                  data-ad-format="auto"
-                  data-full-width-responsive="true"></ins>
-              <script>
-                  (adsbygoogle = window.adsbygoogle || []).push({});
-              </script>
-            </div>
-
-            <div class="cricket-odds-container" *ngIf="(last6Balls && last6Balls.length > 0) || userBets.length > 0 || (sessionExposures && sessionExposures.length > 0) || (!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || batsmanDataList.length > 0 || bowlerDataList.length > 0 || sessionOddsListDisplay.length > 0">
+            <!-- SINGLE COLUMN: Odds & Betting (Stats moved to Hero) -->
+            <div class="live-match-col live-match-col--odds" *ngIf="userBets.length > 0 || (sessionExposures && sessionExposures.length > 0) || (!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || sessionOddsListDisplay.length > 0">
               <div class="cricket-odds">
-
-                <!-- Last 6 Balls -->
-                <div class="last-6-balls-container" *ngIf="last6Balls && last6Balls.length > 0">
-                  <div class="balls-header">
-                    <mat-icon class="balls-icon">sports_cricket</mat-icon>
-                    <h3>Last 6 Balls</h3>
-                  </div>
-                  <div class="last-6-balls">
-                    <div class="ball" *ngFor="let ball of last6Balls">
-                      <div class="ball-score">{{ ball.score }}</div>
-                    </div>
-                  </div>
-                </div>
-
                 <!-- Overall Win/Loss Summary -->
                 <div class="overall-win-loss" *ngIf="userBets.length > 0">
                   <div class="overall-item">
@@ -96,30 +59,47 @@
                   </div>
                 </div>
                 
-                <!-- Odds and Stats Section -->
-                <div class="odds-stats-section" *ngIf="(!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || batsmanDataList.length > 0 || bowlerDataList.length > 0">
+                <!-- Odds Section -->
+                <div class="odds-stats-section" *ngIf="(!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0)">
                 
-                <!-- Odds Toggle Button (Phase 7 Mobile Optimized) -->
-                <div class="odds-toggle-container" style="margin: 16px 0; text-align: right;">
-                  <button mat-button 
-                          class="odds-toggle-btn"
-                          (click)="showOdds = !showOdds"
-                          style="background: #667eea; color: white; border-radius: 4px; padding: 8px 16px;">
-                    <mat-icon style="vertical-align: middle; margin-right: 4px;">
-                      {{ showOdds ? 'visibility_off' : 'visibility' }}
-                    </mat-icon>
-                    <span class="odds-toggle-label">{{ showOdds ? 'Hide Odds' : 'Show Odds' }}</span>
-                  </button>
+                <!-- Odds Toggle Button -->
+                <div class="odds-toggle-container" style="margin: 8px 0; display: flex; justify-content: flex-end; gap: 8px;">
+                    <button mat-button
+                            class="odds-toggle-btn"
+                            (click)="viewAsProbability = !viewAsProbability"
+                            style="background: var(--color-primary, #1976d2); color: white; border-radius: 4px; padding: 6px 12px; font-size: 0.8rem;">
+                      <mat-icon style="vertical-align: middle; margin-right: 4px; font-size: 18px; width: 18px; height: 18px;">
+                        {{ viewAsProbability ? 'attach_money' : 'pie_chart' }}
+                      </mat-icon>
+                      <span class="odds-toggle-label">{{ viewAsProbability ? 'View as Odds' : 'View as Probability' }}</span>
+                    </button>
+                    <button mat-button
+                            class="odds-toggle-btn"
+                            (click)="showOdds = !showOdds"
+                            style="background: var(--color-primary, #1976d2); color: white; border-radius: 4px; padding: 6px 12px; font-size: 0.8rem;">
+                      <mat-icon style="vertical-align: middle; margin-right: 4px; font-size: 18px; width: 18px; height: 18px;">
+                        {{ showOdds ? 'visibility_off' : 'visibility' }}
+                      </mat-icon>
+                      <span class="odds-toggle-label">{{ showOdds ? 'Hide Odds' : 'Show Odds' }}</span>
+                    </button>
                 </div>
 
                 <!-- Favorite Team Odds -->
                 <div *ngIf="showOdds && !(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-'">
                   <div *ngIf="!favTeam.includes('Unknown')" class="favorite-odds team-section">
                     <div class="team-label" [attr.data-full-name]="favTeam">{{getTruncatedTeamName(favTeam) }}</div>
-                    <div class="odds-buttons">
+                    <div class="odds-buttons" *ngIf="!viewAsProbability">
                       <button mat-raised-button color="primary" [ngClass]="{'non-clickable': !isClickable}">
                         {{ backOdds }}</button>
                       <button mat-raised-button color="accent" [ngClass]="{'non-clickable': !isClickable}">{{ layOdds }}</button>
+                    </div>
+                    <div class="prob-bar-container" *ngIf="viewAsProbability">
+                      <div class="prob-bar prob-bar-back" [style.width]="getBarWidth(backOdds, layOdds)">
+                        {{ getProbability(backOdds) }}
+                      </div>
+                      <div class="prob-bar prob-bar-lay" [style.width]="getBarWidth(layOdds, backOdds)">
+                        {{ getProbability(layOdds) }}
+                      </div>
                     </div>
                   </div>
 
@@ -155,13 +135,21 @@
                   <div *ngFor="let match of testMatchOdds; let i = index" class="test-match-odds">
                     <div class="favorite-odds team-section">
                       <div class="team-label">{{ match.teamName }}</div>
-                      <div class="odds-buttons">
+                      <div class="odds-buttons" *ngIf="!viewAsProbability">
                         <button mat-raised-button color="primary" [ngClass]="{'non-clickable': !isClickable}">
                           {{ match.odds.backOdds }}
                         </button>
                         <button mat-raised-button color="accent" [ngClass]="{'non-clickable': !isClickable}">
                           {{ match.odds.layOdds }}
                         </button>
+                      </div>
+                      <div class="prob-bar-container" *ngIf="viewAsProbability">
+                        <div class="prob-bar prob-bar-back" [style.width]="getBarWidth(match.odds.backOdds, match.odds.layOdds)">
+                          {{ getProbability(match.odds.backOdds) }}
+                        </div>
+                        <div class="prob-bar prob-bar-lay" [style.width]="getBarWidth(match.odds.layOdds, match.odds.backOdds)">
+                          {{ getProbability(match.odds.layOdds) }}
+                        </div>
                       </div>
                     </div>
                     <div class="betting-options"
@@ -186,86 +174,28 @@
                   </div>
                 </div>
 
-                <div class="stats-container">
-                  <!-- Batsman Stats -->
-                  <div class="batsman-stats" *ngIf="batsmanDataList.length > 0">
-                    <div class="stats-header">
-                      <mat-icon class="stats-icon">sports_cricket</mat-icon>
-                      <h3>Current Batsmen</h3>
-                    </div>
-                    <table class="stats-table">
-                      <thead>
-                        <tr>
-                          <th>Batsman</th>
-                          <th>R</th>
-                          <th>B</th>
-                          <th>4s</th>
-                          <th>6s</th>
-                          <th>SR</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr *ngFor="let batsman of batsmanDataList">
-                          <td class="player-name">
-                            {{ batsman.name }}
-                            <mat-icon *ngIf="batsman.onStrike" class="on-strike-icon">sports_cricket</mat-icon>
-                          </td>
-                          <td class="stat-value">{{ batsman.score }}</td>
-                          <td class="stat-value">{{ batsman.ballsFaced }}</td>
-                          <td class="stat-value">{{ batsman.fours }}</td>
-                          <td class="stat-value">{{ batsman.sixes }}</td>
-                          <td class="stat-value highlight-sr">{{ batsman.strikeRate }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <!-- Bowler Stats -->
-                  <div class="bowler-stats" *ngIf="bowlerDataList.length > 0">
-                    <div class="stats-header">
-                      <mat-icon class="stats-icon">sports_baseball</mat-icon>
-                      <h3>Current Bowler</h3>
-                    </div>
-                    <table class="stats-table">
-                      <thead>
-                        <tr>
-                          <th>Bowler</th>
-                          <th>O</th>
-                          <th>R</th>
-                          <th>W</th>
-                          <th>D</th>
-                          <th>ECO</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr *ngFor="let bowler of bowlerDataList">
-                          <td class="player-name">{{ bowler.name }}</td>
-                          <td class="stat-value">{{ bowler.ballsBowled }}</td>
-                          <td class="stat-value">{{ bowler.score }}</td>
-                          <td class="stat-value highlight-wickets">{{ bowler.wicketsTaken }}</td>
-                          <td class="stat-value">{{ bowler.dotBalls }}</td>
-                          <td class="stat-value highlight-eco">{{ bowler.economyRate }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
-                
-                </div>
-                <!-- End Odds and Stats Section -->
+                <!-- End Odds Section -->
 
-                <section class="hero-downstream">
                 <!-- Session Odds -->
                 <ng-container *ngIf="showOdds">
                 <div *ngFor="let sessionOdds of sessionOddsListDisplay">
                   <div *ngIf="sessionOdds.session !== '-'">
                     <div class="favorite-odds session-section">
                       <div class="session-label">{{ sessionOdds.session }}</div>
-                      <div class="odds-buttons">
+                      <div class="odds-buttons" *ngIf="!viewAsProbability">
                         <button mat-raised-button color="primary" [ngClass]="{'non-clickable': !isClickable}"
                                 (click)="showBetForOdds('sessionBackOdds')">NO {{ sessionOdds.backOdds }}</button>
                         <button mat-raised-button color="accent" [ngClass]="{'non-clickable': !isClickable}"
                                 (click)="showBetForOdds('sessionLayOdds')">YES {{ sessionOdds.layOdds }}</button>
+                      </div>
+                      <div class="prob-bar-container" *ngIf="viewAsProbability" style="margin-top: 10px;">
+                        <div class="prob-bar prob-bar-back" [style.width]="getBarWidth(sessionOdds.backOdds, sessionOdds.layOdds)">
+                          NO {{ getProbability(sessionOdds.backOdds) }}
+                        </div>
+                        <div class="prob-bar prob-bar-lay" [style.width]="getBarWidth(sessionOdds.layOdds, sessionOdds.backOdds)">
+                          YES {{ getProbability(sessionOdds.layOdds) }}
+                        </div>
                       </div>
                     </div>
                 
@@ -294,33 +224,11 @@
                   </div>
                 </div>
                 </ng-container>
-                </section>
                 
-              </div>
-            </div>
+              </div><!-- end .cricket-odds -->
+            </div><!-- end .live-match-col--odds -->
 
-            <!-- Left Ad Container -->
-            <div class="ad-container right-ad">
-              <!-- Google AdSense Script (Load Once in index.html) -->
-              <!-- AdSense ads should be initialized once, preferably in index.html -->
-              <!-- If not already loaded, you can include it here, but it's recommended to load it once globally -->
-              
-              <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8903030190783903"
-                  crossorigin="anonymous"></script>
-              <!-- odds_page_both_side_vertical -->
-              <ins class="adsbygoogle"
-                  style="display:block"
-                  data-ad-client="ca-pub-8903030190783903"
-                  data-ad-slot="9428623879"
-                  data-ad-format="auto"
-                  data-full-width-responsive="true"></ins>
-              <script>
-                  (adsbygoogle = window.adsbygoogle || []).push({});
-              </script>
-            </div>
-
-
-          </div>
+          </div><!-- end .live-match-container -->
         </mat-tab>
 
         <!-- Second Tab: Match Info -->

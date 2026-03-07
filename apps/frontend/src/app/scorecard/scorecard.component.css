@@ -1,22 +1,14 @@
-/* Global Styles */
-body {
-  font-family: 'Arial', sans-serif;
-  background-color: #f8fafc;
-  color: #1e293b;
-  margin: 0;
-  padding: 20px;
-  line-height: 1.6;
-}
+/* Scorecard Styles — uses design system tokens */
 
 .scorecard {
   max-width: 1000px;
   margin: 0 auto;
-  background: linear-gradient(to bottom right, #ffffff 0%, #f8fafc 100%);
-  padding: 32px;
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  background: var(--color-background-elevated, #f5f5f5);
+  padding: 16px;
+  border-radius: var(--border-radius-lg, 12px);
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
   overflow: hidden;
-  border: 2px solid #e2e8f0;
+  border: 1px solid var(--color-border, #e0e0e0);
   position: relative;
 }
 
@@ -26,34 +18,22 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 6px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary, #1976d2) 0%, var(--color-info, #2196f3) 100%);
+  border-radius: var(--border-radius-lg, 12px) var(--border-radius-lg, 12px) 0 0;
 }
 
-/* Header Styles */
+/* Header Styles — hidden since component is inside a "Scorecard" tab */
 .scorecard h1 {
-  font-size: 1.75rem;
-  font-weight: 800;
-  margin-bottom: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-align: center;
-  letter-spacing: 0.5px;
+  display: none;
 }
 
 .scorecard .header {
   display: flex;
   align-items: center;
-  margin-bottom: 24px;
-  border-bottom: 3px solid #e2e8f0;
-  padding-bottom: 16px;
-  transition: all 0.3s ease;
-}
-
-.scorecard .header:hover {
-  border-bottom-color: #667eea;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--color-border, #e0e0e0);
+  padding-bottom: 8px;
 }
 
 .scorecard .header img {
@@ -61,40 +41,32 @@ body {
   height: 40px;
   margin-right: 16px;
   border-radius: 50%;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.2);
 }
 
 .scorecard .header .score {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-text-primary, #212121);
 }
 
 /* Batting Section */
 .scorecard .batting {
-  margin-top: 24px;
-  padding: 20px;
-  background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  margin-top: 8px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  border: none;
 }
 
-.scorecard .batting h2 {
-  font-size: 1.375rem;
+.scorecard .batting h2,
+.scorecard h2 {
+  font-size: 0.8125rem;
   font-weight: 700;
-  margin-bottom: 20px;
-  color: #1e293b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.scorecard .batting h2::before {
-  content: '🏏';
-  font-size: 1.5rem;
+  margin: 12px 0 4px;
+  color: var(--color-text-secondary, #757575);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .scorecard table {
@@ -107,17 +79,17 @@ body {
 }
 
 .scorecard table th, .scorecard table td {
-  padding: 14px 16px;
+  padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--color-border-light, #f5f5f5);
 }
 
 .scorecard table th {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-weight: 700;
-  color: #ffffff;
+  background: var(--color-background-hover, #f0f0f0);
+  font-weight: 600;
+  color: var(--color-text-secondary, #757575);
   text-transform: uppercase;
-  font-size: 0.8125rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.5px;
   position: sticky;
   top: 0;
@@ -133,31 +105,36 @@ body {
 }
 
 .scorecard table td {
-  font-size: 0.9375rem;
-  color: #475569;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary, #757575);
   font-weight: 500;
-  background-color: #ffffff;
+  background-color: var(--color-background, #ffffff);
+}
+
+/* Highlight batter name (first column) */
+.scorecard table td:first-child {
+  color: var(--color-text-primary, #212121);
+  font-weight: 600;
 }
 
 .scorecard table tbody tr {
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
 .scorecard table tbody tr:hover {
-  background: linear-gradient(to right, #f8fafc 0%, #e0e7ff 100%);
-  transform: translateX(4px);
+  background-color: rgba(25, 118, 210, 0.04);
 }
 
 .scorecard table td i {
   font-size: 1.125rem;
-  color: #667eea;
+  color: var(--color-primary, #1976d2);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .scorecard table td i:hover {
-  color: #764ba2;
-  transform: scale(1.2);
+  color: var(--color-primary-hover, #1565c0);
+  transform: scale(1.1);
 }
 
 /* Extras Section */
@@ -165,12 +142,11 @@ body {
   margin-top: 16px;
   padding: 16px 20px;
   font-size: 0.9375rem;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border-radius: 8px;
-  color: #78350f;
+  background: rgba(255, 152, 0, 0.08);
+  border-radius: var(--border-radius-md, 8px);
+  color: var(--color-text-primary, #212121);
   font-weight: 600;
-  border-left: 5px solid #f59e0b;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+  border-left: 4px solid var(--color-warning, #ff9800);
 }
 
 /* Partnership Section */
@@ -178,10 +154,10 @@ body {
   max-width: 900px;
   margin: 48px auto;
   padding: 24px;
-  background: linear-gradient(to bottom right, #ffffff 0%, #f8fafc 100%);
-  border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  border: 2px solid #e2e8f0;
+  background: var(--color-background-elevated, #f5f5f5);
+  border-radius: var(--border-radius-lg, 12px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.12));
+  border: 1px solid var(--color-border, #e0e0e0);
 }
 
 .partnership h1 {
@@ -189,10 +165,7 @@ body {
   font-weight: 700;
   margin-bottom: 24px;
   text-align: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-primary, #1976d2);
 }
 
 .partnership .players {
@@ -202,8 +175,9 @@ body {
   margin-bottom: 16px;
   flex-wrap: wrap;
   padding: 16px;
-  background: linear-gradient(to right, #f8fafc 0%, #ffffff 100%);
-  border-radius: 8px;
+  background: var(--color-background, #ffffff);
+  border-radius: var(--border-radius-md, 8px);
+  border: 1px solid var(--color-border-light, #f5f5f5);
 }
 
 .partnership .players div {
@@ -211,25 +185,21 @@ body {
   margin-bottom: 8px;
   text-align: center;
   font-weight: 600;
-  color: #475569;
+  color: var(--color-text-secondary, #757575);
 }
 
 .partnership .players .score {
   font-weight: 700;
   font-size: 1.125rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--color-success, #4caf50);
 }
 
 .partnership .progress {
-  height: 10px;
-  background: #e2e8f0;
+  height: 8px;
+  background: var(--color-border, #e0e0e0);
   border-radius: 20px;
   margin-top: 16px;
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .partnership .progress .bar {
@@ -270,20 +240,17 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
   .scorecard {
-    padding: 20px;
+    padding: 10px;
   }
 
   .scorecard table th, .scorecard table td {
-    padding: 10px 8px;
-    font-size: 0.8125rem;
-  }
-
-  .scorecard h1 {
-    font-size: 1.375rem;
+    padding: 6px 4px;
+    font-size: 0.75rem;
   }
   
-  .scorecard .batting h2 {
-    font-size: 1.125rem;
+  .scorecard .batting h2,
+  .scorecard h2 {
+    font-size: 0.75rem;
   }
 
   .scorecard .header img {
@@ -314,12 +281,12 @@ body {
 .partnership .wicket {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--color-text-secondary, #757575);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: #f1f5f9;
+  background: var(--color-background-hover, #eeeeee);
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: var(--border-radius-full, 9999px);
   display: inline-block;
 }
 

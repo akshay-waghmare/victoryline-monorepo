@@ -1,13 +1,13 @@
 /* 002-match-details-ux: Enhanced Live Match styling */
 .cricket-odds {
-    border: 2px solid #e2e8f0;
-    padding: 28px;
-    max-width: 700px;
-    margin: 20px auto;
+    border: 1px solid #e2e8f0;
+    padding: 16px;
+    max-width: 100%;
+    margin: 0;
     text-align: center;
     background: linear-gradient(to bottom right, #ffffff 0%, #f8fafc 100%);
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     position: relative;
     overflow: hidden;
@@ -20,7 +20,7 @@
 
 .odds-toggle-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
 }
 
 .cricket-odds::before {
@@ -30,17 +30,17 @@
     left: 0;
     right: 0;
     height: 6px;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(90deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
 }
 
 mat-card-content {
-  padding-left: 15%;
-  padding-right: 15%;
+  padding-left: 2%;
+  padding-right: 2%;
 }
 
 .cricket-odds__hero {
   display: block;
-  margin: 0 0 32px 0;
+  margin: 0 0 16px 0;
   width: 100%;
 }
 
@@ -87,7 +87,7 @@ mat-card-content {
 .favorite-odds:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  border-color: #667eea;
+  border-color: var(--color-primary, #1976d2);
 }
 
 .team-label {
@@ -169,7 +169,7 @@ mat-card-content {
 .ball {
     width: 36px;
     height: 36px;
-    border: 3px solid #667eea;
+    border: 3px solid var(--color-primary, #1976d2);
     border-radius: 50%;
     display: flex;
     justify-content: center;
@@ -178,13 +178,13 @@ mat-card-content {
     font-size: 15px;
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     color: #1e293b;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
     transition: all 0.3s ease;
 }
 
 .ball:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
 }
 
 .back-odds-button {
@@ -263,12 +263,12 @@ mat-card-content {
     font-weight: 700;
     margin: 0 auto 24px;
     width: 100%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
     color: white;
     border: none;
     padding: 20px;
     border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.4);
     position: relative;
     overflow: hidden;
 }
@@ -383,7 +383,7 @@ mat-card-content {
     flex-direction : row;
     flex-wrap: nowrap;
     justify-content: flex-start;
-    border-left: 5px solid #667eea;
+    border-left: 5px solid var(--color-primary, #1976d2);
 }
 
 /* Enhance visibility of team details */
@@ -447,7 +447,7 @@ mat-card-content {
 /* Custom CSS class for betting options */
 .betting-options {
     font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
     padding: 20px;
     border-radius: 12px;
     color: white;
@@ -457,7 +457,7 @@ mat-card-content {
     justify-content: center;
     flex-wrap: wrap;
     gap: 12px;
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.3);
     border: 2px solid rgba(255, 255, 255, 0.2);
 }
     
@@ -503,7 +503,7 @@ mat-card-content {
 .betting-options button {
     white-space: nowrap;
     padding: 10px 16px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
     color: white;
     border: none;
     border-radius: 8px;
@@ -511,15 +511,15 @@ mat-card-content {
     font-size: 13px;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
     letter-spacing: 0.3px;
     text-transform: uppercase;
 }
 
 .betting-options button:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    background: linear-gradient(135deg, var(--color-info, #29b6f6) 0%, var(--color-primary, #1976d2) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4);
 }
   
   .betting-options input[type="number"] {
@@ -537,8 +537,8 @@ mat-card-content {
 
 .betting-options input[type="number"]:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: var(--color-primary, #1976d2);
+    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
 
@@ -589,37 +589,45 @@ mat-card-content {
   }
 
   .last-6-balls-container {
-    margin-top: 24px;
-    padding: 20px;
-    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-    border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-    border-left: 4px solid #667eea;
-  }
-
-  .balls-header {
+    margin-top: 12px;
+    padding: 10px;
+    background: #ffffff;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid #e2e8f0;
+    gap: 8px;
+    justify-content: flex-start;
   }
 
-  .balls-icon {
-    color: #667eea;
-    font-size: 24px;
-    width: 24px;
-    height: 24px;
-  }
-
-  .balls-header h3 {
-    margin: 0;
-    font-size: 18px;
+  .balls-label {
+    font-size: 13px;
     font-weight: 700;
+    color: #475569;
+  }
+
+  .inline-balls {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .inline-balls .ball {
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    font-size: 13px;
+    border: none;
+    background: #e2e8f0;
     color: #1e293b;
-    letter-spacing: 0.3px;
+    box-shadow: none;
+  }
+
+  .inline-balls .ball:hover {
+    transform: none;
+    box-shadow: none;
   }
 
   .last-6-balls {
@@ -637,20 +645,20 @@ mat-card-content {
     font-size: 18px;
     font-weight: 700;
     margin: 0;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
     color: white;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
     transition: all 0.3s ease;
     border: 3px solid #ffffff;
 }
 
 .ball:hover {
     transform: scale(1.15);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    box-shadow: 0 6px 20px rgba(25, 118, 210, 0.5);
 }
 
 .ball-score {
@@ -681,25 +689,12 @@ mat-card-content {
   
 
 
-  .live-match-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    margin-top: 20px;
-  }
+  /* Grid layout handled by main .live-match-container rule */
 
   .ad-container {
-    flex: 0 0 200px; /* Fixed width */
-    max-width: 200px;
-    margin: 10px;
+    display: none;
   }
-  
-  .cricket-odds-container {
-    flex: 3; /* Adjust this value based on your layout needs */
-    margin-right: 20px; /* Adds some space between the sections */
-  }
-  
-  
+
   .user-bets-container {
     flex: 1;
     padding: 24px;
@@ -714,7 +709,7 @@ mat-card-content {
   }
   
   .user-bets-container:hover {
-    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
+    box-shadow: 0 8px 24px rgba(25, 118, 210, 0.12);
   }
   
   .user-bets-container h3 {
@@ -723,7 +718,7 @@ mat-card-content {
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.3px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -738,7 +733,7 @@ mat-card-content {
   }
   
   .mat-card-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
     color: white;
     padding: 16px;
   }
@@ -896,15 +891,33 @@ mat-card-content {
 }
 
 .live-match-container {
-  display: flex;
-  flex-wrap: wrap; /* Allow items to wrap on smaller screens */
-  justify-content: space-between;
-  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 12px;
 }
 
-.cricket-odds-container {
-  flex: 1 1 100%; /* Full width on smaller screens */
-  margin: 10px 0; /* Adjust margin */
+@media (min-width: 768px) {
+  .live-match-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
+.live-match-col {
+  min-width: 0;
+}
+
+.live-match-col--stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.live-match-col--odds {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .quick-stakes {
@@ -980,9 +993,9 @@ mat-card-content {
 }
 
 .session-no {
-  color: #667eea;
+  color: var(--color-primary, #1976d2);
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -1006,12 +1019,12 @@ mat-card-content {
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
   font-family: 'Roboto', sans-serif;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--color-primary, #1976d2);
   transition: all 0.3s ease;
 }
 
 .session-exposures:hover {
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 8px 24px rgba(25, 118, 210, 0.15);
   transform: translateY(-2px);
 }
 
@@ -1208,29 +1221,29 @@ mat-card-content {
 .stats-container {
   width: 100%;
   max-width: 100%;
-  margin: 24px auto 0;
+  margin: 0;
   padding: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
 }
 
 .batsman-stats,
 .bowler-stats {
   background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  border-left: 4px solid #667eea;
-  transition: all 0.3s ease;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-left: 3px solid var(--color-primary, #1976d2);
+  transition: none;
   overflow: visible;
 }
 
 .batsman-stats:hover,
 .bowler-stats:hover {
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transform: none;
 }
 
 /* Table styling to match scorecard exactly */
@@ -1239,9 +1252,9 @@ mat-card-content {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  margin-top: 16px;
+  margin-top: 8px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: 6px;
   background: white;
 }
 
@@ -1249,14 +1262,14 @@ mat-card-content {
 .batsman-stats table td,
 .bowler-stats table th,
 .bowler-stats table td {
-  padding: 14px 16px;
+  padding: 8px 10px;
   text-align: left;
   border-bottom: 1px solid #f1f5f9;
 }
 
 .batsman-stats table th,
 .bowler-stats table th {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
   font-weight: 700;
   color: #ffffff;
   text-transform: uppercase;
@@ -1292,30 +1305,30 @@ mat-card-content {
 
 .batsman-stats table tbody tr:hover,
 .bowler-stats table tbody tr:hover {
-  background: linear-gradient(to right, #f8fafc 0%, #e0e7ff 100%);
-  transform: translateX(4px);
+  background: #f8fafc;
+  transform: none;
 }
 
 .stats-header {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #e2e8f0;
+  justify-content: flex-start;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .stats-icon {
-  color: #667eea;
-  font-size: 24px;
-  width: 24px;
-  height: 24px;
+  color: var(--color-primary, #1976d2);
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
 }
 
 .stats-header h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 700;
   color: #1e293b;
   letter-spacing: 0.3px;
@@ -1331,15 +1344,40 @@ mat-card-content {
   border-radius: 8px;
 }
 
+.stats-table--compact {
+  border-radius: 4px;
+  background: white;
+}
+
+.stats-table--compact th,
+.stats-table--compact td {
+  padding: 4px;
+  font-size: 11px;
+}
+
+.stats-table--compact th {
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.stats-table--compact tbody tr:hover {
+  background: #f8fafc;
+  transform: none;
+}
+
 .stats-table th,
 .stats-table td {
-  padding: 12px 16px;
+  padding: 6px 8px;
   text-align: center;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .stats-table th {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
   font-weight: 700;
   color: #ffffff;
   text-transform: uppercase;
@@ -2454,7 +2492,7 @@ p {
   /* Table headers - prominent and sticky */
   .batsman-stats table th,
   .bowler-stats table th {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
     color: white;
     font-weight: 600;
     position: sticky;
@@ -2582,10 +2620,10 @@ p {
     right: 12px;
     z-index: 1000;
     border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
     color: white;
     border: none;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
     font-size: 0.875rem;
     display: flex;
     align-items: center;
@@ -2594,7 +2632,7 @@ p {
   
   .odds-toggle-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
   }
 
   .odds-toggle-label {
@@ -2654,4 +2692,49 @@ p {
   .bowler-stats table {
     min-width: auto; /* No horizontal scroll on tablet */
   }
+}
+.prob-bar-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 40px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  align-items: center;
+  position: relative;
+  margin: 10px 0;
+}
+.prob-bar {
+  display: flex;
+  align-items: center;
+  color: #fff;
+  font-weight: bold;
+  height: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.prob-bar-back {
+  background-color: var(--color-primary, #1976d2);
+  justify-content: flex-end;
+  padding-right: 8px;
+}
+.prob-bar-lay {
+  background-color: var(--color-accent, #ff4081);
+  justify-content: flex-start;
+  padding-left: 8px;
+}
+.prob-label {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  pointer-events: none;
+  font-weight: bold;
+  color: #333;
+}
+
+.live-match-col--odds {
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
 }

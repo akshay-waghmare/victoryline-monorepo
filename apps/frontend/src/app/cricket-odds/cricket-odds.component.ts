@@ -106,6 +106,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   // Toggle to hide/show odds sections
   showOdds: boolean = true;
+  // Toggle to show odds as probability bar
+  viewAsProbability: boolean = false;
 
 
 
@@ -1068,4 +1070,22 @@ placeSessionBet() {
     return null;
   }
 
+
+  getProbability(odds: any): string {
+    const num = Number(odds);
+    if (!num || isNaN(num) || num <= 0) return '0%';
+    return ((1 / num) * 100).toFixed(1) + '%';
+  }
+
+  getProbabilityPercent(odds: any): number {
+    const num = Number(odds);
+    if (!num || isNaN(num) || num <= 0) return 0;
+    return (1 / num) * 100;
+  }
+  getBarWidth(odds: any, otherOdds: any): string {
+    const p1 = this.getProbabilityPercent(odds);
+    const p2 = this.getProbabilityPercent(otherOdds);
+    if (p1 + p2 === 0) return '50%';
+    return (p1 / (p1 + p2) * 100).toFixed(1) + '%';
+  }
 }

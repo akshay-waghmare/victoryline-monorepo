@@ -23,8 +23,8 @@
   justify-content: space-between;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 8px 16px;
-  height: 80px; /* enlarge navbar height for better logo visibility */
+  padding: 4px 16px;
+  height: 48px;
 }
 
 /* Brand */
@@ -49,8 +49,8 @@
 }
 
 .navbar__brand-container .logo-image {
-  height: 64px !important; /* full logo in navbar */
-  max-height: 64px !important;
+  height: 48px !important;
+  max-height: 48px !important;
   width: auto;
   display: block;
 }
