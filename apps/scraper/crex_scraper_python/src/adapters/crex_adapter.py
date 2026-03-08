@@ -208,6 +208,12 @@ class CrexAdapter(SourceAdapter):
             current_ls = await self._wait_for_local_storage_ready(page, "live")
             data_store["local_storage"].update(current_ls)
 
+            # Scroll down to trigger lazy-loaded commentary/getBallFeed API
+            # Crex loads ball-by-ball commentary only when user scrolls to that section
+            try:
+                await self._scroll_for_commentary(page, data_store, match_id)
+            except Exception as e:
+                print(f"[COMMENTARY] Error during scroll-for-commentary: {e}")
             content = await page.content()
             dom_data = extract_match_dom_fields(content)
             
@@ -439,6 +445,72 @@ class CrexAdapter(SourceAdapter):
         )
         return local_storage
 
+    async def _scroll_for_commentary(self, page: Page, data_store: Dict[str, Any], match_id: Optional[str] = None):
+        """
+        Scroll the page down to trigger lazy-loaded commentary/getBallFeed API.
+        
+        Crex loads ball-by-ball commentary data only when the user scrolls
+        to the commentary section. We simulate incremental scrolling and
+        capture any new API calls that fire.
+        """
+        # Track new API calls triggered by scroll
+        scroll_apis = []
+        
+        async def track_scroll_response(response: Response):
+            url = response.url
+            # Skip known static / ad resources
+            if any(skip in url for skip in ['.css', '.js', '.png', '.jpg', '.svg', '.woff', '.ico',
+                                             'doubleclick', 'google', 'analytics', 'firebase', 'sV3', 'sC4',
+                                             'facebook', 'twitter']):
+                return
+            content_type = response.headers.get("content-type", "")
+            if "json" in content_type or "javascript" in content_type or "text/plain" in content_type:
+                try:
+                    body_text = await response.text()
+                    scroll_apis.append({"url": url, "status": response.status, "preview": body_text[:300]})
+                    print(f"[SCROLL-DISCOVERY] {url} status={response.status} len={len(body_text)} preview={body_text[:200]}")
+                except Exception:
+                    scroll_apis.append({"url": url, "status": response.status, "preview": ""})
+                    print(f"[SCROLL-DISCOVERY] {url} status={response.status} (read failed)")
+        
+        page.on("response", track_scroll_response)
+        
+        try:
+            # Scroll incrementally (simulate user scrolling to commentary section)
+            for scroll_y in [500, 1000, 1500, 2000, 2500, 3000]:
+                await page.evaluate(f"window.scrollTo(0, {scroll_y})")
+                await asyncio.sleep(0.5)  # Wait for lazy-load triggers
+            
+            # Also try clicking a "Commentary" tab/button if it exists
+            try:
+                commentary_selectors = [
+                    'text=Commentary', 'text=Ball by Ball', 'text=Ball Feed',
+                    '.commentary-tab', '[data-tab="commentary"]',
+                    '.tab-commentary', '.ball-feed-tab'
+                ]
+                for selector in commentary_selectors:
+                    elem = await page.query_selector(selector)
+                    if elem:
+                        print(f"[SCROLL-DISCOVERY] Found commentary element: {selector}")
+                        await elem.click()
+                        await asyncio.sleep(1.5)  # Wait for API call after click
+                        break
+            except Exception as e:
+                print(f"[SCROLL-DISCOVERY] No commentary tab found: {e}")
+            
+            # Wait a bit more for any delayed API calls
+            await asyncio.sleep(1.0)
+            
+            if scroll_apis:
+                print(f"[SCROLL-DISCOVERY] Captured {len(scroll_apis)} API calls triggered by scroll/click")
+                for api in scroll_apis:
+                    print(f"[SCROLL-DISCOVERY]   -> {api['url'][:120]}")
+            else:
+                print(f"[SCROLL-DISCOVERY] No new API calls captured during scroll for {match_id}")
+                
+        finally:
+            page.remove_listener("response", track_scroll_response)
+
     async def _setup_network_interception(self, page: Page, data_store: Dict[str, Any], match_id: Optional[str] = None, source_url: Optional[str] = None) -> asyncio.Event:
         """
         Setup network interception for sV3, sC4, and getBallFeed API calls.
@@ -461,8 +533,8 @@ class CrexAdapter(SourceAdapter):
                 finally:
                     sv3_ready.set()
             
-            # Intercept getBallFeed / commentary endpoint
-            elif "getBallFeed" in url or "ballFeed" in url or "getCommentary" in url:
+            # Intercept getBallFeeds / commentary endpoint (content.crickapi.com)
+            elif "getBallFeed" in url or "crickapi.com/commentary" in url:
                 try:
                     await self._handle_ball_feed_response(response, data_store, match_id)
                 except Exception as e:
@@ -473,9 +545,22 @@ class CrexAdapter(SourceAdapter):
                 try:
                     body = await response.json()
                     keys = list(body.keys()) if isinstance(body, dict) else f"type={type(body).__name__}"
-                    logger.info(f"[API-DISCOVERY] {url} status={response.status} keys={keys}")
+                    print(f"[API-DISCOVERY] {url} status={response.status} keys={keys}")
                 except Exception:
-                    logger.info(f"[API-DISCOVERY] {url} status={response.status} (non-JSON)")
+                    print(f"[API-DISCOVERY] {url} status={response.status} (non-JSON)")
+            
+            # Broad discovery: log ALL XHR/fetch responses to find commentary endpoint
+            # Filter out static assets (css, js, images, fonts, etc.)
+            elif response.status == 200 and not any(ext in url for ext in ['.css', '.js', '.png', '.jpg', '.svg', '.woff', '.ico', '.webp', '.gif']):
+                content_type = response.headers.get("content-type", "")
+                if "json" in content_type or "text/plain" in content_type:
+                    try:
+                        body = await response.text()
+                        preview = body[:200] if body else ""
+                        if any(kw in url.lower() for kw in ['ball', 'feed', 'comment', 'over', 'score', 'match', 'api', 'data']):
+                            print(f"[BROAD-DISCOVERY] {url} ct={content_type} preview={preview[:150]}")
+                    except Exception:
+                        pass
 
         page.on("response", handle_response)
         return sv3_ready
@@ -581,51 +666,41 @@ class CrexAdapter(SourceAdapter):
         match_id: Optional[str] = None,
     ):
         """
-        Trigger getBallFeed API call for ball-by-ball commentary data.
+        Trigger getBallFeeds API call for ball-by-ball commentary data.
         
-        Tries multiple URL patterns to discover the correct endpoint.
-        Uses the same key extracted from the sV3 response URL.
+        Discovered endpoint: https://content.crickapi.com/commentary/getBallFeeds
+        The endpoint requires the match key (mfkey) as a query parameter.
+        
+        The key from sV3 URL is the match code (e.g. "10T7").
         """
-        # URL patterns to try (based on Crex API naming conventions)
-        url_patterns = [
-            f"https://api-v1.com/v10/getBallFeed.php?key={key}",
-            f"https://api-v1.com/v10/sB5.php?key={key}",
-            f"https://api-v1.com/v10/getCommentary.php?key={key}",
-            f"https://api-v1.com/v10/sBF.php?key={key}",
-        ]
+        # The actual commentary endpoint (discovered via scroll interception)
+        url = f"https://content.crickapi.com/commentary/getBallFeeds?mfkey={key}"
         
-        for url in url_patterns:
-            try:
-                response = await page.request.get(url, headers=headers)
-                if response.status == 200:
-                    body = await response.json()
-                    # Check if response has meaningful data
-                    has_data = False
-                    if isinstance(body, list) and len(body) > 0:
-                        has_data = True
-                    elif isinstance(body, dict) and len(body) > 1:
-                        has_data = True
-                    
-                    if has_data:
-                        logger.info(
-                            f"[COMMENTARY] getBallFeed SUCCESS at {url}! "
-                            f"Type={type(body).__name__}, "
-                            f"Keys={list(body.keys()) if isinstance(body, dict) else f'len={len(body)}'}"
-                        )
-                        data_store["commentary_raw"] = body
-                        entries = self._parse_ball_feed(body, data_store.get("local_storage", {}))
-                        if entries:
-                            data_store["commentary"] = entries
-                            logger.info(f"[COMMENTARY] Parsed {len(entries)} commentary entries from {url}")
-                        return  # Found working endpoint, stop trying
-                    else:
-                        logger.debug(f"[COMMENTARY] {url} returned empty data")
+        try:
+            response = await page.request.get(url, headers={
+                "Accept": "application/json",
+                "Origin": "https://crex.com",
+                "Referer": "https://crex.com/",
+            })
+            if response.status == 200:
+                body = await response.json()
+                if isinstance(body, list) and len(body) > 0:
+                    print(f"[COMMENTARY] getBallFeeds SUCCESS for key={key}: {len(body)} entries")
+                    data_store["commentary_raw"] = body
+                    entries = self._parse_ball_feed(body, data_store.get("local_storage", {}))
+                    if entries:
+                        # Merge new entries with existing (may have been captured via scroll too)
+                        existing = data_store.get("commentary", [])
+                        existing_ids = {e.get("id") for e in existing if e.get("id")}
+                        new_entries = [e for e in entries if e.get("id") not in existing_ids]
+                        data_store["commentary"] = existing + new_entries
+                        print(f"[COMMENTARY] Parsed {len(new_entries)} new commentary entries (total={len(data_store['commentary'])})")
                 else:
-                    logger.debug(f"[COMMENTARY] {url} returned status {response.status}")
-            except Exception as e:
-                logger.debug(f"[COMMENTARY] {url} failed: {e}")
-        
-        logger.info(f"[COMMENTARY] No getBallFeed endpoint found for key={key[:20]}... - will discover via network interception")
+                    print(f"[COMMENTARY] getBallFeeds for key={key} returned empty response")
+            else:
+                print(f"[COMMENTARY] getBallFeeds returned status {response.status} for key={key}")
+        except Exception as e:
+            print(f"[COMMENTARY] getBallFeeds call failed for key={key}: {e}")
 
     async def _handle_ball_feed_response(
         self,
@@ -634,95 +709,65 @@ class CrexAdapter(SourceAdapter):
         match_id: Optional[str] = None,
     ):
         """
-        Handle getBallFeed / commentary API response.
+        Handle getBallFeeds / commentary API response intercepted via network.
         
-        This method intercepts the ball-by-ball commentary feed from Crex
-        and stores it in data_store["commentary"] for downstream processing.
-        
-        The exact response shape is discovered at runtime via API-DISCOVERY logging.
+        Endpoint: https://content.crickapi.com/commentary/getBallFeeds
+        Response is a JSON array of ball/over/wicket entries.
         """
         try:
             body = await response.json()
-            logger.info(
-                f"[COMMENTARY] getBallFeed intercepted for {match_id}. "
-                f"URL: {response.url}, "
-                f"Status: {response.status}, "
-                f"Type: {type(body).__name__}, "
-                f"Keys: {list(body.keys()) if isinstance(body, dict) else 'N/A'}, "
-                f"Length: {len(body) if isinstance(body, (list, dict)) else 'N/A'}"
+            print(
+                f"[COMMENTARY] getBallFeeds intercepted for {match_id}. "
+                f"Status={response.status}, Entries={len(body) if isinstance(body, list) else 'N/A'}"
             )
             
-            # Store raw response for analysis
+            # Store raw response
             data_store["commentary_raw"] = body
             
             # Parse commentary entries
             commentary_entries = self._parse_ball_feed(body, data_store.get("local_storage", {}))
             if commentary_entries:
-                data_store["commentary"] = commentary_entries
-                logger.info(f"[COMMENTARY] Parsed {len(commentary_entries)} commentary entries for {match_id}")
+                # Merge with existing
+                existing = data_store.get("commentary", [])
+                existing_ids = {e.get("id") for e in existing if e.get("id")}
+                new_entries = [e for e in commentary_entries if e.get("id") not in existing_ids]
+                data_store["commentary"] = existing + new_entries
+                print(f"[COMMENTARY] Parsed {len(new_entries)} new entries (total={len(data_store['commentary'])})")
             
         except Exception as e:
-            logger.error(f"[COMMENTARY] Error processing getBallFeed: {e}", exc_info=True)
+            logger.error(f"[COMMENTARY] Error processing getBallFeeds: {e}", exc_info=True)
 
     def _parse_ball_feed(self, raw_data: Any, local_storage: Dict[str, str]) -> list:
         """
-        Parse getBallFeed response into structured commentary entries.
+        Parse getBallFeeds response from content.crickapi.com into structured 
+        commentary entries.
         
-        This is a placeholder parser that logs the raw structure.
-        Once the actual API shape is discovered, this will be updated
-        to map fields to CommentaryEntry format:
-        {
-            "overBall": "12.4",
-            "overNumber": 12,
-            "ballInOver": 4,
-            "text": "Bowler to Batsman, FOUR, driven through covers",
-            "type": "BALL" | "WICKET" | "BOUNDARY" | "OVER_SUMMARY" | "INFO",
-            "batsmanName": "Player Name",
-            "bowlerName": "Player Name",
-            "runs": 4,
-            "totalScore": "145/3",
-            "inningsNumber": 1,
-            "highlights": ["BOUNDARY"]
-        }
+        Discovered API: https://content.crickapi.com/commentary/getBallFeeds
+        Response is a JSON array with three entry types:
+        
+        1. Ball-by-ball: {"b":"1", "c1":"R Pillay to M Nofal", "c2":"", "bf":"CFU",
+                          "delivery":85, "inning":0, "fv":2, "ball_db_id":"...", ...}
+        2. Over summary: {"bd":"0-19(3.0)", "bowler":"Name", "fv":32, "o":16, 
+                          "on":15, "p1":"Batsman1", "p2":"Batsman2", "rb":"4.1.0..."}
+        3. Wicket/action: {"fv":64, "player":"M Haziq", "dismissal":2, "o":"5.2", 
+                           "on":5, "inning":1}
+        4. Review/action: {"fv":4096, "type":"ac", "review_left":{...}}
+        
+        fv values: 2=ball, 32=over_summary, 64=wicket, 4096=action/review
         """
         entries = []
         
         try:
-            # Handle list format (array of ball entries)
-            if isinstance(raw_data, list):
-                for idx, item in enumerate(raw_data[:5]):  # Log first 5 for discovery
-                    logger.info(f"[COMMENTARY-DISCOVERY] Entry[{idx}]: {json.dumps(item, default=str)[:500]}")
-                
-                for item in raw_data:
-                    entry = self._map_commentary_entry(item, local_storage)
-                    if entry:
-                        entries.append(entry)
+            if not isinstance(raw_data, list):
+                return entries
             
-            # Handle dict format (paged response with feed array)
-            elif isinstance(raw_data, dict):
-                logger.info(f"[COMMENTARY-DISCOVERY] Dict keys: {list(raw_data.keys())}")
-                
-                # Try common array field names
-                feed_data = (
-                    raw_data.get("feed") or 
-                    raw_data.get("data") or 
-                    raw_data.get("items") or 
-                    raw_data.get("balls") or
-                    raw_data.get("commentary") or
-                    raw_data.get("d") or  # Crex shorthand pattern
-                    []
-                )
-                
-                if isinstance(feed_data, list):
-                    for idx, item in enumerate(feed_data[:5]):  # Log first 5 for discovery
-                        logger.info(f"[COMMENTARY-DISCOVERY] Entry[{idx}]: {json.dumps(item, default=str)[:500]}")
+            for item in raw_data:
+                if not isinstance(item, dict):
+                    continue
                     
-                    for item in feed_data:
-                        entry = self._map_commentary_entry(item, local_storage)
-                        if entry:
-                            entries.append(entry)
-                else:
-                    logger.info(f"[COMMENTARY-DISCOVERY] Feed data is {type(feed_data).__name__}, not list")
+                entry = self._map_commentary_entry(item, local_storage)
+                if entry:
+                    entries.append(entry)
         
         except Exception as e:
             logger.error(f"[COMMENTARY] Error parsing ball feed: {e}", exc_info=True)
@@ -731,74 +776,193 @@ class CrexAdapter(SourceAdapter):
 
     def _map_commentary_entry(self, item: Any, local_storage: Dict[str, str]) -> Optional[Dict[str, Any]]:
         """
-        Map a single ball feed item to a CommentaryEntry dict.
+        Map a single getBallFeeds item to a CommentaryEntry dict.
         
-        Handles both discovered Crex formats. Will be refined once the
-        exact API shape is confirmed via COMMENTARY-DISCOVERY logs.
+        Crex getBallFeeds format discovered:
+        - fv=2:    Ball-by-ball  (c1="Bowler to Batsman", b="runs", delivery=N)
+        - fv=32:   Over summary  (bowler="Name", o=overNum, bd="W-R(overs)", rb="balls")
+        - fv=64:   Wicket        (player="Name", dismissal=type, o="over.ball")
+        - fv=4096: Action/review (type="ac", review_left={...})
         """
         if not isinstance(item, dict):
             return None
         
         try:
-            # Try to extract over/ball info
-            over_num = item.get("o") or item.get("over") or item.get("overNumber") or 0
-            ball_in_over = item.get("b") or item.get("ball") or item.get("ballInOver") or 0
+            fv = item.get("fv", 0)
+            inning = item.get("inning", 0)
+            entry_id = str(item.get("id", ""))
             
-            # Commentary text
-            text = (
-                item.get("cm") or item.get("comment") or item.get("text") or 
-                item.get("commentary") or item.get("c") or ""
-            )
-            
-            if not text:
-                return None
-            
-            # Resolve player names from codes
-            batsman_code = item.get("bt") or item.get("batsman") or item.get("batsmanId") or ""
-            bowler_code = item.get("bw") or item.get("bowler") or item.get("bowlerId") or ""
-            batsman_name = local_storage.get(f"p_{batsman_code}_name", batsman_code) if batsman_code else ""
-            bowler_name = local_storage.get(f"p_{bowler_code}_name", bowler_code) if bowler_code else ""
-            
-            # Runs and event type
-            runs = item.get("r") or item.get("runs") or 0
-            event_type = item.get("t") or item.get("type") or item.get("eventType") or ""
-            
-            # Determine commentary type
-            commentary_type = "BALL"
-            highlights = []
-            if isinstance(event_type, str):
-                event_upper = event_type.upper()
-                if "W" in event_upper or "WICKET" in event_upper:
+            # Ball-by-ball entry (fv=2)
+            if fv == 2:
+                c1 = item.get("c1", "")  # "R Pillay to M Nofal"
+                c2 = item.get("c2", "")  # Additional commentary
+                b = str(item.get("b", "0"))  # Runs: "0", "1", "4", "6", "WD", "NB", "W"
+                delivery = item.get("delivery", 0)
+                
+                # Resolve bowler name from code
+                bowler_code = item.get("bf", "")
+                bowler_name = local_storage.get(f"p_{bowler_code}_name", "") if bowler_code else ""
+                
+                # Build commentary text
+                text = c1
+                if c2:
+                    text = f"{c1}, {c2}"
+                
+                if not text:
+                    return None
+                
+                # Determine type and highlights from runs
+                commentary_type = "BALL"
+                highlights = []
+                runs = 0
+                
+                if b.isdigit():
+                    runs = int(b)
+                    if runs == 4:
+                        commentary_type = "BOUNDARY"
+                        highlights.append("BOUNDARY")
+                    elif runs == 6:
+                        commentary_type = "BOUNDARY"
+                        highlights.append("SIX")
+                elif b.upper() == "W":
                     commentary_type = "WICKET"
                     highlights.append("WICKET")
-                elif runs == 4 or "FOUR" in event_upper or "4" == event_upper:
-                    commentary_type = "BOUNDARY"
-                    highlights.append("BOUNDARY")
-                elif runs == 6 or "SIX" in event_upper or "6" == event_upper:
-                    commentary_type = "BOUNDARY"
-                    highlights.append("SIX")
+                elif b.upper() in ("WD", "NB"):
+                    runs = 1  # Default extra
+                
+                # Check for wicket via dismissal field
+                if item.get("dismissal"):
+                    commentary_type = "WICKET"
+                    if "WICKET" not in highlights:
+                        highlights.append("WICKET")
+                    
+                # Check for catch_drop
+                if item.get("is_catch_drop"):
+                    highlights.append("CATCH_DROP")
+                
+                # Calculate over.ball from delivery number
+                over_num = (delivery - 1) // 6 + 1 if delivery else 0
+                ball_in_over = ((delivery - 1) % 6) + 1 if delivery else 0
+                
+                return {
+                    "id": entry_id,
+                    "overBall": f"{over_num}.{ball_in_over}",
+                    "overNumber": over_num,
+                    "ballInOver": ball_in_over,
+                    "text": text,
+                    "type": commentary_type,
+                    "batsmanName": "",  # c1 contains "Bowler to Batsman" - name embedded
+                    "bowlerName": bowler_name,
+                    "runs": runs,
+                    "totalScore": "",
+                    "inningsNumber": inning + 1,  # Convert from 0-indexed to 1-indexed
+                    "highlights": highlights,
+                    "delivery": delivery,
+                }
             
-            # Total score
-            total_score = item.get("ts") or item.get("totalScore") or item.get("score") or ""
+            # Over summary (fv=32)
+            elif fv == 32:
+                bowler_name = item.get("bowler", "")
+                over_num = item.get("on", item.get("o", 0))
+                bd = item.get("bd", "")  # "W-R(overs)" e.g., "0-19(3.0)"
+                rb = item.get("rb", "")  # Ball-by-ball within over e.g., "4.1.0.0.2.1"
+                p1 = item.get("p1", "")  # Batsman 1
+                p2 = item.get("p2", "")  # Batsman 2
+                
+                text = f"End of over {over_num}: {bowler_name} {bd}"
+                if p1 and p2:
+                    text += f" | {p1} & {p2} at crease"
+                if rb:
+                    text += f" | Balls: {rb}"
+                
+                return {
+                    "id": entry_id,
+                    "overBall": f"{over_num}.6",
+                    "overNumber": int(over_num) if over_num else 0,
+                    "ballInOver": 6,
+                    "text": text,
+                    "type": "OVER_SUMMARY",
+                    "batsmanName": p1,
+                    "bowlerName": bowler_name,
+                    "runs": 0,
+                    "totalScore": bd,
+                    "inningsNumber": inning + 1,
+                    "highlights": [],
+                    "delivery": 0,
+                }
             
-            # Innings
-            innings = item.get("inn") or item.get("inningsNumber") or item.get("innings") or 1
+            # Wicket event (fv=64)
+            elif fv == 64:
+                player = item.get("player", "")
+                over_str = str(item.get("o", "0"))
+                dismissal = item.get("dismissal", 0)
+                
+                # Parse over.ball
+                if "." in over_str:
+                    parts = over_str.split(".")
+                    over_num = int(parts[0])
+                    ball_in_over = int(parts[1])
+                else:
+                    over_num = int(over_str) if over_str.isdigit() else 0
+                    ball_in_over = 0
+                
+                # Dismissal type mapping
+                dismissal_types = {
+                    1: "caught", 2: "bowled", 3: "lbw", 4: "run out",
+                    5: "stumped", 6: "hit wicket", 7: "retired", 8: "retired hurt"
+                }
+                dismissal_text = dismissal_types.get(dismissal, f"dismissed({dismissal})")
+                
+                bowler_code = item.get("bf", "")
+                bowler_name = local_storage.get(f"p_{bowler_code}_name", "") if bowler_code else ""
+                
+                text = f"WICKET! {player} {dismissal_text}"
+                if bowler_name:
+                    text += f" b {bowler_name}"
+                
+                return {
+                    "id": entry_id,
+                    "overBall": f"{over_num}.{ball_in_over}",
+                    "overNumber": over_num,
+                    "ballInOver": ball_in_over,
+                    "text": text,
+                    "type": "WICKET",
+                    "batsmanName": player,
+                    "bowlerName": bowler_name,
+                    "runs": 0,
+                    "totalScore": "",
+                    "inningsNumber": inning + 1,
+                    "highlights": ["WICKET"],
+                    "delivery": 0,
+                }
             
-            return {
-                "overBall": f"{over_num}.{ball_in_over}",
-                "overNumber": int(over_num) if over_num else 0,
-                "ballInOver": int(ball_in_over) if ball_in_over else 0,
-                "text": str(text),
-                "type": commentary_type,
-                "batsmanName": batsman_name,
-                "bowlerName": bowler_name,
-                "runs": int(runs) if runs else 0,
-                "totalScore": str(total_score),
-                "inningsNumber": int(innings) if innings else 1,
-                "highlights": highlights,
-            }
+            # Action/review (fv=4096)
+            elif fv == 4096:
+                action_type = item.get("type", "")
+                if action_type == "ac":
+                    review_left = item.get("review_left", {})
+                    text = f"Review update: {review_left}"
+                    return {
+                        "id": entry_id,
+                        "overBall": "",
+                        "overNumber": 0,
+                        "ballInOver": 0,
+                        "text": text,
+                        "type": "INFO",
+                        "batsmanName": "",
+                        "bowlerName": "",
+                        "runs": 0,
+                        "totalScore": "",
+                        "inningsNumber": inning + 1,
+                        "highlights": [],
+                        "delivery": 0,
+                    }
+            
+            # Unknown fv type — skip
+            return None
+            
         except Exception as e:
-            logger.warning(f"[COMMENTARY] Failed to map entry: {e}")
+            logger.warning(f"[COMMENTARY] Failed to map entry (fv={item.get('fv')}): {e}")
             return None
 
     def _process_live_data(self, final_data: Dict[str, Any], api_data: Dict[str, Any], local_storage: Dict[str, str] = None):

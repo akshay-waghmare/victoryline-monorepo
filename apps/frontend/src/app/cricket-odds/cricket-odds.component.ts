@@ -1079,13 +1079,16 @@ placeSessionBet() {
   getProbability(odds: any): string {
     const num = Number(odds);
     if (!num || isNaN(num) || num <= 0) return '0%';
-    return ((1 / num) * 100).toFixed(1) + '%';
+    // Odds are in paise format (e.g. 90 = win 90 per 100 staked = decimal odds 1.90)
+    // Implied probability = 100 / (100 + odds)
+    return (100 / (100 + num)).toFixed(1) + '%';
   }
 
   getProbabilityPercent(odds: any): number {
     const num = Number(odds);
     if (!num || isNaN(num) || num <= 0) return 0;
-    return (1 / num) * 100;
+    // Odds are in paise format — implied probability = 100 / (100 + odds)
+    return 100 / (100 + num);
   }
   getBarWidth(odds: any, otherOdds: any): string {
     const p1 = this.getProbabilityPercent(odds);
