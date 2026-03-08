@@ -10,6 +10,24 @@ import { MatTabChangeEvent } from '@angular/material/tabs';
 export class ScorecardComponent implements OnInit {
 
   @Input() scorecardInfo: any;
+
+  private readonly emptyBatsmanStats = {
+    runs: 0,
+    balls_faced: 0,
+    fours: 0,
+    sixes: 0,
+    status: '',
+    dismissal_code: '',
+    bowler_code: '',
+    player_caught: ''
+  };
+
+  private readonly emptyBowlerStats = {
+    overs: 0,
+    maidens: 0,
+    runs: 0,
+    wickets: 0
+  };
   
   match_info: any;
   batting: any;
@@ -210,24 +228,106 @@ export class ScorecardComponent implements OnInit {
   }
 
   onTabChange(event: MatTabChangeEvent) {
-    console.log(event);
-
-    if(event.index >=0 && event.index < this.inningsKeys.length){
-
+    if (event.index >= 0 && event.index < this.inningsKeys.length) {
       this.selectedInning = this.inningsKeys[event.index];
     }
   }
 
-  getBatsmanKeys(): string[] {
-    return this.selectedInning ? Object.keys(this.scorecardInfo.match_stats_by_innings.innings[this.selectedInning].batsman_stats) : [];
+  private getInningStats(inningKey?: string): any {
+    const key = inningKey || this.selectedInning;
+    if (!key || !this.scorecardInfo) { return null; }
+    const inn = this.scorecardInfo.match_stats_by_innings;
+    if (!inn) { return null; }
+    return (inn.innings && inn.innings[key]) ? inn.innings[key] : null;
   }
 
-  getBowlerKeys(): string[] {
-    return this.selectedInning ? Object.keys(this.scorecardInfo.match_stats_by_innings.innings[this.selectedInning].bowlers_stats) : [];
+  getBatsmanKeys(inningKey?: string): string[] {
+    const stats = this.getInningStats(inningKey);
+    return (stats && stats.batsman_stats) ? Object.keys(stats.batsman_stats) : [];
+  }
+
+  getBatsmenWhoPlayed(inningKey?: string): string[] {
+    const stats = this.getInningStats(inningKey);
+    return this.getBatsmanKeys(inningKey).filter(k => {
+      const bStats = stats && stats.batsman_stats && stats.batsman_stats[k];
+      return !bStats || bStats.status !== 'yet_to_bat';
+    });
+  }
+
+  getYetToBatKeys(inningKey?: string): string[] {
+    const stats = this.getInningStats(inningKey);
+    return this.getBatsmanKeys(inningKey).filter(k => {
+      const bStats = stats && stats.batsman_stats && stats.batsman_stats[k];
+      return bStats && bStats.status === 'yet_to_bat';
+    });
+  }
+
+  getBowlerKeys(inningKey?: string): string[] {
+    const stats = this.getInningStats(inningKey);
+    return (stats && stats.bowlers_stats) ? Object.keys(stats.bowlers_stats) : [];
+  }
+
+  getBatsmanStats(batterKey: string, inningKey?: string): any {
+    const stats = this.getInningStats(inningKey);
+    return (stats && stats.batsman_stats && stats.batsman_stats[batterKey])
+      ? stats.batsman_stats[batterKey]
+      : this.emptyBatsmanStats;
+  }
+
+  getBowlerStats(bowlerKey: string, inningKey?: string): any {
+    const stats = this.getInningStats(inningKey);
+    return (stats && stats.bowlers_stats && stats.bowlers_stats[bowlerKey])
+      ? stats.bowlers_stats[bowlerKey]
+      : this.emptyBowlerStats;
   }
 
   getInningLabel(inningKey: string): string {
-    return inningKey.replace('_', ' ').replace('inning', 'Inning');
+    const inn = this.scorecardInfo &&
+                this.scorecardInfo.match_stats_by_innings &&
+                this.scorecardInfo.match_stats_by_innings.innings;
+    const stats = inn && inn[inningKey];
+    const team = (stats && stats.team_code) ? stats.team_code : '';
+    const label = inningKey.replace(/_/g, ' ').replace(/\binning\b/i, 'Inning');
+    return team ? `${team} - ${label}` : label;
+  }
+
+  isCurrentlyBatting(batterKey: string, inningKey?: string): boolean {
+    const stats = this.getInningStats(inningKey);
+    const bStats = stats && stats.batsman_stats && stats.batsman_stats[batterKey];
+    return !!(bStats && bStats.status === 'currently_batting');
+  }
+
+  getDismissalText(batterKey: string, inningKey?: string): string {
+    const stats = this.getInningStats(inningKey);
+    const bStats = stats && stats.batsman_stats && stats.batsman_stats[batterKey];
+    if (!bStats) { return ''; }
+    const status = bStats.status;
+    const dismissal_code = bStats.dismissal_code;
+    const bowler_code = bStats.bowler_code;
+    const player_caught = bStats.player_caught;
+    if (status === 'currently_batting') { return 'not out'; }
+    if (status === 'yet_to_bat') { return 'yet to bat'; }
+    if (!dismissal_code) { return ''; }
+    const dc = dismissal_code.toLowerCase();
+    if (dc === 'c' || dc === 'caught') {
+      const catcher = player_caught ? ` ${player_caught}` : '';
+      const bowler = bowler_code ? ` b ${bowler_code}` : '';
+      return `c${catcher}${bowler}`;
+    }
+    if (dc === 'lbw') { return bowler_code ? `lbw b ${bowler_code}` : 'lbw'; }
+    if (dc === 'b' || dc === 'bowled') { return bowler_code ? `b ${bowler_code}` : 'bowled'; }
+    if (dc === 'run out') {
+      const fielder = player_caught ? ` (${player_caught})` : '';
+      return `run out${fielder}`;
+    }
+    if (dc === 'st' || dc === 'stumped') {
+      const wk = player_caught ? ` ${player_caught}` : '';
+      return bowler_code ? `st${wk} b ${bowler_code}` : `stumped${wk}`;
+    }
+    if (dc === 'hit wicket') { return bowler_code ? `hit wicket b ${bowler_code}` : 'hit wicket'; }
+    if (dc === 'obstructed') { return 'obstructed the field'; }
+    if (dc === 'handled') { return 'handled the ball'; }
+    return dismissal_code;
   }
 
   calculateStrikeRate(runs: number, balls: number): number {

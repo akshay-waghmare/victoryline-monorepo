@@ -1,158 +1,260 @@
+
 .scorecard-container {
-  padding: 16px;
+  padding: 24px;
+  background: linear-gradient(to bottom, #f8fafc 0%, #ffffff 100%);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
 .innings-tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  border-bottom: 2px solid #e5e7eb;
+  gap: 12px;
+  margin-bottom: 24px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 8px;
+  overflow-x: auto;
 }
 
 .innings-tab {
+  white-space: nowrap;
   padding: 12px 24px;
-  background: none;
-  border: none;
-  border-bottom: 3px solid transparent;
-  font-weight: 500;
-  color: var(--muted-color, #6b7280);
+  background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
+  border: 1px solid #e2e8f0;
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  font-weight: 600;
+  color: #64748b;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.02);
+}
+
+.innings-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  transition: all 0.3s ease;
+  z-index: 2;
 }
 
 .innings-tab:hover {
-  color: var(--primary-color, #1e3a8a);
-  background-color: #f3f4f6;
+  color: var(--color-primary, #1976d2);
+  background: #ffffff;
+  transform: translateY(-2px);
 }
 
 .innings-tab.active {
-  color: var(--primary-color, #1e3a8a);
-  border-bottom-color: var(--primary-color, #1e3a8a);
+  color: var(--color-primary, #1976d2);
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.innings-tab:focus-visible {
-  outline: 2px solid var(--primary-color, #1e3a8a);
-  outline-offset: 2px;
+.innings-tab.active::after {
+  background: linear-gradient(90deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
 }
 
 .innings-panel {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 28px;
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.innings-summary {
+  background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
+  padding: 20px 28px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(41, 182, 246, 0.25);
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+}
+
+.innings-summary::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+  pointer-events: none;
 }
 
 .innings-summary h3 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-color, #333);
+  font-size: 1.75rem;
+  font-weight: 800;
   margin: 0;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .batting-section,
 .bowling-section {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
   overflow-x: auto;
+  transition: box-shadow 0.3s ease;
+}
+
+.batting-section:hover,
+.bowling-section:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
 }
 
 .batting-section h4,
 .bowling-section h4,
 .fall-of-wickets-section h4 {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: var(--text-color, #333);
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin: 0 0 20px 0;
+  background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: inline-block;
 }
 
 .scorecard-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9375rem;
 }
 
 .scorecard-table thead {
-  background-color: #f3f4f6;
+  background: #f8fafc;
 }
 
 .scorecard-table th {
-  padding: 12px 8px;
+  padding: 14px 16px;
   text-align: left;
-  font-weight: 600;
-  color: var(--text-color, #333);
-  border-bottom: 2px solid #e5e7eb;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
 }
+
+.scorecard-table th:first-child { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+.scorecard-table th:last-child { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
 
 .scorecard-table td {
-  padding: 10px 8px;
-  border-bottom: 1px solid #e5e7eb;
-  color: var(--muted-color, #6b7280);
+  padding: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  transition: all 0.2s ease;
+  vertical-align: middle;
 }
 
-.scorecard-table tbody tr:hover {
-  background-color: #f9fafb;
+.scorecard-table tbody tr:hover td {
+  background-color: #f8fafc;
+  transform: scale(1.002);
+}
+
+.scorecard-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .not-out-badge {
-  color: #10b981;
-  font-weight: 700;
-  margin-left: 4px;
+  color: #059669;
+  font-weight: 800;
+  margin-left: 6px;
+  font-size: 1.2em;
+  text-shadow: 0 1px 2px rgba(5, 150, 105, 0.2);
 }
 
 .dismissal {
   font-size: 0.8125rem;
+  color: #64748b;
+  display: block;
+  margin-top: 4px;
   font-style: italic;
 }
 
 .extras-section p {
-  padding: 12px;
-  background-color: #f9fafb;
-  border-left: 3px solid var(--accent-color, #f59e0b);
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border-left: 5px solid #f59e0b;
+  border-radius: 12px;
   margin: 0;
+  font-weight: 600;
+  color: #92400e;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
 }
 
 .fall-of-wickets-section {
-  padding: 16px;
-  background-color: #fef3c7;
-  border-radius: 8px;
+  padding: 24px;
+  background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+  border-radius: 16px;
+  border: 1px solid #fecaca;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
 }
 
 .fow-list {
-  list-style-position: inside;
+  list-style-type: none;
   margin: 0;
-  padding-left: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .fow-list li {
-  padding: 4px 0;
-  color: var(--text-color, #333);
+  padding: 8px 16px;
+  background: #ffffff;
+  border-radius: 20px;
+  color: #b91c1c;
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.15);
+  border: 1px solid #fca5a5;
+  transition: transform 0.2s ease;
+}
+
+.fow-list li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(185, 28, 28, 0.25);
 }
 
 .loading-state,
 .empty-state {
-  padding: 48px 24px;
+  padding: 64px 24px;
   text-align: center;
-  color: var(--muted-color, #6b7280);
+  color: #64748b;
   font-style: italic;
+  font-size: 1.125rem;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 2px dashed #e2e8f0;
 }
 
 /* Mobile responsiveness */
 @media (max-width: 767px) {
-  .scorecard-table {
-    font-size: 0.75rem;
-  }
-
-  .scorecard-table th,
-  .scorecard-table td {
-    padding: 8px 4px;
-  }
-
-  .innings-tab {
-    padding: 10px 16px;
-    font-size: 0.875rem;
-  }
+  .scorecard-container { padding: 12px; border-radius: 12px; }
+  .scorecard-table { font-size: 0.8125rem; }
+  .scorecard-table th, .scorecard-table td { padding: 10px 8px; }
+  .innings-tab { padding: 10px 16px; font-size: 0.875rem; }
+  .batting-section, .bowling-section { padding: 16px; }
 }
 
-/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .innings-tab {
-    transition: none !important;
-  }
+  .innings-tab { transition: none !important; }
+  .innings-panel { animation: none !important; }
+  .scorecard-table tbody tr:hover td { transform: none !important; }
+  .fow-list li:hover { transform: none !important; }
 }

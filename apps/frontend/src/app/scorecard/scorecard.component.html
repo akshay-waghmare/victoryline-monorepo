@@ -90,78 +90,87 @@
 </div>
  -->
 
- <div class="scorecard">
+<div class="scorecard">
   <h1>Scorecard</h1>
 
-  <!-- Innings Selection Tabs -->
   <mat-tab-group (selectedTabChange)="onTabChange($event)">
     <mat-tab *ngFor="let inningKey of inningsKeys" [label]="getInningLabel(inningKey)">
-      <!-- Team Info -->
-      <div class="header">
-        <!-- <img [src]="getTeamLogo(scorecardData.innings[inningKey].team_code)" alt="{{ scorecardData.innings[inningKey].team_code }} Logo" width="24" height="24"> -->
-  <div class="score">{{ scorecardInfo.match_stats_by_innings.innings[inningKey].team_code }} {{ formatTeamScore(scorecardInfo.match_stats_by_innings.innings[inningKey].team_score) }}</div>
-      </div>
 
-      <!-- Batting Section -->
-      <div class="batting">
-        <h2>Batting</h2>
-        <table>
+      <!-- Innings team score header -->
+      <ng-container *ngIf="scorecardInfo.match_stats_by_innings.innings[inningKey] as inn">
+        <div class="innings-header">
+          <span class="team-code">{{ inn.team_code }}</span>
+          <span class="team-score">{{ formatTeamScore(inn.team_score) }}</span>
+        </div>
+
+        <!-- ── BATTING ── -->
+        <div class="section-label">Batting</div>
+        <table class="sc-table">
           <thead>
             <tr>
-              <th>Batter</th>
-              <th>R</th>
-              <th>B</th>
-              <th>4s</th>
-              <th>6s</th>
-              <th>SR</th>
+              <th class="col-player">Batter</th>
+              <th class="col-num">R</th>
+              <th class="col-num">B</th>
+              <th class="col-num">4s</th>
+              <th class="col-num">6s</th>
+              <th class="col-num">SR</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let batterKey of getBatsmanKeys()">
-              <td>{{ batterKey }} <i class="fas fa-chevron-down"></i></td>
-              <td>{{ this.scorecardInfo.match_stats_by_innings.innings[selectedInning].batsman_stats[batterKey].runs }}</td>
-              <td>{{ this.scorecardInfo.match_stats_by_innings.innings[selectedInning].batsman_stats[batterKey].balls_faced }}</td>
-              <td>{{ this.scorecardInfo.match_stats_by_innings.innings[selectedInning].batsman_stats[batterKey].fours }}</td>
-              <td>{{ this.scorecardInfo.match_stats_by_innings.innings[selectedInning].batsman_stats[batterKey].sixes }}</td>
-              <td>{{ calculateStrikeRate(this.scorecardInfo.match_stats_by_innings.innings[selectedInning].batsman_stats[batterKey].runs, this.scorecardInfo.match_stats_by_innings.innings[selectedInning].batsman_stats[batterKey].balls_faced) | number: '1.0-2' }}</td>
+            <tr *ngFor="let batterKey of getBatsmenWhoPlayed(inningKey)"
+                [class.currently-batting]="isCurrentlyBatting(batterKey, inningKey)">
+              <td class="player-cell">
+                <span class="player-name">
+                  {{ batterKey }}
+                  <span *ngIf="isCurrentlyBatting(batterKey, inningKey)" class="not-out-marker" title="Currently batting">*</span>
+                </span>
+                <span class="dismissal-text" [class.batting-status]="isCurrentlyBatting(batterKey, inningKey)">
+                  {{ getDismissalText(batterKey, inningKey) }}
+                </span>
+              </td>
+              <td class="col-num bold-runs">{{ getBatsmanStats(batterKey, inningKey).runs }}</td>
+              <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).balls_faced }}</td>
+              <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).fours }}</td>
+              <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).sixes }}</td>
+              <td class="col-num">{{ calculateStrikeRate(getBatsmanStats(batterKey, inningKey).runs, getBatsmanStats(batterKey, inningKey).balls_faced) | number:'1.0-2' }}</td>
             </tr>
           </tbody>
         </table>
-        <!-- Optional: Display Extras -->
-        <!--
-        <div class="extras" *ngIf="scorecardData.innings[selectedInning].batting.extras">
-          Extras: {{ scorecardData.innings[selectedInning].batting.extras.total }} (b {{ scorecardData.innings[selectedInning].batting.extras.byes }}, lb {{ scorecardData.innings[selectedInning].batting.extras.leg_byes }}, w {{ scorecardData.innings[selectedInning].batting.extras.wides }}, nb {{ scorecardData.innings[selectedInning].batting.extras.no_balls }}, p {{ scorecardData.innings[selectedInning].batting.extras.penalty }})
+
+        <!-- Yet to bat -->
+        <div class="yet-to-bat-row" *ngIf="getYetToBatKeys(inningKey).length > 0">
+          <span class="ytb-label">Yet to bat:</span>
+          <span class="ytb-names">{{ getYetToBatKeys(inningKey).join(', ') }}</span>
         </div>
-        -->
-      </div>
 
-      <!-- Bowling Section -->
-      <h2>Bowling</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Bowler</th>
-            <th>O</th>
-            <th>M</th>
-            <th>R</th>
-            <th>W</th>
-            <th>ER</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let bowlerKey of getBowlerKeys()">
-            <td>{{ bowlerKey }}</td>
-            <td>{{ this.scorecardInfo.match_stats_by_innings.innings[selectedInning].bowlers_stats[bowlerKey].overs }}</td>
-            <td>{{ this.scorecardInfo.match_stats_by_innings.innings[selectedInning].bowlers_stats[bowlerKey].maidens }}</td>
-            <td>{{ this.scorecardInfo.match_stats_by_innings.innings[selectedInning].bowlers_stats[bowlerKey].runs }}</td>
-            <td>{{ this.scorecardInfo.match_stats_by_innings.innings[selectedInning].bowlers_stats[bowlerKey].wickets }}</td>
-            <td>{{ calculateEconomyRate(this.scorecardInfo.match_stats_by_innings.innings[selectedInning].bowlers_stats[bowlerKey].runs, this.scorecardInfo.match_stats_by_innings.innings[selectedInning].bowlers_stats[bowlerKey].overs) | number: '1.0-2' }}</td>
-          </tr>
-        </tbody>
-      </table>
+        <!-- ── BOWLING ── -->
+        <div class="section-label">Bowling</div>
+        <table class="sc-table">
+          <thead>
+            <tr>
+              <th class="col-player">Bowler</th>
+              <th class="col-num">O</th>
+              <th class="col-num">M</th>
+              <th class="col-num">R</th>
+              <th class="col-num">W</th>
+              <th class="col-num">ECON</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let bowlerKey of getBowlerKeys(inningKey)">
+              <td class="player-cell">
+                <span class="player-name">{{ bowlerKey }}</span>
+              </td>
+              <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).overs }}</td>
+              <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).maidens }}</td>
+              <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).runs }}</td>
+              <td class="col-num bold-wickets">{{ getBowlerStats(bowlerKey, inningKey).wickets }}</td>
+              <td class="col-num">{{ calculateEconomyRate(getBowlerStats(bowlerKey, inningKey).runs, getBowlerStats(bowlerKey, inningKey).overs) | number:'1.0-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
 
-      <!-- Optional: Add Fall of Wickets, Partnerships, etc. -->
-
+      </ng-container>
     </mat-tab>
   </mat-tab-group>
 </div>

@@ -5,9 +5,6 @@ FROM node:${NODE_VERSION}-alpine AS build
 # Set working directory
 WORKDIR /app
 
-# Install native build tools needed by node-sass
-RUN apk add --no-cache python3 make g++
-
 # Copy package files
 COPY package*.json ./
 
