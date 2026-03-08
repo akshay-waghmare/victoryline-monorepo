@@ -548,7 +548,9 @@ class CrexScraperService:
                     logger.warning(f"Failed to push data for {canonical_id}")
                 
                 # Push match info if newly fetched
-                if match_info_fetched_now and match_info:
+                # Also re-push cached match info periodically to handle cache-DB desync
+                # (e.g., backend rebuilt but Redis still has cached info)
+                if match_info:
                      # Use info_url if available, else derive it again
                      if not info_url:
                         info_url = task.url.replace("/live", "/info").replace("/scorecard", "/info")
