@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.transaction.Transactional;
@@ -81,6 +82,18 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
     
     @Autowired
     private SessionOddsRepository sessionOddsRepository;
+
+    // ─── In-memory cache for match data (stale-while-revalidate) ────
+    private static class CacheEntry<T> {
+        final T data;
+        final long timestamp;
+        CacheEntry(T data) { this.data = data; this.timestamp = System.currentTimeMillis(); }
+        boolean isExpired(long ttlMs) { return System.currentTimeMillis() - timestamp > ttlMs; }
+    }
+    /** Cache TTL: 10 seconds – fresh enough for live matches */
+    private static final long CACHE_TTL_MS = 10_000;
+    /** In-memory match data cache keyed by URL */
+    private final ConcurrentHashMap<String, CacheEntry<CricketDataDTO>> matchDataCache = new ConcurrentHashMap<>();
 	
 
 
@@ -167,11 +180,20 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
             MatchInfoEntity matchInfoEntity = convertDtoToMatchInfoEntity(data);
             matchInfoRepository.save(matchInfoEntity);
         }
+        
+        // Invalidate cache so next read picks up fresh data
+        matchDataCache.remove(url);
     }
 
     // Method to get the last updated data for a specific URL
     @org.springframework.transaction.annotation.Transactional
     public synchronized CricketDataDTO getLastUpdatedData(String url) {
+        // Check in-memory cache first (avoids DB round-trip within TTL window)
+        CacheEntry<CricketDataDTO> cached = matchDataCache.get(url);
+        if (cached != null && !cached.isExpired(CACHE_TTL_MS)) {
+            return cached.data;
+        }
+
         //return lastUpdatedDataMap.get(url);
     	CricketDataEntity entity = cricketDataRepository.findByUrlWithTeamWiseSessionData(url);
         MatchInfoEntity matchInfoEntity = matchInfoRepository.findById(url).orElse(null); // Get MatchInfoEntity by URL
@@ -189,6 +211,10 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
     	if (matchInfoEntity != null) {
             data = mergeMatchInfoToCricketDataDTO(matchInfoEntity, data);
         }
+        
+        // Store in cache for subsequent requests
+        matchDataCache.put(url, new CacheEntry<>(data));
+        
         return data;
     	
     	

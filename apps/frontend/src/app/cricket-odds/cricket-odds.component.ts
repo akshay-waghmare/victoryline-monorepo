@@ -224,6 +224,13 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       //watching live score for cricket data
       this.cricetTopicSubscription = this.rxStompService.watch(`/topic/cricket.${match}.*`).subscribe((data) => {
         this.parseCricObjData(data);
+        // Cache WebSocket updates for instant load on next visit
+        try {
+          const parsed = data && 'body' in data ? JSON.parse(data.body) : data;
+          if (parsed) {
+            this.cricketService.updateMatchDataCache(match, parsed);
+          }
+        } catch (_) { /* non-critical */ }
       });
       
       // Fetch match info for hero component
@@ -232,10 +239,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   }
 
   private parseCricObjData(data) {
-    console.log(data);
     // Check if 'data' has a 'body' property
     if(data && 'body' in data){
-      console.log('Subscribed to data:', data.body);
       this.cricObj = JSON.parse(data.body);
     } else {
       this.cricObj = data;
