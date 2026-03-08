@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable, of, concat } from 'rxjs';
-import { tap, filter } from 'rxjs/operators';
+import { Observable, of, concat, EMPTY } from 'rxjs';
+import { tap, filter, catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { TokenStorage } from '../token.storage';
 
@@ -101,9 +101,16 @@ export class CricketService {
     } catch (_) { /* non-critical */ }
   }
 
-  /** Update cache when WebSocket pushes arrive (called by component) */
-  updateMatchDataCache(url: string, data: any): void {
-    this.setCache(this.matchDataCache, 'match', url, data);
+  /**
+   * Merge WebSocket partial updates into the existing cache.
+   * WebSocket sends individual fields (e.g. {batsman_data: [...]}, {team_odds: {...}})
+   * so we must merge rather than replace to keep all fields intact.
+   */
+  updateMatchDataCache(url: string, partialData: any): void {
+    if (!partialData || typeof partialData !== 'object') return;
+    const existing = this.getCache(this.matchDataCache, 'match', url);
+    const merged = existing ? { ...existing, ...partialData } : partialData;
+    this.setCache(this.matchDataCache, 'match', url, merged);
   }
 
   // ─── Stale-While-Revalidate: Match Data ──────────────────────────
@@ -121,6 +128,10 @@ export class CricketService {
         if (data) {
           this.setCache(this.matchDataCache, 'match', url, data);
         }
+      }),
+      catchError(err => {
+        console.warn('SWR: HTTP error fetching match data, using cache if available', err.status);
+        return EMPTY; // Don't propagate error if cache was already emitted
       })
     );
 
@@ -150,6 +161,10 @@ export class CricketService {
         if (data) {
           this.setCache(this.matchInfoCache, 'info', url, data);
         }
+      }),
+      catchError(err => {
+        console.warn('SWR: HTTP error fetching match info, using cache if available', err.status);
+        return EMPTY;
       })
     );
 
@@ -170,6 +185,10 @@ export class CricketService {
         if (data) {
           this.setCache(this.scorecardCache, 'sc', url, data);
         }
+      }),
+      catchError(err => {
+        console.warn('SWR: HTTP error fetching scorecard, using cache if available', err.status);
+        return EMPTY;
       })
     );
 

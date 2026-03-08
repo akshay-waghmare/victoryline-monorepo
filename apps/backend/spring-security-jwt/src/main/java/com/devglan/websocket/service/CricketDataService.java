@@ -181,8 +181,44 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
             matchInfoRepository.save(matchInfoEntity);
         }
         
-        // Invalidate cache so next read picks up fresh data
+        // Update cache with fresh DB data (will be enriched with transient fields below)
         matchDataCache.remove(url);
+    }
+
+    /**
+     * Enrich the in-memory cache with transient fields (batsman_data, bowler_data, toss_won_country)
+     * that are NOT persisted to the database but should be returned by getLastUpdatedData.
+     * Called by the controller after setLastUpdatedData + sendCricketData.
+     */
+    public void enrichCacheWithTransientData(String url, CricketDataDTO incomingData) {
+        // Get the current cache entry (or load from DB if not cached)
+        CricketDataDTO cached = null;
+        CacheEntry<CricketDataDTO> entry = matchDataCache.get(url);
+        if (entry != null) {
+            cached = entry.data;
+        }
+        if (cached == null) {
+            // Load from DB to populate cache
+            cached = getLastUpdatedData(url);
+        }
+        if (cached == null) {
+            cached = new CricketDataDTO();
+            cached.setUrl(url);
+        }
+        
+        // Merge transient fields that aren't persisted to DB
+        if (incomingData.getBatsmanData() != null && !incomingData.getBatsmanData().isEmpty()) {
+            cached.setBatsmanData(incomingData.getBatsmanData());
+        }
+        if (incomingData.getBowlerData() != null && !incomingData.getBowlerData().isEmpty()) {
+            cached.setBowlerData(incomingData.getBowlerData());
+        }
+        if (incomingData.getToss_won_country() != null) {
+            cached.setToss_won_country(incomingData.getToss_won_country());
+        }
+        
+        // Store the enriched DTO in cache
+        matchDataCache.put(url, new CacheEntry<>(cached));
     }
 
     // Method to get the last updated data for a specific URL

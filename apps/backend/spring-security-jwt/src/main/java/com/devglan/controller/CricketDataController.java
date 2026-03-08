@@ -210,6 +210,10 @@ public class CricketDataController {
 	        cricketDataService.setLastUpdatedData(existingData.getUrl(), existingData);
 	        cricketDataService.sendCricketData(data.getUrl(), nonNullFields);
 
+	        // Enrich the in-memory cache with transient fields (batsman/bowler data)
+	        // so getLastUpdatedData HTTP endpoint returns them instantly
+	        cricketDataService.enrichCacheWithTransientData(data.getUrl(), data);
+
 	        // Return a success response
 	        return ResponseEntity.ok("Data received successfully!");
 	    } catch (Exception e) {
