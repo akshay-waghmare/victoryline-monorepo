@@ -89,9 +89,18 @@ class FastPollService:
         logger.info(f"[FASTPOLL] Attached network interceptor to {match_id}")
     
     async def _on_response(self, response: Response, match_id: str, match_url: str):
-        """Handle intercepted response - check for sV3 data."""
+        """Handle intercepted response - check for sV3 and commentary data."""
         try:
             url = response.url
+            
+            # Log unknown api-v1.com endpoints for discovery
+            if "api-v1.com" in url and "sV3" not in url and "sC4" not in url:
+                try:
+                    body = await response.json()
+                    keys = list(body.keys()) if isinstance(body, dict) else f"type={type(body).__name__}"
+                    logger.info(f"[FASTPOLL-DISCOVERY] {url} keys={keys}")
+                except Exception:
+                    logger.info(f"[FASTPOLL-DISCOVERY] {url} status={response.status}")
             
             # Check if this is an sV3 response
             if "sV3" not in url:
