@@ -314,6 +314,10 @@ export class ScorecardComponent implements OnInit {
       const bowler = bowler_code ? ` b ${bowler_code}` : '';
       return `c${catcher}${bowler}`;
     }
+    if (dc === '^3' || dc === 'c&b' || dc === 'caught and bowled' || dc === 'caughtandbowled') {
+      const bowler = bowler_code || player_caught;
+      return bowler ? `c & b ${bowler}` : 'c & b';
+    }
     if (dc === 'lbw') { return bowler_code ? `lbw b ${bowler_code}` : 'lbw'; }
     if (dc === 'b' || dc === 'bowled') { return bowler_code ? `b ${bowler_code}` : 'bowled'; }
     if (dc === 'run out') {

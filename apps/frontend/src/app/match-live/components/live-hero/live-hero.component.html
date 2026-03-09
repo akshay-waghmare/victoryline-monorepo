@@ -6,14 +6,14 @@
 </app-hero-condensed>
 
 <ng-container *ngIf="view$ | async as view; else loadingState">
-  <section class="live-hero" [attr.data-status]="view.status">
+  <section class="live-hero" [attr.data-status]="statusKey(view)">
     <header class="live-hero__headline">
       <div class="live-hero__fixture">
         <div class="live-hero__match-info" *ngIf="matchInfo">
           <mat-icon class="live-hero__info-icon" [attr.title]="matchInfo.match_name || matchInfo.series_name">location_on</mat-icon>
           <span class="live-hero__info-text">{{ matchInfo.match_name || matchInfo.series_name }}</span>
         </div>
-        <span class="live-hero__status">{{ view.status | titlecase }}</span>
+          <span class="live-hero__status">{{ statusLabel(view) }}</span>
       </div>
       <div class="live-hero__timestamp">
         <mat-icon class="timestamp-icon">schedule</mat-icon>
@@ -56,26 +56,39 @@
         </div>
 
         <div class="live-hero__pod live-hero__pod--context">
-          <div class="chase-summary" *ngIf="view.score.resultSummary">
-            {{ view.score.resultSummary }}
-          </div>
-          <div class="chase-summary" *ngIf="!view.score.resultSummary && view.chase.isChasing">
-            {{ view.score.teamName }} need {{ view.chase.runsRemaining }} runs in {{ view.chase.ballsRemaining }} balls
-          </div>
+          <ng-container *ngIf="getResultSummary(view) as resultSummary; else liveChaseSummary">
+            <div class="chase-summary">
+              {{ resultSummary }}
+            </div>
+          </ng-container>
+          <ng-template #liveChaseSummary>
+            <div class="chase-summary" *ngIf="shouldShowChaseSummary(view)">
+              {{ view.score.teamName }} need {{ view.chase.runsRemaining }} runs in {{ view.chase.ballsRemaining }} balls
+            </div>
+          </ng-template>
         </div>
       </div>
 
       <!-- COLUMN 2: Recent Activity Area -->
       <div class="live-hero__recent-area">
-        <div class="current-ball" *ngIf="view.score.currentBall">
-          <span class="current-ball__value">{{ view.score.currentBall }}</span>
+        <div class="current-ball"
+             *ngIf="view.score.currentBall"
+             [attr.data-kind]="getCurrentBallKind(view.score.currentBall)"
+             [class.current-ball--animate]="isCurrentBallImpact(view.score.currentBall)">
+          <span class="current-ball__badge" *ngIf="isCurrentBallFreeHit(view.score.currentBall)">Free Hit</span>
+          <span class="current-ball__value">{{ getCurrentBallDisplay(view.score.currentBall) }}</span>
         </div>
         
         <div class="recent-balls" *ngIf="last6Balls && last6Balls.length > 0">
           <span class="recent-balls-label">Recent</span>
           <div class="recent-balls-timeline">
-            <span class="recent-ball-circle" *ngFor="let ball of last6Balls">
-              {{ ball.score }}
+            <span class="recent-ball-circle"
+                  *ngFor="let ball of last6Balls; trackBy: trackBall"
+                  [attr.title]="getBallLabel(ball)"
+                  [attr.aria-label]="getBallLabel(ball)"
+                  [attr.data-kind]="getBallKind(ball)"
+                  [class.recent-ball-circle--animate]="ball && ball.animate">
+              {{ getBallDisplay(ball) }}
             </span>
           </div>
         </div>

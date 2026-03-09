@@ -10,6 +10,7 @@ import { EventListService } from '../component/event-list.service';
 import { AuthService } from '../auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabChangeEvent } from '@angular/material/tabs';
+import { getRecentBallDisplay, RecentBallKind } from '../core/utils/match-utils';
 
 interface FormattedExposure {
   win: number;
@@ -24,6 +25,15 @@ interface Bet {
   isSessionBet: boolean;
   sessionName: string;
   matchUrl: string;
+}
+
+interface RecentBallView {
+  key: string;
+  rawScore: string;
+  score: string;
+  fullLabel: string;
+  kind: RecentBallKind;
+  animate: boolean;
 }
 
 @Component({
@@ -76,10 +86,12 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   
   matchInfo: any;
   scorecardData: any;
+  commentaryEntries: any[] = [];
 
-  last6Balls: { score: any }[] = []; // Initialize empty array, will be populated from API data
+  last6Balls: RecentBallView[] = []; // Initialize empty array, will be populated from API data
   cricetTopicSubscription: any;
   cricObj: any;
+  private recentBallRenderToken: number = 0;
 
   private tossWonCountrySubject: Subject<string> = new Subject<string>();
   private batOrBallSelectedSubject: Subject<string> = new Subject<string>();
@@ -300,16 +312,26 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         // Iterate through the bowler_data array
         bowlerData.forEach(playerInfo => {
           if (!playerInfo.name.includes('Unknown')) { // Skip if the name contains 'Unknown'
-            const ballsBowled = playerInfo.ballsBowled;
-            const oversBowled = Math.floor(ballsBowled / 6); // Full overs
-            const ballsInCurrentOver = ballsBowled % 6; // Remaining balls in current over
-            const oversDisplay = `${oversBowled}.${ballsInCurrentOver}`; // Display as 'x.y' where y is the number of balls
-            const economyRate = oversBowled > 0 ? playerInfo.score / oversBowled : 0; // Economy rate calculation
+            const ballsBowled = parseInt(playerInfo.ballsBowled, 10) || 0;
+            const oversBowled = Math.floor(ballsBowled / 6);
+            const ballsInCurrentOver = ballsBowled % 6;
+            const oversDisplay = `${oversBowled}.${ballsInCurrentOver}`;
+            // Prefer scraper-provided economyRate; fallback to calculation
+            let econ = playerInfo.economyRate;
+            if (!econ || econ === '0.00') {
+              const scoreNum = parseInt(playerInfo.score, 10) || 0;
+              econ = oversBowled > 0 ? (scoreNum / oversBowled).toFixed(2) : '0.00';
+            }
+            // Extract just runs from score (may be "23(3.0)" combined format)
+            let runs = playerInfo.score;
+            if (typeof runs === 'string' && runs.includes('(')) {
+              runs = runs.split('(')[0];
+            }
             tempBowlerList.push({
               name: playerInfo.name,
-              score: playerInfo.score,
+              score: runs,
               ballsBowled: oversDisplay,
-              economyRate: economyRate.toFixed(2),
+              economyRate: econ,
               wicketsTaken: playerInfo.wicketsTaken,
               dotBalls: playerInfo.dotBalls
             });
@@ -366,16 +388,12 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         if (thisOverData !== undefined && thisOverData.balls) {
           console.log("Processing balls:", thisOverData.balls);
           // Prepare the last6Balls array with the data
-          const tempBalls = thisOverData.balls.map(ball => {
-            // Handle different ball formats (string or object)
-            const ballValue = typeof ball === 'string' ? ball.trim() : (ball.score || ball.runs || ball.toString());
-            return { score: ballValue };
-          }).filter(ball => ball.score !== "" && ball.score !== null && ball.score !== undefined);
+          const tempBalls = this.buildRecentBalls(thisOverData.balls);
           
           console.log("Processed temp balls:", tempBalls);
           
           // Only update if we have valid ball data
-          if (tempBalls.length > 0) {
+          if (tempBalls.length > 0 && this.getRecentBallSignature(tempBalls) !== this.getRecentBallSignature(this.last6Balls)) {
             this.last6Balls = tempBalls;
             console.log("Updated last6Balls:", this.last6Balls);
           } else {
@@ -393,10 +411,41 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         const raw = String(this.cricObj.runs_on_ball).trim();
         // Tokenize by space or comma
         const tokens = raw.split(/[,\s]+/).filter(t => t.length > 0);
-        const lastSix = tokens.slice(-6).map(t => ({ score: t }));
+        const lastSix = this.buildRecentBalls(tokens.slice(-6));
         if (lastSix.length > 0) {
           this.last6Balls = lastSix;
           console.log("Fallback last6Balls from runs_on_ball:", this.last6Balls);
+        }
+      }
+
+      // Handle commentary data from WebSocket/API
+      if (this.cricObj.commentary !== undefined && Array.isArray(this.cricObj.commentary)) {
+        const newEntries: any[] = this.cricObj.commentary;
+        if (newEntries.length > 0) {
+          // Strip HTML tags from text fields
+          newEntries.forEach(e => {
+            if (e.text) { e.text = e.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); }
+          });
+          // Merge: deduplicate by id, add new entries
+          const existingIds = new Set(this.commentaryEntries.map(e => e.id).filter(id => id));
+          const uniqueNew = newEntries.filter(e => !e.id || !existingIds.has(e.id));
+          if (uniqueNew.length > 0) {
+            const merged = [...uniqueNew, ...this.commentaryEntries];
+            // Sort: most recent first (inningsNumber DESC, overNumber DESC, ballInOver DESC)
+            // OVER_SUMMARY goes before ball entries at the same over.ball
+            const typePriority = (t: string) => t === 'OVER_SUMMARY' ? 0 : t === 'WICKET' ? 1 : 2;
+            merged.sort((a, b) => {
+              const innDiff = (b.inningsNumber || 0) - (a.inningsNumber || 0);
+              if (innDiff !== 0) return innDiff;
+              const overDiff = (b.overNumber || 0) - (a.overNumber || 0);
+              if (overDiff !== 0) return overDiff;
+              const ballDiff = (b.ballInOver || 0) - (a.ballInOver || 0);
+              if (ballDiff !== 0) return ballDiff;
+              return typePriority(a.type) - typePriority(b.type);
+            });
+            this.commentaryEntries = merged.slice(0, 200);
+          }
+          console.log('Commentary entries updated:', this.commentaryEntries.length);
         }
       }
 
@@ -471,6 +520,60 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.selectedOdds = Number(this.sessionLayOdds);
     }
 
+  }
+
+  private buildRecentBalls(balls: any[]): RecentBallView[] {
+    if (!Array.isArray(balls) || balls.length === 0) {
+      return [];
+    }
+
+    var mappedBalls = balls
+      .map((ball) => this.toRecentBallView(ball))
+      .filter((ball): ball is RecentBallView => !!ball);
+
+    if (mappedBalls.length === 0) {
+      return mappedBalls;
+    }
+
+    this.recentBallRenderToken += 1;
+    var latestIndex = mappedBalls.length - 1;
+
+    return mappedBalls.map((ball, index) => ({
+      key: index + '-' + ball.rawScore + '-' + this.recentBallRenderToken,
+      rawScore: ball.rawScore,
+      score: ball.score,
+      fullLabel: ball.fullLabel,
+      kind: ball.kind,
+      animate: index === latestIndex && this.isImpactBall(ball.kind),
+    }));
+  }
+
+  private toRecentBallView(ball: any): RecentBallView | null {
+    var ballValue = typeof ball === 'string'
+      ? ball.trim()
+      : (ball && (ball.score || ball.runs || ball.toString()));
+    var recentBall = getRecentBallDisplay(ballValue);
+
+    if (!recentBall.raw) {
+      return null;
+    }
+
+    return {
+      key: '',
+      rawScore: recentBall.raw,
+      score: recentBall.display,
+      fullLabel: recentBall.fullLabel,
+      kind: recentBall.kind,
+      animate: false
+    };
+  }
+
+  private getRecentBallSignature(balls: RecentBallView[]): string {
+    return balls.map((ball) => ball.rawScore).join('|');
+  }
+
+  private isImpactBall(kind: RecentBallKind): boolean {
+    return kind === 'four' || kind === 'six' || kind === 'wicket';
   }
 
   // Function to cancel the bet
@@ -1079,21 +1182,70 @@ placeSessionBet() {
   getProbability(odds: any): string {
     const num = Number(odds);
     if (!num || isNaN(num) || num <= 0) return '0%';
-    // Odds are in paise format (e.g. 90 = win 90 per 100 staked = decimal odds 1.90)
-    // Implied probability = 100 / (100 + odds)
-    return (100 / (100 + num)).toFixed(1) + '%';
+    // Odds format: 68 means decimal odds 1.68 → probability = 100 / 1.68 = 59.5%
+    return (10000 / (100 + num)).toFixed(1) + '%';
   }
 
   getProbabilityPercent(odds: any): number {
     const num = Number(odds);
     if (!num || isNaN(num) || num <= 0) return 0;
-    // Odds are in paise format — implied probability = 100 / (100 + odds)
-    return 100 / (100 + num);
+    // Odds format: 68 means decimal odds 1.68 → probability = 100 / 1.68
+    return 10000 / (100 + num);
   }
   getBarWidth(odds: any, otherOdds: any): string {
     const p1 = this.getProbabilityPercent(odds);
     const p2 = this.getProbabilityPercent(otherOdds);
     if (p1 + p2 === 0) return '50%';
     return (p1 / (p1 + p2) * 100).toFixed(1) + '%';
+  }
+
+  getCommentaryClass(entry: any): string {
+    switch (entry.type) {
+      case 'WICKET': return 'commentary-wicket';
+      case 'OVER_SUMMARY': return 'commentary-over-summary';
+      case 'BOUNDARY':
+        if (entry.runs === 6 || (Array.isArray(entry.highlights) && entry.highlights.includes('SIX'))) {
+          return 'commentary-six';
+        }
+        return 'commentary-boundary';
+      default: return 'commentary-ball';
+    }
+  }
+
+  getCommentaryIcon(entry: any): string {
+    switch (entry.type) {
+      case 'WICKET': return '✕';
+      case 'OVER_SUMMARY': return '●';
+      case 'BOUNDARY':
+        if (entry.runs === 6 || (Array.isArray(entry.highlights) && entry.highlights.includes('SIX'))) {
+          return '6';
+        }
+        return '4';
+      default: return '';
+    }
+  }
+
+  getRunsBadge(entry: any): string {
+    if (entry.type === 'WICKET') return 'W';
+    if (entry.type === 'OVER_SUMMARY') return '';
+    // Detect wide/no-ball from text
+    const text = (entry.text || '').toUpperCase();
+    if (text.includes('WIDE BALL') || text.includes('WIDE!')) return 'wd';
+    if (text.includes('NO BALL') || text.includes('NO-BALL')) return 'nb';
+    if (entry.runs !== undefined && entry.runs !== null) return String(entry.runs);
+    return '';
+  }
+
+  getRunsBadgeClass(entry: any): string {
+    if (entry.type === 'WICKET') return 'runs-badge--wicket';
+    // Detect wide/no-ball from text
+    const text = (entry.text || '').toUpperCase();
+    if (text.includes('WIDE BALL') || text.includes('WIDE!')) return 'runs-badge--wide';
+    if (text.includes('NO BALL') || text.includes('NO-BALL')) return 'runs-badge--noball';
+    const r = Number(entry.runs);
+    if (r === 4) return 'runs-badge--four';
+    if (r === 6) return 'runs-badge--six';
+    if (r === 0) return 'runs-badge--dot';
+    return 'runs-badge--run';
   }
 }

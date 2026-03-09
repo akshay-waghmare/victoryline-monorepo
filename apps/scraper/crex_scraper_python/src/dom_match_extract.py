@@ -126,22 +126,29 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
             
             if is_bowler:
                 # Bowler Extraction
-                # Score format: "0-2" (Wickets-Runs)
-                # Overs format: "(1.0)"
+                # Current DOM format: "0-25(3.2)" = "Wickets-Runs(Overs)" all in one text
+                # Legacy format: score="0-2" separate from overs="(1.0)"
                 score_text = score_div.get_text(strip=True) if score_div else ""
-                overs_div = p.select_one(".batsmen-total-score")
-                overs_text = overs_div.get_text(strip=True) if overs_div else ""
                 
-                # Parse score "0-2" -> wickets=0, runs=2
                 wickets = "0"
                 runs = "0"
-                if "-" in score_text:
+                overs = ""
+                
+                # Try new combined format: "W-R(O.B)" e.g. "0-25(3.2)"
+                import re
+                combined = re.match(r'^(\d+)-(\d+)\(([^)]+)\)$', score_text)
+                if combined:
+                    wickets = combined.group(1)
+                    runs = combined.group(2)
+                    overs = combined.group(3)
+                elif "-" in score_text:
+                    # Legacy: score="0-2", overs in separate element
                     parts = score_text.split("-")
                     wickets = parts[0]
                     runs = parts[1]
-                
-                # Parse overs "(1.0)" -> "1.0"
-                overs = overs_text.replace("(", "").replace(")", "")
+                    overs_div = p.select_one(".batsmen-total-score")
+                    overs_text = overs_div.get_text(strip=True) if overs_div else ""
+                    overs = overs_text.replace("(", "").replace(")", "")
                 
                 # Calculate balls bowled
                 try:
@@ -180,11 +187,20 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
                 
             else:
                 # Batsman Extraction
-                runs_el = score_div.select_one("p:nth-child(1)")
-                balls_el = score_div.select_one("p:nth-child(2)")
+                # Current DOM format: "38(30)" = "Runs(Balls)" all in one text
+                # Legacy format: <p>38</p><p>(30)</p> as separate children
+                import re
+                score_text = score_div.get_text(strip=True) if score_div else ""
                 
-                runs = runs_el.get_text(strip=True) if runs_el else "0"
-                balls = balls_el.get_text(strip=True).replace("(", "").replace(")", "") if balls_el else "0"
+                bat_combined = re.match(r'^(\d+)\((\d+)\)$', score_text)
+                if bat_combined:
+                    runs = bat_combined.group(1)
+                    balls = bat_combined.group(2)
+                else:
+                    runs_el = score_div.select_one("p:nth-child(1)")
+                    balls_el = score_div.select_one("p:nth-child(2)")
+                    runs = runs_el.get_text(strip=True) if runs_el else "0"
+                    balls = balls_el.get_text(strip=True).replace("(", "").replace(")", "") if balls_el else "0"
                 
                 on_strike = bool(score_div.select_one(".circle-strike-icon"))
                 

@@ -111,3 +111,9 @@ apps/backend/spring-security-jwt/testdb.mv.db
 # Google service account credentials (DO NOT COMMIT)
 gsc-service-account.json
 **/gsc-service-account.json
+
+# Debug / diagnostic output artifacts (DO NOT COMMIT)
+debug_crex_api_output*.json
+dto_bytecode*.txt
+scraper_*.log
+

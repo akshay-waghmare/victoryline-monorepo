@@ -104,12 +104,18 @@ export class LiveHeroDataAdapter {
       return { isChasing: false };
     }
 
+    const target = this.toFiniteNumber(context.target);
+    const runsRemaining = this.toFiniteNumber(context.runsRemaining);
+    const ballsRemaining = this.toFiniteNumber(context.ballsRemaining);
+    const requiredRunRate = this.toFiniteNumber(context.requiredRunRate);
+    const isChasing = runsRemaining !== null && ballsRemaining !== null && ballsRemaining > 0;
+
     return {
-      isChasing: true,
-      target: context.target,
-      runsRemaining: Math.max(context.runsRemaining, 0),
-      ballsRemaining: Math.max(context.ballsRemaining, 0),
-      requiredRunRateLabel: `RRR ${this.toRate(context.requiredRunRate)}`,
+      isChasing,
+      target: target !== null ? Math.max(target, 0) : undefined,
+      runsRemaining: runsRemaining !== null ? Math.max(runsRemaining, 0) : undefined,
+      ballsRemaining: ballsRemaining !== null ? Math.max(ballsRemaining, 0) : undefined,
+      requiredRunRateLabel: requiredRunRate !== null ? `RRR ${this.toRate(requiredRunRate)}` : undefined,
       winProbabilityLabel: context.winProbability != null ? `${context.winProbability.toFixed(0)}%` : undefined
     };
   }
@@ -253,6 +259,10 @@ export class LiveHeroDataAdapter {
       return '0.00';
     }
     return value.toFixed(2);
+  }
+
+  private toFiniteNumber(value: number | null | undefined): number | null {
+    return typeof value === 'number' && isFinite(value) ? value : null;
   }
 
   private deriveEconomy(bowler: BowlerSummaryDto | ScorecardBowlerDto): number {

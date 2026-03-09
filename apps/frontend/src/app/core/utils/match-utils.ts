@@ -6,6 +6,15 @@
 
 import { MatchStatus, MatchCardViewModel } from '../../features/matches/models/match-card.models';
 
+export type RecentBallKind = 'dot' | 'run' | 'four' | 'six' | 'wicket' | 'extra' | 'other';
+
+export interface RecentBallDisplay {
+  raw: string;
+  display: string;
+  fullLabel: string;
+  kind: RecentBallKind;
+}
+
 /**
  * Get CSS color variable for match status
  * Used for badges, borders, and status indicators
@@ -237,6 +246,124 @@ export function normalizeTeamScoreString(raw: string): string {
     return '(' + cleaned + ')';
   });
   return s;
+}
+
+export function getRecentBallDisplay(value: any): RecentBallDisplay {
+  var raw = value === undefined || value === null ? '' : String(value).trim();
+  var lower = raw.toLowerCase();
+  var numberMatch = lower.match(/^\d+$/);
+  // Matches prefix-first (lb1, b2, wd, nb) OR number-first (1b, 2lb, 1wd) formats
+  var extraMatch = lower.match(/^(lb|wd|nb|b)(\d+)?$/) || (() => {
+    var m = lower.match(/^(\d+)(lb|wd|nb|b)$/);
+    return m ? [m[0], m[2], m[1]] as RegExpMatchArray : null;  // swap groups to [full, type, runs]
+  })();
+  var wicketLabelMap: { [key: string]: string } = {
+    'w': 'Wicket',
+    '^1': 'Bowled',
+    '^2': 'Caught Out',
+    '^3': 'Caught and Bowled',
+    '^4': 'Run Out',
+    '^5': 'Stumped',
+    '^6': 'Hit Wicket',
+    '^7': 'LBW',
+    'bowled': 'Bowled',
+    'caught out': 'Caught Out',
+    'caught and bowled': 'Caught and Bowled',
+    'caughtandbowled': 'Caught and Bowled',
+    'run out': 'Run Out',
+    'stumped': 'Stumped',
+    'hit wicket': 'Hit Wicket',
+    'lbw': 'LBW',
+    'wicket': 'Wicket'
+  };
+
+  if (!raw) {
+    return {
+      raw: '',
+      display: '',
+      fullLabel: '',
+      kind: 'other'
+    };
+  }
+
+  // Any ^N code not in the map → generic wicket
+  if (lower.startsWith('^') && !wicketLabelMap[lower]) {
+    return { raw, display: 'W', fullLabel: 'Wicket', kind: 'wicket' };
+  }
+
+  if (numberMatch) {
+    var runs = parseInt(lower, 10);
+    if (runs === 0) {
+      return {
+        raw: raw,
+        display: '0',
+        fullLabel: 'Dot ball',
+        kind: 'dot'
+      };
+    }
+
+    if (runs === 4) {
+      return {
+        raw: raw,
+        display: '4',
+        fullLabel: 'Four',
+        kind: 'four'
+      };
+    }
+
+    if (runs === 6) {
+      return {
+        raw: raw,
+        display: '6',
+        fullLabel: 'Six',
+        kind: 'six'
+      };
+    }
+
+    return {
+      raw: raw,
+      display: String(runs),
+      fullLabel: runs === 1 ? '1 run' : runs + ' runs',
+      kind: 'run'
+    };
+  }
+
+  if (wicketLabelMap[lower]) {
+    return {
+      raw: raw,
+      display: 'W',
+      fullLabel: wicketLabelMap[lower],
+      kind: 'wicket'
+    };
+  }
+
+  if (extraMatch) {
+    var extraType = extraMatch[1];
+    var extraRuns = extraMatch[2] ? parseInt(extraMatch[2], 10) : null;
+    var prefix = extraType === 'b' ? 'B' : extraType.toUpperCase();
+    var extraLabel = extraType === 'lb'
+      ? 'Leg bye'
+      : extraType === 'wd'
+        ? 'Wide'
+        : extraType === 'nb'
+          ? 'No ball'
+          : 'Bye';
+    var runSuffix = extraRuns === null ? '' : ' ' + extraRuns;
+
+    return {
+      raw: raw,
+      display: extraRuns === null ? prefix : prefix + extraRuns,
+      fullLabel: extraLabel + runSuffix,
+      kind: 'extra'
+    };
+  }
+
+  return {
+    raw: raw,
+    display: raw.toUpperCase(),
+    fullLabel: raw,
+    kind: 'other'
+  };
 }
 
 /**

@@ -77,9 +77,33 @@ public class CricketDataController {
 	@Autowired
 	private ScorecardService scoreCardService;
 
+	@Autowired
+	private com.fasterxml.jackson.databind.ObjectMapper springObjectMapper;
+
 	@PostMapping
-	public ResponseEntity<String> receiveCricketData(@RequestBody CricketDataDTO data) {
+	public ResponseEntity<String> receiveCricketData(@RequestBody String rawBody) {
 	    try {
+	        // Parse as tree first to extract commentary (works around Jackson back-reference config
+	        // in Spring's ObjectMapper that prevents DTO binding of commentary field)
+	        com.fasterxml.jackson.databind.JsonNode rootNode = springObjectMapper.readTree(rawBody);
+	        
+	        // Extract commentary from tree before DTO conversion
+	        List<Map<String, Object>> extractedCommentary = null;
+	        if (rootNode.has("commentary") && rootNode.get("commentary").isArray()) {
+	            com.fasterxml.jackson.databind.JsonNode commNode = rootNode.get("commentary");
+	            com.fasterxml.jackson.databind.ObjectMapper cleanMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+	            extractedCommentary = cleanMapper.convertValue(commNode,
+	                cleanMapper.getTypeFactory().constructCollectionType(List.class, Map.class));
+	        }
+	        
+	        // Bind the DTO
+	        CricketDataDTO data = springObjectMapper.treeToValue(rootNode, CricketDataDTO.class);
+	        
+	        // If DTO binding missed commentary, set it manually from tree extraction
+	        if (data.getCommentary() == null && extractedCommentary != null) {
+	            data.setCommentary(extractedCommentary);
+	        }
+	        
 	        // Fetch the existing data including the merged matchInfo data
 	        CricketDataDTO existingData = cricketDataService.getLastUpdatedData(data.getUrl());
 
@@ -206,6 +230,11 @@ public class CricketDataController {
 	            //existingData.setBowlerData(data.getBowlerData()); // Save Bowler Data
 	        }
 
+	        // Handle commentary data (transient, stored in-memory only)
+	        if (data.getCommentary() != null && !data.getCommentary().isEmpty()) {
+	            nonNullFields.put("commentary", data.getCommentary());
+	        }
+
 	        // Update and persist the data
 	        cricketDataService.setLastUpdatedData(existingData.getUrl(), existingData);
 	        cricketDataService.sendCricketData(data.getUrl(), nonNullFields);
@@ -305,6 +334,29 @@ public class CricketDataController {
 	    } catch (Exception e) {
 	        e.printStackTrace();
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving match info.");
+	    }
+	}
+
+	@GetMapping("/commentary")
+	public ResponseEntity<?> getCommentary(@RequestParam("url") String url) {
+	    try {
+	        List<Map<String, Object>> commentary = cricketDataService.getCommentaryForMatch(url);
+	        if (commentary != null && !commentary.isEmpty()) {
+	            Map<String, Object> response = new HashMap<>();
+	            response.put("success", true);
+	            response.put("data", commentary);
+	            response.put("total", commentary.size());
+	            return ResponseEntity.ok(response);
+	        } else {
+	            Map<String, Object> response = new HashMap<>();
+	            response.put("success", true);
+	            response.put("data", new java.util.ArrayList<>());
+	            response.put("total", 0);
+	            return ResponseEntity.ok(response);
+	        }
+	    } catch (Exception e) {
+	        log.error("Error retrieving commentary: {}", e.getMessage(), e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving commentary.");
 	    }
 	}
 	 

@@ -44,6 +44,8 @@ public class CricketDataDTO {
     private List<BatsmanData> batsmanData;
 	@JsonProperty("bowler_data")
     private List<BowlerData> bowlerData;
+    @JsonProperty("commentary")
+    private List<Map<String, Object>> commentary;
     
     private Map<String, List<SessionOverData>> teamWiseSessionData;
     
@@ -68,6 +70,14 @@ public class CricketDataDTO {
 
 	public void setBowlerData(List<BowlerData> bowlerData) {
 		this.bowlerData = bowlerData;
+	}
+
+	public List<Map<String, Object>> getCommentary() {
+		return commentary;
+	}
+
+	public void setCommentary(List<Map<String, Object>> commentary) {
+		this.commentary = commentary;
 	}
 
 	public long getUpdatedTimeStamp() {

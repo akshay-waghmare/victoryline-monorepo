@@ -2738,3 +2738,443 @@ p {
   margin: 0 auto;
   width: 100%;
 }
+
+/* ─── Ball-by-Ball Commentary ─────────────────────────────────── */
+
+/* Commentary + Odds side-by-side layout */
+.commentary-odds-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 0 4px;
+}
+
+@media (min-width: 768px) {
+  .commentary-odds-layout {
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .commentary-odds-layout {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+.commentary-col {
+  min-width: 0;
+}
+
+/* Odds Sidebar */
+.odds-sidebar-col {
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .odds-sidebar-col {
+    order: -1;  /* Show odds above commentary on mobile */
+  }
+}
+
+.odds-sidebar-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  position: sticky;
+  top: 60px;
+}
+
+.odds-sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a2233;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.odds-sidebar-title mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+  color: #1976d2;
+}
+
+.odds-sidebar-exposure {
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e8ecf1;
+}
+
+.exposure-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.exposure-label {
+  color: #5f6b7a;
+  font-weight: 500;
+}
+
+.exposure-win {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.exposure-loss {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.odds-sidebar-team,
+.odds-sidebar-session {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.odds-sidebar-team:last-child,
+.odds-sidebar-session:last-child {
+  border-bottom: none;
+}
+
+.odds-team-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a2233;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.odds-session-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #5f6b7a;
+}
+
+.odds-team-values {
+  display: flex;
+  gap: 6px;
+}
+
+.odds-back {
+  background: #e3f2fd;
+  color: #1565c0;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  min-width: 40px;
+  text-align: center;
+}
+
+.odds-lay {
+  background: #fce4ec;
+  color: #c62828;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* ─── Win Probability Bars ───────────────────────────────────── */
+.win-prob-block {
+  margin-bottom: 14px;
+}
+
+.win-prob-team-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a2233;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.win-prob-bar-wrap {
+  height: 26px;
+  background: #e8ecf1;
+  border-radius: 13px;
+  overflow: hidden;
+  position: relative;
+}
+
+.win-prob-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1976d2, #42a5f5);
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  min-width: 40px;
+  transition: width 0.4s ease;
+}
+
+.win-prob-sessions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.win-prob-sessions-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #5f6b7a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+/* Commentary Section (within grid) */
+.commentary-section {
+  margin-top: 0;
+  padding: 0;
+}
+
+.commentary-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a2233;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e8ecf1;
+}
+
+.commentary-title mat-icon {
+  font-size: 20px;
+  color: #1976d2;
+}
+
+.commentary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.commentary-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #fafbfc;
+  border-left: 3px solid transparent;
+  transition: background 0.15s;
+}
+
+.commentary-entry:hover {
+  background: #f0f4f8;
+}
+
+.commentary-ball {
+  border-left-color: #e0e4e8;
+}
+
+.commentary-wicket {
+  background: #fff0f0;
+  border-left-color: #e53935;
+}
+
+.commentary-wicket:hover {
+  background: #ffe5e5;
+}
+
+.commentary-over-summary {
+  background: linear-gradient(135deg, #f3f0ff 0%, #ede7ff 100%);
+  border-left-color: #7c4dff;
+  font-weight: 500;
+  padding: 0;
+  border-radius: 8px;
+  border-left-width: 4px;
+  margin: 6px 0;
+}
+
+.commentary-over-summary:hover {
+  background: linear-gradient(135deg, #ede7ff 0%, #e8e0ff 100%);
+}
+
+/* Over Summary Card Layout */
+.over-summary-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+}
+
+.over-summary-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(124, 77, 255, 0.12);
+  border-radius: 50%;
+}
+
+.over-summary-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.over-summary-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4a148c;
+  line-height: 1.5;
+}
+
+.commentary-boundary {
+  background: #f0faf4;
+  border-left-color: #43a047;
+}
+
+.commentary-boundary:hover {
+  background: #e0f5e8;
+}
+
+.commentary-six {
+  background: #fff8e1;
+  border-left-color: #f97316;
+}
+
+.commentary-six:hover {
+  background: #fff3cd;
+}
+
+.commentary-over-badge {
+  min-width: 40px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5f6b7a;
+  background: #e8ecf1;
+  padding: 3px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.commentary-runs-badge {
+  min-width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.runs-badge--dot {
+  background: #e0e4e8;
+  color: #5f6b7a;
+}
+
+.runs-badge--run {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.runs-badge--four {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.runs-badge--six {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.runs-badge--wicket {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.runs-badge--wide {
+  background: #fff8e1;
+  color: #f57f17;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.runs-badge--noball {
+  background: #fce4ec;
+  color: #ad1457;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.commentary-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentary-main-text {
+  font-size: 14px;
+  color: #1a2233;
+  line-height: 1.4;
+}
+
+.commentary-detail {
+  display: block;
+  font-size: 12px;
+  color: #5f6b7a;
+  margin-top: 2px;
+}
+
+@media (max-width: 600px) {
+  .commentary-entry {
+    padding: 8px 8px;
+    gap: 6px;
+  }
+  .commentary-over-badge {
+    min-width: 32px;
+    font-size: 11px;
+  }
+  .commentary-runs-badge {
+    min-width: 24px;
+    height: 24px;
+    font-size: 11px;
+  }
+  .commentary-main-text {
+    font-size: 13px;
+  }
+  .over-summary-card {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+  .over-summary-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+  .over-summary-text {
+    font-size: 12px;
+  }
+}

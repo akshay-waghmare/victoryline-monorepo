@@ -6,6 +6,7 @@ import logging
 import asyncio
 import json
 import os
+import re
 from typing import Callable, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import BrowserContext, Page, Response
@@ -265,9 +266,10 @@ class CrexAdapter(SourceAdapter):
                 self._enrich_from_sc4(final_data, data_store["sC4_stats"], data_store["local_storage"])
 
             # Add commentary entries if available
+            print(f"[COMMENTARY-DEBUG] data_store commentary count: {len(data_store.get('commentary', []))}")
             if data_store.get("commentary"):
                 final_data["commentary"] = data_store["commentary"]
-                logger.info(f"[COMMENTARY] Added {len(data_store['commentary'])} commentary entries to final_data")
+                print(f"[COMMENTARY] Added {len(data_store['commentary'])} commentary entries to final_data")
 
             return final_data
         finally:
@@ -790,14 +792,37 @@ class CrexAdapter(SourceAdapter):
         try:
             fv = item.get("fv", 0)
             inning = item.get("inning", 0)
-            entry_id = str(item.get("id", ""))
+            raw_id = item.get("id")
+            # Generate a unique fallback ID if API does not provide one
+            if raw_id:
+                entry_id = str(raw_id)
+            else:
+                delivery = item.get("delivery", 0)
+                over_str = item.get("o", "")
+                entry_id = f"gen_{fv}_{inning}_{over_str}_{delivery}"
             
             # Ball-by-ball entry (fv=2)
             if fv == 2:
                 c1 = item.get("c1", "")  # "R Pillay to M Nofal"
                 c2 = item.get("c2", "")  # Additional commentary
-                b = str(item.get("b", "0"))  # Runs: "0", "1", "4", "6", "WD", "NB", "W"
+                b = str(item.get("b", "0"))  # Runs: "0", "1", "4", "6", "WD", "NB", "W", "1lb", "1wd"
                 delivery = item.get("delivery", 0)
+                
+                # Use API-provided over.ball fields (accurate, accounts for extras)
+                over_str = str(item.get("o", ""))  # e.g. "4.2"
+                over_num_api = item.get("on", 0)     # e.g. 4
+                
+                if "." in over_str:
+                    parts = over_str.split(".")
+                    over_num = int(parts[0]) if parts[0].isdigit() else 0
+                    ball_in_over = int(parts[1]) if parts[1].isdigit() else 0
+                elif over_num_api:
+                    over_num = int(over_num_api) if str(over_num_api).isdigit() else 0
+                    ball_in_over = 0
+                else:
+                    # Fallback to delivery-based calculation
+                    over_num = (delivery - 1) // 6 + 1 if delivery else 0
+                    ball_in_over = ((delivery - 1) % 6) + 1 if delivery else 0
                 
                 # Resolve bowler name from code
                 bowler_code = item.get("bf", "")
@@ -815,6 +840,7 @@ class CrexAdapter(SourceAdapter):
                 commentary_type = "BALL"
                 highlights = []
                 runs = 0
+                b_upper = b.upper()
                 
                 if b.isdigit():
                     runs = int(b)
@@ -824,11 +850,16 @@ class CrexAdapter(SourceAdapter):
                     elif runs == 6:
                         commentary_type = "BOUNDARY"
                         highlights.append("SIX")
-                elif b.upper() == "W":
+                elif b_upper == "W":
                     commentary_type = "WICKET"
                     highlights.append("WICKET")
-                elif b.upper() in ("WD", "NB"):
-                    runs = 1  # Default extra
+                elif b_upper in ("WD", "NB"):
+                    runs = 1
+                else:
+                    # Handle extras like "1lb", "1wd", "2nb", "4lb" etc.
+                    m = re.match(r'(\d+)', b)
+                    if m:
+                        runs = int(m.group(1))
                 
                 # Check for wicket via dismissal field
                 if item.get("dismissal"):
@@ -839,10 +870,6 @@ class CrexAdapter(SourceAdapter):
                 # Check for catch_drop
                 if item.get("is_catch_drop"):
                     highlights.append("CATCH_DROP")
-                
-                # Calculate over.ball from delivery number
-                over_num = (delivery - 1) // 6 + 1 if delivery else 0
-                ball_in_over = ((delivery - 1) % 6) + 1 if delivery else 0
                 
                 return {
                     "id": entry_id,
@@ -911,7 +938,7 @@ class CrexAdapter(SourceAdapter):
                     1: "caught", 2: "bowled", 3: "lbw", 4: "run out",
                     5: "stumped", 6: "hit wicket", 7: "retired", 8: "retired hurt"
                 }
-                dismissal_text = dismissal_types.get(dismissal, f"dismissed({dismissal})")
+                dismissal_text = dismissal_types.get(dismissal, "out")
                 
                 bowler_code = item.get("bf", "")
                 bowler_name = local_storage.get(f"p_{bowler_code}_name", "") if bowler_code else ""
@@ -975,24 +1002,34 @@ class CrexAdapter(SourceAdapter):
                 raw_b = str(api_data["B"])
                 
                 # Special codes mapping
-                # ^2 = Caught Out, ^4 = Run Out, B = Ball Start, etc.
+                # ^1=Bowled, ^2=Caught Out, ^3=C&B, ^4=Run Out, ^5=Stumped, ^6=Hit Wicket, ^7=LBW
                 special_codes = {
+                    "^1": "Bowled",
                     "^2": "Caught Out",
+                    "^3": "Caught and Bowled",
                     "^4": "Run Out",
+                    "^5": "Stumped",
+                    "^6": "Hit Wicket",
+                    "^7": "LBW",
                     "B": "Ball Start",
                     "o": "Over",
                     "bc": "Boundary Check",
                     "wd": "Wide",
                     "nb": "No Ball",
-                    "w": "Wicket"
+                    "w": "Wicket",
+                    "fh": "Free Hit",
+                    "e": "Player Entering",
+                    "ba": "Ball In Air",
                 }
                 
                 if raw_b in special_codes:
                     final_data["current_ball"] = special_codes[raw_b]
-                    # For special events, runs are typically 0 unless specified otherwise
                     # We don't set runs_on_ball here to avoid incorrect parsing (e.g. ^2 -> 2 runs)
                 elif raw_b.lower() in special_codes:
                      final_data["current_ball"] = special_codes[raw_b.lower()]
+                elif raw_b.startswith('^'):
+                    # Any unknown ^N dismissal code → treat as Wicket
+                    final_data["current_ball"] = "Wicket"
                 else:
                     # Clean up the value for standard runs/text
                     # Remove '^' which seems to be a prefix for runs (e.g. "^4" -> "4")

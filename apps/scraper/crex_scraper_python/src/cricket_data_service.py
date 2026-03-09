@@ -249,16 +249,19 @@ class CricketDataService:
                     payload["batsman_data"] = data["batsman_data"]
 
                 # Map Bowler Data
-                # Backend expects a single object for bowler_data, but scraper provides a list.
-                # We take the first bowler from the list.
+                # Backend DTO expects List<BowlerData>, so always send as a list.
                 if data.get("bowler_data"):
                     bowlers = data["bowler_data"]
-                    if isinstance(bowlers, list) and len(bowlers) > 0:
-                        payload["bowler_data"] = bowlers[0]
-                    elif isinstance(bowlers, dict):
+                    if isinstance(bowlers, list):
                         payload["bowler_data"] = bowlers
+                    elif isinstance(bowlers, dict):
+                        payload["bowler_data"] = [bowlers]
                     else:
                         logger.warning(f"Unexpected bowler_data format: {type(bowlers)}")
+
+                # Map Commentary Data
+                if data.get("commentary"):
+                    payload["commentary"] = data["commentary"]
                 
                 # Include raw data for debugging or other fields
                 # payload["raw_data"] = data
@@ -422,7 +425,9 @@ class CricketDataService:
         
         # Special codes mapping for B field
         SPECIAL_CODES = {
+            "^1": "Bowled",
             "^2": "Caught Out",
+            "^3": "Caught and Bowled",
             "^4": "Run Out",
             "B": "Ball Start",
             "o": "Over",
@@ -455,7 +460,7 @@ class CricketDataService:
                     pass
             
             # Extract current ball info: field 'B' contains ball event
-            # Special codes: ^2=Caught, ^4=Run Out, B=Ball Start, wd=Wide, etc.
+            # Special codes: ^1=Bowled, ^2=Caught, ^3=Caught and Bowled, ^4=Run Out, B=BallStart, wd=Wide, etc.
             if api_data.get("B"):
                 raw_b = str(api_data["B"])
                 

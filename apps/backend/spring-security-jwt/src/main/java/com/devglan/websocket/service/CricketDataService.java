@@ -94,6 +94,10 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
     private static final long CACHE_TTL_MS = 10_000;
     /** In-memory match data cache keyed by URL */
     private final ConcurrentHashMap<String, CacheEntry<CricketDataDTO>> matchDataCache = new ConcurrentHashMap<>();
+    /** In-memory commentary cache keyed by URL – stores latest commentary entries per match */
+    private final ConcurrentHashMap<String, List<Map<String, Object>>> commentaryCache = new ConcurrentHashMap<>();
+    /** Max commentary entries to keep per match */
+    private static final int MAX_COMMENTARY_ENTRIES = 200;
 	
 
 
@@ -217,8 +221,75 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
             cached.setToss_won_country(incomingData.getToss_won_country());
         }
         
+        // Merge commentary entries (append new, deduplicate by id, cap at MAX_COMMENTARY_ENTRIES)
+        if (incomingData.getCommentary() != null && !incomingData.getCommentary().isEmpty()) {
+            List<Map<String, Object>> existing = commentaryCache.getOrDefault(url, new ArrayList<>());
+            Set<String> existingIds = new HashSet<>();
+            for (Map<String, Object> e2 : existing) {
+                Object id = e2.get("id");
+                if (id != null) existingIds.add(id.toString());
+            }
+            for (Map<String, Object> newEntry : incomingData.getCommentary()) {
+                Object id = newEntry.get("id");
+                String idStr = (id != null) ? id.toString() : "";
+                // Only deduplicate if id is non-empty
+                if (idStr.isEmpty() || !existingIds.contains(idStr)) {
+                    // Strip HTML tags from commentary text
+                    Object text = newEntry.get("text");
+                    if (text instanceof String) {
+                        newEntry.put("text", ((String) text).replaceAll("<[^>]*>", "").replace("&nbsp;", " ").trim());
+                    }
+                    existing.add(newEntry);
+                    if (!idStr.isEmpty()) existingIds.add(idStr);
+                }
+            }
+            // Sort: most recent first (inningsNumber DESC, overNumber DESC, ballInOver DESC)
+            // At same over.ball: OVER_SUMMARY first, then WICKET, then BALL
+            existing.sort((a, b) -> {
+                int innA = toInt(a.get("inningsNumber"));
+                int innB = toInt(b.get("inningsNumber"));
+                if (innA != innB) return innB - innA;
+                int overA = toInt(a.get("overNumber"));
+                int overB = toInt(b.get("overNumber"));
+                if (overA != overB) return overB - overA;
+                int ballA = toInt(a.get("ballInOver"));
+                int ballB = toInt(b.get("ballInOver"));
+                if (ballA != ballB) return ballB - ballA;
+                return typePriority(a) - typePriority(b);
+            });
+            // Cap size
+            if (existing.size() > MAX_COMMENTARY_ENTRIES) {
+                existing = new ArrayList<>(existing.subList(0, MAX_COMMENTARY_ENTRIES));
+            }
+            commentaryCache.put(url, existing);
+            cached.setCommentary(existing);
+        }
+        
         // Store the enriched DTO in cache
         matchDataCache.put(url, new CacheEntry<>(cached));
+    }
+
+    /**
+     * Get commentary entries for a match URL.
+     * Returns all cached commentary entries (most recent first).
+     */
+    public List<Map<String, Object>> getCommentaryForMatch(String url) {
+        return commentaryCache.getOrDefault(url, Collections.emptyList());
+    }
+
+    private static int toInt(Object val) {
+        if (val instanceof Number) return ((Number) val).intValue();
+        if (val instanceof String) {
+            try { return Integer.parseInt((String) val); } catch (NumberFormatException e) { return 0; }
+        }
+        return 0;
+    }
+
+    private static int typePriority(Map<String, Object> entry) {
+        Object type = entry.get("type");
+        if ("OVER_SUMMARY".equals(type)) return 0;
+        if ("WICKET".equals(type)) return 1;
+        return 2;
     }
 
     // Method to get the last updated data for a specific URL
@@ -248,6 +319,24 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
             data = mergeMatchInfoToCricketDataDTO(matchInfoEntity, data);
         }
         
+        // Preserve transient fields (batsman/bowler data, commentary) from expired cache
+        if (cached != null && cached.data != null) {
+            if (data.getBatsmanData() == null || data.getBatsmanData().isEmpty()) {
+                data.setBatsmanData(cached.data.getBatsmanData());
+            }
+            if (data.getBowlerData() == null || data.getBowlerData().isEmpty()) {
+                data.setBowlerData(cached.data.getBowlerData());
+            }
+            if (data.getToss_won_country() == null) {
+                data.setToss_won_country(cached.data.getToss_won_country());
+            }
+        }
+        // Preserve commentary from commentaryCache
+        List<Map<String, Object>> commentary = commentaryCache.get(url);
+        if (commentary != null && !commentary.isEmpty()) {
+            data.setCommentary(commentary);
+        }
+
         // Store in cache for subsequent requests
         matchDataCache.put(url, new CacheEntry<>(data));
         

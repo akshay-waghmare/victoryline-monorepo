@@ -166,13 +166,25 @@ public class JacksonCustomCricketDeserializer extends StdDeserializer<CricketDat
             JsonNode bowlerDataNode = node.get("bowler_data");
             List<BowlerData> bowlerDataList = new ArrayList<>();
 
-            if (bowlerDataNode.isObject()) {
+            if (bowlerDataNode.isArray()) {
+                for (JsonNode bowlerNode : bowlerDataNode) {
+                    BowlerData bowler = new BowlerData();
+                    bowler.setName(getTextValue(bowlerNode, "name", ""));
+                    bowler.setScore(getTextValue(bowlerNode, "score", getTextValue(bowlerNode, "runs_conceded", "")));
+                    bowler.setBallsBowled(getTextValue(bowlerNode, "ballsBowled", getTextValue(bowlerNode, "balls_bowled", "")));
+                    bowler.setEconomyRate(getTextValue(bowlerNode, "economyRate", ""));
+                    bowler.setWicketsTaken(getTextValue(bowlerNode, "wicketsTaken", getTextValue(bowlerNode, "wickets_taken", "")));
+                    bowler.setDotBalls(getTextValue(bowlerNode, "dotBalls", getTextValue(bowlerNode, "dot_balls", "")));
+                    bowlerDataList.add(bowler);
+                }
+            } else if (bowlerDataNode.isObject()) {
                 BowlerData bowler = new BowlerData();
                 bowler.setName(getTextValue(bowlerDataNode, "name", ""));
-                bowler.setScore(getTextValue(bowlerDataNode, "runs_conceded", "")); // Assuming score = runs_conceded
-                bowler.setBallsBowled(getTextValue(bowlerDataNode, "balls_bowled", ""));
-                bowler.setWicketsTaken(getTextValue(bowlerDataNode, "wickets_taken", ""));
-                bowler.setDotBalls(getTextValue(bowlerDataNode, "dot_balls", ""));
+                bowler.setScore(getTextValue(bowlerDataNode, "score", getTextValue(bowlerDataNode, "runs_conceded", "")));
+                bowler.setBallsBowled(getTextValue(bowlerDataNode, "ballsBowled", getTextValue(bowlerDataNode, "balls_bowled", "")));
+                bowler.setEconomyRate(getTextValue(bowlerDataNode, "economyRate", ""));
+                bowler.setWicketsTaken(getTextValue(bowlerDataNode, "wicketsTaken", getTextValue(bowlerDataNode, "wickets_taken", "")));
+                bowler.setDotBalls(getTextValue(bowlerDataNode, "dotBalls", getTextValue(bowlerDataNode, "dot_balls", "")));
                 bowlerDataList.add(bowler);
             }
 

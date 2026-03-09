@@ -1,5 +1,6 @@
 import { Component, Input, ChangeDetectionStrategy } from '@angular/core';
 import { LiveHeroViewModel } from '../../services/live-hero.models';
+import { getLiveHeroStatusKey, getLiveHeroStatusLabel } from '../../services/live-hero-display.utils';
 
 @Component({
   selector: 'app-hero-condensed',
@@ -26,5 +27,13 @@ export class HeroCondensedComponent {
       default:
         return null;
     }
+  }
+
+  statusLabel(): string {
+    return getLiveHeroStatusLabel(this.view, this.matchInfo);
+  }
+
+  statusKey(): string | null {
+    return getLiveHeroStatusKey(this.view, this.matchInfo);
   }
 }

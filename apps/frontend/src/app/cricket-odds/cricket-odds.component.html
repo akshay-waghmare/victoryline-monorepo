@@ -32,203 +32,97 @@
             <div class="loader"></div>
           </div>
           <div class="live-match-container">
-
-            <!-- SINGLE COLUMN: Odds & Betting (Stats moved to Hero) -->
-            <div class="live-match-col live-match-col--odds" *ngIf="userBets.length > 0 || (sessionExposures && sessionExposures.length > 0) || (!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || sessionOddsListDisplay.length > 0">
-              <div class="cricket-odds">
-                <!-- Overall Win/Loss Summary -->
-                <div class="overall-win-loss" *ngIf="userBets.length > 0">
-                  <div class="overall-item">
-                    <span class="win-label">{{ winFormattedKey }}:</span>
-                    <span [ngClass]="{'win-amount': totalPotentialWin >= 0, 'loss-amount': totalPotentialWin < 0}">{{
-                      totalPotentialWin | currency }}</span>
-                  </div>
-                  <div class="overall-item">
-                    <span class="loss-label">{{ loseFormattedKey }}:</span>
-                    <span [ngClass]="{'win-amount': totalPotentialLoss >= 0, 'loss-amount': totalPotentialLoss < 0}">{{
-                      totalPotentialLoss | currency }}</span>
-                  </div>
-                </div>
-                <!-- Session Exposure Summary -->
-                <div class="session-exposures" *ngIf="sessionExposures && sessionExposures.length > 0">
-                  <div class="overall-item" *ngFor="let sessionExposure of sessionExposures">
-                    <span class="win-label">{{ sessionExposure.name }}:</span>
-                    <span [ngClass]="{'loss-amount': sessionExposure.amount >= 0, 'loss-amount': sessionExposure.amount < 0}">
-                      {{ sessionExposure.amount | currency }}
-                    </span>
-                  </div>
-                </div>
-                
-                <!-- Odds Section -->
-                <div class="odds-stats-section" *ngIf="(!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0)">
-                
-                <!-- Odds Toggle Button -->
-                <div class="odds-toggle-container" style="margin: 8px 0; display: flex; justify-content: flex-end; gap: 8px;">
-                    <button mat-button
-                            class="odds-toggle-btn"
-                            (click)="viewAsProbability = !viewAsProbability"
-                            style="background: var(--color-primary, #1976d2); color: white; border-radius: 4px; padding: 6px 12px; font-size: 0.8rem;">
-                      <mat-icon style="vertical-align: middle; margin-right: 4px; font-size: 18px; width: 18px; height: 18px;">
-                        {{ viewAsProbability ? 'attach_money' : 'pie_chart' }}
-                      </mat-icon>
-                      <span class="odds-toggle-label">{{ viewAsProbability ? 'View as Odds' : 'View as Probability' }}</span>
-                    </button>
-                    <button mat-button
-                            class="odds-toggle-btn"
-                            (click)="showOdds = !showOdds"
-                            style="background: var(--color-primary, #1976d2); color: white; border-radius: 4px; padding: 6px 12px; font-size: 0.8rem;">
-                      <mat-icon style="vertical-align: middle; margin-right: 4px; font-size: 18px; width: 18px; height: 18px;">
-                        {{ showOdds ? 'visibility_off' : 'visibility' }}
-                      </mat-icon>
-                      <span class="odds-toggle-label">{{ showOdds ? 'Hide Odds' : 'Show Odds' }}</span>
-                    </button>
-                </div>
-
-                <!-- Favorite Team Odds -->
-                <div *ngIf="showOdds && !(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-'">
-                  <div *ngIf="!favTeam.includes('Unknown')" class="favorite-odds team-section">
-                    <div class="team-label" [attr.data-full-name]="favTeam">{{getTruncatedTeamName(favTeam) }}</div>
-                    <div class="odds-buttons" *ngIf="!viewAsProbability">
-                      <button mat-raised-button color="primary" [ngClass]="{'non-clickable': !isClickable}">
-                        {{ backOdds }}</button>
-                      <button mat-raised-button color="accent" [ngClass]="{'non-clickable': !isClickable}">{{ layOdds }}</button>
-                    </div>
-                    <div class="prob-bar-container" *ngIf="viewAsProbability">
-                      <div class="prob-bar prob-bar-back" [style.width]="getBarWidth(backOdds, layOdds)">
-                        {{ getProbability(backOdds) }}
-                      </div>
-                      <div class="prob-bar prob-bar-lay" [style.width]="getBarWidth(layOdds, backOdds)">
-                        {{ getProbability(layOdds) }}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="betting-options" [class.lay-active]="layButtonActive"
-                    *ngIf="showBetting && (showBettingFor === 'teamSectionBackOdds' || showBettingFor === 'layOdds' )">
-                    <div class="button-row">
-                      <button mat-button class="cancel-bet" (click)="cancelBet()">Cancel</button>
-                      <button mat-button class="clear-bet" (click)="clearStake()">Clear</button>
-                    </div>
-
-                    <div class="odds-amount">
-                      <div class="odds">
-                        <label for="odds">Odds:</label>
-                        <input type="number" id="odds" class="disabled-input" readonly (input)="handleOddsInputChange()" (blur)="handleOddsBlur()" [value]="selectedOdds" />
-                        <input type="hidden" name="odds" [value]="selectedOdds" />
-                      </div>
-                      <div class="amount">
-                        <label for="amount">Amount:</label>
-                        <input type="number" id="amount" [(ngModel)]="betAmount" />
-                      </div>
-                    </div>
-                    <div class="quick-stakes">
-                      <button *ngFor="let amount of quickStakeAmounts" (click)="setStake(amount)">
-                        + {{ amount }}
-                      </button>
-                    </div>
-                    <button mat-raised-button class="place-bet" color="primary" (click)="placeBet()">Place Bet</button>
-                  </div>
-                </div>
-
-                <!-- Test Match Odds -->
-                <div *ngIf="showOdds && testMatchOdds && testMatchOdds.length">
-                  <div *ngFor="let match of testMatchOdds; let i = index" class="test-match-odds">
-                    <div class="favorite-odds team-section">
-                      <div class="team-label">{{ match.teamName }}</div>
-                      <div class="odds-buttons" *ngIf="!viewAsProbability">
-                        <button mat-raised-button color="primary" [ngClass]="{'non-clickable': !isClickable}">
-                          {{ match.odds.backOdds }}
-                        </button>
-                        <button mat-raised-button color="accent" [ngClass]="{'non-clickable': !isClickable}">
-                          {{ match.odds.layOdds }}
-                        </button>
-                      </div>
-                      <div class="prob-bar-container" *ngIf="viewAsProbability">
-                        <div class="prob-bar prob-bar-back" [style.width]="getBarWidth(match.odds.backOdds, match.odds.layOdds)">
-                          {{ getProbability(match.odds.backOdds) }}
-                        </div>
-                        <div class="prob-bar prob-bar-lay" [style.width]="getBarWidth(match.odds.layOdds, match.odds.backOdds)">
-                          {{ getProbability(match.odds.layOdds) }}
-                        </div>
-                      </div>
-                    </div>
-                    <div class="betting-options"
-                      *ngIf="showBetting && showBettingFor === 'testMatchOdds' && currentMatchIndex === i"
-                      [class.lay-active]="layButtonActive">
-                      <div class="button-row">
-                        <button mat-button class="cancel-bet" (click)="cancelBet()">Cancel</button>
-                        <button mat-button class="clear-bet" (click)="clearStake()">Clear</button>
-                      </div>
-
-                      <div class="odds">
-                        <label for="odds{{i}}">Odds:</label>
-                        <input type="number" id="odds{{i}}" class="disabled-input" [(ngModel)]="selectedOdds" readonly/>
-                        <input type="hidden" name="odds{{i}}" [value]="selectedOdds" />
-                      </div>
-                      <div class="amount">
-                        <label for="amount{{i}}">Amount:</label>
-                        <input type="number" id="amount{{i}}" [(ngModel)]="betAmount" />
-                      </div>
-                      <button mat-raised-button class="place-bet" color="primary" (click)="placeTestBet(match)">Place Bet</button>
-                    </div>
-                  </div>
-                </div>
-
-                </div>
-                <!-- End Odds Section -->
-
-                <!-- Session Odds -->
-                <ng-container *ngIf="showOdds">
-                <div *ngFor="let sessionOdds of sessionOddsListDisplay">
-                  <div *ngIf="sessionOdds.session !== '-'">
-                    <div class="favorite-odds session-section">
-                      <div class="session-label">{{ sessionOdds.session }}</div>
-                      <div class="odds-buttons" *ngIf="!viewAsProbability">
-                        <button mat-raised-button color="primary" [ngClass]="{'non-clickable': !isClickable}"
-                                (click)="showBetForOdds('sessionBackOdds')">NO {{ sessionOdds.backOdds }}</button>
-                        <button mat-raised-button color="accent" [ngClass]="{'non-clickable': !isClickable}"
-                                (click)="showBetForOdds('sessionLayOdds')">YES {{ sessionOdds.layOdds }}</button>
-                      </div>
-                      <div class="prob-bar-container" *ngIf="viewAsProbability" style="margin-top: 10px;">
-                        <div class="prob-bar prob-bar-back" [style.width]="getBarWidth(sessionOdds.backOdds, sessionOdds.layOdds)">
-                          NO {{ getProbability(sessionOdds.backOdds) }}
-                        </div>
-                        <div class="prob-bar prob-bar-lay" [style.width]="getBarWidth(sessionOdds.layOdds, sessionOdds.backOdds)">
-                          YES {{ getProbability(sessionOdds.layOdds) }}
-                        </div>
-                      </div>
-                    </div>
-                
-                    <div class="betting-options" [class.lay-active]="layButtonActive"
-                         *ngIf="showBetting && (showBettingFor === 'sessionBackOdds' || showBettingFor === 'sessionLayOdds')">
-                      <div class="button-row">
-                        <button mat-button class="cancel-bet" (click)="cancelBet()">Cancel</button>
-                        <button mat-button class="clear-bet" (click)="clearStake()">Clear</button>
-                      </div>
-                
-                      <div class="odds-amount">
-                        <div class="amount">
-                          <label for="amount">Amount:</label>
-                          <input type="number" id="amount" [(ngModel)]="betAmount" />
-                        </div>
-                      </div>
-                
-                      <div class="quick-stakes">
-                        <button *ngFor="let amount of quickStakeAmounts" (click)="setStake(amount)">
-                          + {{ amount }}
-                        </button>
-                      </div>
-                      
-                      <button mat-raised-button class="place-bet" color="primary" (click)="placeSessionBet()">Place Bet</button>
-                    </div>
-                  </div>
-                </div>
-                </ng-container>
-                
-              </div><!-- end .cricket-odds -->
-            </div><!-- end .live-match-col--odds -->
-
+            <!-- Original Odds & Betting UI removed — now shown as Win Probability in sidebar -->
           </div><!-- end .live-match-container -->
+
+          <!-- Commentary + Odds side-by-side layout -->
+          <div class="commentary-odds-layout">
+            <!-- Commentary Column (primary) -->
+            <div class="commentary-col" *ngIf="commentaryEntries.length > 0">
+              <div class="commentary-section">
+                <h3 class="commentary-title">
+                  <mat-icon>speaker_notes</mat-icon>
+                  Ball-by-Ball Commentary
+                </h3>
+                <div class="commentary-list">
+                  <div *ngFor="let entry of commentaryEntries; let i = index"
+                       class="commentary-entry"
+                       [ngClass]="getCommentaryClass(entry)">
+                    <!-- Over summary: full-width card, no over/runs badges -->
+                    <ng-container *ngIf="entry.type === 'OVER_SUMMARY'; else ballEntry">
+                      <div class="over-summary-card">
+                        <div class="over-summary-icon">⏱</div>
+                        <div class="over-summary-content">
+                          <span class="over-summary-text">{{ entry.text }}</span>
+                        </div>
+                      </div>
+                    </ng-container>
+                    <ng-template #ballEntry>
+                      <div class="commentary-over-badge" *ngIf="entry.overBall">
+                        {{ entry.overBall }}
+                      </div>
+                      <div class="commentary-runs-badge" *ngIf="getRunsBadge(entry)"
+                           [ngClass]="getRunsBadgeClass(entry)">
+                        {{ getRunsBadge(entry) }}
+                      </div>
+                      <div class="commentary-text">
+                        <span class="commentary-main-text">{{ entry.text }}</span>
+                      </div>
+                    </ng-template>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Odds Sidebar Column — Win Percentage View -->
+            <div class="odds-sidebar-col" *ngIf="(!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || sessionOddsListDisplay.length > 0">
+              <div class="odds-sidebar-card">
+                <h3 class="odds-sidebar-title">
+                  <mat-icon>pie_chart</mat-icon>
+                  Win Probability
+                </h3>
+
+                <!-- Single-team win % bar -->
+                <div *ngIf="!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')"
+                     class="win-prob-block">
+                  <div class="win-prob-team-name">{{ favTeam }}</div>
+                  <div class="win-prob-bar-wrap">
+                    <div class="win-prob-bar-fill" [style.width]="getProbability(backOdds)">
+                      {{ getProbability(backOdds) }}
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Multi-team (test match) win % bars -->
+                <div *ngIf="testMatchOdds && testMatchOdds.length > 0">
+                  <div *ngFor="let match of testMatchOdds" class="win-prob-block">
+                    <div class="win-prob-team-name">{{ match.teamName }}</div>
+                    <div class="win-prob-bar-wrap">
+                      <div class="win-prob-bar-fill" [style.width]="getProbability(match.odds.backOdds)">
+                        {{ getProbability(match.odds.backOdds) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Session Odds as compact list -->
+                <div *ngIf="sessionOddsListDisplay.length > 0" class="win-prob-sessions">
+                  <div class="win-prob-sessions-title">Session Odds</div>
+                  <div *ngFor="let s of sessionOddsListDisplay">
+                    <div *ngIf="s.session !== '-'" class="odds-sidebar-session">
+                      <div class="odds-session-name">{{ s.session }}</div>
+                      <div class="odds-team-values">
+                        <span class="odds-back">NO {{ s.backOdds }}</span>
+                        <span class="odds-lay">YES {{ s.layOdds }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- End Commentary + Odds layout -->
+
         </mat-tab>
 
         <!-- Second Tab: Match Info -->

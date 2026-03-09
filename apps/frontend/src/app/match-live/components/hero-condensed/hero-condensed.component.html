@@ -1,4 +1,4 @@
-<div class="hero-condensed" *ngIf="view" [attr.data-status]="view.status">
+<div class="hero-condensed" *ngIf="view" [attr.data-status]="statusKey()">
   <div class="condensed__content">
     <!-- Match Info -->
     <div class="condensed__match-info" *ngIf="matchInfo">
@@ -15,7 +15,7 @@
     <!-- Status Badge -->
     <div class="condensed__status">
       <span class="status-badge" [attr.data-tier]="view.staleness.tier">
-        {{ view.status | titlecase }}
+        {{ statusLabel() }}
       </span>
     </div>
 

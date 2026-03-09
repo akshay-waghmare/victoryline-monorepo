@@ -595,27 +595,43 @@ export class LiveHeroStateService {
   }
 
   private resolveCurrentBall(data: LegacyCricketData): string | number | null {
-    // Try runs_on_ball first if available (as requested by user)
-    if (data.runs_on_ball !== undefined && data.runs_on_ball !== null) {
-       if (Array.isArray(data.runs_on_ball)) {
-         // If it's an array, take the last one? Or is it just a value?
-         // The interface says string | string[] | null.
-         // But backend sends Integer.
-         // Let's assume if it's a value, use it.
-         if (data.runs_on_ball.length > 0) {
-            return data.runs_on_ball[data.runs_on_ball.length - 1];
-         }
-       } else {
-          return data.runs_on_ball as string | number;
-       }
+    const cb = data.current_ball;
+
+    // Named/special codes (non-numeric strings like "Ball Start", "Wide", "Over",
+    // "Bowled", "Wicket", "Ball In Air", etc.) must always win over runs_on_ball.
+    // runs_on_ball is stale from the previous delivery and would otherwise hide
+    // transient state codes that only last one poll cycle.
+    if (cb !== undefined && cb !== null) {
+      if (typeof cb === 'number') {
+        // numeric current_ball — fall through to runs_on_ball check below
+      } else {
+        const trimmed = String(cb).trim();
+        if (trimmed && trimmed.toLowerCase() !== 'null') {
+          if (!/^\d+$/.test(trimmed)) {
+            // Non-numeric special code → always show it
+            return trimmed;
+          }
+        }
+      }
     }
 
-    if (data.current_ball !== undefined && data.current_ball !== null) {
-      if (typeof data.current_ball === 'number') {
-        return isFinite(data.current_ball) ? data.current_ball : null;
+    // For numeric outcomes, prefer runs_on_ball (fresher live-ball signal)
+    if (data.runs_on_ball !== undefined && data.runs_on_ball !== null) {
+      if (Array.isArray(data.runs_on_ball)) {
+        if (data.runs_on_ball.length > 0) {
+          return data.runs_on_ball[data.runs_on_ball.length - 1];
+        }
+      } else {
+        return data.runs_on_ball as string | number;
       }
+    }
 
-      const trimmed = String(data.current_ball).trim();
+    // Fall back to numeric current_ball
+    if (cb !== undefined && cb !== null) {
+      if (typeof cb === 'number') {
+        return isFinite(cb) ? cb : null;
+      }
+      const trimmed = String(cb).trim();
       if (trimmed && trimmed.toLowerCase() !== 'null') {
         return trimmed;
       }
