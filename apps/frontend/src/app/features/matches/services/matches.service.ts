@@ -12,8 +12,15 @@ import { HttpClient } from '@angular/common/http';
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
 import { EventListService } from '../../../component/event-list.service';
 import { getStatusDisplayText, formatTimeDisplay, calculateStaleness } from '../models/match-status';
-import { ballsToOvers, extractSlugFromUrl } from '../../../core/utils/match-utils';
+import { ballsToOvers, extractSlugFromUrl, sortMatchesByPriority } from '../../../core/utils/match-utils';
 import { environment } from '../../../../environments/environment';
+
+interface ScheduleResponse {
+  success?: boolean;
+  data?: any[];
+  lastUpdated?: number;
+  source?: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -33,7 +40,7 @@ export class MatchesService {
   getLiveMatchesWithAutoRefresh(): Observable<MatchCardViewModel[]> {
     // Emit immediately, then every 30 seconds
     return timer(0, 30000).pipe(
-      switchMap(() => this.getLiveMatches()),
+      switchMap(() => this.getAllMatches()),
       shareReplay(1) // Cache the latest emission
     );
   }
@@ -58,9 +65,9 @@ export class MatchesService {
           return of([]);
         }
         
-        // Filter out finished or deleted matches
+        // Trust backend-persisted lifecycle state for live feed filtering.
         const activeMatches = response.filter((item: any) => 
-          !item.finished && !item.deleted
+          this.isLiveFeedStatus(this.parseMatchStatus(item))
         );
         
         console.log('Active matches count:', activeMatches.length);
@@ -94,6 +101,42 @@ export class MatchesService {
             return transformedMatches;
           })
         );
+      })
+    );
+  }
+
+  getAllMatches(): Observable<MatchCardViewModel[]> {
+    return forkJoin([
+      this.getLiveMatches(),
+      this.getUpcomingMatches(),
+      this.getCompletedMatches()
+    ]).pipe(
+      map(([liveMatches, upcomingMatches, completedMatches]) =>
+        sortMatchesByPriority([
+          ...liveMatches,
+          ...upcomingMatches,
+          ...completedMatches
+        ])
+      )
+    );
+  }
+
+  private getUpcomingMatches(): Observable<MatchCardViewModel[]> {
+    return this.eventListService.getUpcomingMatches().pipe(
+      map((response: ScheduleResponse | any[]) => this.transformScheduleMatches(response, MatchStatus.UPCOMING)),
+      catchError((error) => {
+        console.error('Error loading upcoming matches:', error);
+        return of([]);
+      })
+    );
+  }
+
+  private getCompletedMatches(): Observable<MatchCardViewModel[]> {
+    return this.eventListService.getCompletedMatches().pipe(
+      map((response: ScheduleResponse | any[]) => this.transformScheduleMatches(response, MatchStatus.COMPLETED)),
+      catchError((error) => {
+        console.error('Error loading completed matches:', error);
+        return of([]);
       })
     );
   }
@@ -138,12 +181,14 @@ export class MatchesService {
     const team2 = this.parseTeamInfo(apiMatch, 'team2', 1, urlData, scorecardData);
     
     // Parse venue from scorecard or URL
-    const venue = (scorecardData && scorecardData.venue) || urlData.tournament || 'Venue TBD';
+    const venue = apiMatch.venue || (scorecardData && scorecardData.venue) || urlData.tournament || 'Venue TBD';
     const startTime = this.parseStartTime(apiMatch, scorecardData);
     
     // Parse last updated timestamp
     const lastUpdated = apiMatch.lastUpdated 
       ? new Date(apiMatch.lastUpdated) 
+      : apiMatch.lastStateUpdatedAt
+      ? new Date(apiMatch.lastStateUpdatedAt)
       : new Date();
     
     // Compute display properties
@@ -162,6 +207,10 @@ export class MatchesService {
       venue,
       startTime,
       matchUrl: apiMatch.url, // Store original URL for navigation
+      seriesName: apiMatch.seriesName || urlData.tournament,
+      matchFormat: apiMatch.matchFormat || this.extractMatchFormat(apiMatch.url || ''),
+      resultSummary: apiMatch.resultSummary || '',
+      externalMatchKey: apiMatch.externalMatchKey,
       displayStatus,
       statusColor,
       timeDisplay,
@@ -172,6 +221,28 @@ export class MatchesService {
       lastUpdated,
       staleness
     };
+  }
+
+  private transformScheduleMatches(response: ScheduleResponse | any[], fallbackStatus: MatchStatus): MatchCardViewModel[] {
+    const payload = this.extractSchedulePayload(response);
+    return payload.map(match => {
+      if (!match.status) {
+        match.status = fallbackStatus;
+      }
+      return this.transformToViewModel(match, null);
+    });
+  }
+
+  private extractSchedulePayload(response: ScheduleResponse | any[]): any[] {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (response && Array.isArray(response.data)) {
+      return response.data;
+    }
+
+    return [];
   }
   
   /**
@@ -184,9 +255,10 @@ export class MatchesService {
     }
     
     try {
-      // Extract the meaningful part after the last slash before '/live'
-      const parts = url.split('/');
-      const matchPart = parts[parts.length - 2]; // e.g., "ind-a-vs-sa-a-2nd-test-south-africa-a-tour-of-india-2025"
+      const matchPart = extractSlugFromUrl(url) || this.extractSlugCandidate(url);
+      if (!matchPart) {
+        return { team1: 'Team 1', team2: 'Team 2', tournament: 'Tournament' };
+      }
       
       // Find the "-vs-" separator
       const vsIndex = matchPart.indexOf('-vs-');
@@ -279,7 +351,10 @@ export class MatchesService {
     }
     
     // Fallback to URL parsed data
-    if (teamName === 'Team ' + (index + 1) && urlData && urlData[teamKey]) {
+    const explicitTeamName = apiMatch[`${teamKey}Name`];
+    if (teamName === 'Team ' + (index + 1) && explicitTeamName) {
+      teamName = explicitTeamName;
+    } else if (teamName === 'Team ' + (index + 1) && urlData && urlData[teamKey]) {
       teamName = urlData[teamKey];
     } else if (teamName === 'Team ' + (index + 1) && typeof teamData === 'string') {
       teamName = teamData;
@@ -450,34 +525,28 @@ export class MatchesService {
     
     const statusStr = (apiMatch.status || apiMatch.matchStatus || '').toLowerCase();
     
-    // Check finished flag
-    if (apiMatch.finished === true) {
-      return MatchStatus.COMPLETED;
-    }
-    
-    // Check deleted flag
-    if (apiMatch.deleted === true) {
-      return MatchStatus.ABANDONED;
-    }
-    
-    // If not finished and not deleted, assume live or upcoming
     if (statusStr.includes('live') || statusStr.includes('in progress')) {
       return MatchStatus.LIVE;
     } else if (statusStr.includes('innings break') || statusStr.includes('break')) {
       return MatchStatus.INNINGS_BREAK;
     } else if (statusStr.includes('upcoming') || statusStr.includes('scheduled')) {
       return MatchStatus.UPCOMING;
+    } else if (statusStr.includes('abandoned') || statusStr.includes('cancelled')) {
+      return MatchStatus.ABANDONED;
     } else if (statusStr.includes('completed') || statusStr.includes('finished')) {
       return MatchStatus.COMPLETED;
     } else if (statusStr.includes('rain') || statusStr.includes('delayed')) {
       return MatchStatus.RAIN_DELAY;
-    } else if (statusStr.includes('abandoned') || statusStr.includes('cancelled')) {
-      return MatchStatus.ABANDONED;
+    }
+
+    // Check finished flag
+    if (apiMatch.finished === true) {
+      return MatchStatus.COMPLETED;
     }
     
-    // Default: if URL ends with '/live', assume it's live
-    if (apiMatch.url && apiMatch.url.endsWith('/live')) {
-      return MatchStatus.LIVE;
+    // Check deleted flag after explicit status handling
+    if (apiMatch.deleted === true) {
+      return apiMatch.resultSummary ? MatchStatus.COMPLETED : MatchStatus.ABANDONED;
     }
     
     // Default to upcoming if status is unclear
@@ -492,6 +561,10 @@ export class MatchesService {
     if (scorecardData && scorecardData.startTime) {
       return new Date(scorecardData.startTime);
     }
+
+    if (apiMatch.scheduledStartTime) {
+      return new Date(apiMatch.scheduledStartTime);
+    }
     
     if (apiMatch.startTime) {
       return new Date(apiMatch.startTime);
@@ -499,6 +572,8 @@ export class MatchesService {
       return new Date(apiMatch.date);
     } else if (apiMatch.timestamp) {
       return new Date(apiMatch.timestamp);
+    } else if (apiMatch.lastStateUpdatedAt) {
+      return new Date(apiMatch.lastStateUpdatedAt);
     }
     
     // Default to current time if not available
@@ -569,13 +644,52 @@ export class MatchesService {
    * Generate match ID from URL or other data
    */
   private generateMatchId(apiMatch: any): string {
+    if (apiMatch.externalMatchKey) {
+      return apiMatch.externalMatchKey;
+    }
     if (apiMatch.url) {
       // Extract ID from URL if possible
-      const urlParts = apiMatch.url.split('/');
-      return urlParts[urlParts.length - 1] || `match-${Date.now()}`;
+      const slug = extractSlugFromUrl(apiMatch.url);
+      return slug || `match-${Date.now()}`;
     }
     
     // Fallback to timestamp-based ID
     return `match-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private extractMatchFormat(url: string): string {
+    if (!url) {
+      return '';
+    }
+
+    const lowered = url.toLowerCase();
+    if (lowered.indexOf('test') !== -1) {
+      return 'TEST';
+    }
+    if (lowered.indexOf('odi') !== -1) {
+      return 'ODI';
+    }
+    if (lowered.indexOf('t20') !== -1) {
+      return 'T20';
+    }
+    return '';
+  }
+
+  private extractSlugCandidate(url: string): string | null {
+    const segments = url.split('/').filter(Boolean);
+    for (let index = segments.length - 1; index >= 0; index--) {
+      const segment = segments[index];
+      if (segment.indexOf('-vs-') !== -1) {
+        return segment;
+      }
+    }
+
+    return null;
+  }
+
+  private isLiveFeedStatus(status: MatchStatus): boolean {
+    return status === MatchStatus.LIVE
+      || status === MatchStatus.INNINGS_BREAK
+      || status === MatchStatus.RAIN_DELAY;
   }
 }

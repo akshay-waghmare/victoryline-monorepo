@@ -8,6 +8,7 @@ import {
   shouldShowLiveHeroChase
 } from '../../services/live-hero-display.utils';
 import { LiveHeroStateService } from '../../services/live-hero-state.service';
+import { getRecentBallDisplay } from '../../../core/utils/match-utils';
 
 @Component({
   selector: 'app-live-hero',
@@ -20,6 +21,7 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
   @Input() matchId!: string;
   @Input() config?: LiveHeroConfig;
   @Input() matchInfo?: any;
+  @Input() fallbackView?: LiveHeroViewModel | null;
   @Input() last6Balls?: any[] = [];
   @Input() batsmanDataList?: any[] = [];
   @Input() bowlerDataList?: any[] = [];
@@ -60,6 +62,10 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
 
   retry(): void {
     this.heroState.manualRetry();
+  }
+
+  getActiveView(view: LiveHeroViewModel | null): LiveHeroViewModel | null {
+    return view || this.fallbackView || null;
   }
 
   stalenessBadge(view: LiveHeroViewModel | null): string | null {
@@ -142,66 +148,146 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
     return 'other';
   }
 
-  private normalizeBallCode(ball: string | null | undefined): string {
-    if (!ball) return '';
-    const v = String(ball).trim().toLowerCase();
-    if (v === 'b' || v === 'ball start') return 'ballstart';
-    if (v === 'o' || v === 'over') return 'over';
-    if (v === 'wd' || v === 'wide') return 'wide';
-    if (v === 'nb' || v === 'no ball') return 'noball';
-    if (v === 'fh' || v === 'free hit') return 'freehit';
-    // All ^N codes and their translated strings → wicket
-    if (v.startsWith('^') ||
-        v === 'w' || v === 'wicket' ||
-        v === 'bowled' || v === 'caught out' || v === 'caught and bowled' || v === 'caughtandbowled' ||
-        v === 'run out' || v === 'stumped' || v === 'lbw' || v === 'hit wicket') return 'wicket';
-    if (v === 'bc' || v === 'boundary check') return 'check';
-    if (v === 'ba' || v === 'ball in air') return 'air';
-    // Bye: b1, 1b, b2, 2b … (runs may come before or after the 'b')
-    if (/^b\d+$/.test(v) || /^\d+b$/.test(v)) return 'bye';
-    // Leg bye: lb1, 1lb …
-    if (/^lb\d+$/.test(v) || /^\d+lb$/.test(v)) return 'legbye';
-    if (v === '6') return 'six';
-    if (v === '4') return 'four';
-    if (v === '0' || v === '.') return 'dot';
-    return 'run';
+  private getCurrentBallMeta(ball: string | null | undefined): {
+    kind: string;
+    display: string;
+    fullLabel: string;
+    freeHit: boolean;
+  } {
+    if (!ball) {
+      return {
+        kind: 'other',
+        display: '',
+        fullLabel: '',
+        freeHit: false
+      };
+    }
+
+    const raw = String(ball).trim();
+    const lower = raw.toLowerCase();
+
+    if (lower === 'b' || lower === 'ball start') {
+      return {
+        kind: 'ballstart',
+        display: '●',
+        fullLabel: 'Ball Start',
+        freeHit: false
+      };
+    }
+
+    if (lower === 'o' || lower === 'over') {
+      return {
+        kind: 'over',
+        display: 'End',
+        fullLabel: 'End of Over',
+        freeHit: false
+      };
+    }
+
+    if (lower === 'wd' || lower === 'wide') {
+      return {
+        kind: 'wide',
+        display: 'Wd',
+        fullLabel: 'Wide',
+        freeHit: false
+      };
+    }
+
+    if (lower === 'nb' || lower === 'no ball') {
+      return {
+        kind: 'noball',
+        display: 'NB',
+        fullLabel: 'No Ball',
+        freeHit: false
+      };
+    }
+
+    if (lower === 'fh' || lower === 'free hit') {
+      return {
+        kind: 'freehit',
+        display: 'FH',
+        fullLabel: 'Free Hit',
+        freeHit: true
+      };
+    }
+
+    if (lower === 'bc' || lower === 'boundary check') {
+      return {
+        kind: 'check',
+        display: '?',
+        fullLabel: 'Boundary Check',
+        freeHit: false
+      };
+    }
+
+    if (lower === 'ba' || lower === 'ball in air') {
+      return {
+        kind: 'air',
+        display: '↑',
+        fullLabel: 'Ball In Air',
+        freeHit: false
+      };
+    }
+
+    const recentBall = getRecentBallDisplay(raw);
+    if (recentBall.raw) {
+      return {
+        kind: this.mapCurrentBallKind(raw, recentBall.kind),
+        display: recentBall.kind === 'wicket' ? recentBall.fullLabel : recentBall.display,
+        fullLabel: recentBall.fullLabel || recentBall.display,
+        freeHit: false
+      };
+    }
+
+    return {
+      kind: 'other',
+      display: raw,
+      fullLabel: raw,
+      freeHit: false
+    };
+  }
+
+  private mapCurrentBallKind(raw: string, kind: string): string {
+    if (kind !== 'extra') {
+      return kind;
+    }
+
+    const lower = raw.toLowerCase();
+    if (lower.indexOf('lb') !== -1) {
+      return 'legbye';
+    }
+    if (lower.indexOf('wd') !== -1 || lower === 'wide') {
+      return 'wide';
+    }
+    if (lower.indexOf('nb') !== -1 || lower === 'no ball') {
+      return 'noball';
+    }
+    if (/^b\d+$/.test(lower) || /^\d+b$/.test(lower)) {
+      return 'bye';
+    }
+
+    return 'other';
   }
 
   getCurrentBallKind(ball: string | null | undefined): string {
-    return this.normalizeBallCode(ball) || 'other';
+    return this.getCurrentBallMeta(ball).kind || 'other';
   }
 
   isCurrentBallImpact(ball: string | null | undefined): boolean {
-    const code = this.normalizeBallCode(ball);
-    return code === 'six' || code === 'four' || code === 'wicket';
+    const kind = this.getCurrentBallMeta(ball).kind;
+    return kind === 'six' || kind === 'four' || kind === 'wicket';
   }
 
   isCurrentBallFreeHit(ball: string | null | undefined): boolean {
-    return this.normalizeBallCode(ball) === 'freehit';
+    return this.getCurrentBallMeta(ball).freeHit;
   }
 
   getCurrentBallDisplay(ball: string | null | undefined): string {
-    if (!ball) return '';
-    const raw = String(ball).trim();
-    switch (this.normalizeBallCode(ball)) {
-      case 'ballstart': return '●';
-      case 'over':      return 'End';
-      case 'wide':      return 'Wd';
-      case 'noball':    return 'NB';
-      case 'freehit':   return 'FH';
-      case 'wicket':    return 'W';
-      case 'check':     return '?';
-      case 'air':       return '↑';
-      case 'bye': {
-        const n = raw.replace(/[^0-9]/g, '');
-        return n ? `B${n}` : 'By';
-      }
-      case 'legbye': {
-        const n = raw.replace(/[^0-9]/g, '');
-        return n ? `LB${n}` : 'LB';
-      }
-      default: return raw;
-    }
+    return this.getCurrentBallMeta(ball).display;
+  }
+
+  getCurrentBallLabel(ball: string | null | undefined): string {
+    return this.getCurrentBallMeta(ball).fullLabel;
   }
 
   getResultSummary(view: LiveHeroViewModel | null): string | null {

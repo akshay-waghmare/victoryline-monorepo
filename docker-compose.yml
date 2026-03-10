@@ -46,6 +46,7 @@ services:
       # JWT Configuration
       JWT_SECRET: ${JWT_SECRET:-victorylineSecretKey123456789012345678901234567890}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400}
+      SCRAPER_HYDRATE_URL: http://scraper:5000/hydrate-match-details
     volumes:
       - backend_data:/app/data
     networks:
@@ -90,6 +91,7 @@ services:
       TOKEN_URL: http://backend:8099/token/generate-token
       SERVICE_URL: http://backend:8099/cricket-data
       ADD_LIVE_MATCHES_URL: http://backend:8099/cricket-data/add-live-matches
+      SYNC_SCHEDULE_MATCHES_URL: http://backend:8099/cricket-data/sync-schedule-matches
       API_ENDPOINT: http://backend:8099/cricket-data/match-info/save
       API_ENDPOINT_SC4: http://backend:8099/cricket-data/sC4-stats/save
       # Redis Configuration

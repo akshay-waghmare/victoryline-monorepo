@@ -373,7 +373,7 @@
     margin-bottom: 4px;
     flex-direction: row;
     align-items: baseline;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 }
 
@@ -742,13 +742,17 @@
 .current-ball[data-kind="wicket"] {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(185, 28, 28, 0.12) 100%);
   border-color: rgba(239, 68, 68, 0.35);
+  max-width: 240px;
 }
 .current-ball[data-kind="wicket"] .current-ball__value {
+  font-size: 1rem;
   background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-shadow: none;
+  white-space: normal;
+  line-height: 1.25;
 }
 
 .current-ball[data-kind="freehit"] {
@@ -1547,11 +1551,15 @@
   /* Minimal context section */
   .live-hero__pod--context {
     padding: 4px 0;
+    text-align: left;
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .chase-summary {
     font-size: 0.75rem;
     line-height: 1.1;
+    text-align: left;
   }
 }
 
@@ -1666,13 +1674,14 @@
     gap: 16px;
   }
 
-  /* Score pod - left side */
+  /* Score pod - full-width on mobile, left-aligned */
   .live-hero__pod--score {
-    flex: 0.4;
-    padding: 0 16px 0 0;
+    width: 100%;
+    padding: 0;
     text-align: left;
-    border-right: 1px solid rgba(255, 255, 255, 0.15);
-    min-width: 0;
+    align-items: flex-start;
+    justify-content: flex-start;
+    border-right: none;
   }
 
   /* Current ball - right side */
@@ -1768,6 +1777,7 @@
     line-height: 1.2;
     color: rgba(255, 255, 255, 0.7);
     font-weight: 500;
+    text-align: left;
     margin: 0;
     padding: 4px 0;
   }

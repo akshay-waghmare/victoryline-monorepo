@@ -7,9 +7,10 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
-import { MatchCardViewModel, ScoreInfo } from '../../models/match-card.models';
-import { getStatusDisplayText, getStatusColor, isLiveMatch, calculateStaleness, formatTimeDisplay } from '../../models/match-status';
+import { MatchCardViewModel, MatchStatus, ScoreInfo } from '../../models/match-card.models';
+import { getStatusDisplayText, getStatusColor, isLiveMatch, calculateStaleness, formatTimeDisplay, formatAbsoluteTime, formatCalendarDate } from '../../models/match-status';
 import { AnimationService } from '../../../../core/services/animation.service';
+import { getMatchResultSummary } from '../../../../core/utils/match-utils';
 
 /**
  * Score update event data
@@ -245,11 +246,42 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   }
   
   getTimeDisplay(): string {
+    if (this.isUpcomingMatch()) {
+      return formatAbsoluteTime(this.match.startTime);
+    }
     return formatTimeDisplay(this.match.startTime);
+  }
+
+  getUpcomingDateDisplay(): string {
+    return formatCalendarDate(this.match.startTime);
   }
   
   isMatchLive(): boolean {
     return isLiveMatch(this.match.status);
+  }
+
+  isUpcomingMatch(): boolean {
+    return this.match.status === MatchStatus.UPCOMING;
+  }
+
+  getSeriesLabel(): string {
+    if (this.isUpcomingMatch() && this.match.seriesName && /\b\d{1,2}:\d{2}\s*[AP]M\b/i.test(this.match.seriesName)) {
+      return '';
+    }
+    const parts = [this.match.seriesName, this.match.matchFormat].filter(Boolean);
+    return parts.join(' • ');
+  }
+
+  hasSeriesLabel(): boolean {
+    return this.getSeriesLabel().trim().length > 0;
+  }
+
+  getResultSummary(): string {
+    return getMatchResultSummary(this.match);
+  }
+
+  hasResultSummary(): boolean {
+    return this.getResultSummary().trim().length > 0;
   }
 
   // ===== EVENT HANDLERS =====

@@ -25,6 +25,15 @@ class CricketDataService:
     BACKEND_TIMEOUT = 30  # Increased timeout for backend operations
 
     @staticmethod
+    def _service_base_url() -> str:
+        service_url = os.getenv('SERVICE_URL')
+        if service_url:
+            return service_url.rstrip('/')
+
+        backend_url = os.getenv('BACKEND_URL', CricketDataService.BASE_URL)
+        return backend_url.rstrip('/') + '/cricket-data'
+
+    @staticmethod
     def get_bearer_token():
         """Fetches the bearer token for authentication from local backend."""
         logger.info("auth.token.start")
@@ -77,6 +86,40 @@ class CricketDataService:
             # Don't raise - allow scraping to continue even if backend sync fails
 
     @staticmethod
+    def add_schedule_matches(matches, token):
+        """Sync upcoming and completed schedule matches to the backend."""
+        logger.info("schedule.sync.start", metadata={"match_count": len(matches or [])})
+
+        if not matches:
+            return
+
+        sync_schedule_url = os.getenv(
+            'SYNC_SCHEDULE_MATCHES_URL',
+            CricketDataService._service_base_url() + '/sync-schedule-matches'
+        )
+
+        def _post_schedule():
+            headers = {"Content-Type": "application/json"}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            response = requests.post(
+                sync_schedule_url,
+                json=matches,
+                headers=headers,
+                timeout=CricketDataService.BACKEND_TIMEOUT
+            )
+            response.raise_for_status()
+            return response
+
+        try:
+            _api_breaker.call(_post_schedule)
+            logger.info("schedule.sync.success", metadata={"match_count": len(matches or [])})
+        except CircuitBreakerOpenError:
+            logger.warning("schedule.sync.circuit_open", metadata={"breaker": "backend_api"})
+        except Exception as e:
+            logger.error("schedule.sync.error", metadata={"error": str(e), "url": sync_schedule_url})
+
+    @staticmethod
     def fetch_match_data(match_id, token):
         """Fetches data for a specific match."""
         logger.info("matches.fetch.start", metadata={"match_id": match_id})
@@ -113,7 +156,7 @@ class CricketDataService:
         logger.info("matches.push.start", metadata={"url": source_url})
         start_time = time.time()
         
-        service_url = os.getenv('SERVICE_URL', 'http://127.0.0.1:8099/cricket-data')
+        service_url = CricketDataService._service_base_url()
         
         # Retry config for push operations (Feature 007)
         push_retry_config = RetryConfig(

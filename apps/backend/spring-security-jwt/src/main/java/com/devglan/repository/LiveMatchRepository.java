@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.devglan.model.LiveMatch;
+import com.devglan.model.MatchLifecycleStatus;
 
 public interface LiveMatchRepository extends JpaRepository<LiveMatch, Long> , LiveMatchRepositoryCustom {
 
@@ -18,4 +19,7 @@ public interface LiveMatchRepository extends JpaRepository<LiveMatch, Long> , Li
     LiveMatch findByUrlContaining(@Param("url") String url);
 	List<LiveMatch> findByDeletionAttemptsLessThan(Integer attempts);
 	List<LiveMatch> findByDeletionAttemptsLessThanAndIsDeletedFalse(Integer attempts);
+    List<LiveMatch> findByExternalMatchKeyOrderByIdDesc(String externalMatchKey);
+    List<LiveMatch> findByStatusInAndIsDeletedFalseOrderByScheduledStartTimeAsc(List<MatchLifecycleStatus> statuses);
+    List<LiveMatch> findByStatusInOrderByLastStateUpdatedAtDesc(List<MatchLifecycleStatus> statuses);
 }

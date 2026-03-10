@@ -96,9 +96,11 @@ export function sortMatchesByPriority(matches: MatchCardViewModel[]): MatchCardV
       return priorityA - priorityB;
     }
     
-    // Within same priority, sort by start time (upcoming: earliest first, completed: latest first)
+    // Within same priority, sort upcoming by scheduled start and completed by last update.
     if (a.status === MatchStatus.UPCOMING) {
       return a.startTime.getTime() - b.startTime.getTime();
+    } else if (a.status === MatchStatus.COMPLETED || a.status === MatchStatus.ABANDONED) {
+      return b.lastUpdated.getTime() - a.lastUpdated.getTime();
     } else {
       return b.startTime.getTime() - a.startTime.getTime();
     }
@@ -132,7 +134,9 @@ export function filterUpcomingMatches(matches: MatchCardViewModel[]): MatchCardV
  * Filter completed matches
  */
 export function filterCompletedMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
-  return matches.filter(match => match.status === MatchStatus.COMPLETED);
+  return matches.filter(match => 
+    match.status === MatchStatus.COMPLETED || match.status === MatchStatus.ABANDONED
+  );
 }
 
 /**
@@ -158,8 +162,16 @@ export function searchMatches(matches: MatchCardViewModel[], query: string): Mat
  * Get match result summary text
  */
 export function getMatchResultSummary(match: MatchCardViewModel): string {
-  if (match.status !== MatchStatus.COMPLETED) {
+  if (match.resultSummary && match.resultSummary.trim()) {
+    return match.resultSummary;
+  }
+
+  if (match.status !== MatchStatus.COMPLETED && match.status !== MatchStatus.ABANDONED) {
     return '';
+  }
+
+  if (match.status === MatchStatus.ABANDONED) {
+    return 'Match abandoned';
   }
   
   const team1Score = match.team1.score;

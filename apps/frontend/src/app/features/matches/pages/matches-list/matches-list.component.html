@@ -79,22 +79,38 @@
         <circle cx="32" cy="32" r="30" stroke="currentColor" stroke-width="2"/>
         <path d="M32 20v16M32 44v2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
-      <p class="matches-list__empty-message">No matches found</p>
-      <p class="matches-list__empty-hint">
-        <span *ngIf="searchQuery">Try adjusting your search</span>
-        <span *ngIf="selectedStatus !== 'all' && !searchQuery">Try selecting a different filter</span>
-        <span *ngIf="selectedStatus === 'all' && !searchQuery">Check back later for updates</span>
-      </p>
+      <p class="matches-list__empty-message">{{ getEmptyStateMessage() }}</p>
+      <p class="matches-list__empty-hint">{{ getEmptyStateHint() }}</p>
     </div>
     
-    <!-- Match Cards -->
-    <app-match-card
-      *ngFor="let match of filteredMatches; trackBy: trackByMatchId"
-      [match]="match"
-      [enableAnimations]="true"
-      [showDetailsButton]="true"
-      (cardClick)="onMatchClick(match)"
-      (detailsClick)="onDetailsClick(match)"
-    ></app-match-card>
+    <ng-container *ngIf="!isUpcomingGroupedView(); else groupedUpcomingMatches">
+      <app-match-card
+        *ngFor="let match of filteredMatches; trackBy: trackByMatchId"
+        [match]="match"
+        [enableAnimations]="true"
+        [showDetailsButton]="true"
+        (cardClick)="onMatchClick(match)"
+        (detailsClick)="onDetailsClick(match)"
+      ></app-match-card>
+    </ng-container>
+
+    <ng-template #groupedUpcomingMatches>
+      <section class="matches-list__group" *ngFor="let group of upcomingMatchGroups">
+        <header class="matches-list__group-header">
+          <h2 class="matches-list__group-title">{{ group.label }}</h2>
+        </header>
+
+        <div class="matches-list__group-grid">
+          <app-match-card
+            *ngFor="let match of group.matches; trackBy: trackByMatchId"
+            [match]="match"
+            [enableAnimations]="true"
+            [showDetailsButton]="true"
+            (cardClick)="onMatchClick(match)"
+            (detailsClick)="onDetailsClick(match)"
+          ></app-match-card>
+        </div>
+      </section>
+    </ng-template>
   </div>
 </div>

@@ -2,12 +2,9 @@
 # Uses Caddyfile.local (HTTP only, no HTTPS)
 # Builds images locally instead of pulling from registry
 
-version: "3.8"
-
 services:
   redis:
     image: redis:7-alpine
-    container_name: victoryline-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -24,7 +21,6 @@ services:
     build:
       context: ./apps/backend/spring-security-jwt
       dockerfile: Dockerfile
-    container_name: victoryline-backend
     restart: unless-stopped
     ports:
       - "8099:8099"
@@ -33,6 +29,7 @@ services:
       SERVER_PORT: "8099"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      SCRAPER_HYDRATE_URL: http://scraper:5000/hydrate-match-details
     depends_on:
       - redis
     networks:
@@ -48,7 +45,6 @@ services:
     build:
       context: ./apps/scraper
       dockerfile: Dockerfile
-    container_name: victoryline-scraper
     restart: unless-stopped
     ports:
       - "5000:5000"
@@ -58,6 +54,7 @@ services:
       TOKEN_URL: http://backend:8099/token/generate-token
       SERVICE_URL: http://backend:8099/cricket-data
       ADD_LIVE_MATCHES_URL: http://backend:8099/cricket-data/add-live-matches
+      SYNC_SCHEDULE_MATCHES_URL: http://backend:8099/cricket-data/sync-schedule-matches
       API_ENDPOINT: http://backend:8099/cricket-data/match-info/save
       API_ENDPOINT_SC4: http://backend:8099/cricket-data/sC4-stats/save
       # Redis Configuration  
@@ -89,7 +86,6 @@ services:
     build:
       context: ./apps/frontend
       dockerfile: prerender-sidecar/Dockerfile
-    container_name: victoryline-prerender
     restart: unless-stopped
     ports:
       - "9100:9100"
@@ -113,7 +109,6 @@ services:
     build:
       context: ./apps/frontend
       dockerfile: Dockerfile
-    container_name: victoryline-frontend
     restart: unless-stopped
     expose:
       - "80"
@@ -137,7 +132,6 @@ services:
 
   caddy:
     image: caddy:2
-    container_name: victoryline-caddy
     restart: unless-stopped
     depends_on:
       - frontend

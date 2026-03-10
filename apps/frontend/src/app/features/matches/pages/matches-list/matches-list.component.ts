@@ -13,6 +13,7 @@ import { takeUntil } from 'rxjs/operators';
 import { MatchCardViewModel, MatchStatus } from '../../models/match-card.models';
 import { MatchesService } from '../../services/matches.service';
 import { extractSlugFromUrl } from '../../../../core/utils/match-utils';
+import { formatCalendarDate } from '../../models/match-status';
 import { 
   sortMatchesByPriority, 
   filterMatchesByStatus, 
@@ -32,6 +33,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   // Match data
   allMatches: MatchCardViewModel[] = [];
   filteredMatches: MatchCardViewModel[] = [];
+  upcomingMatchGroups: { label: string; matches: MatchCardViewModel[] }[] = [];
   
   // Loading states
   isLoading = true;
@@ -64,7 +66,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   
   ngOnInit(): void {
     // T044: Set page title for matches list page
-    this.titleService.setTitle('Live Cricket Matches | Ball by Ball Scores | Crickzen');
+    this.titleService.setTitle('Cricket Matches | Live, Upcoming & Completed | Crickzen');
     this.loadMatches();
   }
   
@@ -116,6 +118,9 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     }
     
     this.filteredMatches = matches;
+    this.upcomingMatchGroups = this.selectedStatus === MatchStatus.UPCOMING
+      ? this.buildUpcomingGroups(matches)
+      : [];
   }
   
   /**
@@ -239,5 +244,65 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    */
   trackByMatchId(index: number, match: MatchCardViewModel): string {
     return match.id;
+  }
+
+  getEmptyStateMessage(): string {
+    if (this.searchQuery) {
+      return 'No matches found';
+    }
+
+    switch (this.selectedStatus) {
+      case MatchStatus.UPCOMING:
+        return 'No upcoming matches scheduled';
+      case MatchStatus.COMPLETED:
+        return 'No recent completed matches';
+      case MatchStatus.LIVE:
+        return 'No live matches right now';
+      default:
+        return 'No matches found';
+    }
+  }
+
+  getEmptyStateHint(): string {
+    if (this.searchQuery) {
+      return 'Try adjusting your search';
+    }
+
+    switch (this.selectedStatus) {
+      case MatchStatus.UPCOMING:
+        return 'Check back later for new fixtures';
+      case MatchStatus.COMPLETED:
+        return 'Completed matches will appear here after results are synced';
+      case MatchStatus.LIVE:
+        return 'Upcoming and completed matches are available in the other tabs';
+      default:
+        return 'Check back later for updates';
+    }
+  }
+
+  isUpcomingGroupedView(): boolean {
+    return this.selectedStatus === MatchStatus.UPCOMING && this.upcomingMatchGroups.length > 0;
+  }
+
+  private buildUpcomingGroups(matches: MatchCardViewModel[]): { label: string; matches: MatchCardViewModel[] }[] {
+    const groups: { [key: string]: { label: string; matches: MatchCardViewModel[] } } = {};
+
+    matches.forEach(match => {
+      const startTime = match.startTime;
+      const key = isNaN(startTime.getTime())
+        ? 'Scheduled'
+        : `${startTime.getFullYear()}-${startTime.getMonth()}-${startTime.getDate()}`;
+
+      if (!groups[key]) {
+        groups[key] = {
+          label: key === 'Scheduled' ? 'Scheduled' : formatCalendarDate(startTime),
+          matches: []
+        };
+      }
+
+      groups[key].matches.push(match);
+    });
+
+    return Object.keys(groups).map(key => groups[key]);
   }
 }

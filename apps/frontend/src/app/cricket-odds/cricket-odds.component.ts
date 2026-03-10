@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { RxStompService } from '@stomp/ng2-stompjs';
-import { Subject } from 'rxjs';
+import { forkJoin, Subject } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
 import { CricketService } from './cricket-odds.service';
 import { TokenStorage } from '../token.storage';
@@ -10,7 +10,9 @@ import { EventListService } from '../component/event-list.service';
 import { AuthService } from '../auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabChangeEvent } from '@angular/material/tabs';
-import { getRecentBallDisplay, RecentBallKind } from '../core/utils/match-utils';
+import { extractSlugFromUrl, getRecentBallDisplay, RecentBallKind } from '../core/utils/match-utils';
+import { upsertCommentaryEntries } from './commentary.utils';
+import { LiveHeroViewModel } from '../match-live/services/live-hero.models';
 
 interface FormattedExposure {
   win: number;
@@ -115,6 +117,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   // 002-match-details-ux: Match ID for new components (T039+)
   matchId: string | null = null;
   currentMatch: any = null; // Hold full match object if available
+  showLiveHero: boolean = true;
+  heroFallbackView: LiveHeroViewModel | null = null;
+  private isFallbackMatchInfo: boolean = false;
 
   // Toggle to hide/show odds sections
   showOdds: boolean = true;
@@ -229,6 +234,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
                     || params['matchId']
                     || match
                     || this.matchId;
+      this.resolveRouteMatch(match);
 
       this.cricketService.getLastUpdatedData(match).subscribe(data => {
         this.parseCricObjData(data);
@@ -422,29 +428,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricObj.commentary !== undefined && Array.isArray(this.cricObj.commentary)) {
         const newEntries: any[] = this.cricObj.commentary;
         if (newEntries.length > 0) {
-          // Strip HTML tags from text fields
-          newEntries.forEach(e => {
-            if (e.text) { e.text = e.text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); }
-          });
-          // Merge: deduplicate by id, add new entries
-          const existingIds = new Set(this.commentaryEntries.map(e => e.id).filter(id => id));
-          const uniqueNew = newEntries.filter(e => !e.id || !existingIds.has(e.id));
-          if (uniqueNew.length > 0) {
-            const merged = [...uniqueNew, ...this.commentaryEntries];
-            // Sort: most recent first (inningsNumber DESC, overNumber DESC, ballInOver DESC)
-            // OVER_SUMMARY goes before ball entries at the same over.ball
-            const typePriority = (t: string) => t === 'OVER_SUMMARY' ? 0 : t === 'WICKET' ? 1 : 2;
-            merged.sort((a, b) => {
-              const innDiff = (b.inningsNumber || 0) - (a.inningsNumber || 0);
-              if (innDiff !== 0) return innDiff;
-              const overDiff = (b.overNumber || 0) - (a.overNumber || 0);
-              if (overDiff !== 0) return overDiff;
-              const ballDiff = (b.ballInOver || 0) - (a.ballInOver || 0);
-              if (ballDiff !== 0) return ballDiff;
-              return typePriority(a.type) - typePriority(b.type);
-            });
-            this.commentaryEntries = merged.slice(0, 200);
-          }
+          this.commentaryEntries = upsertCommentaryEntries(this.commentaryEntries, newEntries).slice(0, 200);
           console.log('Commentary entries updated:', this.commentaryEntries.length);
         }
       }
@@ -900,7 +884,7 @@ fetchScorecardInfo(matchUrl:string){
 }
 
 fetchMatchInfo(matchUrl:string) {
-  if (this.matchInfo) {
+  if (this.matchInfo && !this.isFallbackMatchInfo) {
     // Data already fetched, no need to fetch again
     return;
   }
@@ -908,6 +892,7 @@ fetchMatchInfo(matchUrl:string) {
   this.cricketService.getMatchInfo(matchUrl).subscribe(
     data => {
       this.matchInfo = data;
+      this.isFallbackMatchInfo = false;
       console.log('Match Info:', this.matchInfo);
 
       // T045: Update browser tab title with team names (Feature 008 - SEO)
@@ -926,8 +911,281 @@ fetchMatchInfo(matchUrl:string) {
     },
     error => {
       console.error('Error fetching match info:', error);
+      this.populateFallbackMatchInfo();
     }
   );
+}
+
+private resolveRouteMatch(matchSlug: string): void {
+  if (!matchSlug) {
+    return;
+  }
+
+  forkJoin([
+    this.eventListService.getLiveMatches(),
+    this.eventListService.getUpcomingMatches(),
+    this.eventListService.getCompletedMatches()
+  ]).subscribe(
+    (payloads: any[]) => {
+      var liveMatches = this.extractMatchCollection(payloads[0]);
+      var upcomingMatches = this.extractMatchCollection(payloads[1]);
+      var completedMatches = this.extractMatchCollection(payloads[2]);
+      var resolvedMatch = liveMatches
+        .concat(upcomingMatches)
+        .concat(completedMatches)
+        .find(match => this.routeSlugMatches(matchSlug, match));
+
+      if (!resolvedMatch) {
+        return;
+      }
+
+      this.currentMatch = resolvedMatch;
+      this.showLiveHero = this.isLiveLikeStatus(resolvedMatch.status);
+      this.heroFallbackView = this.buildHeroFallbackView(resolvedMatch);
+
+      var resolvedUrl = resolvedMatch.url || matchSlug;
+      if (resolvedUrl && resolvedUrl !== this.matchUrl) {
+        this.matchUrl = resolvedUrl;
+        this.currentUrl = resolvedUrl;
+      }
+
+      if (!this.showLiveHero) {
+        this.populateFallbackMatchInfo(resolvedMatch);
+      }
+
+      if (resolvedUrl && resolvedUrl !== matchSlug) {
+        this.fetchMatchInfo(resolvedUrl);
+        this.fetchScorecardInfo(resolvedUrl);
+      }
+    },
+    error => {
+      console.error('Error resolving route match details:', error);
+    }
+  );
+}
+
+private extractMatchCollection(payload: any): any[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && Array.isArray(payload.data)) {
+    return payload.data;
+  }
+
+  return [];
+}
+
+private routeSlugMatches(matchSlug: string, match: any): boolean {
+  if (!match) {
+    return false;
+  }
+
+  var externalKey = match.externalMatchKey;
+  if (externalKey && externalKey === matchSlug) {
+    return true;
+  }
+
+  var urlSlug = match.url ? extractSlugFromUrl(match.url) : null;
+  if (urlSlug && urlSlug === matchSlug) {
+    return true;
+  }
+
+  return !!(match.url && match.url.indexOf(matchSlug) !== -1);
+}
+
+private isLiveLikeStatus(status: string | null | undefined): boolean {
+  return status === 'LIVE' || status === 'INNINGS_BREAK' || status === 'RAIN_DELAY';
+}
+
+private populateFallbackMatchInfo(match: any = this.currentMatch): void {
+  if (!match) {
+    return;
+  }
+
+  this.matchInfo = {
+    url: match.url || this.matchUrl,
+    match_name: this.buildFallbackMatchTitle(match),
+    series_name: match.seriesName || match.venue || this.buildFallbackSeriesName(match),
+    match_date: match.scheduledStartTime ? new Date(match.scheduledStartTime).toISOString() : null,
+    venue: match.venue || match.seriesName || 'Venue TBD',
+    toss_info: match.resultSummary || match.lastKnownState || this.buildFallbackStatusLabel(match.status),
+    final_result_text: match.resultSummary || match.lastKnownState || null,
+    match_status: match.status,
+    status: match.status,
+    lastKnownState: match.lastKnownState || null,
+    team_comparison: {},
+    venue_stats: {},
+    playing_xi: null,
+    team_form: {}
+  };
+  this.isFallbackMatchInfo = true;
+  this.updatePageTitle();
+  this.teamComparisonKeys = [];
+  this.teamComparisonSubKeys = [];
+  this.venueStatsKeys = [];
+  this.playingXIKeys = [];
+  this.teamFormKeys = [];
+}
+
+private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
+  if (!match || this.isLiveLikeStatus(match.status)) {
+    return null;
+  }
+
+  var score = this.extractFallbackScore(match);
+  var timestampMs = match.lastStateUpdatedAt || match.scheduledStartTime || Date.now();
+  var oversValue = this.parseOversValue(score.overs);
+  var runRate = oversValue > 0 ? score.runs / oversValue : 0;
+
+  return {
+    matchId: match.externalMatchKey || this.matchId || 'match',
+    status: 'COMPLETED',
+    timestamp: new Date(timestampMs).toISOString(),
+    score: {
+      teamCode: score.teamCode,
+      teamName: score.teamName,
+      runs: score.runs,
+      wickets: score.wickets,
+      overs: score.overs,
+      runRateLabel: 'CRR ' + runRate.toFixed(2),
+      status: 'COMPLETED',
+      resultSummary: match.resultSummary || match.lastKnownState || null,
+      currentBall: null
+    },
+    chase: {
+      isChasing: false
+    },
+    batters: [],
+    bowler: null,
+    partnershipLabel: null,
+    odds: null,
+    staleness: {
+      tier: 'FRESH',
+      ageSeconds: 0,
+      message: null,
+      nextRetryAllowed: null
+    },
+    quickLinks: [
+      { id: 'commentary', label: 'Commentary', target: '#commentary' },
+      { id: 'scorecard', label: 'Scorecard', target: '#scorecard' },
+      { id: 'info', label: 'Match Info', target: '#match-info' }
+    ],
+    currentStriker: null,
+    lastValidStriker: null
+  };
+}
+
+private extractFallbackScore(match: any): { teamCode: string; teamName: string; runs: number; wickets: number; overs: string } {
+  var summary = String(match && (match.resultSummary || match.lastKnownState || '')).trim();
+  var scorePattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\/(\d+)(\d+(?:\.\d+)?)/g;
+  var winnerMatch = summary.match(/([A-Za-z][A-Za-z\s&.-]*?)\s+Won/i);
+  var winnerKey = winnerMatch && winnerMatch[1] ? winnerMatch[1].replace(/\s+/g, '').toLowerCase() : null;
+  var parsedScores: Array<{ teamName: string; runs: number; wickets: number; overs: string }> = [];
+  var entry: RegExpExecArray | null;
+
+  while ((entry = scorePattern.exec(summary)) !== null) {
+    parsedScores.push({
+      teamName: entry[1].trim(),
+      runs: parseInt(entry[2], 10),
+      wickets: parseInt(entry[3], 10),
+      overs: entry[4]
+    });
+  }
+
+  var selected = parsedScores[0] || {
+    teamName: this.buildFallbackMatchTitle(match),
+    runs: 0,
+    wickets: 0,
+    overs: '0.0'
+  };
+
+  if (winnerKey) {
+    var winnerScore = parsedScores.find(item => item.teamName.replace(/\s+/g, '').toLowerCase() === winnerKey);
+    if (winnerScore) {
+      selected = winnerScore;
+    }
+  } else if (parsedScores.length > 1) {
+    selected = parsedScores[parsedScores.length - 1];
+  }
+
+  return {
+    teamCode: selected.teamName.length <= 4 ? selected.teamName.toUpperCase() : selected.teamName.slice(0, 3).toUpperCase(),
+    teamName: selected.teamName,
+    runs: selected.runs,
+    wickets: selected.wickets,
+    overs: selected.overs
+  };
+}
+
+private parseOversValue(value: string): number {
+  if (!value) {
+    return 0;
+  }
+
+  if (value.indexOf('.') === -1) {
+    return parseFloat(value) || 0;
+  }
+
+  var parts = value.split('.');
+  var wholeOvers = parseInt(parts[0], 10) || 0;
+  var balls = parseInt(parts[1], 10) || 0;
+  return wholeOvers + (balls / 6);
+}
+
+getFallbackResultSummary(): string | null {
+  if (!this.currentMatch) {
+    return null;
+  }
+
+  return this.currentMatch.resultSummary || this.currentMatch.lastKnownState || null;
+}
+
+private buildFallbackMatchTitle(match: any): string {
+  var source = match && (match.externalMatchKey || extractSlugFromUrl(match.url || '') || this.matchId);
+  if (!source) {
+    return 'Match Details';
+  }
+
+  var vsMatch = source.match(/^([a-z0-9]+)-vs-([a-z0-9]+)-/i);
+  if (vsMatch) {
+    return this.formatSlugToken(vsMatch[1]) + ' vs ' + this.formatSlugToken(vsMatch[2]);
+  }
+
+  return this.titleCaseSlug(source);
+}
+
+private buildFallbackSeriesName(match: any): string {
+  var source = match && (extractSlugFromUrl(match.url || '') || match.externalMatchKey);
+  return source ? this.titleCaseSlug(source.replace(/^.*-vs-.*?-/, '')) : 'Match Summary';
+}
+
+private buildFallbackStatusLabel(status: string | null | undefined): string {
+  if (!status) {
+    return 'Match details are currently unavailable.';
+  }
+
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
+private formatSlugToken(value: string): string {
+  if (!value) {
+    return '';
+  }
+
+  if (value.length <= 4) {
+    return value.toUpperCase();
+  }
+
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+}
+
+private titleCaseSlug(value: string): string {
+  return value
+    .split('-')
+    .filter(Boolean)
+    .map(part => this.formatSlugToken(part))
+    .join(' ');
 }
 
   /**

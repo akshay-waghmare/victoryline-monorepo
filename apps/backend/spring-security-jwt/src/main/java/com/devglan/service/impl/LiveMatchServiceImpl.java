@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.devglan.dao.CricketDataDTO;
+import com.devglan.dao.ScheduledMatchDTO;
 import com.devglan.model.LiveMatch;
+import com.devglan.model.MatchLifecycleStatus;
 import com.devglan.repository.LiveMatchRepository;
 import com.devglan.service.LiveMatchService;
 import com.devglan.service.seo.events.SeoContentChangeEvent;
@@ -51,11 +54,19 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 		try {
 			logger.info("Starting the sync live matches logic.");
 
-			List<String> urlList = Arrays.asList(urls);
+			List<String> urlList = Arrays.stream(urls)
+                    .map(this::normalizeUrl)
+                    .distinct()
+                    .collect(Collectors.toList());
 			List<LiveMatch> allNotDeletedMatches = liveMatchRepository.findByDeletionAttemptsLessThanAndIsDeletedFalse(Integer.valueOf(2));
 
 			for (LiveMatch match : allNotDeletedMatches) {
-				if (!urlList.contains(match.getUrl())) {
+                MatchLifecycleStatus currentStatus = match.getStatus();
+                if (currentStatus != null && !currentStatus.isLiveLike()) {
+                    continue;
+                }
+
+				if (!urlList.contains(normalizeUrl(match.getUrl()))) {
 					match.setDeletionAttempts(match.getDeletionAttempts() + 1);
 					
 					if (match.getDeletionAttempts() >= 2) {
@@ -63,11 +74,19 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 								.getLastUpdatedData(appendBaseUrl(match.getUrl()));
 						if (lastUpdatedData != null) {
 							match.setLastKnownState(lastUpdatedData.getCurrentBall());
+                            if (lastUpdatedData.getFinalResultText() != null && !lastUpdatedData.getFinalResultText().trim().isEmpty()) {
+                                match.setResultSummary(lastUpdatedData.getFinalResultText());
+                            }
 						}
+                        if ((match.getResultSummary() == null || match.getResultSummary().trim().isEmpty()) && match.getLastKnownState() != null) {
+                            match.setResultSummary(match.getLastKnownState());
+                        }
 						match.setDeleted(true);
+                        match.setStatus(inferTerminalStatus(match.getResultSummary()));
+                        match.setLastStateUpdatedAt(System.currentTimeMillis());
 						liveMatchRepository.save(match);
 						stopScraping(match.getUrl());
-						notifyMatchStatusChange(match.getUrl(), "deleted");
+						notifyMatchStatusChange(match.getUrl(), "completed");
 					} else {
 						liveMatchRepository.save(match);
 					}
@@ -75,12 +94,31 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 			}
 
 			for (String url : urls) {
-				if (!liveMatchRepository.existsByUrl(url)) {
-					LiveMatch liveMatch = new LiveMatch(url);
-					liveMatchRepository.save(liveMatch);
+                String normalizedUrl = normalizeUrl(url);
+                String externalKey = extractExternalMatchKey(normalizedUrl);
+                LiveMatch liveMatch = findExistingMatch(externalKey, normalizedUrl);
+                boolean isNew = liveMatch == null;
+                if (isNew) {
+					liveMatch = new LiveMatch(normalizedUrl);
+                    liveMatch.setExternalMatchKey(externalKey);
+                } else {
+                    liveMatch.setUrl(normalizedUrl);
+                    if (liveMatch.getStatus() != null && liveMatch.getStatus().isTerminal()) {
+                        logger.info("Skipping live-state overwrite for terminal match {}", normalizedUrl);
+                        continue;
+                    }
+                }
+
+                liveMatch.setDeleted(false);
+                liveMatch.setDeletionAttempts(0);
+                liveMatch.setStatus(MatchLifecycleStatus.LIVE);
+                liveMatch.setLastStateUpdatedAt(System.currentTimeMillis());
+                liveMatchRepository.save(liveMatch);
+
+                if (isNew) {
 					notifyMatchStatusChange(url, "added");
 				} else {
-					logger.info("URL already exists: {}", url);
+					logger.info("URL already exists, refreshed lifecycle state: {}", normalizedUrl);
 				}
 			}
 
@@ -89,6 +127,90 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 			logger.error("Error saving live matches: ", e);
 		}
 	}
+
+    @Override
+    public void syncScheduleMatches(List<ScheduledMatchDTO> matches) {
+        if (matches == null || matches.isEmpty()) {
+            return;
+        }
+
+        for (ScheduledMatchDTO dto : matches) {
+            if (dto == null || dto.getUrl() == null || dto.getUrl().trim().isEmpty()) {
+                continue;
+            }
+
+            String normalizedUrl = normalizeUrl(dto.getUrl());
+            String externalKey = dto.getExternalMatchKey();
+            if (externalKey == null || externalKey.trim().isEmpty()) {
+                externalKey = extractExternalMatchKey(normalizedUrl);
+            }
+
+            MatchLifecycleStatus incomingStatus = MatchLifecycleStatus.fromString(dto.getStatus());
+            if (incomingStatus == null) {
+                incomingStatus = MatchLifecycleStatus.UPCOMING;
+            }
+
+            LiveMatch match = findExistingMatch(externalKey, normalizedUrl);
+            boolean isNew = match == null;
+            if (isNew) {
+                match = new LiveMatch(normalizedUrl);
+                match.setStatus(null);
+            }
+            MatchLifecycleStatus previousStatus = match.getStatus();
+
+            match.setUrl(normalizedUrl);
+            match.setExternalMatchKey(externalKey);
+            if (dto.getScheduledStartTime() != null) {
+                match.setScheduledStartTime(dto.getScheduledStartTime());
+            }
+            if (dto.getSeriesName() != null && !dto.getSeriesName().trim().isEmpty()) {
+                match.setSeriesName(dto.getSeriesName());
+            }
+            if (dto.getMatchFormat() != null && !dto.getMatchFormat().trim().isEmpty()) {
+                match.setMatchFormat(dto.getMatchFormat());
+            }
+            if (dto.getVenue() != null && !dto.getVenue().trim().isEmpty()) {
+                match.setVenue(dto.getVenue());
+            }
+            if (dto.getResultSummary() != null && !dto.getResultSummary().trim().isEmpty()) {
+                match.setResultSummary(dto.getResultSummary());
+                if (match.getLastKnownState() == null || match.getLastKnownState().trim().isEmpty()) {
+                    match.setLastKnownState(dto.getResultSummary());
+                }
+                if (incomingStatus == null || !incomingStatus.isTerminal()) {
+                    incomingStatus = inferTerminalStatus(dto.getResultSummary());
+                }
+            }
+
+            MatchLifecycleStatus mergedStatus = isNew ? incomingStatus : mergeLifecycleStatus(match.getStatus(), incomingStatus);
+            match.setStatus(mergedStatus);
+            match.setDeleted(mergedStatus != null && mergedStatus.isTerminal());
+            if (mergedStatus != null && mergedStatus.isTerminal()) {
+                match.setDeletionAttempts(2);
+            } else if (mergedStatus == MatchLifecycleStatus.UPCOMING
+                    || (mergedStatus != null && mergedStatus.isLiveLike())) {
+                match.setDeletionAttempts(0);
+            }
+            match.setLastStateUpdatedAt(dto.getLastStateUpdatedAt() != null
+                    ? dto.getLastStateUpdatedAt()
+                    : System.currentTimeMillis());
+
+            liveMatchRepository.save(match);
+
+            boolean transitionedToTerminal = mergedStatus != null
+                    && mergedStatus.isTerminal()
+                    && (previousStatus == null || !previousStatus.isTerminal());
+
+            if (transitionedToTerminal) {
+                stopScraping(match.getUrl());
+                notifyMatchStatusChange(match.getUrl(), "completed");
+            } else if (isNew) {
+                notifyMatchStatusChange(match.getUrl(), "added");
+            } else {
+                publishSeoEvent(null, match.getUrl());
+            }
+        }
+    }
 
 	private void stopScraping(String url) {
 		try {
@@ -128,6 +250,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 					event = SeoContentChangeEvent.matchPublished(url);
 					break;
 				case "deleted":
+                case "completed":
 					event = SeoContentChangeEvent.matchCompleted(url);
 					break;
 				default:
@@ -142,7 +265,10 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	}
 	
 	public List<LiveMatch> findAllLiveMatches() {
-		return liveMatchRepository.findByDeletionAttemptsLessThanAndIsDeletedFalse(Integer.valueOf(2));
+		return liveMatchRepository.findByDeletionAttemptsLessThanAndIsDeletedFalse(Integer.valueOf(2))
+                .stream()
+                .filter(this::isLiveLike)
+                .collect(Collectors.toList());
 	}
 
 	public List<LiveMatch> findAllMatches() {
@@ -150,8 +276,20 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	}
 
 	public List<LiveMatch> findAllFinishedMatches() {
-		return liveMatchRepository.findByIsDeletedTrue();
+		return findCompletedMatches();
 	}
+
+    @Override
+    public List<LiveMatch> findUpcomingMatches() {
+        return liveMatchRepository.findByStatusInAndIsDeletedFalseOrderByScheduledStartTimeAsc(
+                Arrays.asList(MatchLifecycleStatus.UPCOMING));
+    }
+
+    @Override
+    public List<LiveMatch> findCompletedMatches() {
+        return liveMatchRepository.findByStatusInOrderByLastStateUpdatedAtDesc(
+                Arrays.asList(MatchLifecycleStatus.COMPLETED, MatchLifecycleStatus.ABANDONED));
+    }
 	
 	public LiveMatch findByUrl(String url) {
 		return liveMatchRepository.findByUrlContaining(url);
@@ -176,4 +314,121 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	public LiveMatch update(LiveMatch match) {
 		return liveMatchRepository.save(match);
 	}
+
+    private boolean isLiveLike(LiveMatch match) {
+        if (match.getStatus() == null) {
+            return !match.isDeleted();
+        }
+        return match.getStatus().isLiveLike();
+    }
+
+    private String normalizeUrl(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return url;
+        }
+        String normalized = url.trim();
+        if (!normalized.startsWith("http")) {
+            normalized = "https://crex.com" + (normalized.startsWith("/") ? normalized : "/" + normalized);
+        }
+        return normalized;
+    }
+
+    private String extractExternalMatchKey(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return null;
+        }
+
+        String[] rawParts = url.split("/");
+        List<String> parts = Arrays.stream(rawParts)
+                .filter(part -> part != null && !part.trim().isEmpty())
+                .collect(Collectors.toList());
+        if (parts.isEmpty()) {
+            return url;
+        }
+
+        String last = parts.get(parts.size() - 1);
+        if ("live".equalsIgnoreCase(last) || "scorecard".equalsIgnoreCase(last)) {
+            return parts.size() > 1 ? parts.get(parts.size() - 2) : last;
+        }
+        return last;
+    }
+
+    private LiveMatch findExistingMatch(String externalKey, String url) {
+        LiveMatch existing = null;
+        if (externalKey != null && !externalKey.trim().isEmpty()) {
+            List<LiveMatch> matches = liveMatchRepository.findByExternalMatchKeyOrderByIdDesc(externalKey);
+            if (matches != null && !matches.isEmpty()) {
+                existing = matches.get(0);
+                if (matches.size() > 1) {
+                    logger.warn("Multiple matches found for external key {}. Using latest record {}",
+                            externalKey, existing.getId());
+                }
+            }
+        }
+        if (existing == null && url != null && !url.trim().isEmpty()) {
+            existing = liveMatchRepository.findByUrlContaining(url);
+        }
+        return existing;
+    }
+
+    private MatchLifecycleStatus inferTerminalStatus(String resultSummary) {
+        if (resultSummary == null || resultSummary.trim().isEmpty()) {
+            return MatchLifecycleStatus.COMPLETED;
+        }
+
+        String normalized = resultSummary.toLowerCase();
+        if (normalized.contains("abandoned") || normalized.contains("no result")) {
+            return MatchLifecycleStatus.ABANDONED;
+        }
+        return MatchLifecycleStatus.COMPLETED;
+    }
+
+    private MatchLifecycleStatus mergeLifecycleStatus(MatchLifecycleStatus current, MatchLifecycleStatus incoming) {
+        if (incoming == null) {
+            return current != null ? current : MatchLifecycleStatus.UPCOMING;
+        }
+        if (current == null) {
+            return incoming;
+        }
+
+        if (current.isTerminal()) {
+            return current;
+        }
+
+        if (incoming.isTerminal()) {
+            return incoming;
+        }
+
+        if (current == MatchLifecycleStatus.UPCOMING) {
+            return incoming;
+        }
+
+        if (incoming == MatchLifecycleStatus.UPCOMING) {
+            return current;
+        }
+
+        return statusPriority(current) >= statusPriority(incoming) ? current : incoming;
+    }
+
+    private int statusPriority(MatchLifecycleStatus status) {
+        if (status == null) {
+            return 0;
+        }
+
+        switch (status) {
+            case LIVE:
+                return 60;
+            case INNINGS_BREAK:
+                return 55;
+            case RAIN_DELAY:
+                return 50;
+            case COMPLETED:
+            case ABANDONED:
+                return 40;
+            case UPCOMING:
+                return 10;
+            default:
+                return 0;
+        }
+    }
 }

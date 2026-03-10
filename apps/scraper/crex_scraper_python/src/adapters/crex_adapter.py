@@ -265,11 +265,12 @@ class CrexAdapter(SourceAdapter):
             if (not final_data.get("batsman_data") or not final_data.get("bowler_data")) and data_store["sC4_stats"]:
                 self._enrich_from_sc4(final_data, data_store["sC4_stats"], data_store["local_storage"])
 
-            # Add commentary entries if available
-            print(f"[COMMENTARY-DEBUG] data_store commentary count: {len(data_store.get('commentary', []))}")
-            if data_store.get("commentary"):
-                final_data["commentary"] = data_store["commentary"]
-                print(f"[COMMENTARY] Added {len(data_store['commentary'])} commentary entries to final_data")
+            commentary_entries = data_store.get("commentary", [])
+
+            print(f"[COMMENTARY-DEBUG] data_store commentary count: {len(commentary_entries)}")
+            if commentary_entries:
+                final_data["commentary"] = commentary_entries
+                print(f"[COMMENTARY] Added {len(commentary_entries)} commentary entries to final_data")
 
             return final_data
         finally:
@@ -620,8 +621,6 @@ class CrexAdapter(SourceAdapter):
                 headers = await response.all_headers() # Use headers from original request
                 await self._trigger_sc4_call(sc4_url, headers, data_store, page, match_id)
                 
-                # Also trigger getBallFeed for commentary data
-                await self._trigger_ball_feed_call(key, headers, data_store, page, match_id)
         except Exception as e:
             logger.error(f"Error processing sV3 response: {e}")
 
@@ -659,51 +658,6 @@ class CrexAdapter(SourceAdapter):
         except Exception as e:
             logger.error(f"Error triggering sC4 call: {e}")
 
-    async def _trigger_ball_feed_call(
-        self,
-        key: str,
-        headers: Dict[str, str],
-        data_store: Dict[str, Any],
-        page: Page,
-        match_id: Optional[str] = None,
-    ):
-        """
-        Trigger getBallFeeds API call for ball-by-ball commentary data.
-        
-        Discovered endpoint: https://content.crickapi.com/commentary/getBallFeeds
-        The endpoint requires the match key (mfkey) as a query parameter.
-        
-        The key from sV3 URL is the match code (e.g. "10T7").
-        """
-        # The actual commentary endpoint (discovered via scroll interception)
-        url = f"https://content.crickapi.com/commentary/getBallFeeds?mfkey={key}"
-        
-        try:
-            response = await page.request.get(url, headers={
-                "Accept": "application/json",
-                "Origin": "https://crex.com",
-                "Referer": "https://crex.com/",
-            })
-            if response.status == 200:
-                body = await response.json()
-                if isinstance(body, list) and len(body) > 0:
-                    print(f"[COMMENTARY] getBallFeeds SUCCESS for key={key}: {len(body)} entries")
-                    data_store["commentary_raw"] = body
-                    entries = self._parse_ball_feed(body, data_store.get("local_storage", {}))
-                    if entries:
-                        # Merge new entries with existing (may have been captured via scroll too)
-                        existing = data_store.get("commentary", [])
-                        existing_ids = {e.get("id") for e in existing if e.get("id")}
-                        new_entries = [e for e in entries if e.get("id") not in existing_ids]
-                        data_store["commentary"] = existing + new_entries
-                        print(f"[COMMENTARY] Parsed {len(new_entries)} new commentary entries (total={len(data_store['commentary'])})")
-                else:
-                    print(f"[COMMENTARY] getBallFeeds for key={key} returned empty response")
-            else:
-                print(f"[COMMENTARY] getBallFeeds returned status {response.status} for key={key}")
-        except Exception as e:
-            print(f"[COMMENTARY] getBallFeeds call failed for key={key}: {e}")
-
     async def _handle_ball_feed_response(
         self,
         response: Response,
@@ -729,12 +683,10 @@ class CrexAdapter(SourceAdapter):
             # Parse commentary entries
             commentary_entries = self._parse_ball_feed(body, data_store.get("local_storage", {}))
             if commentary_entries:
-                # Merge with existing
                 existing = data_store.get("commentary", [])
-                existing_ids = {e.get("id") for e in existing if e.get("id")}
-                new_entries = [e for e in commentary_entries if e.get("id") not in existing_ids]
-                data_store["commentary"] = existing + new_entries
-                print(f"[COMMENTARY] Parsed {len(new_entries)} new entries (total={len(data_store['commentary'])})")
+                merged_entries = self._merge_commentary_entries(existing, commentary_entries)
+                data_store["commentary"] = merged_entries
+                print(f"[COMMENTARY] Parsed {len(commentary_entries)} entries (total={len(data_store['commentary'])})")
             
         except Exception as e:
             logger.error(f"[COMMENTARY] Error processing getBallFeeds: {e}", exc_info=True)
@@ -745,17 +697,19 @@ class CrexAdapter(SourceAdapter):
         commentary entries.
         
         Discovered API: https://content.crickapi.com/commentary/getBallFeeds
-        Response is a JSON array with three entry types:
+        Response is a JSON array with boundary-specific ball entry types:
         
-        1. Ball-by-ball: {"b":"1", "c1":"R Pillay to M Nofal", "c2":"", "bf":"CFU",
-                          "delivery":85, "inning":0, "fv":2, "ball_db_id":"...", ...}
-        2. Over summary: {"bd":"0-19(3.0)", "bowler":"Name", "fv":32, "o":16, 
-                          "on":15, "p1":"Batsman1", "p2":"Batsman2", "rb":"4.1.0..."}
-        3. Wicket/action: {"fv":64, "player":"M Haziq", "dismissal":2, "o":"5.2", 
+        1. Standard ball: {"b":"1", "c1":"R Pillay to M Nofal", "c2":"", "bf":"CFU",
+                           "delivery":85, "inning":0, "fv":2, "ball_db_id":"...", ...}
+        2. Six ball:      {"b":"6", "c1":"Bowler to Batter", "c2":"SIXXXXX...", "fv":4, ...}
+        3. Four ball:     {"b":"4", "c1":"Bowler to Batter", "c2":"FOURRR...", "fv":8, ...}
+        4. Over summary:  {"bd":"0-19(3.0)", "bowler":"Name", "fv":32, "o":16,
+                           "on":15, "p1":"Batsman1", "p2":"Batsman2", "rb":"4.1.0..."}
+        5. Wicket/event:  {"fv":64, "player":"M Haziq", "dismissal":2, "o":"5.2",
                            "on":5, "inning":1}
-        4. Review/action: {"fv":4096, "type":"ac", "review_left":{...}}
+        6. Review/action: {"fv":4096, "type":"ac", "review_left":{...}}
         
-        fv values: 2=ball, 32=over_summary, 64=wicket, 4096=action/review
+        fv values: 2=ball, 4=six, 8=four, 32=over_summary, 64=wicket, 4096=action/review
         """
         entries = []
         
@@ -776,12 +730,98 @@ class CrexAdapter(SourceAdapter):
         
         return entries
 
+    def _commentary_entry_key(self, entry: Dict[str, Any]) -> str:
+        entry_type = str(entry.get("type", "") or "").upper()
+        innings = entry.get("inningsNumber", 0)
+        over = entry.get("overNumber", 0)
+        ball = entry.get("ballInOver", 0)
+        delivery = entry.get("delivery", 0)
+        if entry_type == "OVER_SUMMARY" and (innings or over):
+            return "|".join([
+                "summary",
+                str(innings),
+                str(over),
+            ])
+
+        if innings or over or ball:
+            return "|".join([
+                "ball",
+                str(innings),
+                str(over),
+                str(ball),
+            ])
+
+        if entry.get("id"):
+            return str(entry.get("id"))
+
+        if delivery:
+            return "|".join([
+                "delivery",
+                str(innings),
+                str(delivery),
+            ])
+
+        return re.sub(r"\s+", " ", str(entry.get("text", "") or "")).strip()
+
+    def _merge_commentary_entry(self, existing: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
+        merged = dict(existing)
+        merged.update(incoming)
+
+        existing_text = re.sub(r"\s+", " ", str(existing.get("text", "") or "")).strip()
+        incoming_text = re.sub(r"\s+", " ", str(incoming.get("text", "") or "")).strip()
+        merged["text"] = incoming_text if len(incoming_text) >= len(existing_text) else existing_text
+
+        existing_type = existing.get("type")
+        incoming_type = incoming.get("type")
+        type_priority = {"OVER_SUMMARY": 0, "WICKET": 1, "BOUNDARY": 2, "BALL": 3, "INFO": 4}
+        if type_priority.get(str(incoming_type), 99) > type_priority.get(str(existing_type), 99):
+            merged["type"] = existing_type
+        else:
+            merged["type"] = incoming_type
+
+        for key in ("runs", "overBall", "overNumber", "ballInOver", "delivery", "inningsNumber", "batsmanName", "bowlerName", "totalScore"):
+            if incoming.get(key) in (None, ""):
+                merged[key] = existing.get(key)
+
+        merged["highlights"] = list(dict.fromkeys((existing.get("highlights") or []) + (incoming.get("highlights") or [])))
+        return merged
+
+    def _merge_commentary_entries(self, existing: list, incoming: list) -> list:
+        merged = list(existing or [])
+        index_by_key = {}
+
+        for index, entry in enumerate(merged):
+            key = self._commentary_entry_key(entry)
+            if key:
+                index_by_key[key] = index
+
+        for entry in incoming or []:
+            key = self._commentary_entry_key(entry)
+            if key and key in index_by_key:
+                merged[index_by_key[key]] = self._merge_commentary_entry(merged[index_by_key[key]], entry)
+            else:
+                if key:
+                    index_by_key[key] = len(merged)
+                merged.append(entry)
+
+        merged.sort(
+            key=lambda item: (
+                -(item.get("inningsNumber") or 0),
+                -(item.get("overNumber") or 0),
+                -(item.get("ballInOver") or 0),
+                {"OVER_SUMMARY": 0, "WICKET": 1, "BOUNDARY": 2, "BALL": 3, "INFO": 4}.get(str(item.get("type")), 99),
+            )
+        )
+        return merged
+
     def _map_commentary_entry(self, item: Any, local_storage: Dict[str, str]) -> Optional[Dict[str, Any]]:
         """
         Map a single getBallFeeds item to a CommentaryEntry dict.
         
         Crex getBallFeeds format discovered:
-        - fv=2:    Ball-by-ball  (c1="Bowler to Batsman", b="runs", delivery=N)
+        - fv=2:    Standard ball-by-ball
+        - fv=4:    Six boundary ball-by-ball
+        - fv=8:    Four boundary ball-by-ball
         - fv=32:   Over summary  (bowler="Name", o=overNum, bd="W-R(overs)", rb="balls")
         - fv=64:   Wicket        (player="Name", dismissal=type, o="over.ball")
         - fv=4096: Action/review (type="ac", review_left={...})
@@ -801,8 +841,8 @@ class CrexAdapter(SourceAdapter):
                 over_str = item.get("o", "")
                 entry_id = f"gen_{fv}_{inning}_{over_str}_{delivery}"
             
-            # Ball-by-ball entry (fv=2)
-            if fv == 2:
+            # Ball-by-ball entry (fv=2 regular, fv=4 six, fv=8 four)
+            if fv in (2, 4, 8):
                 c1 = item.get("c1", "")  # "R Pillay to M Nofal"
                 c2 = item.get("c2", "")  # Additional commentary
                 b = str(item.get("b", "0"))  # Runs: "0", "1", "4", "6", "WD", "NB", "W", "1lb", "1wd"

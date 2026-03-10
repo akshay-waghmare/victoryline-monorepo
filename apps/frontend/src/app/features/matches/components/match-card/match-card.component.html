@@ -32,6 +32,21 @@
       {{ getStaleness() === 'warning' ? 'Data may be delayed' : 'Data is stale' }}
     </span>
   </div>
+
+  <div class="match-card__series" *ngIf="hasSeriesLabel()">
+    {{ getSeriesLabel() }}
+  </div>
+
+  <div class="match-card__upcoming-schedule" *ngIf="isUpcomingMatch()">
+    <div class="match-card__upcoming-date">
+      <mat-icon class="match-card__upcoming-icon">event</mat-icon>
+      <span>{{ getUpcomingDateDisplay() }}</span>
+    </div>
+    <div class="match-card__upcoming-time">
+      <mat-icon class="match-card__upcoming-icon">schedule</mat-icon>
+      <span>{{ getTimeDisplay() }}</span>
+    </div>
+  </div>
   
   <!-- Teams Container -->
   <div class="match-card__teams">
@@ -89,10 +104,14 @@
       <span class="match-card__info-text">{{ match.venue }}</span>
     </div>
     
-    <div class="match-card__info-item">
+    <div class="match-card__info-item" *ngIf="!isUpcomingMatch()">
       <mat-icon class="match-card__info-icon">schedule</mat-icon>
       <span class="match-card__info-text">{{ getTimeDisplay() }}</span>
     </div>
+  </div>
+
+  <div class="match-card__result-summary" *ngIf="hasResultSummary()">
+    {{ getResultSummary() }}
   </div>
   
   <!-- Details Button -->

@@ -67,6 +67,7 @@ services:
       SPRING_H2_CONSOLE_PATH: "${SPRING_H2_CONSOLE_PATH:-/h2-console}"
       JWT_SECRET: "${JWT_SECRET:-change_me}"
       JWT_EXPIRATION: "${JWT_EXPIRATION:-86400}"
+      SCRAPER_HYDRATE_URL: "${SCRAPER_HYDRATE_URL:-http://scraper:5000/hydrate-match-details}"
       # Redis configuration
       REDIS_HOST: redis
       REDIS_PORT: "6379"
@@ -111,6 +112,7 @@ services:
       TOKEN_URL: "${TOKEN_URL:-http://backend:8099/token/generate-token}"
       SERVICE_URL: "${SERVICE_URL:-http://backend:8099/cricket-data}"
       ADD_LIVE_MATCHES_URL: "${ADD_LIVE_MATCHES_URL:-http://backend:8099/cricket-data/add-live-matches}"
+      SYNC_SCHEDULE_MATCHES_URL: "${SYNC_SCHEDULE_MATCHES_URL:-http://backend:8099/cricket-data/sync-schedule-matches}"
       API_ENDPOINT: "${API_ENDPOINT:-http://backend:8099/cricket-data/match-info/save}"
       API_ENDPOINT_SC4: "${API_ENDPOINT_SC4:-http://backend:8099/cricket-data/sC4-stats/save}"
       REDIS_URL: "${REDIS_URL:-redis://redis:6379/0}"

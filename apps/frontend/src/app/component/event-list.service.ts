@@ -13,6 +13,8 @@ export class EventListService {
   
   
   private live_matches_url = environment.REST_API_URL + 'cricket-data/' + 'live-matches';
+  private upcoming_matches_url = environment.REST_API_URL + 'cricket-data/' + 'upcoming-matches';
+  private completed_matches_url = environment.REST_API_URL + 'cricket-data/' + 'completed-matches';
   private entity_url = environment.REST_API_URL + 'events';
   constructor(private _http: HttpClient, private rxStompService: RxStompService) {
   }
@@ -26,6 +28,14 @@ export class EventListService {
 
   getLiveMatches() {
     return this._http.get(this.live_matches_url);
+  }
+
+  getUpcomingMatches() {
+    return this._http.get(this.upcoming_matches_url);
+  }
+
+  getCompletedMatches() {
+    return this._http.get(this.completed_matches_url);
   }
 
   subscribeToEventsTopic(): Observable<any> {

@@ -44,6 +44,49 @@ mat-card-content {
   width: 100%;
 }
 
+.cricket-odds__summary-fallback {
+  margin: 0 0 16px 0;
+  padding: 20px;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.cricket-odds__summary-status {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cricket-odds__summary-title {
+  margin: 0 0 6px 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.cricket-odds__summary-subtitle,
+.cricket-odds__summary-meta {
+  margin: 0 0 8px 0;
+  color: #475569;
+  font-size: 15px;
+}
+
+.cricket-odds__summary-result {
+  margin: 12px 0 0 0;
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 600;
+}
+
 .hero-downstream {
   display: flex;
   flex-direction: column;

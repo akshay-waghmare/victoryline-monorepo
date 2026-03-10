@@ -141,6 +141,64 @@
 .match-card__staleness-text {
   font-weight: var(--font-weight-medium);
 }
+
+.match-card__series {
+  margin-top: calc(var(--spacing-sm) + 4px);
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.match-card__upcoming-schedule {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: rgba(33, 150, 243, 0.08);
+  border: 1px solid rgba(33, 150, 243, 0.16);
+  border-radius: var(--border-radius-md);
+}
+
+.match-card__upcoming-date,
+.match-card__upcoming-time {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.match-card__upcoming-date {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.match-card__upcoming-time {
+  color: var(--color-primary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.match-card__upcoming-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .match-card__upcoming-schedule {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
 /* Teams Container
  */
 .match-card__teams {
@@ -277,6 +335,17 @@
   margin-right: 4px;
   font-weight: bold;
 }
+
+.match-card__result-summary {
+  margin-bottom: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-background-hover);
+  border-radius: var(--border-radius-sm);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm, 0.875rem);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.4;
+}
 /* Actions — compact, doesn't dominate */
 .match-card__actions {
   display: flex;
@@ -338,6 +407,10 @@
     align-items: flex-start;
     gap: 2px;
     padding: var(--spacing-xs);
+  }
+
+  .match-card__result-summary {
+    font-size: var(--font-size-xs, 0.75rem);
   }
 
   .match-card__info-item + .match-card__info-item::before {

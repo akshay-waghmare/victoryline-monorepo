@@ -14,13 +14,25 @@
       <mat-card-content>
         <app-live-hero
           class="cricket-odds__hero"
-          *ngIf="matchId"
+          *ngIf="matchId && (showLiveHero || heroFallbackView)"
           [matchId]="matchId"
+          [fallbackView]="heroFallbackView"
           [matchInfo]="matchInfo"
           [last6Balls]="last6Balls"
           [batsmanDataList]="batsmanDataList"
           [bowlerDataList]="bowlerDataList">
         </app-live-hero>
+
+        <section class="cricket-odds__summary-fallback" *ngIf="matchInfo && !showLiveHero && !heroFallbackView">
+          <div class="cricket-odds__summary-status">{{ matchInfo.match_status || matchInfo.status }}</div>
+          <h1 class="cricket-odds__summary-title">{{ matchInfo.match_name }}</h1>
+          <p class="cricket-odds__summary-subtitle" *ngIf="matchInfo.series_name">{{ matchInfo.series_name }}</p>
+          <p class="cricket-odds__summary-meta" *ngIf="matchInfo.match_date">
+            {{ matchInfo.match_date | date: 'fullDate' }}, {{ matchInfo.match_date | date: 'shortTime' }}
+          </p>
+          <p class="cricket-odds__summary-meta" *ngIf="matchInfo.venue">{{ matchInfo.venue }}</p>
+          <p class="cricket-odds__summary-result" *ngIf="getFallbackResultSummary()">{{ getFallbackResultSummary() }}</p>
+        </section>
 
       <mat-tab-group (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
@@ -334,8 +346,12 @@
           </div>
           
           <!-- Loading state -->
-          <div *ngIf="!scorecardData">
+          <div *ngIf="!scorecardData && showLiveHero">
             <p>Loading scorecard...</p>
+          </div>
+
+          <div *ngIf="!scorecardData && !showLiveHero">
+            <p>Detailed scorecard is not available for this match yet.</p>
           </div>
         </mat-tab>
         
@@ -346,8 +362,12 @@
             [playingXIData]="matchInfo">
           </app-lineups>
           
-          <div *ngIf="!matchInfo || !matchInfo.playing_xi">
+          <div *ngIf="(!matchInfo || !matchInfo.playing_xi) && showLiveHero">
             <p>Loading lineups...</p>
+          </div>
+
+          <div *ngIf="(!matchInfo || !matchInfo.playing_xi) && !showLiveHero">
+            <p>Lineups are not available for this match.</p>
           </div>
         </mat-tab>
       </mat-tab-group>

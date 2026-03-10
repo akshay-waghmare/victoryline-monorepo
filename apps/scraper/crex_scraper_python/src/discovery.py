@@ -12,6 +12,7 @@ from playwright.async_api import Page
 from .config import get_settings
 from .browser_pool import AsyncBrowserPool
 from .cricket_data_service import CricketDataService
+from .parsers.crex_schedule_parser import extract_schedule_matches
 
 logger = logging.getLogger(__name__)
 
@@ -66,9 +67,11 @@ class LiveMatchDiscoverer:
             await asyncio.sleep(60)
 
     async def _discover_and_sync(self):
-        """Scrape main page and sync live matches."""
+        """Scrape main page and sync live plus schedule matches."""
         logger.info("Starting live match discovery...")
         print("[DISCOVERY] Starting live match discovery cycle...", flush=True)
+        urls = []
+        schedule_matches = []
         
         try:
             async with self.pool.get_context() as context:
@@ -169,6 +172,27 @@ class LiveMatchDiscoverer:
                             await page.close()
                         except Exception:
                             pass
+
+                schedule_page = None
+                try:
+                    schedule_page = await context.new_page()
+                    schedule_url = "https://crex.com/schedule"
+                    logger.info(f"Navigating to {schedule_url} for schedule discovery...")
+                    print(f"[DISCOVERY] Navigating to {schedule_url}...", flush=True)
+
+                    await schedule_page.goto(schedule_url, timeout=60000)
+                    await schedule_page.wait_for_selector("a[href*='/scoreboard/']", timeout=20000)
+                    schedule_matches = await extract_schedule_matches(schedule_page, self.base_url)
+                    print(f"[DISCOVERY] Parsed {len(schedule_matches)} schedule matches.", flush=True)
+                except Exception as schedule_error:
+                    logger.warning(f"Schedule discovery skipped due to error: {schedule_error}")
+                    print(f"[DISCOVERY] Schedule discovery skipped: {schedule_error}", flush=True)
+                finally:
+                    if schedule_page:
+                        try:
+                            await schedule_page.close()
+                        except Exception:
+                            pass
         except Exception as e:
             logger.error(f"Discovery failed: {e}")
             raise e
@@ -187,12 +211,16 @@ class LiveMatchDiscoverer:
         logger.info(f"Discovered {len(valid_urls)} live matches: {valid_urls}")
         print(f"[DISCOVERY] Found {len(valid_urls)} matches: {valid_urls}", flush=True)
         
-        if valid_urls:
+        if valid_urls or schedule_matches:
             # Sync with backend
             token = await asyncio.to_thread(CricketDataService.get_bearer_token)
-            await asyncio.to_thread(CricketDataService.add_live_matches, valid_urls, token)
-            logger.info("Synced live matches with backend.")
+            if valid_urls:
+                await asyncio.to_thread(CricketDataService.add_live_matches, valid_urls, token)
+                logger.info("Synced live matches with backend.")
+            if schedule_matches:
+                await asyncio.to_thread(CricketDataService.add_schedule_matches, schedule_matches, token)
+                logger.info("Synced schedule matches with backend.")
             print("[DISCOVERY] Synced with backend.", flush=True)
         else:
-            print("[DISCOVERY] No valid URLs found to sync.", flush=True)
+            print("[DISCOVERY] No valid URLs or schedule matches found to sync.", flush=True)
 

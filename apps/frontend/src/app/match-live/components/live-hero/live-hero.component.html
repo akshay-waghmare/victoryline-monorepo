@@ -1,11 +1,11 @@
 <!-- Condensed Hero (Sticky on Scroll) -->
 <app-hero-condensed
-  *ngIf="(showCondensed$ | async) && (view$ | async) as view"
+  *ngIf="(showCondensed$ | async) && getActiveView(view$ | async) as view"
   [view]="view"
   [matchInfo]="matchInfo">
 </app-hero-condensed>
 
-<ng-container *ngIf="view$ | async as view; else loadingState">
+<ng-container *ngIf="getActiveView(view$ | async) as view; else loadingState">
   <section class="live-hero" [attr.data-status]="statusKey(view)">
     <header class="live-hero__headline">
       <div class="live-hero__fixture">
@@ -73,6 +73,8 @@
       <div class="live-hero__recent-area">
         <div class="current-ball"
              *ngIf="view.score.currentBall"
+             [attr.title]="getCurrentBallLabel(view.score.currentBall)"
+             [attr.aria-label]="getCurrentBallLabel(view.score.currentBall)"
              [attr.data-kind]="getCurrentBallKind(view.score.currentBall)"
              [class.current-ball--animate]="isCurrentBallImpact(view.score.currentBall)">
           <span class="current-ball__badge" *ngIf="isCurrentBallFreeHit(view.score.currentBall)">Free Hit</span>
@@ -146,6 +148,6 @@
   </div>
 </ng-template>
 
-<div class="live-hero__error" *ngIf="(state$ | async)?.error as error">
+<div class="live-hero__error" *ngIf="!fallbackView && (state$ | async)?.error as error">
   <p>{{ error }}</p>
 </div>

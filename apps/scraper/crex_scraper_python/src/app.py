@@ -6,13 +6,17 @@ Exposes API endpoints and manages scraper lifecycle.
 import asyncio
 import logging
 import threading
-from typing import Optional
+from concurrent.futures import TimeoutError as FutureTimeoutError
+from typing import Optional, Dict, Any
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, Response, request
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
+from .adapters.crex_adapter import CrexAdapter
 from .config import get_settings
 from .crex_scraper import CrexScraperService
+from .cricket_data_service import CricketDataService
 from .loggers.adapters import configure_logging
 
 # Configure logging immediately
@@ -26,6 +30,107 @@ scraper_service = CrexScraperService()
 
 # Global event loop for the scraper service
 scraper_loop: Optional[asyncio.AbstractEventLoop] = None
+
+
+def _normalize_crex_url(url: str) -> str:
+    trimmed = (url or "").strip()
+    if not trimmed:
+        return trimmed
+    if trimmed.startswith("http://") or trimmed.startswith("https://"):
+        return trimmed
+    if trimmed.startswith("/"):
+        return f"https://crex.com{trimmed}"
+    return f"https://crex.com/{trimmed.lstrip('/')}"
+
+
+def _ensure_scoreboard_variant(url: str, variant: str) -> str:
+    trimmed = _normalize_crex_url(url).rstrip("/")
+    for existing_variant in ("/live", "/scorecard", "/info"):
+        if trimmed.endswith(existing_variant):
+            return trimmed[: -len(existing_variant)] + f"/{variant}"
+    return trimmed + f"/{variant}"
+
+
+def _extract_sc4_key(url: str) -> Optional[str]:
+    normalized = _normalize_crex_url(url)
+    path = urlparse(normalized).path
+    if "/scoreboard/" not in path:
+        return None
+    parts = [part for part in path.split("/scoreboard/", 1)[1].split("/") if part]
+    return parts[0] if parts else None
+
+
+async def _hydrate_match_details(url: str) -> Dict[str, Any]:
+    adapter = scraper_service.registry.get_adapter("crex")
+    if not isinstance(adapter, CrexAdapter):
+        raise RuntimeError("CREX adapter is unavailable")
+
+    match_url = _normalize_crex_url(url)
+    info_url = _ensure_scoreboard_variant(match_url, "info")
+    scorecard_url = _ensure_scoreboard_variant(match_url, "scorecard")
+    sc4_key = _extract_sc4_key(match_url)
+
+    token = scraper_service._auth_token
+    if not token:
+        token = await asyncio.to_thread(CricketDataService.get_bearer_token)
+        if token:
+            scraper_service._auth_token = token
+
+    result: Dict[str, Any] = {
+        "requested_url": url,
+        "match_url": match_url,
+        "info_url": info_url,
+        "scorecard_url": scorecard_url,
+        "match_info_saved": False,
+        "scorecard_saved": False,
+        "sc4_key": sc4_key,
+    }
+
+    async with scraper_service.pool.get_context() as context:
+        match_info = await adapter.fetch_match_info(context, info_url)
+        if match_info:
+            result["match_info_saved"] = await asyncio.to_thread(
+                CricketDataService.push_match_info,
+                match_info,
+                token,
+                info_url,
+            )
+
+        page = await context.new_page()
+        try:
+            await page.goto(scorecard_url, wait_until="domcontentloaded", timeout=30000)
+            local_storage = await adapter._wait_for_local_storage_ready(page, "hydrate_scorecard")
+            result["local_storage_items"] = len(local_storage or {})
+
+            if sc4_key:
+                scorecard_store: Dict[str, Any] = {"sC4_stats": None}
+                headers = {
+                    "Accept": "application/json",
+                    "Origin": "https://crex.com",
+                    "Referer": scorecard_url,
+                }
+                await adapter._trigger_sc4_call(
+                    f"https://api-v1.com/v10/sC4.php?key={sc4_key}",
+                    headers,
+                    scorecard_store,
+                    page,
+                )
+
+                scorecard_stats = scorecard_store.get("sC4_stats")
+                if scorecard_stats:
+                    if local_storage:
+                        adapter._decode_sc4_stats(scorecard_stats, local_storage)
+                    result["scorecard_saved"] = await asyncio.to_thread(
+                        CricketDataService.push_sc4_stats,
+                        scorecard_stats,
+                        token,
+                        match_url,
+                    )
+        finally:
+            await page.close()
+
+    result["success"] = bool(result["match_info_saved"] or result["scorecard_saved"])
+    return result
 
 def start_scraper_background():
     """Start the scraper service in a background thread."""
@@ -76,6 +181,29 @@ def manual_recycle():
     """
     # Stub for now, will implement full logic later
     return jsonify({"status": "success", "message": "Recycle triggered (stub)"})
+
+
+@app.route("/hydrate-match-details", methods=["POST"])
+def hydrate_match_details():
+    payload = request.get_json(silent=True) or {}
+    url = payload.get("url")
+    if not url:
+        return jsonify({"status": "error", "message": "url is required"}), 400
+
+    if scraper_loop is None or scraper_loop.is_closed() or not scraper_service._running:
+        return jsonify({"status": "error", "message": "scraper service is not ready"}), 503
+
+    try:
+        future = asyncio.run_coroutine_threadsafe(_hydrate_match_details(url), scraper_loop)
+        result = future.result(timeout=90)
+        status_code = 200 if result.get("success") else 502
+        return jsonify({"status": "success" if result.get("success") else "partial", "data": result}), status_code
+    except FutureTimeoutError:
+        logger.error("Hydration timed out for %s", url)
+        return jsonify({"status": "error", "message": "hydration timed out"}), 504
+    except Exception as exc:
+        logger.error("Hydration failed for %s: %s", url, exc, exc_info=True)
+        return jsonify({"status": "error", "message": str(exc)}), 500
 
 # Start scraper on app startup (if not running in a separate worker process manager that handles this)
 # For simple deployment, we start it here.

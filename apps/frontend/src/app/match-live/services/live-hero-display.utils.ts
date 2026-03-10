@@ -18,7 +18,13 @@ function normalizeText(value: unknown): string | null {
     return null;
   }
 
-  return trimmed;
+  // Fix missing spaces common in crex API chase text: "need199" → "need 199", "runsin48" → "runs in 48"
+  const spaced = trimmed
+    .replace(/runsin/gi, 'runs in')
+    .replace(/([a-zA-Z])(\d)/g, '$1 $2')
+    .replace(/(\d)([a-zA-Z])/g, '$1 $2');
+
+  return spaced;
 }
 
 function isCompletedResult(value: unknown): boolean {

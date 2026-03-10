@@ -5,10 +5,12 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 
 import com.devglan.dao.CricketDataDTO;
+import com.devglan.dao.ScheduledMatchDTO;
 import com.devglan.model.LiveMatch;
 
 public interface LiveMatchService {
 	void syncLiveMatches(String[] urls);
+    void syncScheduleMatches(List<ScheduledMatchDTO> matches);
 
 	public List<LiveMatch> findAllMatches();
     List<LiveMatch> findAll();
@@ -16,6 +18,8 @@ public interface LiveMatchService {
     public String appendBaseUrl(String url);
 
 	public List<LiveMatch> findAllFinishedMatches();
+    public List<LiveMatch> findUpcomingMatches();
+    public List<LiveMatch> findCompletedMatches();
 	public LiveMatch findByUrl(String url);
 	public List<LiveMatch> findAllLiveMatches();
 	LiveMatch update(LiveMatch match);

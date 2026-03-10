@@ -106,9 +106,44 @@ export function formatTimeDisplay(date: Date): string {
     } else if (diffMinutes < 60) {
       return `in ${diffMinutes}m`;
     } else if (diffHours < 24) {
-      return `in ${diffHours}h`;
+      const remainingMinutes = diffMinutes % 60;
+      return remainingMinutes > 0 ? `in ${diffHours}h ${remainingMinutes}m` : `in ${diffHours}h`;
     } else {
       return `in ${diffDays}d`;
     }
   }
+}
+
+export function formatAbsoluteTime(date: Date): string {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(date);
+}
+
+export function formatCalendarDate(date: Date): string {
+  const target = new Date(date);
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime();
+  const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const tomorrowDay = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate()).getTime();
+
+  const absoluteLabel = new Intl.DateTimeFormat(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric'
+  }).format(target);
+
+  if (targetDay === todayDay) {
+    return `Today, ${absoluteLabel}`;
+  }
+
+  if (targetDay === tomorrowDay) {
+    return `Tomorrow, ${absoluteLabel}`;
+  }
+
+  return absoluteLabel;
 }

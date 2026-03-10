@@ -2,6 +2,8 @@ package com.devglan.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -19,10 +21,35 @@ public class LiveMatch {
 	private Long id;
 
 	private String url;
+    
+    @Column(name = "external_match_key")
+    private String externalMatchKey;
 	
 	private boolean isDeleted = false; // Soft delete flag
     private String lastKnownState; // JSON string to store the last known state
     private int deletionAttempts = 0; // Counter for deletion attempts
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "match_status")
+    private MatchLifecycleStatus status = MatchLifecycleStatus.LIVE;
+
+    @Column(name = "scheduled_start_time")
+    private Long scheduledStartTime;
+
+    @Column(name = "series_name")
+    private String seriesName;
+
+    @Column(name = "match_format")
+    private String matchFormat;
+
+    @Column(name = "result_summary", length = 1000)
+    private String resultSummary;
+
+    @Column(name = "last_state_updated_at")
+    private Long lastStateUpdatedAt;
+
+    @Column(name = "venue")
+    private String venue;
     
     @Column(name="isDistributionDone")
     private Boolean distributionDone=false;
@@ -60,10 +87,12 @@ public class LiveMatch {
 	}
 
 	public LiveMatch() {
+        this.lastStateUpdatedAt = System.currentTimeMillis();
 	}
 
 	public LiveMatch(String url) {
 		this.url = url;
+        this.lastStateUpdatedAt = System.currentTimeMillis();
 	}
 
 	public Long getId() {
@@ -82,13 +111,78 @@ public class LiveMatch {
 		this.url = url;
 	}
 
+    public String getExternalMatchKey() {
+        return externalMatchKey;
+    }
+
+    public void setExternalMatchKey(String externalMatchKey) {
+        this.externalMatchKey = externalMatchKey;
+    }
+
 	public boolean isFinished() {
-		return isDeleted();
+		return isDeleted() || (status != null && status.isTerminal());
 	}
 
+    public MatchLifecycleStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(MatchLifecycleStatus status) {
+        this.status = status;
+    }
+
+    public Long getScheduledStartTime() {
+        return scheduledStartTime;
+    }
+
+    public void setScheduledStartTime(Long scheduledStartTime) {
+        this.scheduledStartTime = scheduledStartTime;
+    }
+
+    public String getSeriesName() {
+        return seriesName;
+    }
+
+    public void setSeriesName(String seriesName) {
+        this.seriesName = seriesName;
+    }
+
+    public String getMatchFormat() {
+        return matchFormat;
+    }
+
+    public void setMatchFormat(String matchFormat) {
+        this.matchFormat = matchFormat;
+    }
+
+    public String getResultSummary() {
+        return resultSummary;
+    }
+
+    public void setResultSummary(String resultSummary) {
+        this.resultSummary = resultSummary;
+    }
+
+    public Long getLastStateUpdatedAt() {
+        return lastStateUpdatedAt;
+    }
+
+    public void setLastStateUpdatedAt(Long lastStateUpdatedAt) {
+        this.lastStateUpdatedAt = lastStateUpdatedAt;
+    }
+
+    public String getVenue() {
+        return venue;
+    }
+
+    public void setVenue(String venue) {
+        this.venue = venue;
+    }
+
 	public String getWinningTeam() {
-		if (lastKnownState != null && lastKnownState.contains("won by")) {
-            String[] parts = lastKnownState.split(" won by");
+		String winningSource = resultSummary != null && !resultSummary.trim().isEmpty() ? resultSummary : lastKnownState;
+		if (winningSource != null && winningSource.contains("won by")) {
+            String[] parts = winningSource.split(" won by");
             if (parts.length > 0) {
                 return parts[0].trim();
             }

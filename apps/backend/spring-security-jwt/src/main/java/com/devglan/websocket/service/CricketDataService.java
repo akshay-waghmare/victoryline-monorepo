@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -224,23 +225,22 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
         // Merge commentary entries (append new, deduplicate by id, cap at MAX_COMMENTARY_ENTRIES)
         if (incomingData.getCommentary() != null && !incomingData.getCommentary().isEmpty()) {
             List<Map<String, Object>> existing = commentaryCache.getOrDefault(url, new ArrayList<>());
-            Set<String> existingIds = new HashSet<>();
-            for (Map<String, Object> e2 : existing) {
-                Object id = e2.get("id");
-                if (id != null) existingIds.add(id.toString());
+            Map<String, Integer> existingIndexes = new HashMap<>();
+            for (int i = 0; i < existing.size(); i++) {
+                String key = commentaryEntryKey(existing.get(i));
+                if (!key.isEmpty()) {
+                    existingIndexes.put(key, i);
+                }
             }
             for (Map<String, Object> newEntry : incomingData.getCommentary()) {
-                Object id = newEntry.get("id");
-                String idStr = (id != null) ? id.toString() : "";
-                // Only deduplicate if id is non-empty
-                if (idStr.isEmpty() || !existingIds.contains(idStr)) {
-                    // Strip HTML tags from commentary text
-                    Object text = newEntry.get("text");
-                    if (text instanceof String) {
-                        newEntry.put("text", ((String) text).replaceAll("<[^>]*>", "").replace("&nbsp;", " ").trim());
-                    }
-                    existing.add(newEntry);
-                    if (!idStr.isEmpty()) existingIds.add(idStr);
+                Map<String, Object> sanitizedEntry = sanitizeCommentaryEntry(newEntry);
+                String key = commentaryEntryKey(sanitizedEntry);
+                if (!key.isEmpty() && existingIndexes.containsKey(key)) {
+                    int existingIndex = existingIndexes.get(key);
+                    existing.set(existingIndex, mergeCommentaryEntry(existing.get(existingIndex), sanitizedEntry));
+                } else {
+                    existingIndexes.put(key, existing.size());
+                    existing.add(sanitizedEntry);
                 }
             }
             // Sort: most recent first (inningsNumber DESC, overNumber DESC, ballInOver DESC)
@@ -289,7 +289,109 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
         Object type = entry.get("type");
         if ("OVER_SUMMARY".equals(type)) return 0;
         if ("WICKET".equals(type)) return 1;
-        return 2;
+        if ("BOUNDARY".equals(type)) return 2;
+        if ("BALL".equals(type)) return 3;
+        if ("INFO".equals(type)) return 4;
+        return 99;
+    }
+
+    private static Map<String, Object> sanitizeCommentaryEntry(Map<String, Object> entry) {
+        Map<String, Object> sanitized = new HashMap<>(entry);
+        Object text = sanitized.get("text");
+        if (text instanceof String) {
+            sanitized.put("text", normalizeText(text));
+        }
+        return sanitized;
+    }
+
+    private static String commentaryEntryKey(Map<String, Object> entry) {
+        String type = String.valueOf(valueOrDefault(entry.get("type"), "")).toUpperCase();
+        Object innings = valueOrDefault(entry.get("inningsNumber"), "0");
+        Object over = valueOrDefault(entry.get("overNumber"), "0");
+        Object ball = valueOrDefault(entry.get("ballInOver"), "0");
+        Object delivery = valueOrDefault(entry.get("delivery"), "0");
+
+        if ("OVER_SUMMARY".equals(type)
+                && (!"0".equals(String.valueOf(innings)) || !"0".equals(String.valueOf(over)))) {
+            return String.format("summary|%s|%s", innings, over);
+        }
+
+        if (!"0".equals(String.valueOf(innings))
+                || !"0".equals(String.valueOf(over))
+                || !"0".equals(String.valueOf(ball))) {
+            return String.format("ball|%s|%s|%s", innings, over, ball);
+        }
+
+        Object id = entry.get("id");
+        if (id != null && !id.toString().trim().isEmpty()) {
+            return id.toString();
+        }
+
+        if (!"0".equals(String.valueOf(delivery))) {
+            return String.format("delivery|%s|%s", innings, delivery);
+        }
+
+        return normalizeText(entry.get("text"));
+    }
+
+    private static Map<String, Object> mergeCommentaryEntry(Map<String, Object> existing, Map<String, Object> incoming) {
+        Map<String, Object> merged = new HashMap<>(existing);
+        merged.putAll(incoming);
+        merged.put("text", preferText(incoming.get("text"), existing.get("text")));
+        merged.put("type", preferredType(existing.get("type"), incoming.get("type")));
+        merged.put("runs", valueOrDefault(incoming.get("runs"), existing.get("runs")));
+        merged.put("overBall", valueOrDefault(incoming.get("overBall"), existing.get("overBall")));
+        merged.put("overNumber", valueOrDefault(incoming.get("overNumber"), existing.get("overNumber")));
+        merged.put("ballInOver", valueOrDefault(incoming.get("ballInOver"), existing.get("ballInOver")));
+        merged.put("delivery", valueOrDefault(incoming.get("delivery"), existing.get("delivery")));
+        merged.put("inningsNumber", valueOrDefault(incoming.get("inningsNumber"), existing.get("inningsNumber")));
+        merged.put("batsmanName", valueOrDefault(incoming.get("batsmanName"), existing.get("batsmanName")));
+        merged.put("bowlerName", valueOrDefault(incoming.get("bowlerName"), existing.get("bowlerName")));
+        merged.put("totalScore", valueOrDefault(incoming.get("totalScore"), existing.get("totalScore")));
+        merged.put("highlights", mergeHighlights(existing.get("highlights"), incoming.get("highlights")));
+        return merged;
+    }
+
+    private static Object preferredType(Object existing, Object incoming) {
+        int existingPriority = typePriority(Collections.singletonMap("type", existing));
+        int incomingPriority = typePriority(Collections.singletonMap("type", incoming));
+        return incomingPriority <= existingPriority ? valueOrDefault(incoming, existing) : valueOrDefault(existing, incoming);
+    }
+
+    private static Object valueOrDefault(Object primary, Object fallback) {
+        if (primary == null) {
+            return fallback;
+        }
+        if (primary instanceof String && ((String) primary).trim().isEmpty()) {
+            return fallback;
+        }
+        return primary;
+    }
+
+    private static String preferText(Object primary, Object fallback) {
+        String first = normalizeText(primary);
+        String second = normalizeText(fallback);
+        if (first.isEmpty()) return second;
+        if (second.isEmpty()) return first;
+        return first.length() >= second.length() ? first : second;
+    }
+
+    private static String normalizeText(Object value) {
+        if (!(value instanceof String)) {
+            return "";
+        }
+        return ((String) value).replaceAll("<[^>]*>", "").replace("&nbsp;", " ").replaceAll("\\s+", " ").trim();
+    }
+
+    private static List<?> mergeHighlights(Object existing, Object incoming) {
+        LinkedHashSet<Object> merged = new LinkedHashSet<>();
+        if (existing instanceof List) {
+            merged.addAll((List<?>) existing);
+        }
+        if (incoming instanceof List) {
+            merged.addAll((List<?>) incoming);
+        }
+        return new ArrayList<>(merged);
     }
 
     // Method to get the last updated data for a specific URL

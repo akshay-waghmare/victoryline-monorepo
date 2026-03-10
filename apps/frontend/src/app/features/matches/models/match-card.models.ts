@@ -16,6 +16,10 @@ export interface MatchCardViewModel {
   venue: string;
   startTime: Date;
   matchUrl?: string;             // Original match URL for navigation
+  seriesName?: string;
+  matchFormat?: string;
+  resultSummary?: string;
+  externalMatchKey?: string;
   
   // Computed display properties
   displayStatus: string;        // "Live", "Upcoming", "Completed"

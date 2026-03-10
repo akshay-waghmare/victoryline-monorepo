@@ -32,7 +32,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.devglan.dao.BetResponse;
 import com.devglan.dao.CricketDataDTO;
 import com.devglan.dao.ProfitLossDTO;
+import com.devglan.dao.ScheduleResponseDTO;
 import com.devglan.dao.SessionOverData;
+import com.devglan.dao.ScheduledMatchDTO;
 import com.devglan.model.Bets;
 import com.devglan.model.BlogPost;
 import com.devglan.model.ExposureResult;
@@ -40,6 +42,7 @@ import com.devglan.model.LiveMatch;
 import com.devglan.model.User;
 import com.devglan.service.BetService;
 import com.devglan.service.LiveMatchService;
+import com.devglan.service.MatchDetailHydrationService;
 import com.devglan.service.MatchInfoService;
 import com.devglan.service.RssFeedService;
 import com.devglan.service.ScorecardService;
@@ -70,6 +73,9 @@ public class CricketDataController {
 
 	@Autowired
 	private MatchInfoService matchInfoService;
+
+	@Autowired
+	private MatchDetailHydrationService matchDetailHydrationService;
 	
 	@Autowired
 	private RssFeedService rssFeedService;
@@ -303,6 +309,9 @@ public class CricketDataController {
 	public ResponseEntity<?> getMatchInfo(@RequestParam("url") String url) {
 	    try {
 	        String dataJson = matchInfoService.getMatchInfo(url);
+	        if (dataJson == null && matchDetailHydrationService.hydrate(url)) {
+	            dataJson = matchInfoService.getMatchInfo(url);
+	        }
 	        if (dataJson != null) {
 	            // Parse the JSON string back into an object
 	            ObjectMapper objectMapper = new ObjectMapper();
@@ -322,6 +331,9 @@ public class CricketDataController {
 	public ResponseEntity<?> getScorecardInfo(@RequestParam("url") String url) {
 	    try {
 	        String dataJson = scoreCardService.getMatchInfo(url);
+	        if (dataJson == null && matchDetailHydrationService.hydrate(url)) {
+	            dataJson = scoreCardService.getMatchInfo(url);
+	        }
 	        if (dataJson != null) {
 	            // Parse the JSON string back into an object
 	            ObjectMapper objectMapper = new ObjectMapper();
@@ -422,6 +434,39 @@ public class CricketDataController {
 			return ResponseEntity.status(500).body("Error: " + e.getMessage());
 		}
 	}
+
+    @PostMapping("/sync-schedule-matches")
+    public ResponseEntity<String> syncScheduleMatches(@RequestBody List<ScheduledMatchDTO> matches) {
+        try {
+            liveMatchService.syncScheduleMatches(matches);
+            return ResponseEntity.ok("Schedule matches synced successfully!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error syncing schedule matches: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/upcoming-matches")
+    public ResponseEntity<ScheduleResponseDTO> getUpcomingMatches() {
+        try {
+            List<LiveMatch> matches = liveMatchService.findUpcomingMatches();
+            return ResponseEntity.ok(new ScheduleResponseDTO(true, matches, System.currentTimeMillis(), "upcoming"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ScheduleResponseDTO(false, null, System.currentTimeMillis(), "upcoming"));
+        }
+    }
+
+    @GetMapping("/completed-matches")
+    public ResponseEntity<ScheduleResponseDTO> getCompletedMatches() {
+        try {
+            List<LiveMatch> matches = liveMatchService.findCompletedMatches();
+            return ResponseEntity.ok(new ScheduleResponseDTO(true, matches, System.currentTimeMillis(), "completed"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ScheduleResponseDTO(false, null, System.currentTimeMillis(), "completed"));
+        }
+    }
 
 	@GetMapping("/live-matches") // Map to "/cricket-data/live-matches"
 	public ResponseEntity<List<LiveMatch>> getAllLiveMatches() {
