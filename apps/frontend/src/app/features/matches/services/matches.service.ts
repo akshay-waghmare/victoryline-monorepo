@@ -532,23 +532,61 @@ export class MatchesService {
 
   /**
    * Enrich card scores from resultSummary when scorecard data is unavailable.
-   * Uses lazy wickets regex to correctly split concatenated formats like "189/620.0"
-   * → runs=189, wickets=6, overs=20.0
+   * Handles two formats:
+   *   1. With slash: "CDE 189/620.0" → 189/6 (20.0 ov)
+   *   2. All-out (no slash): "NOD 11916.3" → 119/10 (16.3 ov)
    */
   private enrichScoresFromResultSummary(viewModel: MatchCardViewModel, resultSummary: string): void {
     if (!resultSummary) { return; }
 
-    const scorePattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\/(\d{1,2}?)\s*\(?(\d+\.\d+)\)?/g;
     const parsed: Array<{ teamName: string; runs: number; wickets: number; overs: number }> = [];
-    let entry: RegExpExecArray | null;
 
-    while ((entry = scorePattern.exec(resultSummary)) !== null) {
+    // Pass 1: scores with "/" separator
+    const slashPattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\/(\d{1,2}?)\s*\(?(\d+\.\d+)\)?/g;
+    let entry: RegExpExecArray | null;
+    const matchedTeams = new Set<string>();
+
+    while ((entry = slashPattern.exec(resultSummary)) !== null) {
+      const teamName = entry[1].trim();
+      matchedTeams.add(teamName);
       parsed.push({
-        teamName: entry[1].trim(),
+        teamName,
         runs: parseInt(entry[2], 10),
         wickets: parseInt(entry[3], 10),
         overs: parseFloat(entry[4])
       });
+    }
+
+    // Pass 2: all-out scores without "/" (e.g., "NOD 11916.3")
+    const allOutPattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\.(\d)/g;
+    while ((entry = allOutPattern.exec(resultSummary)) !== null) {
+      const teamName = entry[1].trim();
+      if (matchedTeams.has(teamName)) { continue; }
+      // Skip "Won", "Match", etc.
+      if (/^(Won|Match|Draw|Tied|No)/i.test(teamName)) { continue; }
+
+      const numberPart = entry[2]; // e.g. "11916"
+      const decimal = entry[3];    // e.g. "3"
+      let runs = 0, overs = 0;
+
+      if (numberPart.length >= 3) {
+        const twoDigitOvers = parseInt(numberPart.slice(-2), 10);
+        if (twoDigitOvers >= 1 && twoDigitOvers <= 50) {
+          runs = parseInt(numberPart.slice(0, -2), 10);
+          overs = parseFloat(twoDigitOvers + '.' + decimal);
+        } else {
+          runs = parseInt(numberPart.slice(0, -1), 10);
+          overs = parseFloat(numberPart.slice(-1) + '.' + decimal);
+        }
+      } else if (numberPart.length >= 2) {
+        runs = parseInt(numberPart.slice(0, -1), 10);
+        overs = parseFloat(numberPart.slice(-1) + '.' + decimal);
+      }
+
+      if (runs > 0) {
+        matchedTeams.add(teamName);
+        parsed.push({ teamName, runs, wickets: 10, overs });
+      }
     }
 
     if (parsed.length === 0) { return; }

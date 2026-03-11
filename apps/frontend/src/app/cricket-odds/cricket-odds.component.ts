@@ -1102,21 +1102,51 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
 
 private extractFallbackScore(match: any): { teamCode: string; teamName: string; runs: number; wickets: number; overs: string; allScores: Array<{ teamName: string; runs: number; wickets: number; overs: string }> } {
   var summary = String(match && (match.resultSummary || match.lastKnownState || '')).trim();
-  // Use lazy wickets (\d{1,2}?) so overs (which always contain a decimal) get parsed correctly
-  // Handles concatenated formats like "42/810.0" → wickets=8, overs=10.0
-  var scorePattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\/(\d{1,2}?)\s*\(?(\d+\.\d+)\)?/g;
   var winnerMatch = summary.match(/([A-Za-z][A-Za-z\s&.-]*?)\s+Won/i);
   var winnerKey = winnerMatch && winnerMatch[1] ? winnerMatch[1].replace(/\s+/g, '').toLowerCase() : null;
   var parsedScores: Array<{ teamName: string; runs: number; wickets: number; overs: string }> = [];
   var entry: RegExpExecArray | null;
+  var matchedTeams: { [key: string]: boolean } = {};
 
+  // Pass 1: scores with "/" separator
+  var scorePattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\/(\d{1,2}?)\s*\(?(\d+\.\d+)\)?/g;
   while ((entry = scorePattern.exec(summary)) !== null) {
+    var tn = entry[1].trim();
+    matchedTeams[tn] = true;
     parsedScores.push({
-      teamName: entry[1].trim(),
+      teamName: tn,
       runs: parseInt(entry[2], 10),
       wickets: parseInt(entry[3], 10),
       overs: entry[4]
     });
+  }
+
+  // Pass 2: all-out scores without "/" (e.g., "NOD 11916.3")
+  var allOutPattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\.(\d)/g;
+  while ((entry = allOutPattern.exec(summary)) !== null) {
+    var tn2 = entry[1].trim();
+    if (matchedTeams[tn2]) { continue; }
+    if (/^(Won|Match|Draw|Tied|No)/i.test(tn2)) { continue; }
+    var numberPart = entry[2];
+    var decimal = entry[3];
+    var runs = 0, overs = 0;
+    if (numberPart.length >= 3) {
+      var twoDigit = parseInt(numberPart.slice(-2), 10);
+      if (twoDigit >= 1 && twoDigit <= 50) {
+        runs = parseInt(numberPart.slice(0, -2), 10);
+        overs = parseFloat(twoDigit + '.' + decimal);
+      } else {
+        runs = parseInt(numberPart.slice(0, -1), 10);
+        overs = parseFloat(numberPart.slice(-1) + '.' + decimal);
+      }
+    } else if (numberPart.length >= 2) {
+      runs = parseInt(numberPart.slice(0, -1), 10);
+      overs = parseFloat(numberPart.slice(-1) + '.' + decimal);
+    }
+    if (runs > 0) {
+      matchedTeams[tn2] = true;
+      parsedScores.push({ teamName: tn2, runs: runs, wickets: 10, overs: overs.toString() });
+    }
   }
 
   var selected = parsedScores[0] || {

@@ -121,9 +121,9 @@
       </div>
 
       <!-- COLUMN 3: Batsman / Bowler Stats Area -->
-      <div class="live-hero__stats-area">
+      <div class="live-hero__stats-area" *ngIf="(batsmanDataList && batsmanDataList.length > 0) || (bowlerDataList && bowlerDataList.length > 0)">
         <!-- Batsmen -->
-        <div class="stats-group">
+        <div class="stats-group" *ngIf="batsmanDataList && batsmanDataList.length > 0">
           <div class="stats-grid stats-grid--header">
             <span>Batter</span><span>R</span><span>B</span><span>4s</span><span>6s</span><span class="hide-mobile">SR</span>
           </div>
@@ -141,7 +141,7 @@
         </div>
 
         <!-- Bowler -->
-        <div class="stats-group" style="margin-top: 12px;">
+        <div class="stats-group" style="margin-top: 12px;" *ngIf="bowlerDataList && bowlerDataList.length > 0">
           <div class="stats-grid stats-grid--header">
             <span>Bowler</span><span>O</span><span>M</span><span>R</span><span>W</span><span class="hide-mobile">ECO</span>
           </div>

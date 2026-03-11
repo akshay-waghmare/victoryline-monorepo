@@ -163,7 +163,20 @@ export function searchMatches(matches: MatchCardViewModel[], query: string): Mat
  */
 export function getMatchResultSummary(match: MatchCardViewModel): string {
   if (match.resultSummary && match.resultSummary.trim()) {
-    return match.resultSummary;
+    // Extract just the "TEAM Won ..." part, stripping embedded scores
+    const wonMatch = match.resultSummary.match(/([A-Za-z][A-Za-z\s&.-]*?)\s+Won[^,]*/i);
+    if (wonMatch) {
+      return wonMatch[0].trim();
+    }
+    // Check for other result types
+    const drawMatch = match.resultSummary.match(/Match\s+(Draw|Tied|Abandoned|No\s+Result)/i);
+    if (drawMatch) {
+      return drawMatch[0].trim();
+    }
+    // Fallback: return raw summary only if it's short (no embedded scores)
+    if (match.resultSummary.length < 40) {
+      return match.resultSummary;
+    }
   }
 
   if (match.status !== MatchStatus.COMPLETED && match.status !== MatchStatus.ABANDONED) {
