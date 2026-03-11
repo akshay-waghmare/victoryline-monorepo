@@ -92,7 +92,14 @@ export class MatchesService {
             const transformedMatches = activeMatches.map((match, index) => {
               const scorecardData = scorecardDataArray[index];
               const transformed = this.transformToViewModel(match, scorecardData);
-              console.log('Transformed match:', transformed);
+              // Force LIVE status for matches from the live feed — scorecard
+              // status strings like "Day 1 completed" must not override source.
+              if (transformed.status === MatchStatus.COMPLETED || transformed.status === MatchStatus.UPCOMING) {
+                transformed.status = MatchStatus.LIVE;
+                transformed.displayStatus = getStatusDisplayText(MatchStatus.LIVE);
+                transformed.isLive = true;
+                transformed.canAnimate = true;
+              }
               return transformed;
             });
             
@@ -232,12 +239,12 @@ export class MatchesService {
     };
   }
 
-  private transformScheduleMatches(response: ScheduleResponse | any[], fallbackStatus: MatchStatus): MatchCardViewModel[] {
+  private transformScheduleMatches(response: ScheduleResponse | any[], forceStatus: MatchStatus): MatchCardViewModel[] {
     const payload = this.extractSchedulePayload(response);
     return payload.map(match => {
-      if (!match.status) {
-        match.status = fallbackStatus;
-      }
+      // Always force the status from the source endpoint so that
+      // stale status strings in the API data don't mis-categorize matches.
+      match.status = forceStatus;
       return this.transformToViewModel(match, null);
     });
   }

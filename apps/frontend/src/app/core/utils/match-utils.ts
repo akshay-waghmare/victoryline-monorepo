@@ -119,7 +119,7 @@ export function filterMatchesByStatus(matches: MatchCardViewModel[], status: Mat
  */
 export function filterLiveMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
   return matches.filter(match => 
-    match.status === MatchStatus.LIVE || match.status === MatchStatus.INNINGS_BREAK
+    match.status === MatchStatus.LIVE || match.status === MatchStatus.INNINGS_BREAK || match.status === MatchStatus.RAIN_DELAY
   );
 }
 
