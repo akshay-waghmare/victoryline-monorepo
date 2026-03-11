@@ -11,7 +11,7 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Scheduled job to refresh cricket news from RapidAPI.
- * Runs every 4 hours (6 requests/day, well within 100/day free tier limit).
+ * Runs every 12 hours (2 requests/day) to stay well within 100/day free tier limit.
  */
 @Component
 public class NewsScheduler {
@@ -24,7 +24,7 @@ public class NewsScheduler {
         this.cricketNewsService = cricketNewsService;
     }
 
-    @Scheduled(fixedRate = 14400000) // 4 hours in milliseconds
+    @Scheduled(fixedRate = 43200000) // 12 hours in milliseconds
     public void refreshNews() {
         logger.info("Scheduled news refresh started at {}",
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
