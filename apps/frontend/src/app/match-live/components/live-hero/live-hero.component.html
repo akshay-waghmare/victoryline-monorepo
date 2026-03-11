@@ -40,7 +40,30 @@
     </header>
 
             <div class="live-hero__grid">
-      <!-- COLUMN 1: Score & Chase Area -->
+
+      <!-- COMPLETED MATCH: 3-column layout (Team1 | Result | Team2) -->
+      <ng-container *ngIf="view.completedScores; else liveScoreLayout">
+        <div class="live-hero__score-area live-hero__score-area--completed">
+          <div class="completed-layout">
+            <div class="completed-team completed-team--left">
+              <div class="completed-team__name">{{ view.completedScores.team1.teamName }}</div>
+              <div class="completed-team__score">{{ view.completedScores.team1.runs }}/{{ view.completedScores.team1.wickets }}</div>
+              <div class="completed-team__overs">({{ view.completedScores.team1.overs }} ov)</div>
+            </div>
+            <div class="completed-result">
+              <span class="completed-result__text">{{ view.completedScores.resultText }}</span>
+            </div>
+            <div class="completed-team completed-team--right">
+              <div class="completed-team__name">{{ view.completedScores.team2.teamName }}</div>
+              <div class="completed-team__score">{{ view.completedScores.team2.runs }}/{{ view.completedScores.team2.wickets }}</div>
+              <div class="completed-team__overs">({{ view.completedScores.team2.overs }} ov)</div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- LIVE / UPCOMING: Original single-team score layout -->
+      <ng-template #liveScoreLayout>
       <div class="live-hero__score-area">
         <div class="live-hero__pod live-hero__pod--score">
           <div class="scoreline__team-name">{{ view.score.teamName }}</div>
@@ -68,6 +91,7 @@
           </ng-template>
         </div>
       </div>
+      </ng-template>
 
       <!-- COLUMN 2: Recent Activity Area -->
       <div class="live-hero__recent-area">

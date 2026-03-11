@@ -245,7 +245,14 @@ export class MatchesService {
       // Always force the status from the source endpoint so that
       // stale status strings in the API data don't mis-categorize matches.
       match.status = forceStatus;
-      return this.transformToViewModel(match, null);
+      const viewModel = this.transformToViewModel(match, null);
+
+      // For completed matches, parse scores from resultSummary if teams have no score
+      if (forceStatus === MatchStatus.COMPLETED && match.resultSummary) {
+        this.enrichScoresFromResultSummary(viewModel, match.resultSummary);
+      }
+
+      return viewModel;
     });
   }
 
@@ -521,6 +528,61 @@ export class MatchesService {
       runRate,
       displayText
     };
+  }
+
+  /**
+   * Enrich card scores from resultSummary when scorecard data is unavailable.
+   * Uses lazy wickets regex to correctly split concatenated formats like "189/620.0"
+   * → runs=189, wickets=6, overs=20.0
+   */
+  private enrichScoresFromResultSummary(viewModel: MatchCardViewModel, resultSummary: string): void {
+    if (!resultSummary) { return; }
+
+    const scorePattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\/(\d{1,2}?)\s*\(?(\d+\.\d+)\)?/g;
+    const parsed: Array<{ teamName: string; runs: number; wickets: number; overs: number }> = [];
+    let entry: RegExpExecArray | null;
+
+    while ((entry = scorePattern.exec(resultSummary)) !== null) {
+      parsed.push({
+        teamName: entry[1].trim(),
+        runs: parseInt(entry[2], 10),
+        wickets: parseInt(entry[3], 10),
+        overs: parseFloat(entry[4])
+      });
+    }
+
+    if (parsed.length === 0) { return; }
+
+    // Assign first parsed score to team1, second to team2
+    if (!viewModel.team1.score && parsed.length >= 1) {
+      const s = parsed[0];
+      const rr = s.overs > 0 ? parseFloat((s.runs / s.overs).toFixed(2)) : 0;
+      viewModel.team1.score = {
+        runs: s.runs,
+        wickets: s.wickets,
+        overs: s.overs,
+        runRate: rr,
+        displayText: `${s.runs}/${s.wickets} (${s.overs} ov)`
+      };
+      if (!viewModel.team1.shortName && s.teamName) {
+        viewModel.team1.shortName = s.teamName;
+      }
+    }
+
+    if (!viewModel.team2.score && parsed.length >= 2) {
+      const s = parsed[1];
+      const rr = s.overs > 0 ? parseFloat((s.runs / s.overs).toFixed(2)) : 0;
+      viewModel.team2.score = {
+        runs: s.runs,
+        wickets: s.wickets,
+        overs: s.overs,
+        runRate: rr,
+        displayText: `${s.runs}/${s.wickets} (${s.overs} ov)`
+      };
+      if (!viewModel.team2.shortName && s.teamName) {
+        viewModel.team2.shortName = s.teamName;
+      }
+    }
   }
   
   /**

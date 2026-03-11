@@ -133,10 +133,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Teams Row — horizontal, CREX-style */
+/* Teams Row — CREX-style vertical: name + score stacked per team */
 .match-card__teams {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--spacing-xs);
   padding: var(--spacing-sm) 0;
@@ -144,18 +144,25 @@
 
 .match-card__team {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   flex: 1;
   min-width: 0;
 }
 
 .match-card__team--left {
-  justify-content: flex-start;
+  align-items: flex-start;
 }
 
 .match-card__team--right {
-  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+/* Team header row: avatar + name */
+.match-card__team-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Team avatar — colored circle with initials */
@@ -180,15 +187,26 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80px;
+  max-width: 100px;
 }
 
-/* Score — bold runs/wickets, lighter overs in parens */
-.match-card__score {
+/* Score line — runs/wickets + overs below team header */
+.match-card__score-line {
   display: flex;
   align-items: baseline;
   gap: 4px;
-  flex-shrink: 0;
+}
+
+/* Indent score under the avatar on left team */
+.match-card__team--left .match-card__score-line,
+.match-card__team--left .match-card__no-score {
+  padding-left: 34px;
+}
+
+/* Indent score under the avatar on right team */
+.match-card__team--right .match-card__score-line,
+.match-card__team--right .match-card__no-score {
+  padding-right: 34px;
 }
 
 .match-card__runs {
@@ -220,6 +238,8 @@
   text-transform: lowercase;
   flex-shrink: 0;
   padding: 0 2px;
+  align-self: center;
+  margin-top: 4px;
 }
 
 /* Result — centered, clean CREX-style */
@@ -285,7 +305,7 @@
   50% { opacity: 0.4; }
 }
 
-/* Mobile — keep horizontal, just tighter */
+/* Mobile — tighter spacing */
 @media (max-width: 640px) {
   .match-card {
     padding: var(--spacing-xs) var(--spacing-sm);
@@ -293,7 +313,7 @@
 
   .match-card__team-name {
     font-size: 0.75rem;
-    max-width: 56px;
+    max-width: 70px;
   }
 
   .match-card__runs {
@@ -306,6 +326,16 @@
     font-size: 0.45rem;
   }
 
+  .match-card__team--left .match-card__score-line,
+  .match-card__team--left .match-card__no-score {
+    padding-left: 30px;
+  }
+
+  .match-card__team--right .match-card__score-line,
+  .match-card__team--right .match-card__no-score {
+    padding-right: 30px;
+  }
+
   .match-card__result-text {
     font-size: 0.66rem;
   }
@@ -314,7 +344,7 @@
 /* Tablet */
 @media (min-width: 768px) {
   .match-card__team-name {
-    max-width: 100px;
+    max-width: 120px;
   }
 }
 
@@ -326,7 +356,7 @@
 
   .match-card__team-name {
     font-size: 0.9rem;
-    max-width: 120px;
+    max-width: 150px;
   }
 
   .match-card__runs {
@@ -337,6 +367,16 @@
     width: 32px;
     height: 32px;
     font-size: 0.55rem;
+  }
+
+  .match-card__team--left .match-card__score-line,
+  .match-card__team--left .match-card__no-score {
+    padding-left: 38px;
+  }
+
+  .match-card__team--right .match-card__score-line,
+  .match-card__team--right .match-card__no-score {
+    padding-right: 38px;
   }
 }
 

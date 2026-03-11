@@ -193,6 +193,11 @@ export interface LiveHeroViewModel {
   quickLinks: LiveHeroQuickLink[];
   currentStriker?: LiveHeroBatterView | null;
   lastValidStriker?: LiveHeroBatterView | null;
+  completedScores?: {
+    team1: { teamName: string; runs: number; wickets: number; overs: string };
+    team2: { teamName: string; runs: number; wickets: number; overs: string };
+    resultText: string;
+  } | null;
 }
 
 export interface LiveHeroState {

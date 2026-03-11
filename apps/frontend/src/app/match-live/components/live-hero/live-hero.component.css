@@ -2085,3 +2085,122 @@
     transform: scale(1.5);
   }
 }
+
+/* ============================================================================
+   COMPLETED MATCH — 3-column layout: Team1 | Result | Team2
+   ============================================================================ */
+.live-hero__score-area--completed {
+  grid-column: 1 / -1;
+}
+
+.completed-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 8px;
+}
+
+.completed-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.completed-team--left {
+  align-items: flex-start;
+}
+
+.completed-team--right {
+  align-items: flex-end;
+}
+
+.completed-team__name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.completed-team__score {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.completed-team__overs {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+.completed-result {
+  flex: 0 0 auto;
+  text-align: center;
+  padding: 8px 16px;
+  max-width: 200px;
+}
+
+.completed-result__text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.4;
+  display: block;
+}
+
+/* Mobile completed layout — stack vertically */
+@media (max-width: 480px) {
+  .completed-layout {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .completed-team--left,
+  .completed-team--right {
+    align-items: center;
+  }
+
+  .completed-team__score {
+    font-size: 1.6rem;
+  }
+
+  .completed-result {
+    order: 3;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+  }
+}
+
+/* Tablet+ completed layout */
+@media (min-width: 768px) {
+  .completed-layout {
+    gap: 24px;
+    padding: 20px 16px;
+  }
+
+  .completed-team__name {
+    font-size: 1.3rem;
+  }
+
+  .completed-team__score {
+    font-size: 2.5rem;
+  }
+
+  .completed-team__overs {
+    font-size: 0.95rem;
+  }
+
+  .completed-result__text {
+    font-size: 1rem;
+  }
+}

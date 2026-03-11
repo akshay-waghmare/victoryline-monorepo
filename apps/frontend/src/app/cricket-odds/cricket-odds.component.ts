@@ -1088,7 +1088,15 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
       { id: 'info', label: 'Match Info', target: '#match-info' }
     ],
     currentStriker: null,
-    lastValidStriker: null
+    lastValidStriker: null,
+    completedScores: score.allScores.length >= 2 ? {
+      team1: score.allScores[0],
+      team2: score.allScores[1],
+      resultText: (function() {
+        var wm = String(formattedResult || '').match(/([A-Za-z][A-Za-z\s&.-]*?)\s+Won[^•]*/i);
+        return wm ? wm[0].trim() : 'Match Completed';
+      })()
+    } : null
   };
 }
 
