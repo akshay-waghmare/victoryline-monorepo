@@ -45,6 +45,8 @@ import com.devglan.service.LiveMatchService;
 import com.devglan.service.MatchDetailHydrationService;
 import com.devglan.service.MatchInfoService;
 import com.devglan.service.RssFeedService;
+import com.devglan.service.CricketNewsService;
+import com.devglan.model.CricketNews;
 import com.devglan.service.ScorecardService;
 import com.devglan.service.UserService;
 import com.devglan.websocket.service.CricketDataService;
@@ -79,6 +81,9 @@ public class CricketDataController {
 	
 	@Autowired
 	private RssFeedService rssFeedService;
+
+	@Autowired
+	private CricketNewsService cricketNewsService;
 	
 	@Autowired
 	private ScorecardService scoreCardService;
@@ -547,6 +552,12 @@ public class CricketDataController {
 		String feedUrl = "https://victoryviews.blogspot.com/feeds/posts/default"; // Use the actual
 		List<BlogPost> blogPosts = rssFeedService.fetchBlogPosts(feedUrl);
 		return ResponseEntity.ok(blogPosts);
+	}
+
+	@GetMapping("/news")
+	public ResponseEntity<List<CricketNews>> getNews() {
+		List<CricketNews> news = cricketNewsService.getLatestNews();
+		return ResponseEntity.ok(news);
 	}
 
 	@GetMapping("/get-match-bet-with-exposure")

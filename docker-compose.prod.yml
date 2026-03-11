@@ -82,6 +82,8 @@ services:
       INDEXING_SCHEDULER_ENABLED: "${INDEXING_SCHEDULER_ENABLED:-true}"
       INDEXING_SCHEDULER_INTERVAL_MS: "${INDEXING_SCHEDULER_INTERVAL_MS:-900000}"
       INDEXING_MAX_PER_RUN: "${INDEXING_MAX_PER_RUN:-10}"
+      # RapidAPI for cricket news
+      RAPIDAPI_KEY: "${RAPIDAPI_KEY:-}"
     volumes:
       - backend_data:/app/data
       # Mount GSC service account file - create empty file if not using GSC

@@ -94,17 +94,57 @@
     <p>There are currently no live cricket matches available. Check back later.</p>
   </section>
 
-  <hr class="news-hr" />
-
-  <!-- ===== BLOG POSTS SECTION ===== -->
-  <div *ngFor="let blogPost of blogPosts" class="news-item" (click)="openNews(blogPost.link)">
-  <img [src]="blogPost.imgUrl" alt="{{ blogPost.title }}" class="news-image aspect-4-3" loading="lazy" />
-    <div class="news-content">
-      <h3 class="news-heading">{{ blogPost.title }}</h3>
-      <p class="news-description">{{ blogPost.description | slice:0:400 }}...</p>
-
+  <!-- ===== NEWS SECTION (Cricbuzz-style) ===== -->
+  <section class="home__news" *ngIf="!isLoadingNews && newsItems.length > 0">
+    <div class="home__news-header">
+      <h2 class="home__news-title">Cricket News</h2>
     </div>
-  </div>
-  
-  <hr class="news-hr" *ngFor="let blogPost of blogPosts" />
+
+    <!-- Featured story (first item) -->
+    <article class="news-card news-card--featured" *ngIf="newsItems.length > 0" (click)="openNewsItem(newsItems[0])">
+      <div class="news-card__image-wrap">
+        <img [src]="newsItems[0].mediaUrl" [alt]="newsItems[0].title" class="news-card__image" loading="lazy" />
+      </div>
+      <div class="news-card__body">
+        <h3 class="news-card__title">{{ newsItems[0].title }}</h3>
+        <p class="news-card__desc">{{ newsItems[0].body | slice:0:200 }}</p>
+        <div class="news-card__meta">
+          <span class="news-card__credit">{{ newsItems[0].credit }}</span>
+          <span class="news-card__time">{{ getTimeAgo(newsItems[0].createdTimestamp) }}</span>
+        </div>
+      </div>
+    </article>
+
+    <!-- Rest of the news in compact list -->
+    <div class="news-list">
+      <article class="news-row" *ngFor="let item of newsItems | slice:1:10; trackBy: trackByNewsId" (click)="openNewsItem(item)">
+        <img [src]="item.mediaUrl" [alt]="item.title" class="news-row__thumb" loading="lazy" />
+        <div class="news-row__body">
+          <h4 class="news-row__title">{{ item.title }}</h4>
+          <p class="news-row__desc">{{ item.body | slice:0:120 }}</p>
+          <div class="news-row__meta">
+            <span class="news-row__credit">{{ item.credit }}</span>
+            <span class="news-row__time">{{ getTimeAgo(item.createdTimestamp) }}</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===== LEGACY BLOG SECTION (fallback if no API news) ===== -->
+  <section class="home__news" *ngIf="!isLoadingNews && newsItems.length === 0 && blogPosts?.length > 0">
+    <div class="home__news-header">
+      <h2 class="home__news-title">Latest Articles</h2>
+    </div>
+    <div class="news-list">
+      <article class="news-row" *ngFor="let blogPost of blogPosts" (click)="openNews(blogPost.link)">
+        <img [src]="blogPost.imgUrl" [alt]="blogPost.title" class="news-row__thumb" loading="lazy" />
+        <div class="news-row__body">
+          <h4 class="news-row__title">{{ blogPost.title }}</h4>
+          <p class="news-row__desc">{{ blogPost.description | slice:0:120 }}...</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
 </div>

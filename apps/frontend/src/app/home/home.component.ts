@@ -3,6 +3,7 @@ import { EventListService } from '../component/event-list.service';
 import { Router } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { BlogListService, BlogPost } from '../component/blog-list.service';
+import { NewsService, NewsItem } from '../component/news.service';
 import { MatchesService } from '../features/matches/services/matches.service';
 import { MatchCardViewModel, MatchStatus } from '../features/matches/models/match-card.models';
 import { filterLiveMatches, filterUpcomingMatches, filterCompletedMatches } from '../core/utils/match-utils';
@@ -31,25 +32,36 @@ export class HomeComponent implements OnInit, OnDestroy {
   
   private matchSubscription?: Subscription;
   
+  // News
+  newsItems: NewsItem[] = [];
+  isLoadingNews = true;
+  
+  // Legacy blog posts (kept for backward compat)
   blogPosts: BlogPost[];
 
   constructor(
     private eventListService: EventListService,
-    private matchesService: MatchesService, // New: Matches service
+    private matchesService: MatchesService,
     private router: Router,
     private metaService: Meta,
     private titleService: Title,
     private blogListService: BlogListService,
+    private newsService: NewsService,
     ) { }
 
   ngOnInit(): void {
-    // Load blog posts
-    this.blogListService.getBlogPosts().subscribe((data) => {
-      this.blogPosts = data;
-      console.log(this.blogPosts);
+    // Load news from RapidAPI (primary)
+    this.newsService.getNews().subscribe((items) => {
+      this.newsItems = items;
+      this.isLoadingNews = false;
     });
 
-    // Load matches using new MatchesService
+    // Legacy blog posts (fallback if no news)
+    this.blogListService.getBlogPosts().subscribe((data) => {
+      this.blogPosts = data;
+    });
+
+    // Load matches
     this.loadMatches();
   }
   
@@ -168,6 +180,10 @@ export class HomeComponent implements OnInit, OnDestroy {
    */
   trackByMatchId(index: number, match: MatchCardViewModel): string {
     return match.id;
+  }
+
+  trackByNewsId(index: number, item: NewsItem): string {
+    return item.newsId;
   }
 
   // ===== OLD CODE BELOW - KEPT FOR BACKWARD COMPATIBILITY =====
@@ -354,6 +370,16 @@ extractTeams(matchString: string): { team1: string, team2: string } | null {
 }
 openNews(url: string): void {
   window.open(url, '_blank');
+}
+
+openNewsItem(item: NewsItem): void {
+  if (item.newsUrl) {
+    window.open(item.newsUrl, '_blank');
+  }
+}
+
+getTimeAgo(timestamp: number): string {
+  return this.newsService.getTimeAgo(timestamp);
 }
 
 }
