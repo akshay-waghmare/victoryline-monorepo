@@ -7,6 +7,194 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+#### CREX-Inspired UI Redesign (`fec9702`)
+
+A complete visual overhaul of the homepage and matches page, modeled after competitor analysis of crex.live and cricbuzz.com.
+
+**Homepage — Unified Tabbed Carousel:**
+- Three-tab carousel: **Live**, **Upcoming**, **Results**
+- Horizontal scrollable match cards with smooth snap scrolling
+- Tab badges showing count of matches per category
+- Auto-selects the first non-empty tab on load
+
+**Match Card — CREX-Style Layout:**
+- Vertical team layout: avatar + name on top row, score on the row below
+- Colored circle avatars with team initials (deterministic color from team name hash)
+- Bold runs/wickets with lighter parenthesized overs: `189/6 (20.0 ov)`
+- Status pill (Live/Upcoming/Completed) with color-coded backgrounds
+- Series name header, venue/time footer
+- Score update animations (scale pulse on change)
+- Responsive breakpoints for mobile (≤640px), tablet (768px+), desktop (1024px+)
+
+**Matches List Page (`/matches`):**
+- Clean vertical card list at `max-width: 900px`
+- Consistent card styling with homepage carousel
+- Updated skeleton loading cards to match new structure
+
+**Files Changed:**
+- `apps/frontend/src/app/home/home.component.html` — tabbed carousel
+- `apps/frontend/src/app/home/home.component.css` — carousel styles
+- `apps/frontend/src/app/home/home.component.ts` — tab logic
+- `apps/frontend/src/app/features/matches/components/match-card/match-card.component.html`
+- `apps/frontend/src/app/features/matches/components/match-card/match-card.component.css`
+- `apps/frontend/src/app/features/matches/components/match-card/match-card.component.ts`
+- `apps/frontend/src/app/features/matches/pages/matches-list/matches-list.component.html`
+- `apps/frontend/src/app/features/matches/pages/matches-list/matches-list.component.css`
+- `apps/frontend/src/app/features/matches/components/skeleton-card/skeleton-card.component.html`
+- `apps/frontend/src/app/features/matches/components/skeleton-card/skeleton-card.component.css`
+
+---
+
+#### RapidAPI Cricket News Integration (`3b0f943`)
+
+Full-stack integration of a cricket news feed using the RapidAPI Cricket Live Line Advance API, displayed in a Cricbuzz-style layout on the homepage.
+
+**Backend (Spring Boot):**
+- `CricketNews` JPA entity — stores newsId, title, body, mediaUrl, newsUrl, credit, publishedAt
+- `CricketNewsRepository` — JPA repository with `findTop20ByOrderByPublishedAtDesc()`
+- `CricketNewsService` — fetches from RapidAPI using OkHttp, parses JSON with Jackson, deduplicates by newsId, persists to DB
+- `NewsScheduler` — `@Scheduled(cron = "0 0 */4 * * *")` runs every 4 hours (6 req/day within 100 req/day free tier)
+- `CricketDataController` — added `GET /cricket-data/news` endpoint returning latest 20 articles
+
+**Frontend (Angular):**
+- `NewsService` — HTTP client for `/cricket-data/news`
+- Homepage news section — featured card (large image + title) + compact list rows
+- Responsive layout: stacks on mobile, side-by-side on desktop
+- External links open in new tabs, image fallback on error
+
+**Configuration:**
+- `RAPIDAPI_KEY` environment variable added to `docker-compose.local.yml` and `docker-compose.prod.yml`
+- API: `cricket-live-line-advance.p.rapidapi.com/seasons/2025/news?paged=1&per_page=20`
+
+**Files Changed:**
+- `apps/backend/.../model/CricketNews.java`
+- `apps/backend/.../repository/CricketNewsRepository.java`
+- `apps/backend/.../service/CricketNewsService.java`
+- `apps/backend/.../scheduler/NewsScheduler.java`
+- `apps/backend/.../controller/CricketDataController.java`
+- `apps/frontend/src/app/core/services/news.service.ts`
+- `apps/frontend/src/app/home/home.component.html`
+- `apps/frontend/src/app/home/home.component.css`
+- `apps/frontend/src/app/home/home.component.ts`
+- `docker-compose.local.yml`, `docker-compose.prod.yml`
+
+---
+
+### Fixed
+
+#### Match Tab Categorization — Live vs Completed (`3553917`)
+
+**Problem:** Live matches were appearing in the "Results" tab and completed matches were shown as live.
+
+**Root Cause 1:** `parseMatchStatus()` allowed scorecard status strings (e.g., "Day 1 completed") to override the source endpoint status. A match fetched from the live-matches endpoint could be re-categorized as COMPLETED.
+
+**Root Cause 2:** `transformScheduleMatches()` only applied fallback status when `!match.status`, allowing stale API status to persist.
+
+**Fix:**
+- `getLiveMatches()` now forces `MatchStatus.LIVE` on every match after transformation
+- `transformScheduleMatches()` always overwrites `match.status` with the source endpoint status before transformation
+- Added `RAIN_DELAY` to `filterLiveMatches()` so rain-delayed matches stay in the Live tab
+- Restored news scheduler to every 4 hours (6 req/day)
+
+**Files Changed:**
+- `apps/frontend/src/app/features/matches/services/matches.service.ts` — forced status overrides
+- `apps/frontend/src/app/core/utils/match-utils.ts` — RAIN_DELAY in live filter
+
+---
+
+#### Match Card Score Display — Concatenated Scores (`b7ac7bd`, `c22c6ca`, `5ddb820`)
+
+**Problem:** Completed match cards showed `189/620.0` instead of `189/6 (20.0 ov)` because the backend stores `resultSummary` as a concatenated string without separators.
+
+**Root Cause:** The `parseScore()` method requires structured scorecard data, which is unavailable for completed/schedule matches. The `resultSummary` field contains raw concatenated text like `"CDE 189/620.0 CDE Won 10thT20, Tillo T20 Cup 2026 NOD 11916.3"`.
+
+**Fix — Two-Pass Regex Score Parser (`enrichScoresFromResultSummary`):**
+
+*Pass 1 — Slash format:* Regex `([A-Za-z]...)\s+(\d+)\/(\d{1,2}?)\s*\(?(\d+\.\d+)\)?` with lazy wickets quantifier correctly splits `189/620.0` into runs=189, wickets=6, overs=20.0.
+
+*Pass 2 — All-out format (no slash):* For scores like `NOD 11916.3` where the team was all out (no `/` separator), a heuristic splits the concatenated digits: take the last 2 digits before the decimal as whole overs (if ≤ 50), remainder as runs, wickets defaults to 10.
+- `11916.3` → runs=119, overs=16.3, wickets=10 ✓
+- `11430.4` → runs=114, overs=30.4, wickets=10 ✓
+- `7121.2` → runs=71, overs=21.2, wickets=10 ✓
+
+**Files Changed:**
+- `apps/frontend/src/app/features/matches/services/matches.service.ts` — `enrichScoresFromResultSummary()`
+- `apps/frontend/src/app/cricket-odds/cricket-odds.component.ts` — `extractFallbackScore()` (same 2-pass logic)
+
+---
+
+#### Match Card Result Text — Clean Winner Display (`5ddb820`)
+
+**Problem:** The result row showed the full raw `resultSummary` including embedded scores (e.g., `"CDE 189/620.0 CDE Won 10thT20..."`), which was redundant now that scores are displayed separately.
+
+**Fix:** `getMatchResultSummary()` now extracts only the "Team Won" portion via regex `([A-Za-z]...)\s+Won[^,]*`, falling back to "Match Draw/Tied/Abandoned" or computed margin.
+
+**File Changed:**
+- `apps/frontend/src/app/core/utils/match-utils.ts`
+
+---
+
+#### Match Card Layout — Vertical Team Stacking (`c22c6ca`)
+
+**Problem:** Horizontal team layout cramped scores next to team names, especially on mobile.
+
+**Fix:** Restructured to CREX-style vertical layout:
+```
+[Avatar] TeamName          TeamName [Avatar]
+         189/6 (20.0)           119/10 (16.3)
+              CDE Won by 70 runs
+```
+
+Each team is a flex column: header row (avatar + name) and score line below, with indentation aligned under the avatar.
+
+**Files Changed:**
+- `apps/frontend/src/app/features/matches/components/match-card/match-card.component.html`
+- `apps/frontend/src/app/features/matches/components/match-card/match-card.component.css`
+
+---
+
+#### Upcoming Match Pill Visibility (`b7ac7bd`)
+
+**Problem:** The "Upcoming" status pill was invisible because its blue text blended with the blue background.
+
+**Fix:** Added explicit `!important` blue background with white text to the upcoming pill CSS.
+
+---
+
+#### Match Detail Hero — 3-Column Completed Layout (`c22c6ca`, `5ddb820`)
+
+**Problem:** Completed match detail page showed only one team's score on the left, with raw concatenated text. The user wanted both teams' scores side-by-side with the result centered.
+
+**Fix:** Added a `completedScores` field to `LiveHeroViewModel` and a new 3-column template section:
+```
+Team1Name    |  Result Text  |  Team2Name
+189/6        |   CDE Won     |  119/10
+(20.0 ov)    |               |  (16.3 ov)
+```
+
+- `buildHeroFallbackView()` populates `completedScores` from `extractFallbackScore().allScores`
+- Conditional `*ngIf="view.completedScores"` switches between completed and live layouts
+- Responsive: stacks vertically on mobile (≤480px), horizontal on tablet/desktop
+
+**Files Changed:**
+- `apps/frontend/src/app/match-live/services/live-hero.models.ts` — added `completedScores` to `LiveHeroViewModel`
+- `apps/frontend/src/app/cricket-odds/cricket-odds.component.ts` — populate completedScores
+- `apps/frontend/src/app/match-live/components/live-hero/live-hero.component.html` — 3-column template
+- `apps/frontend/src/app/match-live/components/live-hero/live-hero.component.css` — completed layout styles
+
+---
+
+#### Hero Stats Area — Hide Empty Tables (`5ddb820`)
+
+**Problem:** For completed matches, the Batter/Bowler stats headers ("Batter R B 4s 6s SR", "Bowler O M R W ECO") showed even with no data rows.
+
+**Fix:** Added `*ngIf` guards to the stats-area div and both stats-group divs, hiding them when `batsmanDataList` and `bowlerDataList` are empty.
+
+**File Changed:**
+- `apps/frontend/src/app/match-live/components/live-hero/live-hero.component.html`
+
 ### Fixed
 
 #### Live Ball Display — Current Ball Widget & Recent Ball Circles
