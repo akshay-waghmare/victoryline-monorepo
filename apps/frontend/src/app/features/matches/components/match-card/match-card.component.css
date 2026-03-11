@@ -74,6 +74,12 @@
   line-height: 1.4;
 }
 
+/* Ensure upcoming pill is always visible */
+.match-card.is-upcoming .match-card__status {
+  background-color: #2196f3 !important;
+  color: #fff;
+}
+
 .match-card__live-dot {
   width: 6px;
   height: 6px;
@@ -177,11 +183,11 @@
   max-width: 80px;
 }
 
-/* Score — bold runs, lighter wickets, small overs */
+/* Score — bold runs/wickets, lighter overs in parens */
 .match-card__score {
   display: flex;
   align-items: baseline;
-  gap: 1px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -191,20 +197,14 @@
   color: var(--color-text-primary);
   font-variant-numeric: tabular-nums;
   line-height: 1;
-}
-
-.match-card__wickets {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .match-card__overs {
   font-size: 0.65rem;
   color: var(--color-text-secondary);
-  margin-left: 3px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .match-card__no-score {
@@ -222,13 +222,20 @@
   padding: 0 2px;
 }
 
-/* Result */
+/* Result — centered, clean CREX-style */
 .match-card__result {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  padding: var(--spacing-xs) 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
   text-align: center;
+  background: rgba(76, 175, 80, 0.06);
+  border-radius: var(--border-radius-sm);
+  margin-top: 2px;
+}
+
+.match-card__result-text {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-match-completed, #555);
+  line-height: 1.4;
 }
 
 /* Info bar */
@@ -293,18 +300,14 @@
     font-size: 0.9rem;
   }
 
-  .match-card__wickets {
-    font-size: 0.75rem;
-  }
-
   .match-card__avatar {
     width: 24px;
     height: 24px;
     font-size: 0.45rem;
   }
 
-  .match-card__result {
-    font-size: 0.7rem;
+  .match-card__result-text {
+    font-size: 0.66rem;
   }
 }
 

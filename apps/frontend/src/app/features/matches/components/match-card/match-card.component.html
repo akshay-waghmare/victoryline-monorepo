@@ -38,8 +38,8 @@
       <span class="match-card__avatar" [style.background]="getTeamColor(match.team1)">{{ getTeamInitials(match.team1) }}</span>
       <span class="match-card__team-name">{{ match.team1.shortName || match.team1.name }}</span>
       <div class="match-card__score" *ngIf="match.team1.score" [@scoreUpdate]="team1ScoreState">
-        <span class="match-card__runs">{{ match.team1.score.runs }}</span><span class="match-card__wickets">/{{ match.team1.score.wickets }}</span>
-        <span class="match-card__overs">{{ match.team1.score.overs }}</span>
+        <span class="match-card__runs">{{ match.team1.score.runs }}/{{ match.team1.score.wickets }}</span>
+        <span class="match-card__overs">({{ match.team1.score.overs }})</span>
       </div>
       <span class="match-card__no-score" *ngIf="!match.team1.score && !isUpcomingMatch()">Yet to bat</span>
     </div>
@@ -49,8 +49,8 @@
     <!-- Team 2 (right-aligned) -->
     <div class="match-card__team match-card__team--right">
       <div class="match-card__score" *ngIf="match.team2.score" [@scoreUpdate]="team2ScoreState">
-        <span class="match-card__runs">{{ match.team2.score.runs }}</span><span class="match-card__wickets">/{{ match.team2.score.wickets }}</span>
-        <span class="match-card__overs">{{ match.team2.score.overs }}</span>
+        <span class="match-card__runs">{{ match.team2.score.runs }}/{{ match.team2.score.wickets }}</span>
+        <span class="match-card__overs">({{ match.team2.score.overs }})</span>
       </div>
       <span class="match-card__no-score" *ngIf="!match.team2.score && !isUpcomingMatch()">Yet to bat</span>
       <span class="match-card__team-name">{{ match.team2.shortName || match.team2.name }}</span>
@@ -58,9 +58,9 @@
     </div>
   </div>
 
-  <!-- Result summary -->
+  <!-- Result summary — centered, clean -->
   <div class="match-card__result" *ngIf="hasResultSummary()">
-    {{ getResultSummary() }}
+    <span class="match-card__result-text">{{ getResultSummary() }}</span>
   </div>
 
   <!-- Info bar: venue + time -->

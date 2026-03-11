@@ -1038,6 +1038,22 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
   var oversValue = this.parseOversValue(score.overs);
   var runRate = oversValue > 0 ? score.runs / oversValue : 0;
 
+  // Build a clean formatted result summary with both teams' scores
+  var formattedResult = match.resultSummary || match.lastKnownState || null;
+  if (score.allScores.length >= 2) {
+    var parts: string[] = score.allScores.map(function(s) {
+      return s.teamName + ' ' + s.runs + '/' + s.wickets + ' (' + s.overs + ')';
+    });
+    var winnerLine = '';
+    var winnerMatch = String(formattedResult || '').match(/([A-Za-z][A-Za-z\s&.-]*?)\s+Won[^,]*/i);
+    if (winnerMatch) {
+      winnerLine = winnerMatch[0].trim();
+    }
+    formattedResult = parts.join('  •  ') + (winnerLine ? ' — ' + winnerLine : '');
+  } else if (score.allScores.length === 1) {
+    formattedResult = score.allScores[0].teamName + ' ' + score.allScores[0].runs + '/' + score.allScores[0].wickets + ' (' + score.allScores[0].overs + ')';
+  }
+
   return {
     matchId: match.externalMatchKey || this.matchId || 'match',
     status: 'COMPLETED',
@@ -1050,7 +1066,7 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
       overs: score.overs,
       runRateLabel: 'CRR ' + runRate.toFixed(2),
       status: 'COMPLETED',
-      resultSummary: match.resultSummary || match.lastKnownState || null,
+      resultSummary: formattedResult,
       currentBall: null
     },
     chase: {
@@ -1076,9 +1092,11 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
   };
 }
 
-private extractFallbackScore(match: any): { teamCode: string; teamName: string; runs: number; wickets: number; overs: string } {
+private extractFallbackScore(match: any): { teamCode: string; teamName: string; runs: number; wickets: number; overs: string; allScores: Array<{ teamName: string; runs: number; wickets: number; overs: string }> } {
   var summary = String(match && (match.resultSummary || match.lastKnownState || '')).trim();
-  var scorePattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\/(\d+)(\d+(?:\.\d+)?)/g;
+  // Use lazy wickets (\d{1,2}?) so overs (which always contain a decimal) get parsed correctly
+  // Handles concatenated formats like "42/810.0" → wickets=8, overs=10.0
+  var scorePattern = /([A-Za-z][A-Za-z\s&.-]*?)\s+(\d+)\/(\d{1,2}?)\s*\(?(\d+\.\d+)\)?/g;
   var winnerMatch = summary.match(/([A-Za-z][A-Za-z\s&.-]*?)\s+Won/i);
   var winnerKey = winnerMatch && winnerMatch[1] ? winnerMatch[1].replace(/\s+/g, '').toLowerCase() : null;
   var parsedScores: Array<{ teamName: string; runs: number; wickets: number; overs: string }> = [];
@@ -1114,7 +1132,8 @@ private extractFallbackScore(match: any): { teamCode: string; teamName: string; 
     teamName: selected.teamName,
     runs: selected.runs,
     wickets: selected.wickets,
-    overs: selected.overs
+    overs: selected.overs,
+    allScores: parsedScores
   };
 }
 
