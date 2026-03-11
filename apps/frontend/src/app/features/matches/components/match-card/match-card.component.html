@@ -1,134 +1,76 @@
-<!-- Match Card Component Template -->
+<!-- Match Card — CREX-inspired compact horizontal layout -->
 <div class="match-card"
      #cardElement
      [attr.data-status]="match.status"
-     [attr.data-variant]="variant"
      [class.is-live]="isMatchLive()"
+     [class.is-upcoming]="isUpcomingMatch()"
      [class.is-hovered]="isHovered"
-     [class.is-animating]="isAnimating"
-     [style.max-height]="maxHeight"
      (click)="onCardClick()"
      (mouseenter)="onMouseEnter()"
      (mouseleave)="onMouseLeave()">
-  
-  <!-- Status Badge -->
-  <div class="match-card__status-badge"
-       [style.background-color]="getStatusColor()">
-    <span class="match-card__status-text">{{ getStatusDisplayText() }}</span>
-    
-    <!-- Live Pulse Indicator -->
-    <span class="match-card__live-indicator"
-          *ngIf="isMatchLive()"
-          [@pulse]>
+
+  <!-- Header: Series + Status pill -->
+  <div class="match-card__header">
+    <span class="match-card__series" *ngIf="hasSeriesLabel()">{{ getSeriesLabel() }}</span>
+    <span class="match-card__status" [style.background-color]="getStatusColor()">
+      <span class="match-card__live-dot" *ngIf="isMatchLive()"></span>
+      {{ getStatusDisplayText() }}
     </span>
   </div>
-  
-  <!-- Staleness Warning -->
-  <div class="match-card__staleness-warning"
+
+  <!-- Staleness (compact) -->
+  <div class="match-card__staleness"
        *ngIf="isMatchLive() && getStaleness() !== 'fresh'"
        [attr.data-staleness]="getStaleness()">
-    <mat-icon class="match-card__staleness-icon">warning</mat-icon>
-    <span class="match-card__staleness-text">
-      {{ getStaleness() === 'warning' ? 'Data may be delayed' : 'Data is stale' }}
-    </span>
+    {{ getStaleness() === 'warning' ? 'Delayed' : 'Stale data' }}
   </div>
 
-  <div class="match-card__series" *ngIf="hasSeriesLabel()">
-    {{ getSeriesLabel() }}
+  <!-- Upcoming schedule bar -->
+  <div class="match-card__schedule" *ngIf="isUpcomingMatch()">
+    <span class="match-card__schedule-date">{{ getUpcomingDateDisplay() }}</span>
+    <span class="match-card__schedule-time">{{ getTimeDisplay() }}</span>
   </div>
 
-  <div class="match-card__upcoming-schedule" *ngIf="isUpcomingMatch()">
-    <div class="match-card__upcoming-date">
-      <mat-icon class="match-card__upcoming-icon">event</mat-icon>
-      <span>{{ getUpcomingDateDisplay() }}</span>
-    </div>
-    <div class="match-card__upcoming-time">
-      <mat-icon class="match-card__upcoming-icon">schedule</mat-icon>
-      <span>{{ getTimeDisplay() }}</span>
-    </div>
-  </div>
-  
-  <!-- Teams Container -->
+  <!-- Teams Row — horizontal, scores prominent -->
   <div class="match-card__teams">
-    
-    <!-- Team 1 -->
-    <div class="match-card__team match-card__team--team1">
-      <div class="match-card__team-header">
-        <div class="match-card__team-info">
-          <h3 class="match-card__team-name">{{ match.team1.name }}</h3>
-        </div>
+    <!-- Team 1 (left-aligned) -->
+    <div class="match-card__team match-card__team--left">
+      <span class="match-card__avatar" [style.background]="getTeamColor(match.team1)">{{ getTeamInitials(match.team1) }}</span>
+      <span class="match-card__team-name">{{ match.team1.shortName || match.team1.name }}</span>
+      <div class="match-card__score" *ngIf="match.team1.score" [@scoreUpdate]="team1ScoreState">
+        <span class="match-card__runs">{{ match.team1.score.runs }}</span><span class="match-card__wickets">/{{ match.team1.score.wickets }}</span>
+        <span class="match-card__overs">{{ match.team1.score.overs }}</span>
       </div>
-      
-      <div class="match-card__score"
-           *ngIf="match.team1.score"
-           [@scoreUpdate]="team1ScoreState">
-        <span class="match-card__score-text">{{ match.team1.score.displayText }}</span>
-      </div>
-      
-      <div class="match-card__score-placeholder"
-           *ngIf="!match.team1.score">
-        <span class="match-card__score-text">—</span>
-      </div>
+      <span class="match-card__no-score" *ngIf="!match.team1.score && !isUpcomingMatch()">Yet to bat</span>
     </div>
-    
-    <!-- VS Separator -->
-    <div class="match-card__separator">
-      <span class="match-card__separator-text">VS</span>
-    </div>
-    
-    <!-- Team 2 -->
-    <div class="match-card__team match-card__team--team2">
-      <div class="match-card__team-header">
-        <div class="match-card__team-info">
-          <h3 class="match-card__team-name">{{ match.team2.name }}</h3>
-        </div>
+
+    <span class="match-card__vs">vs</span>
+
+    <!-- Team 2 (right-aligned) -->
+    <div class="match-card__team match-card__team--right">
+      <div class="match-card__score" *ngIf="match.team2.score" [@scoreUpdate]="team2ScoreState">
+        <span class="match-card__runs">{{ match.team2.score.runs }}</span><span class="match-card__wickets">/{{ match.team2.score.wickets }}</span>
+        <span class="match-card__overs">{{ match.team2.score.overs }}</span>
       </div>
-      
-      <div class="match-card__score"
-           *ngIf="match.team2.score"
-           [@scoreUpdate]="team2ScoreState">
-        <span class="match-card__score-text">{{ match.team2.score.displayText }}</span>
-      </div>
-      
-      <div class="match-card__score-placeholder"
-           *ngIf="!match.team2.score">
-        <span class="match-card__score-text">—</span>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Match Info -->
-  <div class="match-card__info">
-    <div class="match-card__info-item">
-      <mat-icon class="match-card__info-icon">location_on</mat-icon>
-      <span class="match-card__info-text">{{ match.venue }}</span>
-    </div>
-    
-    <div class="match-card__info-item" *ngIf="!isUpcomingMatch()">
-      <mat-icon class="match-card__info-icon">schedule</mat-icon>
-      <span class="match-card__info-text">{{ getTimeDisplay() }}</span>
+      <span class="match-card__no-score" *ngIf="!match.team2.score && !isUpcomingMatch()">Yet to bat</span>
+      <span class="match-card__team-name">{{ match.team2.shortName || match.team2.name }}</span>
+      <span class="match-card__avatar" [style.background]="getTeamColor(match.team2)">{{ getTeamInitials(match.team2) }}</span>
     </div>
   </div>
 
-  <div class="match-card__result-summary" *ngIf="hasResultSummary()">
+  <!-- Result summary -->
+  <div class="match-card__result" *ngIf="hasResultSummary()">
     {{ getResultSummary() }}
   </div>
-  
-  <!-- Details Button -->
-  <div class="match-card__actions" *ngIf="showDetailsButton">
-    <button mat-raised-button 
-            color="primary"
-            class="match-card__details-btn"
-            (click)="onDetailsClick($event)">
-      View Details
-    </button>
+
+  <!-- Info bar: venue + time -->
+  <div class="match-card__info">
+    <span class="match-card__venue">{{ match.venue }}</span>
+    <span class="match-card__time" *ngIf="!isUpcomingMatch()">{{ getTimeDisplay() }}</span>
   </div>
-  
-  <!-- Accessibility: Screen reader only live region -->
-  <div class="sr-only" 
-       role="status" 
-       aria-live="polite"
-       *ngIf="isMatchLive()">
+
+  <!-- Accessibility -->
+  <div class="sr-only" role="status" aria-live="polite" *ngIf="isMatchLive()">
     {{ match.team1.name }} {{ match.team1.score?.runs }} for {{ match.team1.score?.wickets }}
     versus
     {{ match.team2.name }} {{ match.team2.score?.runs }} for {{ match.team2.score?.wickets }}

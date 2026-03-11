@@ -6,7 +6,7 @@
 
 import { Injectable } from '@angular/core';
 import { Observable, of, forkJoin, timer } from 'rxjs';
-import { map, switchMap, catchError, shareReplay } from 'rxjs/operators';
+import { map, switchMap, catchError, shareReplay, timeout } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
@@ -27,6 +27,8 @@ interface ScheduleResponse {
 })
 export class MatchesService {
   
+  private readonly matchesRequestTimeoutMs = 15000;
+  private readonly scorecardRequestTimeoutMs = 8000;
   private scorecardApiUrl = environment.REST_API_URL + 'cricket-data/sC4-stats/get';
   constructor(
     private eventListService: EventListService,
@@ -58,6 +60,7 @@ export class MatchesService {
    */
   getLiveMatches(): Observable<MatchCardViewModel[]> {
     return this.eventListService.getLiveMatches().pipe(
+      timeout(this.matchesRequestTimeoutMs),
       switchMap((response: any) => {
         console.log('Raw API Response:', response);
         
@@ -79,12 +82,7 @@ export class MatchesService {
         
         // Fetch scorecard data for all active matches
         const scorecardRequests = activeMatches.map((match: any) => 
-          this.fetchScorecardData(match.url).pipe(
-            catchError(error => {
-              console.error('Error fetching scorecard for:', match.url, error);
-              return of(null); // Return null on error, continue with other matches
-            })
-          )
+          this.fetchScorecardData(match.url)
         );
         
         // Wait for all scorecard requests to complete
@@ -101,6 +99,10 @@ export class MatchesService {
             return transformedMatches;
           })
         );
+      }),
+      catchError((error) => {
+        console.error('Error loading live matches:', error);
+        return of([]);
       })
     );
   }
@@ -123,6 +125,7 @@ export class MatchesService {
 
   private getUpcomingMatches(): Observable<MatchCardViewModel[]> {
     return this.eventListService.getUpcomingMatches().pipe(
+      timeout(this.matchesRequestTimeoutMs),
       map((response: ScheduleResponse | any[]) => this.transformScheduleMatches(response, MatchStatus.UPCOMING)),
       catchError((error) => {
         console.error('Error loading upcoming matches:', error);
@@ -133,6 +136,7 @@ export class MatchesService {
 
   private getCompletedMatches(): Observable<MatchCardViewModel[]> {
     return this.eventListService.getCompletedMatches().pipe(
+      timeout(this.matchesRequestTimeoutMs),
       map((response: ScheduleResponse | any[]) => this.transformScheduleMatches(response, MatchStatus.COMPLETED)),
       catchError((error) => {
         console.error('Error loading completed matches:', error);
@@ -155,9 +159,14 @@ export class MatchesService {
     console.log('Match identifier:', matchIdentifier);
     
     return this.http.get(url).pipe(
+      timeout(this.scorecardRequestTimeoutMs),
       map((data: any) => {
         console.log('Scorecard data received for', matchIdentifier, ':', data);
         return data;
+      }),
+      catchError((error) => {
+        console.error('Error fetching scorecard for:', matchUrl, error);
+        return of(null);
       })
     );
   }

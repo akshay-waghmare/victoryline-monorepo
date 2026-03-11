@@ -156,3 +156,20 @@ $z-index-modal-backdrop: 1040;
 $z-index-modal: 1050;
 $z-index-popover: 1060;
 $z-index-tooltip: 1070;
+
+// ============================================================================ 
+// GLASSMORPHISM & SOTA UI VARS
+// ============================================================================ 
+
+$glass-bg-light: rgba(255, 255, 255, 0.7);
+$glass-border-light: rgba(255, 255, 255, 0.5);
+$glass-shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+$glass-backdrop: blur(10px);
+
+$glass-bg-dark: rgba(30, 30, 30, 0.7);
+$glass-border-dark: rgba(255, 255, 255, 0.1);
+$glass-shadow-dark: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+$accent-neon-green: #00ff88;
+$accent-neon-blue: #00e5ff;
+$accent-neon-pink: #ff007f;

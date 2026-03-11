@@ -1,172 +1,102 @@
 <div class="container">
-  
+
   <!-- ===== PAGE HEADER ===== -->
   <header class="home__header">
     <h1 class="home__title">Live Cricket Scores</h1>
     <p class="home__subtitle">Real-time scores, fixtures & results</p>
   </header>
-  
-  <!-- ===== LIVE MATCHES SECTION ===== -->
-  <section class="home__section home__section--live" *ngIf="!isLoadingMatches && liveMatches.length > 0">
-    <div class="home__section-header">
-      <div class="home__section-title-wrapper">
-        <span class="live-indicator"></span>
-        <h2 class="home__section-title">Live Now</h2>
-        <span class="home__section-count home__section-count--live">{{ liveMatches.length }}</span>
-      </div>
-      <div class="home__section-actions">
-        <button 
-          class="carousel-btn carousel-btn--left" 
-          (click)="scrollLeft('live-matches-grid')"
-          [disabled]="!canScrollLeft('live-matches-grid')"
-          aria-label="Scroll left">
-          <i class="material-icons">chevron_left</i>
+
+  <!-- ===== MATCHES SECTION — Unified tabbed carousel ===== -->
+  <section class="home__matches" *ngIf="!isLoadingMatches && (liveMatches.length > 0 || upcomingMatches.length > 0 || recentMatches.length > 0)">
+
+    <!-- Tab header -->
+    <div class="home__tab-bar">
+      <div class="home__tabs">
+        <button class="home__tab"
+          [class.home__tab--active]="activeTab === 'live'"
+          (click)="setActiveTab('live')"
+          *ngIf="liveMatches.length > 0">
+          <span class="home__tab-dot home__tab-dot--live"></span>
+          Live
+          <span class="home__tab-count home__tab-count--live">{{ liveMatches.length }}</span>
         </button>
-        <button 
-          class="carousel-btn carousel-btn--right" 
-          (click)="scrollRight('live-matches-grid')"
-          [disabled]="!canScrollRight('live-matches-grid')"
-          aria-label="Scroll right">
-          <i class="material-icons">chevron_right</i>
+        <button class="home__tab"
+          [class.home__tab--active]="activeTab === 'upcoming'"
+          (click)="setActiveTab('upcoming')"
+          *ngIf="upcomingMatches.length > 0">
+          Upcoming
+          <span class="home__tab-count">{{ upcomingMatches.length }}</span>
         </button>
-        <a routerLink="/matches" class="home__section-link">
-          View All
-          <i class="material-icons">arrow_forward</i>
-        </a>
+        <button class="home__tab"
+          [class.home__tab--active]="activeTab === 'results'"
+          (click)="setActiveTab('results')"
+          *ngIf="recentMatches.length > 0">
+          Results
+          <span class="home__tab-count">{{ recentMatches.length }}</span>
+        </button>
       </div>
+      <a routerLink="/matches" class="home__view-all">
+        All Matches
+        <i class="material-icons">chevron_right</i>
+      </a>
     </div>
-    <div class="matches-grid-wrapper">
-      <div class="matches-grid matches-grid--carousel" id="live-matches-grid">
+
+    <!-- Carousel: scrollable match cards -->
+    <div class="home__carousel-wrapper">
+      <button class="home__carousel-btn home__carousel-btn--left"
+        (click)="scrollLeft('home-matches-carousel')"
+        [disabled]="!canScrollLeft('home-matches-carousel')"
+        aria-label="Scroll left">
+        <i class="material-icons">chevron_left</i>
+      </button>
+
+      <div class="home__carousel" id="home-matches-carousel">
         <app-match-card
-          *ngFor="let match of liveMatches; trackBy: trackByMatchId"
+          *ngFor="let match of activeMatches; trackBy: trackByMatchId"
           [match]="match"
-          [enableAnimations]="true"
-          [showDetailsButton]="true"
+          [enableAnimations]="activeTab === 'live'"
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
       </div>
+
+      <button class="home__carousel-btn home__carousel-btn--right"
+        (click)="scrollRight('home-matches-carousel')"
+        [disabled]="!canScrollRight('home-matches-carousel')"
+        aria-label="Scroll right">
+        <i class="material-icons">chevron_right</i>
+      </button>
     </div>
   </section>
-  
-  <!-- ===== UPCOMING MATCHES SECTION ===== -->
-  <section class="home__section home__section--upcoming" *ngIf="!isLoadingMatches && upcomingMatches.length > 0">
-    <div class="home__section-header">
-      <div class="home__section-title-wrapper">
-        <i class="material-icons home__section-icon">schedule</i>
-        <h2 class="home__section-title">Upcoming</h2>
-        <span class="home__section-count">{{ upcomingMatches.length }}</span>
-      </div>
-      <div class="home__section-actions">
-        <button 
-          class="carousel-btn carousel-btn--left" 
-          (click)="scrollLeft('upcoming-matches-grid')"
-          [disabled]="!canScrollLeft('upcoming-matches-grid')"
-          aria-label="Scroll left">
-          <i class="material-icons">chevron_left</i>
-        </button>
-        <button 
-          class="carousel-btn carousel-btn--right" 
-          (click)="scrollRight('upcoming-matches-grid')"
-          [disabled]="!canScrollRight('upcoming-matches-grid')"
-          aria-label="Scroll right">
-          <i class="material-icons">chevron_right</i>
-        </button>
-        <a routerLink="/matches" class="home__section-link">
-          View All
-          <i class="material-icons">arrow_forward</i>
-        </a>
-      </div>
-    </div>
-    <div class="matches-grid-wrapper">
-      <div class="matches-grid matches-grid--carousel" id="upcoming-matches-grid">
-        <app-match-card
-          *ngFor="let match of upcomingMatches; trackBy: trackByMatchId"
-          [match]="match"
-          [enableAnimations]="false"
-          [showDetailsButton]="true"
-          (cardClick)="onMatchClick(match)"
-          (detailsClick)="onDetailsClick(match)"
-        ></app-match-card>
-      </div>
-    </div>
-  </section>
-  
-  <!-- ===== RECENT RESULTS SECTION ===== -->
-  <section class="home__section home__section--recent" *ngIf="!isLoadingMatches && recentMatches.length > 0">
-    <div class="home__section-header">
-      <div class="home__section-title-wrapper">
-        <i class="material-icons home__section-icon">check_circle</i>
-        <h2 class="home__section-title">Results</h2>
-        <span class="home__section-count">{{ recentMatches.length }}</span>
-      </div>
-      <div class="home__section-actions">
-        <button 
-          class="carousel-btn carousel-btn--left" 
-          (click)="scrollLeft('recent-matches-grid')"
-          [disabled]="!canScrollLeft('recent-matches-grid')"
-          aria-label="Scroll left">
-          <i class="material-icons">chevron_left</i>
-        </button>
-        <button 
-          class="carousel-btn carousel-btn--right" 
-          (click)="scrollRight('recent-matches-grid')"
-          [disabled]="!canScrollRight('recent-matches-grid')"
-          aria-label="Scroll right">
-          <i class="material-icons">chevron_right</i>
-        </button>
-        <a routerLink="/matches" class="home__section-link">
-          View All
-          <i class="material-icons">arrow_forward</i>
-        </a>
-      </div>
-    </div>
-    <div class="matches-grid-wrapper">
-      <div class="matches-grid matches-grid--carousel" id="recent-matches-grid">
-        <app-match-card
-          *ngFor="let match of recentMatches; trackBy: trackByMatchId"
-          [match]="match"
-          [enableAnimations]="false"
-          [showDetailsButton]="true"
-          (cardClick)="onMatchClick(match)"
-          (detailsClick)="onDetailsClick(match)"
-        ></app-match-card>
-      </div>
-    </div>
-  </section>
-  
+
   <!-- ===== LOADING STATE ===== -->
-  <section class="matches-section" *ngIf="isLoadingMatches">
-    <h2 class="section-header">Loading Matches...</h2>
-    <div class="matches-grid">
-      <app-skeleton-card [count]="3"></app-skeleton-card>
+  <section class="home__matches" *ngIf="isLoadingMatches">
+    <div class="home__tab-bar">
+      <div class="home__tabs">
+        <span class="home__tab home__tab--active">Loading...</span>
+      </div>
+    </div>
+    <div class="home__carousel">
+      <app-skeleton-card [count]="4"></app-skeleton-card>
     </div>
   </section>
-  
+
   <!-- ===== ERROR STATE ===== -->
-  <section class="matches-section" *ngIf="hasMatchError && !isLoadingMatches">
-    <div class="error-message">
-      <mat-card>
-        <h3>Unable to Load Matches</h3>
-        <p>There was an error loading cricket matches. Please try refreshing the page.</p>
-        <button mat-raised-button color="primary" (click)="loadMatches()">Retry</button>
-      </mat-card>
-    </div>
+  <section class="home__error" *ngIf="hasMatchError && !isLoadingMatches">
+    <h3>Unable to Load Matches</h3>
+    <p>There was an error loading cricket matches.</p>
+    <button class="home__retry-btn" (click)="loadMatches()">Retry</button>
   </section>
-  
+
   <!-- ===== NO MATCHES STATE ===== -->
-  <section class="matches-section" *ngIf="!isLoadingMatches && !hasMatchError && liveMatches.length === 0 && upcomingMatches.length === 0 && recentMatches.length === 0">
-    <div class="no-matches-container">
-      <mat-card class="no-matches-card">
-        <h3>No Live Matches</h3>
-        <p>There are currently no live cricket matches available. Please check back later.</p>
-      </mat-card>
-    </div>
+  <section class="home__empty" *ngIf="!isLoadingMatches && !hasMatchError && liveMatches.length === 0 && upcomingMatches.length === 0 && recentMatches.length === 0">
+    <h3>No Live Matches</h3>
+    <p>There are currently no live cricket matches available. Check back later.</p>
   </section>
-  
+
   <hr class="news-hr" />
 
-  <!-- ===== BLOG POSTS SECTION (UNCHANGED) ===== -->
+  <!-- ===== BLOG POSTS SECTION ===== -->
   <div *ngFor="let blogPost of blogPosts" class="news-item" (click)="openNews(blogPost.link)">
   <img [src]="blogPost.imgUrl" alt="{{ blogPost.title }}" class="news-image aspect-4-3" loading="lazy" />
     <div class="news-content">

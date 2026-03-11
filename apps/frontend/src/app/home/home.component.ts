@@ -18,17 +18,19 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   @ViewChild('scrollContainer', { read: ElementRef }) scrollContainer!: ElementRef;
   
-  // New: Match data with strong typing
+  // Match data
   liveMatches: MatchCardViewModel[] = [];
   upcomingMatches: MatchCardViewModel[] = [];
   recentMatches: MatchCardViewModel[] = [];
   isLoadingMatches = true;
   hasMatchError = false;
   
-  // Subscription for auto-refresh
+  // Tabbed carousel state
+  activeTab: 'live' | 'upcoming' | 'results' = 'live';
+  activeMatches: MatchCardViewModel[] = [];
+  
   private matchSubscription?: Subscription;
   
-  // Existing: Blog posts
   blogPosts: BlogPost[];
 
   constructor(
@@ -64,12 +66,20 @@ export class HomeComponent implements OnInit, OnDestroy {
       (matches) => {
         // Categorize matches into sections
         this.liveMatches = filterLiveMatches(matches);
-        this.upcomingMatches = filterUpcomingMatches(matches).slice(0, 3); // Show top 3 upcoming
-        this.recentMatches = filterCompletedMatches(matches).slice(0, 3); // Show top 3 recent
+        this.upcomingMatches = filterUpcomingMatches(matches).slice(0, 6);
+        this.recentMatches = filterCompletedMatches(matches).slice(0, 6);
         
-        console.log('Live matches updated:', this.liveMatches);
-        console.log('Upcoming matches:', this.upcomingMatches);
-        console.log('Recent matches:', this.recentMatches);
+        // Auto-select best tab on first load
+        if (this.isLoadingMatches) {
+          if (this.liveMatches.length > 0) {
+            this.activeTab = 'live';
+          } else if (this.upcomingMatches.length > 0) {
+            this.activeTab = 'upcoming';
+          } else {
+            this.activeTab = 'results';
+          }
+        }
+        this.syncActiveMatches();
         
         this.isLoadingMatches = false;
       },
@@ -119,8 +129,23 @@ export class HomeComponent implements OnInit, OnDestroy {
    * Handle details button click
    */
   onDetailsClick(match: MatchCardViewModel): void {
-    console.log('Details clicked for match:', match);
     this.onMatchClick(match);
+  }
+  
+  /**
+   * Switch the active tab and update displayed matches
+   */
+  setActiveTab(tab: 'live' | 'upcoming' | 'results'): void {
+    this.activeTab = tab;
+    this.syncActiveMatches();
+  }
+  
+  private syncActiveMatches(): void {
+    switch (this.activeTab) {
+      case 'live': this.activeMatches = this.liveMatches; break;
+      case 'upcoming': this.activeMatches = this.upcomingMatches; break;
+      case 'results': this.activeMatches = this.recentMatches; break;
+    }
   }
   
   /**

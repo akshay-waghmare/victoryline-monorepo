@@ -7,7 +7,7 @@
 import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, OnChanges, SimpleChanges, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 
-import { MatchCardViewModel, MatchStatus, ScoreInfo } from '../../models/match-card.models';
+import { MatchCardViewModel, MatchStatus, ScoreInfo, TeamInfo } from '../../models/match-card.models';
 import { getStatusDisplayText, getStatusColor, isLiveMatch, calculateStaleness, formatTimeDisplay, formatAbsoluteTime, formatCalendarDate } from '../../models/match-status';
 import { AnimationService } from '../../../../core/services/animation.service';
 import { getMatchResultSummary } from '../../../../core/utils/match-utils';
@@ -232,6 +232,33 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   }
   
   // ===== TEMPLATE HELPER METHODS =====
+
+  private static readonly TEAM_COLORS = [
+    '#1565C0', '#2E7D32', '#C62828', '#E65100', '#6A1B9A',
+    '#00838F', '#AD1457', '#283593', '#4E342E', '#37474F',
+    '#558B2F', '#F9A825', '#0277BD', '#BF360C', '#4527A0'
+  ];
+
+  getTeamColor(team: TeamInfo): string {
+    const name = (team.shortName || team.name || '').toUpperCase();
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return MatchCardComponent.TEAM_COLORS[Math.abs(hash) % MatchCardComponent.TEAM_COLORS.length];
+  }
+
+  getTeamInitials(team: TeamInfo): string {
+    if (team.shortName && team.shortName.length <= 4) {
+      return team.shortName;
+    }
+    return team.name
+      .split(/\s+/)
+      .map(w => w[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 3);
+  }
   
   getStatusDisplayText(): string {
     return getStatusDisplayText(this.match.status);

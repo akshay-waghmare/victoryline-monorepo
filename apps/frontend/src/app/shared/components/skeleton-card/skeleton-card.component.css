@@ -1,28 +1,20 @@
 /**
- * Skeleton Card Component Styles
- * Shimmer animation for loading states
+ * Skeleton Card — matches new compact horizontal layout
  */
 
 .skeleton-card {
   background: var(--color-background-elevated);
   border: 1px solid var(--color-border);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-md);
-  box-shadow: var(--shadow-md);
-  
-  position: relative;
-  overflow: hidden;
-/* Prevent interaction during loading
- */
+  border-radius: var(--border-radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   pointer-events: none;
-/* Spacing between multiple skeleton cards
- */
-  & + & {
-    margin-top: var(--spacing-md);
-  }
+  overflow: hidden;
 }
-/* Shimmer Animation (T039)
- */
+
+.skeleton-card + .skeleton-card {
+  margin-top: var(--spacing-sm);
+}
+
 .skeleton-card__shimmer {
   background: linear-gradient(
     90deg,
@@ -32,168 +24,89 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-/* Smooth appearance
- */
   border-radius: var(--border-radius-sm);
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
-/* Status Badge
- */
-.skeleton-card__status-badge {
-  position: absolute;
-  top: var(--spacing-sm);
-  right: var(--spacing-sm);
-  width: 60px;
-  height: 20px;
+
+.skeleton-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
 }
-/* Teams Container
- */
+
+.skeleton-card__series {
+  width: 40%;
+  height: 12px;
+}
+
+.skeleton-card__status {
+  width: 50px;
+  height: 16px;
+  border-radius: 10px;
+}
+
 .skeleton-card__teams {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-md);
-  margin-top: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) 0;
 }
 
 .skeleton-card__team {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.skeleton-card__team-header {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: 6px;
+  flex: 1;
 }
 
-.skeleton-card__team-logo {
-  width: 40px;
-  height: 40px;
+.skeleton-card__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.skeleton-card__team-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 .skeleton-card__team-name {
-  width: 80%;
-  height: 20px;
-}
-
-.skeleton-card__team-full-name {
-  width: 60%;
+  width: 48px;
   height: 14px;
 }
 
 .skeleton-card__score {
-  width: 100%;
-  height: 32px;
+  width: 56px;
+  height: 18px;
 }
-/* Separator
- */
-.skeleton-card__separator {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+
+.skeleton-card__vs {
+  width: 16px;
+  height: 12px;
   flex-shrink: 0;
 }
-/* Match Info
- */
+
 .skeleton-card__info {
   display: flex;
   gap: var(--spacing-md);
-  padding-top: var(--spacing-sm);
+  padding-top: var(--spacing-xs);
   border-top: 1px solid var(--color-border);
-  margin-bottom: var(--spacing-md);
 }
 
 .skeleton-card__info-item {
-  width: 120px;
-  height: 16px;
-}
-/* Actions
- */
-.skeleton-card__actions {
-  display: flex;
-  justify-content: flex-end;
+  width: 60%;
+  height: 10px;
 }
 
-.skeleton-card__button {
-  width: 120px;
-  height: 36px;
-}
-/* Variants
- */
-.skeleton-card[data-variant="compact"] {
-  padding: var(--spacing-sm);
-  
-  .skeleton-card__team-full-name {
-    display: none;
-  }
-}
-
-.skeleton-card[data-variant="detailed"] {
-  padding: var(--spacing-lg);
-}
-/* Responsive
- */
-@media (max-width: 640px) {
-  .skeleton-card {
-    padding: var(--spacing-sm);
-  }
-  
-  .skeleton-card__teams {
-    flex-direction: column;
-  }
-  
-  .skeleton-card__separator {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .skeleton-card__team-logo {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .skeleton-card__info {
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-  
-  .skeleton-card__info-item {
-    width: 100%;
-  }
-}
-/* Reduced Motion
- */
 @media (prefers-reduced-motion: reduce) {
   .skeleton-card__shimmer {
     animation: none;
     background: var(--color-background-hover);
   }
 }
-/* Print (hide skeletons)
- */
-@media print {
-  .skeleton-card {
-    display: none;
-  }
-}
 
+@media print {
+  .skeleton-card { display: none; }
+}
