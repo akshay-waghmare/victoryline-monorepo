@@ -113,6 +113,8 @@ Open the homepage and matches page and confirm:
 
 ## Post-Deployment Monitoring
 
+If the rollout behaves differently from this runbook, check [docs/DEPLOYMENT_TROUBLESHOOTING.md](docs/DEPLOYMENT_TROUBLESHOOTING.md) before retrying. The production host currently has a few known behaviors that differ from the assumptions in the original steps below.
+
 For the first 15 minutes, monitor:
 
 ```bash
@@ -149,6 +151,18 @@ After rollback, re-check:
 - `http://localhost:5000/health`
 - `http://localhost:8099/api/v1/seo/indexing/status`
 - `http://localhost/healthz`
+
+---
+
+## Known Production Host Differences
+
+- The production host `204.12.199.137` uses `docker-compose` `1.29.2`, not `docker compose`.
+- In-place `docker-compose up -d` after image changes can fail with `KeyError: 'ContainerConfig'` during container recreation.
+- If that happens, remove the stale renamed container left behind by Compose and recreate services in dependency order: `backend`, `prerender`, `scraper`, `frontend`, `caddy`.
+- SSH from this workstation is configured for passwordless access via `~/.ssh/id_server_wc` for `administrator@204.12.199.137`.
+- The scraper may report a temporary failing state immediately after rollout if backend startup is still in progress. A one-time `docker restart victoryline-scraper` clears the breaker state once backend is healthy.
+
+See [docs/DEPLOYMENT_TROUBLESHOOTING.md](docs/DEPLOYMENT_TROUBLESHOOTING.md) for the exact failure signatures and recovery commands.
 
 ---
 

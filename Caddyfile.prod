@@ -23,38 +23,46 @@ crickzen.com, www.crickzen.com {
   @seo {
     path /sitemap.xml /sitemaps/* /robots.txt
   }
-  reverse_proxy @seo backend:8099 {
-    header_up Host {host}
-    header_up X-Real-IP {remote}
+  handle @seo {
+    reverse_proxy backend:8099 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+    }
   }
 
-  # Route backend APIs directly instead of relying on frontend nginx proxy rules.
-  @backend_api {
-    path /api/* /token/* /actuator/* /h2-console* /swagger-ui* /swagger-ui.html /v3/api-docs*
+  # API routes that already exist on backend with the /api prefix.
+  @backend_api_passthrough {
+    path /api/v1/* /api/poll/* /actuator/* /h2-console* /swagger-ui* /swagger-ui.html /v3/api-docs*
   }
-  reverse_proxy @backend_api backend:8099 {
-    header_up Host {host}
-    header_up X-Real-IP {remote}
+  handle @backend_api_passthrough {
+    reverse_proxy backend:8099 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+    }
   }
-  
-  # WebSocket endpoint - must come before general proxy to take precedence
-  @websocket {
-    path /api/ws/*
+
+  # Legacy frontend API calls still use the /api prefix even though backend
+  # controllers are mounted at /cricket-data, /events, /tennis, /market, /ws,
+  # and /token. Strip /api before proxying to backend.
+  @legacy_api {
+    path /api/* /token/*
   }
-  reverse_proxy @websocket frontend:80 {
-    header_up Host {host}
-    header_up X-Real-IP {remote}
-    header_up Upgrade {http.request.header.Upgrade}
-    header_up Connection {http.request.header.Connection}
-    # Increase timeout for long-lived WebSocket connections
-    flush_interval -1
+  handle @legacy_api {
+    uri strip_prefix /api
+    reverse_proxy backend:8099 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+      flush_interval -1
+    }
   }
   
   # Serve frontend Angular app proxied from internal container
-  # Nginx inside frontend container handles /api/* routing to backend
-  reverse_proxy frontend:80 {
-    header_up Host {host}
-    header_up X-Real-IP {remote}
+  # Nginx inside frontend container handles static asset and SPA routing.
+  handle {
+    reverse_proxy frontend:80 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+    }
   }
 
   # Optional: health endpoint
