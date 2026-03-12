@@ -26,8 +26,11 @@ WORKDIR /app
 # Copy the built artifact from build stage
 COPY --from=build /app/target/*.war /app/app.war
 
-# Create directory for H2 database (fallback)
-RUN mkdir -p /app/data
+# Create directory for H2 database (fallback) and config
+RUN mkdir -p /app/data /app/config
+
+# Copy GSC service account file
+COPY --from=build /app/src/main/resources/gsc-service-account.json /app/config/gsc-service-account.json
 
 # Expose application port
 EXPOSE 8099

@@ -7,6 +7,7 @@ import asyncio
 import json
 import os
 import re
+from datetime import datetime
 from typing import Callable, Dict, Any, Optional
 from urllib.parse import urlparse, parse_qs
 from playwright.async_api import BrowserContext, Page, Response
@@ -20,6 +21,59 @@ from ..cricket_data_service import CricketDataService
 from ..cache import ScrapeCache
 
 logger = logging.getLogger(__name__)
+
+
+def parse_match_date_to_iso(match_date_str: str) -> Optional[str]:
+    """
+    Parse match date string (e.g., "Mon, 03 Feb 2026") to ISO 8601 format.
+    Returns None if parsing fails.
+    Google Search Console requires startDate in ISO 8601 format for SportsEvent.
+    """
+    if not match_date_str or match_date_str == 'No match date':
+        return None
+    
+    # Common date formats from crex
+    date_formats = [
+        "%a, %d %b %Y",          # Mon, 03 Feb 2026
+        "%a, %d %B %Y",          # Mon, 03 February 2026
+        "%d %b %Y",              # 03 Feb 2026
+        "%d %B %Y",              # 03 February 2026
+        "%Y-%m-%d",              # 2026-02-03
+        "%d/%m/%Y",              # 03/02/2026
+        "%m/%d/%Y",              # 02/03/2026
+    ]
+    
+    # Clean the string
+    clean_date = match_date_str.strip()
+    
+    for fmt in date_formats:
+        try:
+            parsed = datetime.strptime(clean_date, fmt)
+            # Return as ISO 8601 with time set to 00:00:00 UTC
+            return parsed.strftime("%Y-%m-%dT00:00:00Z")
+        except ValueError:
+            continue
+    
+    # Try regex extraction as fallback
+    try:
+        # Pattern: "day, DD Mon YYYY" or similar
+        pattern = r'(\d{1,2})\s+(\w+)\s+(\d{4})'
+        match = re.search(pattern, clean_date)
+        if match:
+            day, month_str, year = match.groups()
+            months = {
+                'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+                'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+            }
+            month = months.get(month_str[:3].lower())
+            if month:
+                return f"{year}-{month:02d}-{int(day):02d}T00:00:00Z"
+    except Exception:
+        pass
+    
+    logger.debug(f"Could not parse match date: {match_date_str}")
+    return None
+
 
 class CrexAdapter(SourceAdapter):
     """
@@ -1446,8 +1500,12 @@ class CrexAdapter(SourceAdapter):
             except Exception as e:
                 logger.warning(f"Error scraping playing XI: {e}")
 
+            # Parse match_date to ISO format for Google Search Console compliance
+            start_date = parse_match_date_to_iso(match_date)
+
             return {
                 "match_date": match_date,
+                "start_date": start_date,  # ISO 8601 format for Google GSC SportsEvent
                 "venue": venue,
                 "match_name": match_name,
                 "team_form": team_form,

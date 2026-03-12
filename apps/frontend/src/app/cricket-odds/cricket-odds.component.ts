@@ -1278,14 +1278,26 @@ private titleCaseSlug(value: string): string {
     if ((!team1 || !team2) && this.matchUrl) {
       const urlSlug = this.extractUrlSlug(this.matchUrl);
       if (urlSlug) {
-        const vsMatch = urlSlug.match(/^([a-z0-9]+)-vs-([a-z0-9]+)-/i);
+        // Pattern for simple 3-letter codes: ind-vs-aus-...
+        const vsMatch = urlSlug.match(/^([a-z]{3})-vs-([a-z]{3})-/i);
         if (vsMatch) {
-          const formatTeam = (t: string): string => {
-            if (t.length <= 4) return t.toUpperCase();
-            return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
-          };
-          team1 = team1 || formatTeam(vsMatch[1]);
-          team2 = team2 || formatTeam(vsMatch[2]);
+          team1 = team1 || vsMatch[1].toUpperCase();
+          team2 = team2 || vsMatch[2].toUpperCase();
+        } else {
+          // Pattern for complex names: afg-u19-vs-ire-u19-... 
+          // Convert slug to readable title and extract teams
+          const readableTitle = urlSlug
+            .replace(/-/g, ' ')
+            .replace(/\d{4}$/, '')
+            .trim()
+            .split(' ')
+            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ');
+          const titleVsMatch = readableTitle.match(/^([^-]+)\s+vs\s+([^-]+)/i);
+          if (titleVsMatch) {
+            team1 = team1 || titleVsMatch[1].trim();
+            team2 = team2 || titleVsMatch[2].trim();
+          }
         }
       }
     }

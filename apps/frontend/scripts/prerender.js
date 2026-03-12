@@ -522,16 +522,26 @@ function generateMatchPageTitle(m, info) {
   if ((!team1 || !team2) && m.url) {
     const urlSlug = extractUrlSlug(m.url);
     if (urlSlug) {
-      // Match pattern like "ind-vs-aus-..." or "india-vs-australia-..."
-      const vsMatch = urlSlug.match(/^([a-z0-9]+)-vs-([a-z0-9]+)-/i);
-      if (vsMatch) {
-        // Convert to uppercase for short codes (3-4 chars) or title case for longer
-        const formatTeam = (t) => {
-          if (t.length <= 4) return t.toUpperCase();
-          return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
-        };
-        team1 = team1 || formatTeam(vsMatch[1]);
-        team2 = team2 || formatTeam(vsMatch[2]);
+      // Pattern for simple 3-letter codes: ind-vs-aus-...
+      const shortMatch = urlSlug.match(/^([a-z]{3})-vs-([a-z]{3})-/i);
+      if (shortMatch) {
+        team1 = team1 || shortMatch[1].toUpperCase();
+        team2 = team2 || shortMatch[2].toUpperCase();
+      } else {
+        // Pattern for complex names: afg-u19-vs-ire-u19-...
+        // Convert slug to readable title and extract teams
+        const readableTitle = urlSlug
+          .replace(/-/g, ' ')
+          .replace(/\d{4}$/, '')
+          .trim()
+          .split(' ')
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+        const titleVsMatch = readableTitle.match(/^([^-]+)\s+vs\s+([^-]+)/i);
+        if (titleVsMatch) {
+          team1 = team1 || titleVsMatch[1].trim();
+          team2 = team2 || titleVsMatch[2].trim();
+        }
       }
     }
   }
@@ -598,11 +608,25 @@ function generateMatchPageDescription(m, info) {
   if ((!team1 || !team2) && m.url) {
     const urlSlug = extractUrlSlug(m.url);
     if (urlSlug) {
-      const vsMatch = urlSlug.match(/^([a-z0-9]+)-vs-([a-z0-9]+)-/i);
-      if (vsMatch) {
-        const formatTeam = (t) => t.length <= 4 ? t.toUpperCase() : t.charAt(0).toUpperCase() + t.slice(1);
-        team1 = team1 || formatTeam(vsMatch[1]);
-        team2 = team2 || formatTeam(vsMatch[2]);
+      // Pattern for simple 3-letter codes: ind-vs-aus-...
+      const shortMatch = urlSlug.match(/^([a-z]{3})-vs-([a-z]{3})-/i);
+      if (shortMatch) {
+        team1 = team1 || shortMatch[1].toUpperCase();
+        team2 = team2 || shortMatch[2].toUpperCase();
+      } else {
+        // Pattern for complex names: afg-u19-vs-ire-u19-...
+        const readableTitle = urlSlug
+          .replace(/-/g, ' ')
+          .replace(/\d{4}$/, '')
+          .trim()
+          .split(' ')
+          .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ');
+        const titleVsMatch = readableTitle.match(/^([^-]+)\s+vs\s+([^-]+)/i);
+        if (titleVsMatch) {
+          team1 = team1 || titleVsMatch[1].trim();
+          team2 = team2 || titleVsMatch[2].trim();
+        }
       }
     }
   }

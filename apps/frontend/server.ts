@@ -19,6 +19,7 @@ async function fetchMatchData(matchId: string): Promise<{
   homeTeam: string;
   awayTeam: string;
   status: 'live' | 'scheduled' | 'completed' | 'abandoned';
+  startDate: string;
 }> {
   const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8099';
   const FETCH_TIMEOUT = 200; // 200ms timeout per spec
@@ -39,15 +40,20 @@ async function fetchMatchData(matchId: string): Promise<{
     }
     
     const data = await response.json();
+    // Parse startDate from various possible field names (match_date, matchDate, start_date, startDate)
+    const rawDate = data.match_date || data.matchDate || data.start_date || data.startDate;
+    const startDate = rawDate ? new Date(rawDate).toISOString() : new Date().toISOString();
+    
     return {
       homeTeam: data.homeTeam || data.team1 || 'TBD',
       awayTeam: data.awayTeam || data.team2 || 'TBD',
-      status: normalizeMatchStatus(data.status || data.matchStatus)
+      status: normalizeMatchStatus(data.status || data.matchStatus),
+      startDate
     };
   } catch (error) {
     console.error('[SSR] Failed to fetch match data:', error);
     // T013: Fallback handling for failed API calls
-    return { homeTeam: 'TBD', awayTeam: 'TBD', status: 'scheduled' };
+    return { homeTeam: 'TBD', awayTeam: 'TBD', status: 'scheduled', startDate: new Date().toISOString() };
   }
 }
 
@@ -273,17 +279,27 @@ app.get('/cric-live/:id', async (req, res, next) => {
     
     const ogImage = new URL(getOgImageForMatch(id), canonicalHost).toString();
 
-    // Enhanced JSON-LD with actual team names
+    // Enhanced JSON-LD with actual team names and startDate (Google GSC requirement)
     const jsonLd = {
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
       name: `${match.homeTeam} vs ${match.awayTeam}`,
-      startDate: new Date().toISOString(),
-      eventStatus: match.status === 'live' ? 'EventScheduled' : 
-                   match.status === 'completed' ? 'EventEnded' : 
-                   match.status === 'abandoned' ? 'EventCancelled' : 'EventScheduled',
+      startDate: match.startDate,
+      eventStatus: match.status === 'live' ? 'https://schema.org/EventScheduled' : 
+                   match.status === 'completed' ? 'https://schema.org/EventEnded' : 
+                   match.status === 'abandoned' ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled',
       homeTeam: { '@type': 'SportsTeam', name: match.homeTeam },
       awayTeam: { '@type': 'SportsTeam', name: match.awayTeam },
+      sport: 'Cricket',
+      location: {
+        '@type': 'Place',
+        name: 'Cricket Stadium'
+      },
+      organizer: {
+        '@type': 'Organization',
+        name: 'Crickzen',
+        url: 'https://www.crickzen.com'
+      }
     };
 
     const breadcrumbs = {
@@ -361,17 +377,27 @@ app.get('/match/:id', async (req, res, next) => {
     const cacheState = match.status === 'live' ? 'live' : 
                        match.status === 'completed' ? 'completed' : 'scheduled';
 
-    // Enhanced JSON-LD with actual team names
+    // Enhanced JSON-LD with actual team names and startDate (Google GSC requirement)
     const jsonLd = {
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
       name: `${match.homeTeam} vs ${match.awayTeam}`,
-      startDate: new Date().toISOString(),
-      eventStatus: match.status === 'live' ? 'EventScheduled' : 
-                   match.status === 'completed' ? 'EventEnded' : 
-                   match.status === 'abandoned' ? 'EventCancelled' : 'EventScheduled',
+      startDate: match.startDate,
+      eventStatus: match.status === 'live' ? 'https://schema.org/EventScheduled' : 
+                   match.status === 'completed' ? 'https://schema.org/EventEnded' : 
+                   match.status === 'abandoned' ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled',
       homeTeam: { '@type': 'SportsTeam', name: match.homeTeam },
       awayTeam: { '@type': 'SportsTeam', name: match.awayTeam },
+      sport: 'Cricket',
+      location: {
+        '@type': 'Place',
+        name: 'Cricket Stadium'
+      },
+      organizer: {
+        '@type': 'Organization',
+        name: 'Crickzen',
+        url: 'https://www.crickzen.com'
+      }
     };
 
     const breadcrumbs = {
