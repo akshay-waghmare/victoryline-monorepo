@@ -24,6 +24,7 @@ This directory contains multiple Caddyfile configurations for different deployme
 - **Domain:** `crickzen.com`, `www.crickzen.com`
 - **Security:** Strict headers (HSTS, CSP, etc.)
 - **Usage:** Used by docker-compose.prod.yml
+- **Notes:** Reads the ACME contact email from the `EMAIL` container environment variable and proxies `/api/*` directly to the backend in production
 
 ---
 
@@ -75,10 +76,15 @@ Test endpoints (after DNS propagation):
 
 Both Caddyfiles use the same routing logic:
 
-1. **SEO Endpoints** → Backend (`backend:8099`)
+1. **SEO and Backend Endpoints** → Backend (`backend:8099`)
    - `/sitemap.xml`
    - `/sitemaps/*.xml`
    - `/robots.txt`
+   - `/api/*`
+   - `/token/*`
+   - `/actuator/*`
+   - `/swagger-ui*`
+   - `/v3/api-docs*`
 
 2. **WebSocket** → Frontend (`frontend:80`)
    - `/api/ws/*`
@@ -86,7 +92,7 @@ Both Caddyfiles use the same routing logic:
 3. **Everything Else** → Frontend (`frontend:80`)
    - Angular SPA
    - Static assets
-   - Frontend Nginx handles `/api/*` → Backend proxy
+   - Frontend Nginx serves the UI and prerendered output only
 
 ---
 
@@ -113,6 +119,7 @@ netstat -ano | findstr ":80"
 - Wait for DNS propagation (can take up to 48 hours)
 - Check ports 80/443 are open and accessible
 - Use staging CA for testing: uncomment `acme_ca` line in Caddyfile.prod
+- Validate the loaded config: `docker exec victoryline-proxy caddy validate --config /etc/caddy/Caddyfile`
 
 **HTTPS redirect loop:**
 - Check `X-Forwarded-Proto` headers are set correctly

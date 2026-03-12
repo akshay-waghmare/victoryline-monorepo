@@ -357,33 +357,33 @@ export class MatchesService {
    */
   private parseTeamInfo(apiMatch: any, teamKey: string, index: number, urlData?: any, scorecardData?: any): TeamInfo {
     // Try to get team data from various possible API structures
-    let teamData = apiMatch[teamKey] || (apiMatch.teams && apiMatch.teams[index]) || {};
-    
-    // First try to get team name from scorecard data
-    let teamName = 'Team ' + (index + 1);
-    
+    const teamData = apiMatch[teamKey] || (apiMatch.teams && apiMatch.teams[index]) || {};
+    const fallbackTeamName = 'Team ' + (index + 1);
+    let scorecardTeamCode = '';
+
     if (scorecardData && scorecardData.match_stats_by_innings && scorecardData.match_stats_by_innings.innings) {
       const innings = scorecardData.match_stats_by_innings.innings;
       const inningsKey = index === 0 ? '1st_inning' : '2nd_inning';
       const inningsData = innings[inningsKey];
       
       if (inningsData && inningsData.team_code) {
-        teamName = inningsData.team_code;
-        console.log(`Team ${index} name from scorecard:`, teamName);
+        scorecardTeamCode = this.normalizeTeamLabel(inningsData.team_code);
+        console.log(`Team ${index} short code from scorecard:`, scorecardTeamCode);
       }
     }
-    
-    // Fallback to URL parsed data
-    const explicitTeamName = apiMatch[`${teamKey}Name`];
-    if (teamName === 'Team ' + (index + 1) && explicitTeamName) {
-      teamName = explicitTeamName;
-    } else if (teamName === 'Team ' + (index + 1) && urlData && urlData[teamKey]) {
-      teamName = urlData[teamKey];
-    } else if (teamName === 'Team ' + (index + 1) && typeof teamData === 'string') {
-      teamName = teamData;
-    } else if (teamName === 'Team ' + (index + 1) && teamData.name) {
-      teamName = teamData.name || teamData.teamName;
+
+    const explicitTeamName = this.normalizeTeamLabel(apiMatch[`${teamKey}Name`]);
+    const urlTeamName = this.normalizeTeamLabel(urlData && urlData[teamKey]);
+    const rawTeamName = this.normalizeTeamLabel(typeof teamData === 'string' ? teamData : '');
+    const structuredTeamName = this.normalizeTeamLabel(teamData.fullName || teamData.teamName || teamData.name);
+
+    let teamName = explicitTeamName || structuredTeamName || rawTeamName || urlTeamName || scorecardTeamCode || fallbackTeamName;
+    if (this.isLikelyShortTeamName(teamName) && urlTeamName && !this.isLikelyShortTeamName(urlTeamName)) {
+      teamName = urlTeamName;
     }
+
+    const explicitShortName = this.normalizeTeamLabel(teamData.shortName || teamData.short_code || teamData.abbreviation);
+    const shortName = explicitShortName || scorecardTeamCode || this.extractShortName(teamName);
     
     // Parse score if available from scorecard data
     const score = this.parseScore(teamData, apiMatch, index, scorecardData);
@@ -391,7 +391,7 @@ export class MatchesService {
     return {
       id: teamData.id || (apiMatch.id ? apiMatch.id + '-' + teamKey : 'unknown-' + teamKey),
       name: teamName,
-      shortName: this.extractShortName(teamName),
+      shortName,
       logoUrl: this.getDefaultLogoUrl(teamName),
       score
     };
@@ -726,6 +726,20 @@ export class MatchesService {
     
     // Fallback: Take first 3 letters and uppercase
     return fullName.substring(0, 3).toUpperCase();
+  }
+
+  private normalizeTeamLabel(value: any): string {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private isLikelyShortTeamName(name: string): boolean {
+    const normalized = this.normalizeTeamLabel(name);
+    if (!normalized) {
+      return true;
+    }
+
+    const compact = normalized.replace(/[\s.-]/g, '');
+    return compact.length <= 4 || /^[A-Z0-9\s.-]+$/.test(normalized);
   }
   
   /**

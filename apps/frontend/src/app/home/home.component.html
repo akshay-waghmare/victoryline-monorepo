@@ -54,6 +54,7 @@
         <app-match-card
           *ngFor="let match of activeMatches; trackBy: trackByMatchId"
           [match]="match"
+          variant="compact"
           [enableAnimations]="activeTab === 'live'"
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"

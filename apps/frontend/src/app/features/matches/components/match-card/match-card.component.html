@@ -37,7 +37,7 @@
     <div class="match-card__team match-card__team--left">
       <div class="match-card__team-header">
         <span class="match-card__avatar" [style.background]="getTeamColor(match.team1)">{{ getTeamInitials(match.team1) }}</span>
-        <span class="match-card__team-name">{{ match.team1.shortName || match.team1.name }}</span>
+        <span class="match-card__team-name" [attr.title]="match.team1.name || match.team1.shortName">{{ getTeamDisplayName(match.team1) }}</span>
       </div>
       <div class="match-card__score-line" *ngIf="match.team1.score" [@scoreUpdate]="team1ScoreState">
         <span class="match-card__runs">{{ match.team1.score.runs }}/{{ match.team1.score.wickets }}</span>
@@ -51,7 +51,7 @@
     <!-- Team 2 (right) -->
     <div class="match-card__team match-card__team--right">
       <div class="match-card__team-header">
-        <span class="match-card__team-name">{{ match.team2.shortName || match.team2.name }}</span>
+        <span class="match-card__team-name" [attr.title]="match.team2.name || match.team2.shortName">{{ getTeamDisplayName(match.team2) }}</span>
         <span class="match-card__avatar" [style.background]="getTeamColor(match.team2)">{{ getTeamInitials(match.team2) }}</span>
       </div>
       <div class="match-card__score-line" *ngIf="match.team2.score" [@scoreUpdate]="team2ScoreState">

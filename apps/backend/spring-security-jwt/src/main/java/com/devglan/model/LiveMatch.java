@@ -36,6 +36,12 @@ public class LiveMatch {
     @Column(name = "scheduled_start_time")
     private Long scheduledStartTime;
 
+    @Column(name = "team1_name")
+    private String team1Name;
+
+    @Column(name = "team2_name")
+    private String team2Name;
+
     @Column(name = "series_name")
     private String seriesName;
 
@@ -137,6 +143,22 @@ public class LiveMatch {
 
     public void setScheduledStartTime(Long scheduledStartTime) {
         this.scheduledStartTime = scheduledStartTime;
+    }
+
+    public String getTeam1Name() {
+        return team1Name;
+    }
+
+    public void setTeam1Name(String team1Name) {
+        this.team1Name = team1Name;
+    }
+
+    public String getTeam2Name() {
+        return team2Name;
+    }
+
+    public void setTeam2Name(String team2Name) {
+        this.team2Name = team2Name;
     }
 
     public String getSeriesName() {

@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-03-12
+
+### Fixed
+- **Upcoming Fixture Team Names**: Schedule scraping now extracts `team1Name` and `team2Name` from CREX JSON-LD, visible card text, and localStorage team metadata so upcoming matches no longer degrade to abbreviations where full names are available.
+- **Backend Schedule Sync Persistence**: `ScheduledMatchDTO`, `LiveMatch`, and `LiveMatchServiceImpl` now persist upcoming team names through schedule sync updates so the frontend receives stable team labels for upcoming fixtures.
+- **Upcoming Match Card Labels**: Standard upcoming match cards now prefer full team names while compact homepage cards still use short labels to preserve density.
+
+### Added
+- **Regression Tests**: Added frontend specs for upcoming-vs-live team name rendering and team parsing precedence, plus scraper unit tests for team-name extraction and localStorage-based name expansion.
+- **Release Documentation**: Added versioned rollout docs for v1.2.2 covering image tags, env changes, validation steps, and rollback guidance.
+
+### Changed
+- **Production Compose**: Updated `docker-compose.prod.yml` default images to `v1.2.2`, removed scraper source-code bind mounts so production uses the tagged images end-to-end, and exported the latest scraper tuning variables (`PID_*`, persistent page limits, fast poll interval).
+- **Environment Templates**: Refreshed `.env.example` and `.env.production.example` so they include the current production image tags and the env surface now required by backend indexing, scraper schedule sync, and fast-update features.
+- **Production Caddy Routing**: `Caddyfile.prod` now uses the injected ACME email, proxies backend API routes explicitly, serves health on `/health` and `/healthz`, and writes access logs to the persistent Caddy data volume.
+
 ### Added
 
 #### CREX-Inspired UI Redesign (`fec9702`)

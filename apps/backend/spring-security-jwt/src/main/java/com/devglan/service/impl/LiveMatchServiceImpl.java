@@ -163,6 +163,12 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             if (dto.getScheduledStartTime() != null) {
                 match.setScheduledStartTime(dto.getScheduledStartTime());
             }
+            if (dto.getTeam1Name() != null && !dto.getTeam1Name().trim().isEmpty()) {
+                match.setTeam1Name(dto.getTeam1Name());
+            }
+            if (dto.getTeam2Name() != null && !dto.getTeam2Name().trim().isEmpty()) {
+                match.setTeam2Name(dto.getTeam2Name());
+            }
             if (dto.getSeriesName() != null && !dto.getSeriesName().trim().isEmpty()) {
                 match.setSeriesName(dto.getSeriesName());
             }

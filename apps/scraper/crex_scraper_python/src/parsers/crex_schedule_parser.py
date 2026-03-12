@@ -2,6 +2,7 @@
 CREX schedule parser helpers for upcoming and completed fixtures.
 """
 
+import asyncio
 import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
@@ -17,6 +18,8 @@ _LIVE_PATTERN = re.compile(r"\blive\b|in progress|innings break", re.IGNORECASE)
 _FORMAT_PATTERN = re.compile(r"\b(test|odi|t20i?|t10)\b", re.IGNORECASE)
 _SCORE_PATTERN = re.compile(r"\b\d{1,3}[/-]\d\b|\b\d{1,3}\.\d\b")
 _TIME_PATTERN = re.compile(r"\b(\d{1,2}):(\d{2})\s*([AP]M)\b", re.IGNORECASE)
+_TEAM_SPLIT_PATTERN = re.compile(r"\s+vs\.?\s+", re.IGNORECASE)
+_MAX_MATCH_NAME_ENRICHMENTS = 12
 
 
 def extract_external_match_key(url: str) -> Optional[str]:
@@ -149,13 +152,199 @@ def extract_series_name(text: str) -> Optional[str]:
     return None
 
 
+def _clean_team_fragment(fragment: str) -> str:
+    normalized = normalize_text(fragment)
+    if not normalized:
+        return ""
+
+    normalized = re.split(
+        r"(?:,\s*|\s+\d{4}\b|\s+\d{1,2}(?:st|nd|rd|th)\b|\s+\b(?:test|odi|t20i?|t10|match|live|fixtures?)\b|\s+\d{1,2}:\d{2}\s*[AP]M\b)",
+        normalized,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )[0]
+    return normalize_text(normalized.strip(" -,:;|"))
+
+
+def extract_team_names(*candidates: Optional[str]) -> Dict[str, Optional[str]]:
+    for candidate in candidates:
+        normalized = normalize_text(candidate)
+        if " vs " not in normalized.lower():
+            continue
+
+        parts = _TEAM_SPLIT_PATTERN.split(normalized, maxsplit=1)
+        if len(parts) != 2:
+            continue
+
+        team1 = _clean_team_fragment(parts[0])
+        team2 = _clean_team_fragment(parts[1])
+        if team1 and team2:
+            return {"team1Name": team1, "team2Name": team2}
+
+    return {"team1Name": None, "team2Name": None}
+
+
+def _normalize_team_lookup_key(value: Optional[str]) -> str:
+    return normalize_text(value).lower()
+
+
+def _looks_like_short_team_name(value: Optional[str]) -> bool:
+    normalized = normalize_text(value)
+    if not normalized:
+        return False
+
+    compact = re.sub(r"[\s.-]", "", normalized)
+    return len(compact) <= 6 and re.fullmatch(r"[A-Z0-9\s.-]+", normalized) is not None
+
+
+def build_team_name_lookup(local_storage: Dict[str, str]) -> Dict[str, str]:
+    lookup: Dict[str, str] = {}
+    if not local_storage:
+        return lookup
+
+    for key, short_name in local_storage.items():
+        if not (key.startswith("t_") and key.endswith("_short")):
+            continue
+
+        team_code = key[2:-6]
+        full_name = normalize_text(local_storage.get(f"t_{team_code}_name"))
+        normalized_short = _normalize_team_lookup_key(short_name)
+        if normalized_short and full_name:
+            lookup[normalized_short] = full_name
+
+    return lookup
+
+
+def expand_team_names(team_names: Dict[str, Optional[str]], team_name_lookup: Dict[str, str]) -> Dict[str, Optional[str]]:
+    if not team_name_lookup:
+        return team_names
+
+    expanded = dict(team_names)
+    for key in ("team1Name", "team2Name"):
+        team_name = team_names.get(key)
+        if not _looks_like_short_team_name(team_name):
+            continue
+
+        replacement = team_name_lookup.get(_normalize_team_lookup_key(team_name))
+        if replacement:
+            expanded[key] = replacement
+
+    return expanded
+
+
+def _get_team_names_local_storage_script() -> str:
+    return """() => {
+        const keys = Object.keys(localStorage || {});
+        const teamNames = keys.filter((key) => key.startsWith('t_') && key.endsWith('_name')).length;
+        return teamNames >= 2;
+    }"""
+
+
+async def _extract_local_storage(page: Page) -> Dict[str, str]:
+    return await page.evaluate(
+        "() => Object.fromEntries(Object.entries(localStorage || {}).map(([key, value]) => [key, value]))"
+    )
+
+
+async def _wait_for_team_name_cache(page: Page) -> Dict[str, str]:
+    try:
+        await page.wait_for_load_state("networkidle", timeout=7000)
+    except Exception:
+        await page.wait_for_timeout(2000)
+
+    try:
+        await page.wait_for_function(_get_team_names_local_storage_script(), timeout=5000)
+    except Exception:
+        await page.wait_for_timeout(2000)
+
+    return await _extract_local_storage(page)
+
+
+def _match_page_candidates(url: str) -> List[str]:
+    normalized = normalize_text(url).rstrip("/")
+    if not normalized:
+        return []
+
+    if normalized.endswith("/live"):
+        base = normalized[:-5]
+        candidates = [f"{base}/info", f"{base}/scorecard", normalized]
+    elif normalized.endswith("/scorecard"):
+        base = normalized[:-10]
+        candidates = [normalized, f"{base}/info", f"{base}/live"]
+    elif normalized.endswith("/info"):
+        base = normalized[:-5]
+        candidates = [normalized, f"{base}/scorecard", f"{base}/live"]
+    else:
+        candidates = [normalized]
+
+    deduped: List[str] = []
+    for candidate in candidates:
+        if candidate and candidate not in deduped:
+            deduped.append(candidate)
+    return deduped
+
+
+async def _enrich_match_names_from_page(page: Page, match_info: Dict[str, Any]) -> None:
+    team_names = {
+        "team1Name": match_info.get("team1Name"),
+        "team2Name": match_info.get("team2Name"),
+    }
+
+    for candidate_url in _match_page_candidates(match_info.get("url", "")):
+        try:
+            await page.goto(candidate_url, timeout=20000)
+        except Exception:
+            continue
+
+        try:
+            local_storage = await _wait_for_team_name_cache(page)
+        except Exception:
+            continue
+
+        expanded = expand_team_names(team_names, build_team_name_lookup(local_storage or {}))
+        if expanded != team_names:
+            match_info["team1Name"] = expanded["team1Name"]
+            match_info["team2Name"] = expanded["team2Name"]
+            return
+
+
+async def _enrich_schedule_matches(page: Page, matches: List[Dict[str, Any]]) -> None:
+    unresolved_matches = [
+        match for match in matches
+        if match.get("status") == "UPCOMING"
+        and (
+            _looks_like_short_team_name(match.get("team1Name"))
+            or _looks_like_short_team_name(match.get("team2Name"))
+        )
+    ][: _MAX_MATCH_NAME_ENRICHMENTS]
+
+    if not unresolved_matches:
+        return
+
+    semaphore = asyncio.Semaphore(4)
+
+    async def enrich(match_info: Dict[str, Any]) -> None:
+        async with semaphore:
+            match_page = await page.context.new_page()
+            try:
+                await _enrich_match_names_from_page(match_page, match_info)
+            finally:
+                await match_page.close()
+
+    await asyncio.gather(*(enrich(match_info) for match_info in unresolved_matches))
+
+
 async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com") -> List[Dict[str, Any]]:
+    local_storage = await _wait_for_team_name_cache(page)
+    team_name_lookup = build_team_name_lookup(local_storage or {})
+
     raw_cards = await page.evaluate(
         """() => {
             const normalize = (value) => (value || '').replace(/\\s+/g, ' ').trim();
             const cards = [];
             const seen = new Set();
             const scheduleDates = {};
+            const scheduleEventNames = {};
             const scheduleDateScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
 
             scheduleDateScripts.forEach((script) => {
@@ -169,6 +358,7 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
                         const event = entry && entry.item ? entry.item : null;
                         const url = event && event.url ? event.url : '';
                         const startDate = event && event.startDate ? event.startDate : '';
+                        const eventName = event && event.name ? event.name : '';
                         if (!url || !startDate) {
                             return;
                         }
@@ -178,6 +368,9 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
                             : `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
 
                         scheduleDates[absoluteUrl] = startDate;
+                        if (eventName) {
+                            scheduleEventNames[absoluteUrl] = normalize(eventName);
+                        }
                     });
                 } catch (error) {
                     // Ignore malformed JSON-LD blocks.
@@ -221,6 +414,7 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
                     url: absoluteUrl,
                     text,
                     title: normalize(anchor.innerText || ''),
+                    eventName: scheduleEventNames[absoluteUrl] || '',
                     timeValue,
                     startDate: scheduleDates[absoluteUrl] || ''
                 });
@@ -244,6 +438,10 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
         combined_text = " ".join(
             part for part in [card.get("title"), card.get("text")] if normalize_text(part)
         )
+        team_names = expand_team_names(
+            extract_team_names(card.get("eventName"), card.get("title"), card.get("text"), combined_text),
+            team_name_lookup,
+        )
         status = classify_match_status(combined_text)
         if status == "LIVE":
             continue
@@ -266,6 +464,8 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
             "externalMatchKey": extract_external_match_key(url),
             "status": status,
             "scheduledStartTime": scheduled_start_time,
+            "team1Name": team_names["team1Name"],
+            "team2Name": team_names["team2Name"],
             "seriesName": extract_series_name(card.get("text") or ""),
             "matchFormat": extract_match_format(combined_text),
             "resultSummary": extract_result_summary(card.get("text") or ""),
@@ -273,5 +473,7 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
         }
 
         matches.append(match_info)
+
+    await _enrich_schedule_matches(page, matches)
 
     return matches

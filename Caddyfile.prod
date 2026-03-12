@@ -5,7 +5,7 @@
 
 {
   # Global ACME email for Let's Encrypt notifications
-  email akshay.d.waghmare@gmail.com
+  email {$EMAIL}
   
   # Uncomment below to use Let's Encrypt staging (avoid rate limits during testing):
   # acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
@@ -16,7 +16,7 @@
 
 # Production domain configuration with automatic HTTPS
 crickzen.com, www.crickzen.com {
-  encode gzip
+  encode zstd gzip
   
   # SEO endpoints - proxy to backend
   # These are critical for search engine indexing
@@ -26,8 +26,15 @@ crickzen.com, www.crickzen.com {
   reverse_proxy @seo backend:8099 {
     header_up Host {host}
     header_up X-Real-IP {remote}
-    header_up X-Forwarded-For {remote}
-    header_up X-Forwarded-Proto {scheme}
+  }
+
+  # Route backend APIs directly instead of relying on frontend nginx proxy rules.
+  @backend_api {
+    path /api/* /token/* /actuator/* /h2-console* /swagger-ui* /swagger-ui.html /v3/api-docs*
+  }
+  reverse_proxy @backend_api backend:8099 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
   }
   
   # WebSocket endpoint - must come before general proxy to take precedence
@@ -37,8 +44,6 @@ crickzen.com, www.crickzen.com {
   reverse_proxy @websocket frontend:80 {
     header_up Host {host}
     header_up X-Real-IP {remote}
-    header_up X-Forwarded-For {remote}
-    header_up X-Forwarded-Proto {scheme}
     header_up Upgrade {http.request.header.Upgrade}
     header_up Connection {http.request.header.Connection}
     # Increase timeout for long-lived WebSocket connections
@@ -50,12 +55,10 @@ crickzen.com, www.crickzen.com {
   reverse_proxy frontend:80 {
     header_up Host {host}
     header_up X-Real-IP {remote}
-    header_up X-Forwarded-For {remote}
-    header_up X-Forwarded-Proto {scheme}
   }
 
   # Optional: health endpoint
-  @health path /health
+  @health path /health /healthz
   respond @health "ok" 200
 
   # Production security headers
@@ -72,7 +75,7 @@ crickzen.com, www.crickzen.com {
   
   # Log successful requests (errors are logged by default)
   log {
-    output file /var/log/caddy/access.log
+    output file /data/access.log
     format json
   }
 }

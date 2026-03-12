@@ -6,6 +6,8 @@ public class ScheduledMatchDTO {
     private String externalMatchKey;
     private String status;
     private Long scheduledStartTime;
+    private String team1Name;
+    private String team2Name;
     private String seriesName;
     private String matchFormat;
     private String resultSummary;
@@ -42,6 +44,22 @@ public class ScheduledMatchDTO {
 
     public void setScheduledStartTime(Long scheduledStartTime) {
         this.scheduledStartTime = scheduledStartTime;
+    }
+
+    public String getTeam1Name() {
+        return team1Name;
+    }
+
+    public void setTeam1Name(String team1Name) {
+        this.team1Name = team1Name;
+    }
+
+    public String getTeam2Name() {
+        return team2Name;
+    }
+
+    public void setTeam2Name(String team2Name) {
+        this.team2Name = team2Name;
     }
 
     public String getSeriesName() {

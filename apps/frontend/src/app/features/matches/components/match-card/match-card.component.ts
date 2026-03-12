@@ -259,6 +259,18 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
       .toUpperCase()
       .slice(0, 3);
   }
+
+  getTeamDisplayName(team: TeamInfo): string {
+    if (this.variant === 'compact') {
+      return team.shortName || team.name || '';
+    }
+
+    if (this.isUpcomingMatch()) {
+      return team.name || team.shortName || '';
+    }
+
+    return team.shortName || team.name || '';
+  }
   
   getStatusDisplayText(): string {
     return getStatusDisplayText(this.match.status);

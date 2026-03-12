@@ -190,6 +190,19 @@
   max-width: 100px;
 }
 
+.match-card.is-upcoming .match-card__team-name {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  line-height: 1.25;
+  max-width: 100%;
+}
+
+.match-card.is-upcoming .match-card__team--right .match-card__team-name {
+  text-align: right;
+}
+
 /* Score line — runs/wickets + overs below team header */
 .match-card__score-line {
   display: flex;

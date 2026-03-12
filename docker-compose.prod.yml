@@ -48,7 +48,7 @@ services:
       retries: 5
 
   backend:
-    image: "${BACKEND_IMAGE:-macubex/victoryline-backend:v1.2.1}"
+    image: "${BACKEND_IMAGE:-macubex/victoryline-backend:v1.2.2}"
     container_name: victoryline-backend
     restart: unless-stopped
     ports:
@@ -104,7 +104,7 @@ services:
       start_period: 60s
 
   scraper:
-    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.2.1}"
+    image: "${SCRAPER_IMAGE:-macubex/victoryline-scraper:v1.2.2}"
     container_name: victoryline-scraper
     restart: unless-stopped
     ports:
@@ -131,12 +131,14 @@ services:
       ENABLE_PROMETHEUS_METRICS: "${ENABLE_PROMETHEUS_METRICS:-true}"
       PROMETHEUS_PORT: "${PROMETHEUS_PORT:-9090}"
       STALENESS_THRESHOLD_SECONDS: "${STALENESS_THRESHOLD_SECONDS:-60}"
-      CONTAINER_RESTART_INTERVAL_MINUTES: "${CONTAINER_RESTART_INTERVAL_MINUTES:-10}"
+      PID_SOFT_LIMIT: "${PID_SOFT_LIMIT:-300}"
+      PID_RESTART_THRESHOLD: "${PID_RESTART_THRESHOLD:-350}"
       ENABLE_PERSISTENT_PAGES: "${ENABLE_PERSISTENT_PAGES:-true}"
+      PERSISTENT_PAGE_MAX_COUNT: "${PERSISTENT_PAGE_MAX_COUNT:-15}"
+      PERSISTENT_PAGE_MAX_AGE_SECONDS: "${PERSISTENT_PAGE_MAX_AGE_SECONDS:-7200}"
+      FAST_POLL_INTERVAL_MS: "${FAST_POLL_INTERVAL_MS:-1000}"
     volumes:
       - scraper_data:/app/storage
-      - ./apps/scraper/crex_scraper_python/src/cricket_data_service.py:/app/crex_scraper_python/src/cricket_data_service.py
-      - ./apps/scraper/crex_scraper_python/src/discovery.py:/app/crex_scraper_python/src/discovery.py
     depends_on:
       - backend
       - redis
@@ -160,7 +162,7 @@ services:
       start_period: 45s
 
   prerender:
-    image: "${PRERENDER_IMAGE:-macubex/victoryline-prerender:v1.2.1}"
+    image: "${PRERENDER_IMAGE:-macubex/victoryline-prerender:v1.2.2}"
     container_name: victoryline-prerender
     restart: unless-stopped
     ports:
@@ -184,7 +186,7 @@ services:
       start_period: 20s
 
   frontend:
-    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:v1.2.1}"
+    image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:v1.2.2}"
     container_name: victoryline-frontend
     restart: unless-stopped
     # No external port mapping - accessed via Caddy reverse proxy only
