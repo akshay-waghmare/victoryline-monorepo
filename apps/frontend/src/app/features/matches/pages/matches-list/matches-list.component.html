@@ -60,7 +60,15 @@
   </div>
 
   <!-- Match list -->
-  <div class="matches-list__content" *ngIf="!isLoading && !hasError">
+  <div
+    class="matches-list__content matches-list__content--swipeable"
+    *ngIf="!isLoading && !hasError"
+    (touchstart)="onResultsTouchStart($event)"
+    (touchend)="onResultsTouchEnd($event)"
+  >
+    <p class="matches-list__swipe-hint" *ngIf="filteredMatches.length > 1">
+      Swipe across the matches area to switch between categories.
+    </p>
 
     <!-- Empty state -->
     <div class="matches-list__empty" *ngIf="filteredMatches.length === 0">

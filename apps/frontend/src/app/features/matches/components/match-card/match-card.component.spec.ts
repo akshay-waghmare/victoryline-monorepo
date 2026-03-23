@@ -61,7 +61,7 @@ describe('MatchCardComponent', () => {
     expect(teamNames).toEqual(['MI', 'CSK']);
   });
 
-  it('uses short team names for compact upcoming cards', () => {
+  it('uses full team names for compact upcoming cards', () => {
     component.variant = 'compact';
     component.match = buildMatch(MatchStatus.UPCOMING);
 
@@ -71,7 +71,24 @@ describe('MatchCardComponent', () => {
       .queryAll(By.css('.match-card__team-name'))
       .map((element) => element.nativeElement.textContent.trim());
 
-    expect(teamNames).toEqual(['MI', 'CSK']);
+    expect(teamNames).toEqual(['Mumbai Indians', 'Chennai Super Kings']);
+  });
+
+  it('emits swipe events and suppresses click after a horizontal drag', () => {
+    component.enableSwipeGesture = true;
+    component.match = buildMatch(MatchStatus.LIVE);
+    fixture.detectChanges();
+
+    const swipeLeftSpy = spyOn(component.swipeLeft, 'emit');
+    const cardClickSpy = spyOn(component.cardClick, 'emit');
+
+    component.onTouchStart(createTouchEvent(220, 80) as TouchEvent);
+    component.onTouchMove(createTouchEvent(140, 86) as TouchEvent);
+    component.onTouchEnd(createTouchEvent(140, 86, true) as TouchEvent);
+    component.onCardClick();
+
+    expect(swipeLeftSpy).toHaveBeenCalledWith('match-1');
+    expect(cardClickSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -106,5 +123,16 @@ function buildMatch(status: MatchStatus): MatchCardViewModel {
     isSelected: false,
     lastUpdated: new Date('2026-03-12T10:30:00Z'),
     staleness: 'fresh'
+  };
+}
+
+function createTouchEvent(x: number, y: number, includeChangedTouch?: boolean): Partial<TouchEvent> {
+  const touch = { clientX: x, clientY: y };
+
+  return {
+    touches: includeChangedTouch ? [] as any : [touch] as any,
+    changedTouches: includeChangedTouch ? [touch] as any : [] as any,
+    cancelable: true,
+    preventDefault(): void {}
   };
 }

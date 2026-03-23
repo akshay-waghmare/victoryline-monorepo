@@ -74,7 +74,7 @@
 
 .matches-list__search-input {
   width: 100%;
-  min-width: 180px;
+  min-width: 0;
   padding: 6px 10px 6px 32px;
   background: var(--color-background-elevated, #f5f5f5);
   border: 1px solid var(--color-border);
@@ -131,6 +131,17 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+}
+
+.matches-list__content--swipeable {
+  touch-action: pan-y pinch-zoom;
+}
+
+.matches-list__swipe-hint {
+  display: none;
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--color-text-secondary);
 }
 
 /* Date group headers */
@@ -203,4 +214,28 @@
 
 @media print {
   .matches-list__controls { display: none; }
+}
+
+@media (max-width: 767px) {
+  .matches-list__controls {
+    gap: var(--spacing-xs);
+  }
+
+  .matches-list__actions {
+    width: 100%;
+  }
+
+  .matches-list__search {
+    flex: 1;
+  }
+
+  .matches-list__refresh-btn {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+
+  .matches-list__swipe-hint {
+    display: block;
+  }
 }

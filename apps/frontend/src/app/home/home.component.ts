@@ -16,6 +16,7 @@ import { Subscription } from 'rxjs';
   styleUrls: ['./home.component.css']
 })
 export class HomeComponent implements OnInit, OnDestroy {
+  private readonly matchesCarouselId = 'home-matches-carousel';
 
   @ViewChild('scrollContainer', { read: ElementRef }) scrollContainer!: ElementRef;
   
@@ -150,6 +151,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   setActiveTab(tab: 'live' | 'upcoming' | 'results'): void {
     this.activeTab = tab;
     this.syncActiveMatches();
+    this.resetMatchesCarouselPosition();
   }
   
   private syncActiveMatches(): void {
@@ -281,6 +283,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     const container = document.getElementById(containerId);
     if (!container) return false;
     return container.scrollLeft < (container.scrollWidth - container.clientWidth - 1);
+  }
+
+  private resetMatchesCarouselPosition(): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    setTimeout(() => {
+      const container = document.getElementById(this.matchesCarouselId);
+      if (container) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      }
+    });
   }
 
 

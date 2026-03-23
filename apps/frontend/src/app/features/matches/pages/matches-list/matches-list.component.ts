@@ -30,6 +30,17 @@ import { Tab } from '../../../../shared/components/tab-nav/tab-nav.component';
   styleUrls: ['./matches-list.component.css']
 })
 export class MatchesListComponent implements OnInit, OnDestroy {
+  private static readonly SWIPE_DISTANCE_PX = 72;
+  private readonly swipeableStatuses: Array<MatchStatus | 'all'> = [
+    'all',
+    MatchStatus.LIVE,
+    MatchStatus.UPCOMING,
+    MatchStatus.COMPLETED
+  ];
+  private swipeStartX: number | null = null;
+  private swipeStartY: number | null = null;
+  private suppressNavigationUntil = 0;
+
   // Match data
   allMatches: MatchCardViewModel[] = [];
   filteredMatches: MatchCardViewModel[] = [];
@@ -163,6 +174,10 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    * Handle match card click
    */
   onMatchClick(match: MatchCardViewModel): void {
+    if (Date.now() < this.suppressNavigationUntil) {
+      return;
+    }
+
     // Navigate to match details page (cric-live/:path)
     const slug = this.getMatchSlug(match);
     if (slug) {
@@ -183,6 +198,45 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     } else {
       console.warn('Unable to derive match slug for navigation', match);
     }
+  }
+
+  onResultsTouchStart(event: TouchEvent): void {
+    if (!this.isSwipeGestureTarget(event.target)) {
+      this.resetSwipeTracking();
+      return;
+    }
+
+    if (!event.touches || event.touches.length !== 1) {
+      return;
+    }
+
+    this.swipeStartX = event.touches[0].clientX;
+    this.swipeStartY = event.touches[0].clientY;
+  }
+
+  onResultsTouchEnd(event: TouchEvent): void {
+    if (this.swipeStartX === null || this.swipeStartY === null) {
+      return;
+    }
+
+    const changedTouch = event.changedTouches && event.changedTouches.length ? event.changedTouches[0] : null;
+
+    if (!changedTouch) {
+      this.resetSwipeTracking();
+      return;
+    }
+
+    const deltaX = changedTouch.clientX - this.swipeStartX;
+    const deltaY = changedTouch.clientY - this.swipeStartY;
+    const horizontalDistance = Math.abs(deltaX);
+    const verticalDistance = Math.abs(deltaY);
+
+    if (horizontalDistance >= MatchesListComponent.SWIPE_DISTANCE_PX && horizontalDistance > verticalDistance * 1.15) {
+      this.suppressNavigationUntil = Date.now() + 400;
+      this.shiftSelectedStatus(deltaX < 0 ? 1 : -1);
+    }
+
+    this.resetSwipeTracking();
   }
 
   /**
@@ -282,6 +336,33 @@ export class MatchesListComponent implements OnInit, OnDestroy {
 
   isUpcomingGroupedView(): boolean {
     return this.selectedStatus === MatchStatus.UPCOMING && this.upcomingMatchGroups.length > 0;
+  }
+
+  private shiftSelectedStatus(direction: 1 | -1): void {
+    const currentIndex = this.swipeableStatuses.indexOf(this.selectedStatus);
+    const nextIndex = Math.max(0, Math.min(this.swipeableStatuses.length - 1, currentIndex + direction));
+
+    if (nextIndex === currentIndex) {
+      return;
+    }
+
+    this.selectedStatus = this.swipeableStatuses[nextIndex];
+    this.applyFilters();
+  }
+
+  private isSwipeGestureTarget(target: EventTarget | null): boolean {
+    const element = target as HTMLElement | null;
+
+    if (!element) {
+      return false;
+    }
+
+    return !element.closest('input, button, a');
+  }
+
+  private resetSwipeTracking(): void {
+    this.swipeStartX = null;
+    this.swipeStartY = null;
   }
 
   private buildUpcomingGroups(matches: MatchCardViewModel[]): { label: string; matches: MatchCardViewModel[] }[] {

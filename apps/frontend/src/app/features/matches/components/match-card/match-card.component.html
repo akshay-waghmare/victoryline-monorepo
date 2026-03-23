@@ -4,10 +4,16 @@
      [attr.data-status]="match.status"
      [class.is-live]="isMatchLive()"
      [class.is-upcoming]="isUpcomingMatch()"
+     [class.match-card--compact]="variant === 'compact'"
+     [class.match-card--compact-upcoming]="variant === 'compact' && isUpcomingMatch()"
+     [class.match-card--detailed]="variant === 'detailed'"
      [class.is-hovered]="isHovered"
+     tabindex="0"
+     role="button"
      (click)="onCardClick()"
-     (mouseenter)="onMouseEnter()"
-     (mouseleave)="onMouseLeave()">
+     (keydown.enter)="onCardClick()"
+      (mouseenter)="onMouseEnter()"
+      (mouseleave)="onMouseLeave()">
 
   <!-- Header: Series + Status pill -->
   <div class="match-card__header">

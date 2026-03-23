@@ -46,6 +46,9 @@ export interface ScoreUpdateEvent {
   ]
 })
 export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterViewInit {
+  private static readonly SWIPE_DISTANCE_PX = 48;
+  private static readonly TAP_CANCEL_DISTANCE_PX = 10;
+
   // ===== INPUTS =====
   
   /**
@@ -72,6 +75,11 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
    * Maximum height for card (for scrollable containers)
    */
   @Input() maxHeight?: string;
+
+  /**
+   * Enable touch swipe gesture handling on the card itself
+   */
+  @Input() enableSwipeGesture: boolean = false;
   
   // ===== OUTPUTS =====
   
@@ -111,6 +119,12 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   isAnimating: boolean = false;
   isInViewport: boolean = false;
   previousMatch: MatchCardViewModel | null = null;
+  private touchStartX: number | null = null;
+  private touchStartY: number | null = null;
+  private touchCurrentX: number = 0;
+  private touchCurrentY: number = 0;
+  private hasTouchMoved: boolean = false;
+  private suppressNextClick: boolean = false;
   
   // Animation state tracking
   team1ScoreState: string = 'idle';
@@ -261,6 +275,10 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   }
 
   getTeamDisplayName(team: TeamInfo): string {
+    if (this.variant === 'compact' && this.isUpcomingMatch()) {
+      return team.name || team.shortName || '';
+    }
+
     if (this.variant === 'compact') {
       return team.shortName || team.name || '';
     }
@@ -326,6 +344,11 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   // ===== EVENT HANDLERS =====
   
   onCardClick(): void {
+    if (this.suppressNextClick) {
+      this.suppressNextClick = false;
+      return;
+    }
+
     this.cardClick.emit(this.match.id);
   }
   
@@ -341,24 +364,118 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   onMouseLeave(): void {
     this.isHovered = false;
   }
-  
-  @HostListener('swipeleft', ['$event'])
-  onSwipeLeft(event: any): void {
-    if (event) {
-      event.preventDefault();
+
+  @HostListener('touchstart', ['$event'])
+  onTouchStart(event: TouchEvent): void {
+    if (!this.enableSwipeGesture) {
+      return;
     }
-    this.swipeLeft.emit(this.match.id);
+
+    if (!event.touches || event.touches.length !== 1) {
+      return;
+    }
+
+    this.touchStartX = event.touches[0].clientX;
+    this.touchStartY = event.touches[0].clientY;
+    this.touchCurrentX = this.touchStartX;
+    this.touchCurrentY = this.touchStartY;
+    this.hasTouchMoved = false;
+    this.suppressNextClick = false;
   }
 
-  @HostListener('swiperight', ['$event'])
-  onSwipeRight(event: any): void {
-    if (event) {
-      event.preventDefault();
+  @HostListener('touchmove', ['$event'])
+  onTouchMove(event: TouchEvent): void {
+    if (!this.enableSwipeGesture) {
+      return;
     }
-    this.swipeRight.emit(this.match.id);
+
+    if (this.touchStartX === null || this.touchStartY === null || !event.touches || event.touches.length !== 1) {
+      return;
+    }
+
+    this.touchCurrentX = event.touches[0].clientX;
+    this.touchCurrentY = event.touches[0].clientY;
+    this.hasTouchMoved =
+      Math.abs(this.touchCurrentX - this.touchStartX) > MatchCardComponent.TAP_CANCEL_DISTANCE_PX ||
+      Math.abs(this.touchCurrentY - this.touchStartY) > MatchCardComponent.TAP_CANCEL_DISTANCE_PX;
+  }
+
+  @HostListener('touchend', ['$event'])
+  onTouchEnd(event: TouchEvent): void {
+    if (!this.enableSwipeGesture) {
+      return;
+    }
+
+    const movement = this.getTouchMovement(event.changedTouches && event.changedTouches.length ? event.changedTouches[0] : null);
+
+    if (!movement) {
+      return;
+    }
+
+    const horizontalDistance = Math.abs(movement.deltaX);
+    const verticalDistance = Math.abs(movement.deltaY);
+
+    if (horizontalDistance >= MatchCardComponent.SWIPE_DISTANCE_PX && horizontalDistance > verticalDistance) {
+      this.suppressNextClick = true;
+
+      if (movement.deltaX < 0) {
+        this.emitSwipe('left', event);
+      } else {
+        this.emitSwipe('right', event);
+      }
+    } else if (this.hasTouchMoved) {
+      this.suppressNextClick = true;
+    }
+
+    this.resetTouchTracking();
+  }
+
+  @HostListener('touchcancel')
+  onTouchCancel(): void {
+    if (!this.enableSwipeGesture) {
+      return;
+    }
+
+    this.suppressNextClick = true;
+    this.resetTouchTracking();
   }
   
   // ===== PRIVATE METHODS =====
+
+  private emitSwipe(direction: 'left' | 'right', event?: Event): void {
+    if (event && event.cancelable) {
+      event.preventDefault();
+    }
+
+    if (direction === 'left') {
+      this.swipeLeft.emit(this.match.id);
+      return;
+    }
+
+    this.swipeRight.emit(this.match.id);
+  }
+
+  private getTouchMovement(touch: Touch | null): { deltaX: number; deltaY: number } | null {
+    if (this.touchStartX === null || this.touchStartY === null) {
+      return null;
+    }
+
+    const endX = touch ? touch.clientX : this.touchCurrentX;
+    const endY = touch ? touch.clientY : this.touchCurrentY;
+
+    return {
+      deltaX: endX - this.touchStartX,
+      deltaY: endY - this.touchStartY
+    };
+  }
+
+  private resetTouchTracking(): void {
+    this.touchStartX = null;
+    this.touchStartY = null;
+    this.touchCurrentX = 0;
+    this.touchCurrentY = 0;
+    this.hasTouchMoved = false;
+  }
   
   private hasScoreChanged(previous: ScoreInfo | null, current: ScoreInfo | null): boolean {
     if (!previous && !current) return false;
