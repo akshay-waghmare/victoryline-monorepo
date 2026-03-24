@@ -117,8 +117,18 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
     if (!stats) { return []; }
     const snap = stats.find(s => s.category === category);
     if (!snap || !snap.payload) { return []; }
-    if (Array.isArray(snap.payload)) { return snap.payload; }
+    const p = snap.payload;
+    // Handle {headers, rows} structure from CREX scraper
+    if (p.rows && Array.isArray(p.rows)) { return p.rows; }
+    if (Array.isArray(p)) { return p; }
     return [];
+  }
+
+  getStatProfile(stats: any[]): any {
+    if (!stats) { return null; }
+    const snap = stats.find(s => s.category === 'player_profile');
+    if (!snap || !snap.payload) { return null; }
+    return snap.payload.profile || snap.payload;
   }
 
   trackByExternalId(index: number, item: PlayerSummary): string {

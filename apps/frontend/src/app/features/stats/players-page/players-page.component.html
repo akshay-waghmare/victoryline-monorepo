@@ -73,9 +73,18 @@
         </div>
 
         <div class="stats-detail-panel__meta">
-          <div *ngIf="selectedPlayer?.country || selectedPlayerSummary?.country"><strong>Country:</strong> {{ selectedPlayer ? selectedPlayer.country : selectedPlayerSummary?.country }}</div>
-          <div *ngIf="selectedPlayer?.battingStyle || selectedPlayerSummary?.battingStyle"><strong>Batting:</strong> {{ selectedPlayer ? selectedPlayer.battingStyle : selectedPlayerSummary?.battingStyle }}</div>
-          <div *ngIf="selectedPlayer?.bowlingStyle || selectedPlayerSummary?.bowlingStyle"><strong>Bowling:</strong> {{ selectedPlayer ? selectedPlayer.bowlingStyle : selectedPlayerSummary?.bowlingStyle }}</div>
+          <ng-container *ngIf="selectedPlayer && getStatProfile(selectedPlayer.stats) as profile">
+            <div *ngIf="profile.nationality"><strong>Nationality:</strong> {{ profile.nationality }}</div>
+            <div *ngIf="profile.birth"><strong>Born:</strong> {{ profile.birth }}</div>
+            <div *ngIf="profile.role"><strong>Role:</strong> {{ profile.role }}</div>
+            <div *ngIf="profile.bats"><strong>Batting:</strong> {{ profile.bats }}</div>
+            <div *ngIf="profile.bowls"><strong>Bowling:</strong> {{ profile.bowls }}</div>
+          </ng-container>
+          <ng-container *ngIf="!selectedPlayer || !getStatProfile(selectedPlayer.stats)">
+            <div *ngIf="selectedPlayer?.country || selectedPlayerSummary?.country"><strong>Country:</strong> {{ selectedPlayer ? selectedPlayer.country : selectedPlayerSummary?.country }}</div>
+            <div *ngIf="selectedPlayer?.battingStyle || selectedPlayerSummary?.battingStyle"><strong>Batting:</strong> {{ selectedPlayer ? selectedPlayer.battingStyle : selectedPlayerSummary?.battingStyle }}</div>
+            <div *ngIf="selectedPlayer?.bowlingStyle || selectedPlayerSummary?.bowlingStyle"><strong>Bowling:</strong> {{ selectedPlayer ? selectedPlayer.bowlingStyle : selectedPlayerSummary?.bowlingStyle }}</div>
+          </ng-container>
         </div>
 
         <!-- Career Batting -->

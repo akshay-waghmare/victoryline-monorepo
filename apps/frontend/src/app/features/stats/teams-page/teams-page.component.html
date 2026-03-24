@@ -62,10 +62,10 @@
             <div *ngIf="stat.payload" class="stats-table-wrapper">
               <table *ngIf="isArrayPayload(stat.payload)" class="stats-table">
                 <thead>
-                  <tr><th *ngFor="let key of (stat.payload[0] | keyvalue)">{{ key.key }}</th></tr>
+                  <tr><th *ngFor="let key of (getPayloadRows(stat.payload)[0] | keyvalue)">{{ key.key }}</th></tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let row of stat.payload">
+                  <tr *ngFor="let row of getPayloadRows(stat.payload)">
                     <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
                   </tr>
                 </tbody>

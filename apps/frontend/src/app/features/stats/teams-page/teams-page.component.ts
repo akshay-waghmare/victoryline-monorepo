@@ -83,15 +83,23 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
   }
 
   isArrayPayload(payload: any): boolean {
+    if (!payload) { return false; }
+    if (payload.rows && Array.isArray(payload.rows)) { return true; }
     return Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'object';
+  }
+
+  getPayloadRows(payload: any): any[] {
+    if (!payload) { return []; }
+    if (payload.rows && Array.isArray(payload.rows)) { return payload.rows; }
+    if (Array.isArray(payload)) { return payload; }
+    return [];
   }
 
   getStatPayload(stats: any[], category: string): any[] {
     if (!stats) { return []; }
     const snap = stats.find(s => s.category === category);
     if (!snap || !snap.payload) { return []; }
-    if (Array.isArray(snap.payload)) { return snap.payload; }
-    return [];
+    return this.getPayloadRows(snap.payload);
   }
 
   trackByExternalId(index: number, item: TeamSummary): string {
