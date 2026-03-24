@@ -200,6 +200,7 @@ class CrexScraperService:
     async def _poll_loop(self):
         """Periodic backend polling loop."""
         logger.info("Backend poller started.")
+        self._poll_iteration = 0
         while self._running:
             try:
                 # Refresh token if needed
@@ -225,7 +226,26 @@ class CrexScraperService:
 
                 if self.player_stats_crawler:
                     await self.player_stats_crawler.update_live_candidates(live_urls)
-                
+
+                    # Seed full schedule candidates from backend every 5 iterations
+                    # or immediately on first iteration (so candidates aren't empty after restart)
+                    if self._poll_iteration % 5 == 0:
+                        try:
+                            all_matches = await asyncio.to_thread(
+                                CricketDataService.get_all_matches, self._auth_token
+                            )
+                            if all_matches:
+                                await self.player_stats_crawler.update_candidates(
+                                    live_urls, all_matches
+                                )
+                                logger.info(
+                                    "poll.schedule_candidates_seeded",
+                                    metadata={"count": len(all_matches)},
+                                )
+                        except Exception as e:
+                            logger.warning(f"poll.schedule_seed_error: {e}")
+
+                self._poll_iteration += 1
                 await asyncio.sleep(self.settings.polling_interval_seconds)
             except asyncio.CancelledError:
                 break

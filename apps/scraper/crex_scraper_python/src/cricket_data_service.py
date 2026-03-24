@@ -644,6 +644,32 @@ class CricketDataService:
             return []
 
     @staticmethod
+    def get_all_matches(token):
+        """Fetches all matches (LIVE + UPCOMING + COMPLETED) from backend."""
+        url = f"{CricketDataService.BASE_URL}/cricket-data/matches"
+
+        def _fetch():
+            headers = {}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            response = requests.get(url, headers=headers, timeout=CricketDataService.BACKEND_TIMEOUT)
+            response.raise_for_status()
+            data = response.json()
+            if isinstance(data, list):
+                return data
+            if isinstance(data, dict):
+                return data.get("data") or data.get("matches") or []
+            return []
+
+        try:
+            matches = _api_breaker.call(_fetch)
+            logger.info("matches.all.success", metadata={"count": len(matches)})
+            return matches
+        except Exception as e:
+            logger.error("matches.all.error", metadata={"error": str(e)})
+            return []
+
+    @staticmethod
     def push_immediate_sv3(api_data: dict, token: str, source_url: str, local_storage: dict = None) -> bool:
         """
         Push sV3 data immediately for fast updates.
