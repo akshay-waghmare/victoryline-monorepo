@@ -417,7 +417,24 @@
           </div>
 
           <div class="stats-explorer__empty" *ngIf="!hasSelectedStatsExplorer() && !isLoadingStatsExplorer && !statsExplorerErrorMessage && hasPlayerStatsData()">
-            Tap a player from the lineup or scorecard to inspect richer player stats. Team rankings and tournament standings are available above.
+            Tap a player below or from the lineup to view detailed career stats.
+          </div>
+
+          <!-- Squad Browser: clickable player list per team -->
+          <div class="stats-explorer__squads" *ngIf="hasPlayerStatsData() && !hasSelectedStatsExplorer() && !isLoadingStatsExplorer">
+            <div class="squad-team" *ngFor="let team of getDeduplicatedSquadTeams(); trackBy: trackByPlayerStatsTeam">
+              <h4 class="squad-team__name">{{ team.name }}</h4>
+              <div class="squad-team__list">
+                <button type="button"
+                  class="squad-player"
+                  *ngFor="let player of team.squad; trackBy: trackByPlayerStatsPlayer"
+                  (click)="openSquadPlayer(player, team)">
+                  <span class="squad-player__name">{{ player.name }}</span>
+                  <span class="squad-player__role" *ngIf="player.role">{{ player.role }}</span>
+                  <i class="material-icons squad-player__chevron">chevron_right</i>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="stats-explorer__state" *ngIf="isLoadingStatsExplorer">

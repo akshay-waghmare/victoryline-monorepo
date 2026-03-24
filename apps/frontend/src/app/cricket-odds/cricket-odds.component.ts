@@ -1079,6 +1079,34 @@ getPlayerStatsTeams(): PlayerStatsTeamView[] {
   return this.playerStatsMatch && this.playerStatsMatch.teams ? this.playerStatsMatch.teams : [];
 }
 
+getDeduplicatedSquadTeams(): PlayerStatsTeamView[] {
+  var teams = this.getPlayerStatsTeams();
+  var result: PlayerStatsTeamView[] = [];
+  var seenSquadKeys: string[] = [];
+  for (var i = 0; i < teams.length; i++) {
+    var team = teams[i];
+    if (!team || !team.squad || !team.squad.length) { continue; }
+    // Build a fingerprint from first 3 player externalIds to detect duplicate squads
+    var fp = team.squad.slice(0, 3).map(function(p) { return p.externalId || p.name || ''; }).join('|');
+    var isDupe = false;
+    for (var j = 0; j < seenSquadKeys.length; j++) {
+      if (seenSquadKeys[j] === fp) { isDupe = true; break; }
+    }
+    if (isDupe) { continue; }
+    seenSquadKeys.push(fp);
+    result.push(team);
+  }
+  return result;
+}
+
+openSquadPlayer(player: PlayerStatsSquadPlayerView, team: PlayerStatsTeamView): void {
+  if (!player || !player.externalId) {
+    this.showToast('Detailed player stats are not available yet for ' + (player && player.name || 'this player') + '.', 'Dismiss');
+    return;
+  }
+  this.loadPlayerStatsDetail(player, team, 'lineups');
+}
+
 trackByPlayerStatsTeam(index: number, team: PlayerStatsTeamView): string {
   return team && (team.externalId || team.name) ? String(team.externalId || team.name) : 'team-' + index;
 }

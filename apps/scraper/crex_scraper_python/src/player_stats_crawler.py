@@ -356,7 +356,7 @@ class PlayerStatsCrawlerService:
 
     async def _process_task(self, task: PlayerStatsTask) -> None:
         task_type = task.task_type.upper()
-        if task_type in {"LIVE", "UPCOMING"}:
+        if task_type in {"LIVE", "UPCOMING", "COMPLETED"}:
             await self._process_match_task(task)
             return
         if task_type == "PLAYER_REFERENCE":
