@@ -37,7 +37,7 @@
   </div>
 
   <!-- Detail overlay -->
-  <div *ngIf="selectedTeam || isDetailLoading" class="stats-detail-overlay" (click)="closeDetail()">
+  <div *ngIf="detailOpen" class="stats-detail-overlay" (click)="closeDetail()">
     <div class="stats-detail-panel" (click)="$event.stopPropagation()">
       <button class="stats-detail-panel__close" (click)="closeDetail()">
         <mat-icon>close</mat-icon>
@@ -47,38 +47,40 @@
         <mat-spinner diameter="32"></mat-spinner>
       </div>
 
-      <div *ngIf="selectedTeam && !isDetailLoading">
+      <ng-container *ngIf="!isDetailLoading">
         <div class="stats-detail-panel__header">
           <mat-icon class="stats-detail-panel__avatar">groups</mat-icon>
           <div>
-            <h2 class="stats-detail-panel__name">{{ selectedTeam.name }}</h2>
-            <span *ngIf="selectedTeam.shortName" class="stats-card__meta">{{ selectedTeam.shortName }}</span>
+            <h2 class="stats-detail-panel__name">{{ selectedTeam ? selectedTeam.name : selectedTeamSummary?.name }}</h2>
+            <span *ngIf="(selectedTeam ? selectedTeam.shortName : selectedTeamSummary?.shortName) as shortName" class="stats-card__meta">{{ shortName }}</span>
           </div>
         </div>
 
-        <div *ngFor="let stat of selectedTeam.stats" class="stats-detail-panel__section">
-          <h3>{{ stat.label || stat.category }}</h3>
-          <div *ngIf="stat.payload" class="stats-table-wrapper">
-            <table *ngIf="isArrayPayload(stat.payload)" class="stats-table">
-              <thead>
-                <tr><th *ngFor="let key of (stat.payload[0] | keyvalue)">{{ key.key }}</th></tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of stat.payload">
-                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <pre *ngIf="!isArrayPayload(stat.payload)" class="stats-detail-panel__json">{{ stat.payload | json }}</pre>
+        <div *ngIf="selectedTeam">
+          <div *ngFor="let stat of selectedTeam.stats" class="stats-detail-panel__section">
+            <h3>{{ stat.label || stat.category }}</h3>
+            <div *ngIf="stat.payload" class="stats-table-wrapper">
+              <table *ngIf="isArrayPayload(stat.payload)" class="stats-table">
+                <thead>
+                  <tr><th *ngFor="let key of (stat.payload[0] | keyvalue)">{{ key.key }}</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of stat.payload">
+                    <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <pre *ngIf="!isArrayPayload(stat.payload)" class="stats-detail-panel__json">{{ stat.payload | json }}</pre>
+            </div>
           </div>
         </div>
 
-        <div *ngIf="!selectedTeam.stats || selectedTeam.stats.length === 0" class="stats-detail-panel__empty">
+        <div *ngIf="!selectedTeam || !selectedTeam.stats || selectedTeam.stats.length === 0" class="stats-detail-panel__empty">
           <mat-icon>info_outline</mat-icon>
           <p>Team stats not yet available</p>
           <span>Stats are populated when the crawler processes this team's CREX profile</span>
         </div>
-      </div>
+      </ng-container>
     </div>
   </div>
 </div>

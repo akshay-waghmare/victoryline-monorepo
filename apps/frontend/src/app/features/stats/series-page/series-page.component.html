@@ -36,7 +36,7 @@
   </div>
 
   <!-- Detail overlay -->
-  <div *ngIf="selectedSeries || selectedStandings || isDetailLoading" class="stats-detail-overlay" (click)="closeDetail()">
+  <div *ngIf="detailOpen" class="stats-detail-overlay" (click)="closeDetail()">
     <div class="stats-detail-panel" (click)="$event.stopPropagation()">
       <button class="stats-detail-panel__close" (click)="closeDetail()">
         <mat-icon>close</mat-icon>
@@ -46,12 +46,14 @@
         <mat-spinner diameter="32"></mat-spinner>
       </div>
 
-      <div *ngIf="(selectedSeries || selectedStandings) && !isDetailLoading">
+      <ng-container *ngIf="!isDetailLoading">
         <div class="stats-detail-panel__header">
           <mat-icon class="stats-detail-panel__avatar">emoji_events</mat-icon>
           <div>
-            <h2 class="stats-detail-panel__name">{{ selectedSeries?.series?.name || 'Series Details' }}</h2>
-            <span *ngIf="selectedSeries?.series?.seasonName" class="stats-card__meta">{{ selectedSeries.series.seasonName }}</span>
+            <h2 class="stats-detail-panel__name">{{ selectedSeries?.series?.name || selectedSeriesSummary?.name || 'Series Details' }}</h2>
+            <span *ngIf="selectedSeries?.series?.seasonName || selectedSeriesSummary?.seasonName" class="stats-card__meta">
+              {{ selectedSeries?.series?.seasonName || selectedSeriesSummary?.seasonName }}
+            </span>
           </div>
         </div>
 
@@ -77,7 +79,7 @@
           <p>Series stats not yet available</p>
           <span>Stats and standings are populated when the crawler processes this series</span>
         </div>
-      </div>
+      </ng-container>
     </div>
   </div>
 </div>

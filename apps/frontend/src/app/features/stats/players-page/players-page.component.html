@@ -51,7 +51,7 @@
   </div>
 
   <!-- Detail panel (overlay) -->
-  <div *ngIf="selectedPlayer || isDetailLoading" class="stats-detail-overlay" (click)="closeDetail()">
+  <div *ngIf="detailOpen" class="stats-detail-overlay" (click)="closeDetail()">
     <div class="stats-detail-panel" (click)="$event.stopPropagation()">
       <button class="stats-detail-panel__close" (click)="closeDetail()">
         <mat-icon>close</mat-icon>
@@ -61,25 +61,25 @@
         <mat-spinner diameter="32"></mat-spinner>
       </div>
 
-      <div *ngIf="selectedPlayer && !isDetailLoading">
+      <ng-container *ngIf="!isDetailLoading">
         <div class="stats-detail-panel__header">
           <mat-icon class="stats-detail-panel__avatar">person</mat-icon>
           <div>
-            <h2 class="stats-detail-panel__name">{{ selectedPlayer.name }}</h2>
-            <span *ngIf="selectedPlayer.role" class="stats-card__role" [ngClass]="getRoleBadgeClass(selectedPlayer.role)">
-              {{ selectedPlayer.role }}
+            <h2 class="stats-detail-panel__name">{{ selectedPlayer ? selectedPlayer.name : selectedPlayerSummary?.name }}</h2>
+            <span *ngIf="(selectedPlayer ? selectedPlayer.role : selectedPlayerSummary?.role) as role" class="stats-card__role" [ngClass]="getRoleBadgeClass(role)">
+              {{ role }}
             </span>
           </div>
         </div>
 
         <div class="stats-detail-panel__meta">
-          <div *ngIf="selectedPlayer.country"><strong>Country:</strong> {{ selectedPlayer.country }}</div>
-          <div *ngIf="selectedPlayer.battingStyle"><strong>Batting:</strong> {{ selectedPlayer.battingStyle }}</div>
-          <div *ngIf="selectedPlayer.bowlingStyle"><strong>Bowling:</strong> {{ selectedPlayer.bowlingStyle }}</div>
+          <div *ngIf="selectedPlayer?.country || selectedPlayerSummary?.country"><strong>Country:</strong> {{ selectedPlayer ? selectedPlayer.country : selectedPlayerSummary?.country }}</div>
+          <div *ngIf="selectedPlayer?.battingStyle || selectedPlayerSummary?.battingStyle"><strong>Batting:</strong> {{ selectedPlayer ? selectedPlayer.battingStyle : selectedPlayerSummary?.battingStyle }}</div>
+          <div *ngIf="selectedPlayer?.bowlingStyle || selectedPlayerSummary?.bowlingStyle"><strong>Bowling:</strong> {{ selectedPlayer ? selectedPlayer.bowlingStyle : selectedPlayerSummary?.bowlingStyle }}</div>
         </div>
 
         <!-- Career Batting -->
-        <div *ngIf="getStatPayload(selectedPlayer.stats, 'career_batting').length > 0" class="stats-detail-panel__section">
+        <div *ngIf="selectedPlayer && getStatPayload(selectedPlayer.stats, 'career_batting').length > 0" class="stats-detail-panel__section">
           <h3>Career Batting</h3>
           <div class="stats-table-wrapper">
             <table class="stats-table">
@@ -100,7 +100,7 @@
         </div>
 
         <!-- Career Bowling -->
-        <div *ngIf="getStatPayload(selectedPlayer.stats, 'career_bowling').length > 0" class="stats-detail-panel__section">
+        <div *ngIf="selectedPlayer && getStatPayload(selectedPlayer.stats, 'career_bowling').length > 0" class="stats-detail-panel__section">
           <h3>Career Bowling</h3>
           <div class="stats-table-wrapper">
             <table class="stats-table">
@@ -121,7 +121,7 @@
         </div>
 
         <!-- Recent Form -->
-        <div *ngIf="getStatPayload(selectedPlayer.stats, 'recent_form').length > 0" class="stats-detail-panel__section">
+        <div *ngIf="selectedPlayer && getStatPayload(selectedPlayer.stats, 'recent_form').length > 0" class="stats-detail-panel__section">
           <h3>Recent Form</h3>
           <div class="stats-table-wrapper">
             <table class="stats-table">
@@ -141,12 +141,12 @@
           </div>
         </div>
 
-        <div *ngIf="!selectedPlayer.stats || selectedPlayer.stats.length === 0" class="stats-detail-panel__empty">
+        <div *ngIf="!selectedPlayer || !selectedPlayer.stats || selectedPlayer.stats.length === 0" class="stats-detail-panel__empty">
           <mat-icon>info_outline</mat-icon>
           <p>Career stats not yet available for this player</p>
           <span>Stats are populated when the crawler processes this player's CREX profile</span>
         </div>
-      </div>
+      </ng-container>
     </div>
   </div>
 </div>

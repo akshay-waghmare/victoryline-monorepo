@@ -25,7 +25,9 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
 
   selectedSeries: PlayerStatsSeriesDetailView | null = null;
   selectedStandings: PlayerStatsSeriesDetailView | null = null;
+  selectedSeriesSummary: SeriesSummary | null = null;
   isDetailLoading = false;
+  detailOpen = false;
 
   constructor(private cricketService: CricketService, private titleService: Title) {}
 
@@ -64,8 +66,10 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   selectSeries(series: SeriesSummary): void {
     if (!series.externalId) { return; }
     this.isDetailLoading = true;
+    this.detailOpen = true;
     this.selectedSeries = null;
     this.selectedStandings = null;
+    this.selectedSeriesSummary = series;
 
     forkJoin([
       this.cricketService.getPlayerStatsSeries(series.externalId, 'crex'),
@@ -87,6 +91,8 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   closeDetail(): void {
     this.selectedSeries = null;
     this.selectedStandings = null;
+    this.selectedSeriesSummary = null;
+    this.detailOpen = false;
   }
 
   getStatPayload(stats: any[], category: string): any[] {

@@ -24,7 +24,9 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   selectedTeam: PlayerStatsTeamDetailView | null = null;
+  selectedTeamSummary: TeamSummary | null = null;
   isDetailLoading = false;
+  detailOpen = false;
 
   constructor(private cricketService: CricketService, private titleService: Title) {}
 
@@ -63,7 +65,9 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
   selectTeam(team: TeamSummary): void {
     if (!team.externalId) { return; }
     this.isDetailLoading = true;
+    this.detailOpen = true;
     this.selectedTeam = null;
+    this.selectedTeamSummary = team;
     this.cricketService.getPlayerStatsTeam(team.externalId, 'crex').pipe(
       takeUntil(this.destroy$)
     ).subscribe(
@@ -72,7 +76,11 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
     );
   }
 
-  closeDetail(): void { this.selectedTeam = null; }
+  closeDetail(): void {
+    this.selectedTeam = null;
+    this.selectedTeamSummary = null;
+    this.detailOpen = false;
+  }
 
   isArrayPayload(payload: any): boolean {
     return Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'object';

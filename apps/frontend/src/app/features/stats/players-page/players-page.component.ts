@@ -29,7 +29,9 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   selectedPlayer: PlayerStatsPlayerDetailView | null = null;
+  selectedPlayerSummary: PlayerSummary | null = null;
   isDetailLoading = false;
+  detailOpen = false;
 
   constructor(
     private cricketService: CricketService,
@@ -78,7 +80,9 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
   selectPlayer(player: PlayerSummary): void {
     if (!player.externalId) { return; }
     this.isDetailLoading = true;
+    this.detailOpen = true;
     this.selectedPlayer = null;
+    this.selectedPlayerSummary = player;
     this.cricketService.getPlayerStatsPlayer(player.externalId, 'crex').pipe(
       takeUntil(this.destroy$)
     ).subscribe(
@@ -95,6 +99,8 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
 
   closeDetail(): void {
     this.selectedPlayer = null;
+    this.selectedPlayerSummary = null;
+    this.detailOpen = false;
   }
 
   getRoleBadgeClass(role: string): string {

@@ -279,12 +279,8 @@ public class PlayerStatsCrawlerService {
                 .findBySourceSystemAndResourceScopeAndPlayerOrderByIdAsc(normalizedSource, RESOURCE_SCOPE_PLAYER,
                         player.get());
 
-        if (snapshots.isEmpty()) {
-            return null;
-        }
-
         PlayerStatsPlayerDetailViewDTO view = new PlayerStatsPlayerDetailViewDTO();
-        view.setUrl(extractResourceUrl(snapshots));
+        view.setUrl(snapshots.isEmpty() ? null : extractResourceUrl(snapshots));
         view.setSource(normalizedSource);
         view.setExternalId(player.get().getExternalId());
         view.setName(player.get().getName());
@@ -315,12 +311,8 @@ public class PlayerStatsCrawlerService {
         List<CrawlerPlayerStatsReferenceSnapshotEntity> snapshots = crawlerPlayerStatsReferenceSnapshotRepository
                 .findBySourceSystemAndResourceScopeAndTeamOrderByIdAsc(normalizedSource, RESOURCE_SCOPE_TEAM, team.get());
 
-        if (snapshots.isEmpty()) {
-            return null;
-        }
-
         PlayerStatsTeamDetailViewDTO view = new PlayerStatsTeamDetailViewDTO();
-        view.setUrl(extractResourceUrl(snapshots));
+        view.setUrl(snapshots.isEmpty() ? null : extractResourceUrl(snapshots));
         view.setSource(normalizedSource);
         view.setExternalId(team.get().getExternalId());
         view.setName(team.get().getName());
@@ -348,12 +340,8 @@ public class PlayerStatsCrawlerService {
                 .findBySourceSystemAndResourceScopeAndSeriesOrderByIdAsc(normalizedSource, RESOURCE_SCOPE_SERIES,
                         series.get());
 
-        if (snapshots.isEmpty()) {
-            return null;
-        }
-
         PlayerStatsSeriesDetailViewDTO view = new PlayerStatsSeriesDetailViewDTO();
-        view.setUrl(extractResourceUrl(snapshots));
+        view.setUrl(snapshots.isEmpty() ? null : extractResourceUrl(snapshots));
         view.setSource(normalizedSource);
         view.setSeries(toSeriesDTO(series.get()));
         view.setStandings(toSortedReferenceSnapshots(snapshots, true));
