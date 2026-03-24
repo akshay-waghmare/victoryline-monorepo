@@ -1195,8 +1195,17 @@ openPlayerStatsFromLineups(selection: PlayerStatsSelectionEvent): void {
   var team = this.findTeamReference(selection.teamExternalId, selection.teamName);
   var player = this.findPlayerReference(selection.externalId, selection.playerName, team);
 
+  // Fallback: search all teams by name if reference lookup failed
   if (!player || !player.externalId) {
-    this.showToast('Detailed player stats are not available yet.', 'Dismiss');
+    var byName = this.findPlayerByName(selection.playerName);
+    if (byName && byName.player && byName.player.externalId) {
+      player = byName.player;
+      team = byName.team;
+    }
+  }
+
+  if (!player || !player.externalId) {
+    this.showToast('Detailed player stats are not available yet for ' + selection.playerName + '.', 'Dismiss');
     return;
   }
 

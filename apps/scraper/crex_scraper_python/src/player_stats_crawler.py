@@ -189,13 +189,18 @@ class PlayerStatsCrawlerService:
         if self.settings.player_stats_include_upcoming_matches:
             for match in schedule_matches or []:
                 status = str(match.get("status") or "").upper()
-                if status not in {"UPCOMING", "LIVE"}:
+                if status not in {"UPCOMING", "LIVE", "COMPLETED"}:
                     continue
                 url = str(match.get("url") or match.get("matchUrl") or "").strip()
                 match_id = self._extract_match_id(url)
                 if not url or not match_id:
                     continue
-                task_type = "LIVE" if status == "LIVE" else "UPCOMING"
+                if status == "LIVE":
+                    task_type = "LIVE"
+                elif status == "COMPLETED":
+                    task_type = "COMPLETED"
+                else:
+                    task_type = "UPCOMING"
                 existing = desired.get(match_id)
                 if existing and existing.task_type == "LIVE":
                     existing.metadata.update(match)
@@ -538,30 +543,65 @@ class PlayerStatsCrawlerService:
             await self._record_candidate_result(task.match_id, success=False, error="push_team_rankings_failed")
 
     def _priority_for_candidate(self, candidate: PlayerStatsCandidate) -> int:
+        """Priority hierarchy:
+        1 = LIVE matches (highest)
+        2 = Today's upcoming matches + their players
+        3 = Completed matches (not yet scraped) + their players
+        4 = Tomorrow's upcoming matches + their players
+        5 = Far-future matches / low-priority references
+        """
         task_type = candidate.task_type.upper()
         if task_type == "LIVE":
             return 1
         if task_type == "UPCOMING":
-            return 2
+            if self._is_within_hours(candidate.scheduled_start_time, 12):
+                return 2  # Today's matches
+            if self._is_within_hours(candidate.scheduled_start_time, 36):
+                return 4  # Tomorrow's matches
+            return 5
+        if task_type == "COMPLETED":
+            if not candidate.last_success_at:
+                return 3  # Never scraped completed match
+            return 5  # Already scraped
         if task_type == "PLAYER_REFERENCE":
-            # Boost priority for players from live/upcoming matches
             source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
             if source_type == "LIVE":
                 return 2
             if source_type == "UPCOMING":
-                return 2
-            return 3
+                return 2  # Player from today's match
+            if source_type == "COMPLETED":
+                if not candidate.last_success_at:
+                    return 3
+                return 4
+            return 4
         if task_type == "SERIES_STANDINGS":
             source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
             if source_type in ("LIVE", "UPCOMING"):
                 return 3
-            return 4
+            return 5
         return 5
+
+    @staticmethod
+    def _is_within_hours(scheduled_start_time, hours: int) -> bool:
+        """Check if a match is scheduled within the next N hours."""
+        if not scheduled_start_time:
+            return False
+        try:
+            start_ms = int(scheduled_start_time)
+            now_ms = int(time.time() * 1000)
+            return start_ms <= now_ms + hours * 3600 * 1000
+        except (TypeError, ValueError):
+            return False
 
     def _cooldown_for_candidate(self, candidate: PlayerStatsCandidate) -> float:
         task_type = candidate.task_type.upper()
         if task_type == "LIVE":
             return float(self.settings.player_stats_live_cooldown_seconds)
+        if task_type == "COMPLETED":
+            # Completed matches: scrape once then long cooldown
+            if not candidate.last_success_at:
+                return 30.0
+            return 24 * 3600.0
         if task_type == "PLAYER_REFERENCE":
             # First-time scrape (never succeeded): minimal cooldown so we
             # quickly populate stats for players in today's matches

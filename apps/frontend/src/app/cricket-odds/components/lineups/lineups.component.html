@@ -27,8 +27,7 @@
       <ol class="players-list">
         <li *ngFor="let player of team.players; trackBy: trackByPlayer" 
             [ngClass]="getRoleClass(player.role)"
-            class="player-item"
-            [class.player-item--clickable]="hasPlayerDetails(player)"
+            class="player-item player-item--clickable"
             (click)="selectPlayer(team, player)">
           <mat-icon class="player-role-icon" [attr.aria-label]="getRoleLabel(player.role)">
             {{ getRoleIcon(player.role) }}
@@ -42,7 +41,7 @@
             </div>
           </div>
           <span class="player-role-label">{{ getRoleLabel(player.role) }}</span>
-          <span class="player-details-hint" *ngIf="hasPlayerDetails(player)">
+          <span class="player-details-hint">
             <mat-icon class="player-details-icon">chevron_right</mat-icon>
           </span>
         </li>

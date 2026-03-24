@@ -124,10 +124,14 @@ export function filterLiveMatches(matches: MatchCardViewModel[]): MatchCardViewM
 }
 
 /**
- * Filter upcoming matches
+ * Filter upcoming matches (today and future only)
  */
 export function filterUpcomingMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
-  return matches.filter(match => match.status === MatchStatus.UPCOMING);
+  var now = new Date();
+  now.setHours(0, 0, 0, 0); // Start of today
+  return matches.filter(function(match) {
+    return match.status === MatchStatus.UPCOMING && match.startTime >= now;
+  });
 }
 
 /**

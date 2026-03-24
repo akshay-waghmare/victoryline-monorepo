@@ -111,12 +111,12 @@ export class LineupsComponent implements OnInit, OnChanges {
   private sanitizePlayerName(name: string): string {
     if (!name) return name;
     let s = String(name).trim();
-    // Iteratively strip known role descriptors from the end
+    // Iteratively strip known role descriptors from the end (with or without leading space)
     const patterns = [
-      /\s+(Batter|Batsman)\s*$/i,
-      /\s+(Bowler)\s*$/i,
-      /\s+(All\s*[- ]?Rounder)\s*$/i,
-      /\s+(Wicket\s*Keeper)\s*$/i
+      /\s*(Batter|Batsman)\s*$/i,
+      /\s*(Bowler)\s*$/i,
+      /\s*(All\s*[- ]?Rounder)\s*$/i,
+      /\s*(Wicket\s*Keeper)\s*$/i
     ];
     let prev: string;
     do {
@@ -183,10 +183,6 @@ export class LineupsComponent implements OnInit, OnChanges {
   }
 
   selectPlayer(team: LineupTeamView, player: LineupPlayerView): void {
-    if (!this.hasPlayerDetails(player)) {
-      return;
-    }
-
     this.playerSelected.emit({
       playerName: player.name,
       externalId: player.externalId,
