@@ -4,7 +4,17 @@ import { Title } from '@angular/platform-browser';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { forkJoin, Subject } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
-import { CricketService } from './cricket-odds.service';
+import {
+  CricketService,
+  PlayerStatsMatchView,
+  PlayerStatsPlayerDetailView,
+  PlayerStatsSeriesDetailView,
+  PlayerStatsSeriesView,
+  PlayerStatsTeamDetailView,
+  PlayerStatsTeamView,
+  PlayerStatsSquadPlayerView,
+  PlayerStatsSnapshotView
+} from './cricket-odds.service';
 import { TokenStorage } from '../token.storage';
 import { EventListService } from '../component/event-list.service';
 import { AuthService } from '../auth.service';
@@ -36,6 +46,18 @@ interface RecentBallView {
   fullLabel: string;
   kind: RecentBallKind;
   animate: boolean;
+}
+
+interface PlayerStatsSelectionEvent {
+  playerName: string;
+  externalId?: string;
+  teamName?: string;
+  teamExternalId?: string;
+}
+
+interface TeamStatsSelectionEvent {
+  teamName: string;
+  externalId?: string;
 }
 
 @Component({
@@ -113,6 +135,18 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   // Property to hold the match URL
   currentUrl: string;
+  playerStatsMatch: PlayerStatsMatchView | null = null;
+  isLoadingPlayerStats: boolean = false;
+  playerStatsError: boolean = false;
+  statsExplorerSource: 'lineups' | 'scorecard' | null = null;
+  selectedStatsExplorerType: 'player' | 'team' | 'series' | null = null;
+  selectedStatsExplorerPlayer: PlayerStatsSquadPlayerView | null = null;
+  selectedStatsExplorerTeam: PlayerStatsTeamView | null = null;
+  selectedPlayerStatsDetail: PlayerStatsPlayerDetailView | null = null;
+  selectedTeamStatsDetail: PlayerStatsTeamDetailView | null = null;
+  selectedSeriesStatsDetail: PlayerStatsSeriesDetailView | null = null;
+  isLoadingStatsExplorer: boolean = false;
+  statsExplorerErrorMessage: string | null = null;
   
   // 002-match-details-ux: Match ID for new components (T039+)
   matchId: string | null = null;
@@ -234,6 +268,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
                     || params['matchId']
                     || match
                     || this.matchId;
+      this.resetStatsExplorerState();
+      this.playerStatsMatch = null;
+      this.playerStatsError = false;
+      this.fetchPlayerStatsForMatch(null, match);
       this.resolveRouteMatch(match);
 
       this.cricketService.getLastUpdatedData(match).subscribe(data => {
@@ -949,6 +987,8 @@ private resolveRouteMatch(matchSlug: string): void {
         this.currentUrl = resolvedUrl;
       }
 
+      this.fetchPlayerStatsForMatch(resolvedMatch, matchSlug);
+
       if (!this.showLiveHero) {
         this.populateFallbackMatchInfo(resolvedMatch);
       }
@@ -996,6 +1036,754 @@ private routeSlugMatches(matchSlug: string, match: any): boolean {
 
 private isLiveLikeStatus(status: string | null | undefined): boolean {
   return status === 'LIVE' || status === 'INNINGS_BREAK' || status === 'RAIN_DELAY';
+}
+
+private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): void {
+  var matchUrl = match && match.url ? match.url : (this.matchUrl || this.currentUrl);
+  var externalMatchKey = match && match.externalMatchKey ? match.externalMatchKey : (this.matchId || fallbackExternalKey);
+
+  if (!matchUrl && !externalMatchKey) {
+    return;
+  }
+
+  this.isLoadingPlayerStats = true;
+  this.playerStatsError = false;
+
+  this.cricketService.getPlayerStatsMatch(matchUrl, externalMatchKey)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (data: PlayerStatsMatchView | null) => {
+        this.isLoadingPlayerStats = false;
+        if (data && data.teams && data.teams.length > 0) {
+          this.playerStatsMatch = data;
+          this.playerStatsError = false;
+          return;
+        }
+        if (!this.playerStatsMatch) {
+          this.playerStatsError = true;
+        }
+      },
+      error => {
+        console.error('Error loading player stats snapshot:', error);
+        this.isLoadingPlayerStats = false;
+        this.playerStatsError = true;
+      }
+    );
+}
+
+hasPlayerStatsData(): boolean {
+  return !!(this.playerStatsMatch && this.playerStatsMatch.teams && this.playerStatsMatch.teams.length);
+}
+
+getPlayerStatsTeams(): PlayerStatsTeamView[] {
+  return this.playerStatsMatch && this.playerStatsMatch.teams ? this.playerStatsMatch.teams : [];
+}
+
+trackByPlayerStatsTeam(index: number, team: PlayerStatsTeamView): string {
+  return team && (team.externalId || team.name) ? String(team.externalId || team.name) : 'team-' + index;
+}
+
+trackByPlayerStatsPlayer(index: number, player: PlayerStatsSquadPlayerView): string {
+  return player && (player.externalId || player.name) ? String(player.externalId || player.name) : 'player-' + index;
+}
+
+getPlayerStatsSummary(player: PlayerStatsSquadPlayerView): string {
+  var batting = this.findPlayerSnapshot(player, 'live_batting');
+  var bowling = this.findPlayerSnapshot(player, 'live_bowling');
+  var seed = this.findPlayerSnapshot(player, 'seed_context');
+
+  if (batting && batting.payload) {
+    var battingPayload = batting.payload;
+    var battingParts: string[] = [];
+    if (battingPayload.score != null && battingPayload.ballsFaced != null) {
+      battingParts.push(battingPayload.score + ' (' + battingPayload.ballsFaced + ')');
+    }
+    if (battingPayload.strikeRate != null) {
+      battingParts.push('SR ' + battingPayload.strikeRate);
+    }
+    return battingParts.join(' • ') || 'Live batting snapshot';
+  }
+
+  if (bowling && bowling.payload) {
+    var bowlingPayload = bowling.payload;
+    var bowlingParts: string[] = [];
+    if (bowlingPayload.wicketsTaken != null && bowlingPayload.score != null) {
+      bowlingParts.push(bowlingPayload.wicketsTaken + '/' + bowlingPayload.score);
+    }
+    if (bowlingPayload.ballsBowled != null) {
+      bowlingParts.push(bowlingPayload.ballsBowled + ' balls');
+    }
+    if (bowlingPayload.economyRate != null) {
+      bowlingParts.push('Econ ' + bowlingPayload.economyRate);
+    }
+    return bowlingParts.join(' • ') || 'Live bowling snapshot';
+  }
+
+  if (seed && seed.payload) {
+    var seedPayload = seed.payload;
+    var seedParts: string[] = [];
+    if (player.role) {
+      seedParts.push(player.role);
+    } else if (seedPayload.playerRole) {
+      seedParts.push(seedPayload.playerRole);
+    }
+    if (player.lineupOrder != null) {
+      seedParts.push('XI #' + player.lineupOrder);
+    } else if (seedPayload.lineupOrder != null) {
+      seedParts.push('XI #' + seedPayload.lineupOrder);
+    }
+    return seedParts.join(' • ') || 'Playing XI snapshot ready';
+  }
+
+  return player.role ? player.role : 'Snapshot pending';
+}
+
+getPlayerStatsUpdatedAt(player: PlayerStatsSquadPlayerView): number | null {
+  if (!player || !player.stats || player.stats.length === 0) {
+    return null;
+  }
+  var timestamps = player.stats
+    .map(function(stat: PlayerStatsSnapshotView) { return stat && stat.capturedAt ? stat.capturedAt : null; })
+    .filter(function(value: number | null) { return value !== null; }) as number[];
+  if (!timestamps.length) {
+    return null;
+  }
+  return Math.max.apply(null, timestamps);
+}
+
+private findPlayerSnapshot(player: PlayerStatsSquadPlayerView, category: string): PlayerStatsSnapshotView | null {
+  if (!player || !player.stats) {
+    return null;
+  }
+  for (var i = 0; i < player.stats.length; i++) {
+    if (player.stats[i] && player.stats[i].category === category) {
+      return player.stats[i];
+    }
+  }
+  return null;
+}
+
+resetStatsExplorerState(): void {
+  this.statsExplorerSource = null;
+  this.selectedStatsExplorerType = null;
+  this.selectedStatsExplorerPlayer = null;
+  this.selectedStatsExplorerTeam = null;
+  this.selectedPlayerStatsDetail = null;
+  this.selectedTeamStatsDetail = null;
+  this.selectedSeriesStatsDetail = null;
+  this.isLoadingStatsExplorer = false;
+  this.statsExplorerErrorMessage = null;
+}
+
+shouldShowStatsExplorer(): boolean {
+  return !!(this.matchId && (this.hasPlayerStatsData() || this.isLoadingPlayerStats || this.playerStatsError || this.hasSelectedStatsExplorer()));
+}
+
+hasSelectedStatsExplorer(): boolean {
+  return !!(this.selectedStatsExplorerType && (
+    (this.selectedStatsExplorerType === 'player' && this.selectedPlayerStatsDetail) ||
+    (this.selectedStatsExplorerType === 'team' && this.selectedTeamStatsDetail) ||
+    (this.selectedStatsExplorerType === 'series' && this.selectedSeriesStatsDetail)
+  ));
+}
+
+hasSeriesStatsContext(): boolean {
+  return !!(this.playerStatsMatch && this.playerStatsMatch.series && this.playerStatsMatch.series.externalId);
+}
+
+openPlayerStatsFromLineups(selection: PlayerStatsSelectionEvent): void {
+  var team = this.findTeamReference(selection.teamExternalId, selection.teamName);
+  var player = this.findPlayerReference(selection.externalId, selection.playerName, team);
+
+  if (!player || !player.externalId) {
+    this.showToast('Detailed player stats are not available yet.', 'Dismiss');
+    return;
+  }
+
+  this.loadPlayerStatsDetail(player, team, 'lineups');
+}
+
+openPlayerStatsFromScorecard(playerName: string): void {
+  var resolved = this.findPlayerByName(playerName);
+  if (!resolved || !resolved.player || !resolved.player.externalId) {
+    this.showToast('Detailed player stats are not available for ' + playerName + '.', 'Dismiss');
+    return;
+  }
+
+  this.loadPlayerStatsDetail(resolved.player, resolved.team, 'scorecard');
+}
+
+openTeamStatsFromSelection(selection: TeamStatsSelectionEvent, source: 'lineups' | 'scorecard' = 'lineups'): void {
+  var team = this.findTeamReference(selection.externalId, selection.teamName);
+  if (!team || !team.externalId) {
+    this.showToast('Team stats are not available yet.', 'Dismiss');
+    return;
+  }
+
+  this.loadTeamStatsDetail(team, source);
+}
+
+openTeamStats(team: PlayerStatsTeamView, source: 'lineups' | 'scorecard' = 'lineups'): void {
+  if (!team || !team.externalId) {
+    this.showToast('Team stats are not available yet.', 'Dismiss');
+    return;
+  }
+
+  this.loadTeamStatsDetail(team, source);
+}
+
+openSeriesStandings(source: 'lineups' | 'scorecard' = 'lineups'): void {
+  var series = this.getPlayerStatsSeries();
+  if (!series || !series.externalId) {
+    this.showToast('Tournament standings are not available yet.', 'Dismiss');
+    return;
+  }
+
+  this.statsExplorerSource = source;
+  this.selectedStatsExplorerType = 'series';
+  this.selectedStatsExplorerPlayer = null;
+  this.selectedStatsExplorerTeam = null;
+  this.selectedPlayerStatsDetail = null;
+  this.selectedTeamStatsDetail = null;
+  this.selectedSeriesStatsDetail = null;
+  this.isLoadingStatsExplorer = true;
+  this.statsExplorerErrorMessage = null;
+
+  this.cricketService.getPlayerStatsSeriesStandings(series.externalId, this.getPlayerStatsSource())
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (data: PlayerStatsSeriesDetailView | null) => {
+        this.isLoadingStatsExplorer = false;
+        if (data) {
+          this.selectedSeriesStatsDetail = data;
+          return;
+        }
+        this.statsExplorerErrorMessage = 'Tournament standings are not available for this series yet.';
+      },
+      error => {
+        console.error('Error loading series standings:', error);
+        this.isLoadingStatsExplorer = false;
+        this.statsExplorerErrorMessage = 'Tournament standings could not be loaded right now.';
+      }
+    );
+}
+
+closeStatsExplorerSelection(): void {
+  this.statsExplorerSource = null;
+  this.selectedStatsExplorerType = null;
+  this.selectedStatsExplorerPlayer = null;
+  this.selectedStatsExplorerTeam = null;
+  this.selectedPlayerStatsDetail = null;
+  this.selectedTeamStatsDetail = null;
+  this.selectedSeriesStatsDetail = null;
+  this.isLoadingStatsExplorer = false;
+  this.statsExplorerErrorMessage = null;
+}
+
+getPlayerStatsSeries(): PlayerStatsSeriesView | null {
+  return this.playerStatsMatch && this.playerStatsMatch.series ? this.playerStatsMatch.series : null;
+}
+
+getStatsExplorerHeading(): string {
+  switch (this.selectedStatsExplorerType) {
+    case 'player':
+      return (this.selectedPlayerStatsDetail && this.selectedPlayerStatsDetail.name) || (this.selectedStatsExplorerPlayer && this.selectedStatsExplorerPlayer.name) || 'Player details';
+    case 'team':
+      return (this.selectedTeamStatsDetail && this.selectedTeamStatsDetail.name) || (this.selectedStatsExplorerTeam && this.selectedStatsExplorerTeam.name) || 'Team details';
+    case 'series':
+      var playerStatsSeries = this.getPlayerStatsSeries();
+      return (this.selectedSeriesStatsDetail && this.selectedSeriesStatsDetail.series && this.selectedSeriesStatsDetail.series.name)
+        || (playerStatsSeries && playerStatsSeries.name)
+        || 'Tournament table';
+    default:
+      return 'Stats explorer';
+  }
+}
+
+getStatsExplorerSubheading(): string {
+  if (this.selectedStatsExplorerType === 'player' && this.selectedPlayerStatsDetail) {
+    var playerMeta: string[] = [];
+    if (this.selectedPlayerStatsDetail.role) {
+      playerMeta.push(this.selectedPlayerStatsDetail.role);
+    }
+    if (this.selectedPlayerStatsDetail.country) {
+      playerMeta.push(this.selectedPlayerStatsDetail.country);
+    }
+    return playerMeta.join(' • ');
+  }
+
+  if (this.selectedStatsExplorerType === 'team' && this.selectedTeamStatsDetail) {
+    return this.selectedTeamStatsDetail.teamCode || this.selectedTeamStatsDetail.shortName || '';
+  }
+
+  if (this.selectedStatsExplorerType === 'series') {
+    var series = this.selectedSeriesStatsDetail && this.selectedSeriesStatsDetail.series
+      ? this.selectedSeriesStatsDetail.series
+      : this.getPlayerStatsSeries();
+    if (!series) {
+      return '';
+    }
+
+    return [series.shortName, series.seasonName].filter(Boolean).join(' • ');
+  }
+
+  return 'Tap a player, team or tournament table to inspect richer CREX stats.';
+}
+
+hasSnapshotCards(stats: PlayerStatsSnapshotView[] | null | undefined): boolean {
+  return !!(stats && stats.length);
+}
+
+trackByStatsSnapshot(index: number, snapshot: PlayerStatsSnapshotView): string {
+  return snapshot && (snapshot.category || snapshot.label)
+    ? String(snapshot.category || snapshot.label)
+    : 'snapshot-' + index;
+}
+
+isSnapshotObjectPayload(payload: any): boolean {
+  return !!payload && !Array.isArray(payload) && typeof payload === 'object';
+}
+
+isSnapshotTablePayload(payload: any): boolean {
+  return Array.isArray(payload)
+    && payload.length > 0
+    && payload.every(function(row: any) {
+      return !!row && !Array.isArray(row) && typeof row === 'object';
+    });
+}
+
+isSnapshotPrimitiveList(payload: any): boolean {
+  return Array.isArray(payload) && !this.isSnapshotTablePayload(payload);
+}
+
+getSnapshotPayloadEntries(payload: any): Array<{ key: string; value: any }> {
+  if (!this.isSnapshotObjectPayload(payload)) {
+    return [];
+  }
+
+  return Object.keys(payload).map(function(key: string) {
+    return {
+      key: key,
+      value: payload[key]
+    };
+  });
+}
+
+getSnapshotTableColumns(rows: any[]): string[] {
+  if (!rows || !rows.length) {
+    return [];
+  }
+
+  var preferredOrder = ['position', 'rank', 'teamName', 'name', 'matches', 'wins', 'losses', 'ties', 'points', 'rating', 'netRunRate'];
+  var discoveredKeys: string[] = [];
+
+  rows.forEach(function(row: any) {
+    Object.keys(row || {}).forEach(function(key: string) {
+      if (discoveredKeys.indexOf(key) === -1) {
+        discoveredKeys.push(key);
+      }
+    });
+  });
+
+  var ordered = preferredOrder.filter(function(key: string) {
+    return discoveredKeys.indexOf(key) !== -1;
+  });
+  var remainder = discoveredKeys.filter(function(key: string) {
+    return ordered.indexOf(key) === -1;
+  });
+
+  return ordered.concat(remainder);
+}
+
+getSelectedSeriesStandingsRows(): any[] {
+  if (!this.selectedSeriesStatsDetail || !this.selectedSeriesStatsDetail.standings) {
+    return [];
+  }
+
+  for (var i = 0; i < this.selectedSeriesStatsDetail.standings.length; i++) {
+    var snapshot = this.selectedSeriesStatsDetail.standings[i];
+    if (snapshot && this.isSnapshotTablePayload(snapshot.payload)) {
+      return snapshot.payload;
+    }
+  }
+
+  return [];
+}
+
+getSelectedSeriesStandingsColumns(): string[] {
+  return this.getSnapshotTableColumns(this.getSelectedSeriesStandingsRows());
+}
+
+getSelectedSeriesAdditionalStats(): PlayerStatsSnapshotView[] {
+  if (!this.selectedSeriesStatsDetail || !this.selectedSeriesStatsDetail.stats) {
+    return [];
+  }
+
+  var standingCategories = (this.selectedSeriesStatsDetail.standings || [])
+    .map(function(snapshot: PlayerStatsSnapshotView) {
+      return snapshot.category;
+    })
+    .filter(Boolean);
+
+  return this.selectedSeriesStatsDetail.stats.filter(function(snapshot: PlayerStatsSnapshotView) {
+    return standingCategories.indexOf(snapshot.category) === -1;
+  });
+}
+
+trackByStandingsRow(index: number, row: any): string {
+  if (!row) {
+    return 'standing-' + index;
+  }
+
+  return String(row.teamExternalId || row.externalId || row.teamName || row.name || index);
+}
+
+standingsRowHasTeam(row: any): boolean {
+  return !!(row && (row.teamExternalId || row.externalId));
+}
+
+openStandingsTeam(row: any): void {
+  if (!row) {
+    return;
+  }
+
+  this.openTeamStatsFromSelection({
+    externalId: row.teamExternalId || row.externalId,
+    teamName: row.teamName || row.name || row.team
+  }, this.statsExplorerSource || 'lineups');
+}
+
+formatSnapshotLabel(value: string): string {
+  if (!value) {
+    return '';
+  }
+
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(function(part: string) {
+      if (part.length <= 3) {
+        return part.toUpperCase();
+      }
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(' ');
+}
+
+formatSnapshotValue(value: any): string {
+  if (value === null || value === undefined || value === '') {
+    return '—';
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item: any) => this.formatSnapshotValue(item)).join(' • ');
+  }
+
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+private loadPlayerStatsDetail(
+  player: PlayerStatsSquadPlayerView,
+  team: PlayerStatsTeamView | null,
+  source: 'lineups' | 'scorecard'
+): void {
+  if (!player || !player.externalId) {
+    this.showToast('Detailed player stats are not available yet.', 'Dismiss');
+    return;
+  }
+
+  this.statsExplorerSource = source;
+  this.selectedStatsExplorerType = 'player';
+  this.selectedStatsExplorerPlayer = player;
+  this.selectedStatsExplorerTeam = team;
+  this.selectedPlayerStatsDetail = null;
+  this.selectedTeamStatsDetail = null;
+  this.selectedSeriesStatsDetail = null;
+  this.isLoadingStatsExplorer = true;
+  this.statsExplorerErrorMessage = null;
+
+  this.cricketService.getPlayerStatsPlayer(player.externalId, this.getPlayerStatsSource())
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (data: PlayerStatsPlayerDetailView | null) => {
+        this.isLoadingStatsExplorer = false;
+        if (data) {
+          this.selectedPlayerStatsDetail = data;
+          return;
+        }
+        this.statsExplorerErrorMessage = 'Detailed player stats are not available for this player yet.';
+      },
+      error => {
+        console.error('Error loading player details:', error);
+        this.isLoadingStatsExplorer = false;
+        this.statsExplorerErrorMessage = 'Detailed player stats could not be loaded right now.';
+      }
+    );
+}
+
+private loadTeamStatsDetail(team: PlayerStatsTeamView, source: 'lineups' | 'scorecard'): void {
+  if (!team || !team.externalId) {
+    this.showToast('Team stats are not available yet.', 'Dismiss');
+    return;
+  }
+
+  this.statsExplorerSource = source;
+  this.selectedStatsExplorerType = 'team';
+  this.selectedStatsExplorerPlayer = null;
+  this.selectedStatsExplorerTeam = team;
+  this.selectedPlayerStatsDetail = null;
+  this.selectedTeamStatsDetail = null;
+  this.selectedSeriesStatsDetail = null;
+  this.isLoadingStatsExplorer = true;
+  this.statsExplorerErrorMessage = null;
+
+  this.cricketService.getPlayerStatsTeam(team.externalId, this.getPlayerStatsSource())
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (data: PlayerStatsTeamDetailView | null) => {
+        if (data) {
+          this.isLoadingStatsExplorer = false;
+          this.selectedTeamStatsDetail = data;
+          return;
+        }
+        this.loadFallbackTeamStatsDetail(team);
+      },
+      error => {
+        console.error('Error loading team details:', error);
+        this.loadFallbackTeamStatsDetail(team);
+      }
+    );
+}
+
+private loadFallbackTeamStatsDetail(team: PlayerStatsTeamView): void {
+  var series = this.getPlayerStatsSeries();
+  if (!series || !series.externalId) {
+    this.isLoadingStatsExplorer = false;
+    this.selectedTeamStatsDetail = this.buildFallbackTeamStatsDetail(team, null);
+    this.statsExplorerErrorMessage = null;
+    return;
+  }
+
+  this.cricketService.getPlayerStatsSeriesStandings(series.externalId, this.getPlayerStatsSource())
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (seriesData: PlayerStatsSeriesDetailView | null) => {
+        this.isLoadingStatsExplorer = false;
+        this.selectedTeamStatsDetail = this.buildFallbackTeamStatsDetail(team, seriesData);
+        this.statsExplorerErrorMessage = null;
+      },
+      error => {
+        console.error('Error loading fallback team standings:', error);
+        this.isLoadingStatsExplorer = false;
+        this.selectedTeamStatsDetail = this.buildFallbackTeamStatsDetail(team, null);
+        this.statsExplorerErrorMessage = null;
+      }
+    );
+}
+
+private getPlayerStatsSource(): string | undefined {
+  return this.playerStatsMatch && this.playerStatsMatch.source ? this.playerStatsMatch.source : undefined;
+}
+
+private findPlayerByName(playerName: string): { player: PlayerStatsSquadPlayerView; team: PlayerStatsTeamView | null } | null {
+  var normalizedTarget = this.normalizeComparableText(playerName);
+  var teams = this.getPlayerStatsTeams();
+
+  for (var teamIndex = 0; teamIndex < teams.length; teamIndex++) {
+    var team = teams[teamIndex];
+    var squad = team && team.squad ? team.squad : [];
+
+    for (var playerIndex = 0; playerIndex < squad.length; playerIndex++) {
+      var player = squad[playerIndex];
+      var playerTokens = [
+        this.normalizeComparableText(player.name),
+        this.normalizeComparableText(player.shortName)
+      ];
+
+      if (playerTokens.indexOf(normalizedTarget) !== -1) {
+        return {
+          player: player,
+          team: team
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+  private findPlayerReference(
+    externalId?: string,
+    playerName?: string,
+    team?: PlayerStatsTeamView | null
+  ): PlayerStatsSquadPlayerView | null {
+  var normalizedExternalId = externalId || '';
+  var normalizedName = this.normalizeComparableText(playerName);
+  var teams = team ? [team] : this.getPlayerStatsTeams();
+
+  for (var teamIndex = 0; teamIndex < teams.length; teamIndex++) {
+    var squad = teams[teamIndex] && teams[teamIndex].squad ? teams[teamIndex].squad : [];
+    for (var playerIndex = 0; playerIndex < squad.length; playerIndex++) {
+      var player = squad[playerIndex];
+      if (normalizedExternalId && player.externalId === normalizedExternalId) {
+        return player;
+      }
+
+      if (normalizedName && [
+        this.normalizeComparableText(player.name),
+        this.normalizeComparableText(player.shortName)
+      ].indexOf(normalizedName) !== -1) {
+        return player;
+      }
+    }
+  }
+
+  return null;
+}
+
+private findTeamReference(externalId?: string, teamName?: string): PlayerStatsTeamView | null {
+  var teams = this.getPlayerStatsTeams();
+  var normalizedName = this.normalizeComparableText(teamName);
+
+  for (var index = 0; index < teams.length; index++) {
+    var team = teams[index];
+    if (externalId && team.externalId === externalId) {
+      return team;
+    }
+
+    if (normalizedName && [
+      this.normalizeComparableText(team.name),
+      this.normalizeComparableText(team.shortName),
+      this.normalizeComparableText(team.teamCode)
+    ].indexOf(normalizedName) !== -1) {
+      return team;
+    }
+  }
+
+  return null;
+}
+
+private normalizeComparableText(value: string | null | undefined): string {
+  if (!value) {
+    return '';
+  }
+
+  return value
+    .toLowerCase()
+    .replace(/\(c\)|\(wk\)|†/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+private buildFallbackTeamStatsDetail(
+  team: PlayerStatsTeamView,
+  seriesData: PlayerStatsSeriesDetailView | null
+): PlayerStatsTeamDetailView {
+  var stats: PlayerStatsSnapshotView[] = [];
+  var squad = team && team.squad ? team.squad : [];
+  var playerNames = squad
+    .map(function(player: PlayerStatsSquadPlayerView) {
+      return player && player.name ? player.name : '';
+    })
+    .filter(Boolean);
+
+  if (playerNames.length) {
+    stats.push({
+      category: 'current_squad',
+      label: 'Current squad',
+      payload: playerNames
+    });
+  }
+
+  var captain = squad.find(function(player: PlayerStatsSquadPlayerView) {
+    return !!(player && player.captain);
+  });
+  var wicketKeeper = squad.find(function(player: PlayerStatsSquadPlayerView) {
+    return !!(player && player.wicketKeeper);
+  });
+  stats.push({
+    category: 'match_context',
+    label: 'Match context',
+    payload: {
+      squadSize: squad.length,
+      announcedPlayers: squad.filter(function(player: PlayerStatsSquadPlayerView) { return !!player && player.announced !== false; }).length,
+      captain: captain ? captain.name : undefined,
+      wicketKeeper: wicketKeeper ? wicketKeeper.name : undefined
+    }
+  });
+
+  var standingRow = this.findSeriesStandingForTeam(team, seriesData);
+  if (standingRow) {
+    stats.unshift({
+      category: 'tournament_standing',
+      label: 'Tournament standing',
+      payload: standingRow
+    });
+  }
+
+  return {
+    externalId: team.externalId,
+    name: team.name,
+    shortName: team.shortName,
+    teamCode: team.teamCode,
+    source: this.getPlayerStatsSource(),
+    url: seriesData && seriesData.url ? seriesData.url : undefined,
+    stats: stats
+  };
+}
+
+private findSeriesStandingForTeam(
+  team: PlayerStatsTeamView,
+  seriesData: PlayerStatsSeriesDetailView | null
+): any | null {
+  if (!team || !seriesData || !seriesData.standings) {
+    return null;
+  }
+
+  var normalizedTargets = [
+    this.normalizeComparableText(team.name),
+    this.normalizeComparableText(team.shortName),
+    this.normalizeComparableText(team.teamCode)
+  ].filter(Boolean);
+
+  for (var i = 0; i < seriesData.standings.length; i++) {
+    var snapshot = seriesData.standings[i];
+    if (!snapshot || !this.isSnapshotTablePayload(snapshot.payload)) {
+      continue;
+    }
+
+    for (var j = 0; j < snapshot.payload.length; j++) {
+      var row = snapshot.payload[j];
+      if (!row) {
+        continue;
+      }
+
+      var rowExternalId = row.teamExternalId || row.externalId;
+      if (team.externalId && rowExternalId && team.externalId === rowExternalId) {
+        return row;
+      }
+
+      var rowTargets = [
+        this.normalizeComparableText(row.teamName),
+        this.normalizeComparableText(row.name),
+        this.normalizeComparableText(row.team),
+        this.normalizeComparableText(row.teamCode)
+      ].filter(Boolean);
+
+      for (var k = 0; k < rowTargets.length; k++) {
+        if (normalizedTargets.indexOf(rowTargets[k]) !== -1) {
+          return row;
+        }
+      }
+    }
+  }
+
+  return null;
 }
 
 private populateFallbackMatchInfo(match: any = this.currentMatch): void {

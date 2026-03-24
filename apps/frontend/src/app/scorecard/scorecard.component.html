@@ -120,10 +120,18 @@
             <tr *ngFor="let batterKey of getBatsmenWhoPlayed(inningKey)"
                 [class.currently-batting]="isCurrentlyBatting(batterKey, inningKey)">
               <td class="player-cell">
-                <span class="player-name">
-                  {{ batterKey }}
-                  <span *ngIf="isCurrentlyBatting(batterKey, inningKey)" class="not-out-marker" title="Currently batting">*</span>
-                </span>
+                <button
+                  type="button"
+                  class="player-name player-name-button"
+                  [class.player-name-button--enabled]="canInspectPlayer(batterKey)"
+                  [disabled]="!canInspectPlayer(batterKey)"
+                  (click)="selectPlayer(batterKey)">
+                  <span>
+                    {{ batterKey }}
+                    <span *ngIf="isCurrentlyBatting(batterKey, inningKey)" class="not-out-marker" title="Currently batting">*</span>
+                  </span>
+                  <span class="player-name-button__hint" *ngIf="canInspectPlayer(batterKey)">Details</span>
+                </button>
                 <span class="dismissal-text" [class.batting-status]="isCurrentlyBatting(batterKey, inningKey)">
                   {{ getDismissalText(batterKey, inningKey) }}
                 </span>
@@ -159,7 +167,15 @@
           <tbody>
             <tr *ngFor="let bowlerKey of getBowlerKeys(inningKey)">
               <td class="player-cell">
-                <span class="player-name">{{ bowlerKey }}</span>
+                <button
+                  type="button"
+                  class="player-name player-name-button"
+                  [class.player-name-button--enabled]="canInspectPlayer(bowlerKey)"
+                  [disabled]="!canInspectPlayer(bowlerKey)"
+                  (click)="selectPlayer(bowlerKey)">
+                  <span>{{ bowlerKey }}</span>
+                  <span class="player-name-button__hint" *ngIf="canInspectPlayer(bowlerKey)">Details</span>
+                </button>
               </td>
               <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).overs }}</td>
               <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).maidens }}</td>

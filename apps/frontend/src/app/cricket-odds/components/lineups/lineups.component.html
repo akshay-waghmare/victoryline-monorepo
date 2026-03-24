@@ -12,18 +12,41 @@
 
   <!-- Teams -->
   <div class="teams-grid" *ngIf="teams.length > 0">
-    <div *ngFor="let team of teams" class="team-card">
-      <h3 class="team-name">{{ team.name }}</h3>
+    <div *ngFor="let team of teams; trackBy: trackByTeam" class="team-card">
+      <div class="team-card__header">
+        <h3 class="team-name">{{ team.name }}</h3>
+        <button
+          type="button"
+          class="team-details-button"
+          *ngIf="team.externalId"
+          (click)="selectTeam(team)">
+          Team stats
+        </button>
+      </div>
       
       <ol class="players-list">
-        <li *ngFor="let player of team.players" 
+        <li *ngFor="let player of team.players; trackBy: trackByPlayer" 
             [ngClass]="getRoleClass(player.role)"
             class="player-item">
           <mat-icon class="player-role-icon" [attr.aria-label]="getRoleLabel(player.role)">
             {{ getRoleIcon(player.role) }}
           </mat-icon>
-          <span class="player-name">{{ player.name }}</span>
+          <div class="player-main">
+            <span class="player-name">{{ player.name }}</span>
+            <div class="player-badges" *ngIf="player.captain || player.wicketKeeper || player.probable">
+              <span class="player-badge" *ngIf="player.captain">C</span>
+              <span class="player-badge" *ngIf="player.wicketKeeper">WK</span>
+              <span class="player-badge" *ngIf="player.probable">Probable</span>
+            </div>
+          </div>
           <span class="player-role-label">{{ getRoleLabel(player.role) }}</span>
+          <button
+            type="button"
+            class="player-details-button"
+            *ngIf="hasPlayerDetails(player)"
+            (click)="selectPlayer(team, player)">
+            Details
+          </button>
         </li>
       </ol>
     </div>

@@ -1,15 +1,18 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { ballsToOvers, normalizeTeamScoreString } from '../core/utils/match-utils';
 import { MatTabChangeEvent } from '@angular/material/tabs';
+import { PlayerStatsMatchView } from '../cricket-odds/cricket-odds.service';
 
 @Component({
   selector: 'app-scorecard',
   templateUrl: './scorecard.component.html',
   styleUrls: ['./scorecard.component.css']
 })
-export class ScorecardComponent implements OnInit {
+export class ScorecardComponent implements OnInit, OnChanges {
 
   @Input() scorecardInfo: any;
+  @Input() playerStatsMatch?: PlayerStatsMatchView | null;
+  @Output() playerSelected = new EventEmitter<string>();
 
   private readonly emptyBatsmanStats = {
     runs: 0,
@@ -38,6 +41,16 @@ export class ScorecardComponent implements OnInit {
   selectedInning: string;
 
   ngOnInit() {
+    this.initializeScorecard();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.scorecardInfo && !changes.scorecardInfo.firstChange) {
+      this.initializeScorecard();
+    }
+  }
+
+  private initializeScorecard(): void {
     const scorecardData = {
       match_info: {
         team: "SLW",
@@ -213,6 +226,8 @@ export class ScorecardComponent implements OnInit {
     this.bowling = scorecardData.bowling;
     this.fall_of_wickets = scorecardData.fall_of_wickets;
     this.partnerships = scorecardData.partnerships;
+    this.inningsKeys = [];
+    this.selectedInning = '';
 
     if(this.scorecardInfo && this.scorecardInfo.match_stats_by_innings.innings){
       this.inningsKeys = Object.keys(this.scorecardInfo.match_stats_by_innings.innings);
@@ -221,6 +236,38 @@ export class ScorecardComponent implements OnInit {
         this.selectedInning = this.inningsKeys[0];
       }
     }
+  }
+
+  canInspectPlayer(playerName: string): boolean {
+    if (!playerName || !this.playerStatsMatch || !this.playerStatsMatch.teams) {
+      return false;
+    }
+
+    const normalizedTarget = this.normalizePlayerKey(playerName);
+    for (let teamIndex = 0; teamIndex < this.playerStatsMatch.teams.length; teamIndex++) {
+      const squad = this.playerStatsMatch.teams[teamIndex].squad || [];
+      for (let playerIndex = 0; playerIndex < squad.length; playerIndex++) {
+        const player = squad[playerIndex];
+        const possibleMatches = [
+          this.normalizePlayerKey(player.name),
+          this.normalizePlayerKey(player.shortName)
+        ];
+
+        if (possibleMatches.indexOf(normalizedTarget) !== -1 && player.externalId) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  selectPlayer(playerName: string): void {
+    if (!this.canInspectPlayer(playerName)) {
+      return;
+    }
+
+    this.playerSelected.emit(playerName);
   }
 
   selectInning(inningKey: string): void {
@@ -367,5 +414,16 @@ export class ScorecardComponent implements OnInit {
   private toOvers(digits: string): string {
     // Delegate to shared util
     return ballsToOvers(digits) || digits;
+  }
+
+  private normalizePlayerKey(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
+
+    return value
+      .toLowerCase()
+      .replace(/\(c\)|\(wk\)|†/g, '')
+      .replace(/[^a-z0-9]/g, '');
   }
 }

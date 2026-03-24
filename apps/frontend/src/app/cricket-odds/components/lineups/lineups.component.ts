@@ -1,46 +1,109 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
 import { MatchApiService } from '../../match-api.service';
-import { Team, Player, PlayerRole } from '../../../shared/models/match.models';
+import { PlayerRole } from '../../../shared/models/match.models';
+import { PlayerStatsMatchView, PlayerStatsSquadPlayerView, PlayerStatsTeamView } from '../../cricket-odds.service';
+
+interface LineupPlayerView {
+  id: string;
+  name: string;
+  role: PlayerRole;
+  isPlayingXI: boolean;
+  externalId?: string;
+  captain?: boolean;
+  wicketKeeper?: boolean;
+  probable?: boolean;
+}
+
+interface LineupTeamView {
+  id: string;
+  name: string;
+  shortName: string;
+  externalId?: string;
+  players: LineupPlayerView[];
+}
 
 @Component({
   selector: 'app-lineups',
   templateUrl: './lineups.component.html',
   styleUrls: ['./lineups.component.css']
 })
-export class LineupsComponent implements OnInit {
+export class LineupsComponent implements OnInit, OnChanges {
   @Input() matchId?: string;
   @Input() playingXIData?: any; // Existing lineup data from parent
+  @Input() playerStatsMatch?: PlayerStatsMatchView | null;
+  @Output() playerSelected = new EventEmitter<{ playerName: string; externalId?: string; teamName?: string; teamExternalId?: string }>();
+  @Output() teamSelected = new EventEmitter<{ teamName: string; externalId?: string }>();
 
-  teams: Team[] = [];
+  teams: LineupTeamView[] = [];
   isLoading = false;
 
   constructor(private api: MatchApiService) {}
 
   ngOnInit(): void {
-    if (this.playingXIData) {
-      this.parseExistingLineupData();
-    } else if (this.matchId) {
+    this.buildTeams();
+    if (!this.teams.length && this.matchId) {
       // this.loadLineups(); // Future API implementation
       console.warn('[LineupsComponent] API fetch not yet implemented');
     }
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.playingXIData || changes.playerStatsMatch) {
+      this.buildTeams();
+    }
+  }
+
+  private buildTeams(): void {
+    if (this.playingXIData || (this.playerStatsMatch && this.playerStatsMatch.teams && this.playerStatsMatch.teams.length)) {
+      this.parseExistingLineupData();
+      return;
+    }
+
+    this.teams = [];
   }
 
   private parseExistingLineupData(): void {
     // Parse existing playing XI data to match our model
     if (this.playingXIData && this.playingXIData.playing_xi) {
       const teamNames = Object.keys(this.playingXIData.playing_xi);
-      this.teams = teamNames.map((teamName, index) => ({
-        id: `team-${index}`,
-        name: teamName,
-        shortName: teamName,
-        players: this.playingXIData.playing_xi[teamName].map((p: any) => ({
-          id: p.playerId || `player-${p.playerName}`,
-          name: this.sanitizePlayerName(p.playerName),
-          role: this.mapRole(p.playerRole),
-          isPlayingXI: true
-        }))
-      }));
+      this.teams = teamNames.map((teamName, index) => {
+        const snapshotTeam = this.findSnapshotTeam(teamName);
+        const players = this.playingXIData.playing_xi[teamName].map((p: any) => {
+          const playerName = this.sanitizePlayerName(p.playerName);
+          const snapshotPlayer = this.findSnapshotPlayer(snapshotTeam, playerName);
+
+          return {
+            id: p.playerId || (snapshotPlayer && snapshotPlayer.externalId) || `player-${playerName}`,
+            name: playerName,
+            role: this.mapRole((snapshotPlayer && snapshotPlayer.role) || p.playerRole),
+            isPlayingXI: true,
+            externalId: snapshotPlayer && snapshotPlayer.externalId,
+            captain: snapshotPlayer && snapshotPlayer.captain,
+            wicketKeeper: snapshotPlayer && snapshotPlayer.wicketKeeper,
+            probable: snapshotPlayer && snapshotPlayer.probable && !snapshotPlayer.announced
+          } as LineupPlayerView;
+        });
+
+        return {
+          id: `team-${index}`,
+          name: teamName,
+          shortName: teamName,
+          externalId: snapshotTeam && snapshotTeam.externalId,
+          players: players
+        } as LineupTeamView;
+      });
       console.log('[Lineups] Parsed teams:', this.teams);
+      return;
+    }
+
+    if (this.playerStatsMatch && this.playerStatsMatch.teams) {
+      this.teams = this.playerStatsMatch.teams.map((team, index) => ({
+        id: team.externalId || `team-${index}`,
+        name: team.name,
+        shortName: team.shortName || team.name,
+        externalId: team.externalId,
+        players: (team.squad || []).map((player, playerIndex) => this.mapSnapshotPlayer(player, playerIndex))
+      }));
     }
   }
 
@@ -113,5 +176,108 @@ export class LineupsComponent implements OnInit {
 
   getRoleClass(role: PlayerRole): string {
     return `role-${role.toLowerCase().replace('_', '-')}`;
+  }
+
+  hasPlayerDetails(player: LineupPlayerView): boolean {
+    return !!(player && player.externalId);
+  }
+
+  selectPlayer(team: LineupTeamView, player: LineupPlayerView): void {
+    if (!this.hasPlayerDetails(player)) {
+      return;
+    }
+
+    this.playerSelected.emit({
+      playerName: player.name,
+      externalId: player.externalId,
+      teamName: team.name,
+      teamExternalId: team.externalId
+    });
+  }
+
+  selectTeam(team: LineupTeamView): void {
+    if (!team || !team.externalId) {
+      return;
+    }
+
+    this.teamSelected.emit({
+      teamName: team.name,
+      externalId: team.externalId
+    });
+  }
+
+  trackByTeam(index: number, team: LineupTeamView): string {
+    return team && (team.externalId || team.name) ? String(team.externalId || team.name) : 'team-' + index;
+  }
+
+  trackByPlayer(index: number, player: LineupPlayerView): string {
+    return player && (player.externalId || player.name) ? String(player.externalId || player.name) : 'player-' + index;
+  }
+
+  private mapSnapshotPlayer(player: PlayerStatsSquadPlayerView, index: number): LineupPlayerView {
+    return {
+      id: player.externalId || `player-${index}`,
+      name: player.name,
+      role: this.mapRole(player.role || ''),
+      isPlayingXI: true,
+      externalId: player.externalId,
+      captain: player.captain,
+      wicketKeeper: player.wicketKeeper,
+      probable: player.probable && !player.announced
+    };
+  }
+
+  private findSnapshotTeam(teamName: string): PlayerStatsTeamView | null {
+    if (!this.playerStatsMatch || !this.playerStatsMatch.teams) {
+      return null;
+    }
+
+    const normalizedTarget = this.normalizeKey(teamName);
+    for (let index = 0; index < this.playerStatsMatch.teams.length; index++) {
+      const team = this.playerStatsMatch.teams[index];
+      const possibleMatches = [
+        this.normalizeKey(team.name),
+        this.normalizeKey(team.shortName),
+        this.normalizeKey(team.teamCode)
+      ];
+
+      if (possibleMatches.indexOf(normalizedTarget) !== -1) {
+        return team;
+      }
+    }
+
+    return null;
+  }
+
+  private findSnapshotPlayer(team: PlayerStatsTeamView | null, playerName: string): PlayerStatsSquadPlayerView | null {
+    if (!team || !team.squad) {
+      return null;
+    }
+
+    const normalizedTarget = this.normalizeKey(playerName);
+    for (let index = 0; index < team.squad.length; index++) {
+      const player = team.squad[index];
+      const possibleMatches = [
+        this.normalizeKey(player.name),
+        this.normalizeKey(player.shortName)
+      ];
+
+      if (possibleMatches.indexOf(normalizedTarget) !== -1) {
+        return player;
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeKey(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
+
+    return value
+      .toLowerCase()
+      .replace(/\(c\)|\(wk\)|†/g, '')
+      .replace(/[^a-z0-9]/g, '');
   }
 }

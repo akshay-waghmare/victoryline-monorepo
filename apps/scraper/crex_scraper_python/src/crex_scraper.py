@@ -17,6 +17,7 @@ from .health import HealthGrader
 from .adapters.registry import AdapterRegistry
 from .cricket_data_service import CricketDataService
 from .discovery import LiveMatchDiscoverer
+from .player_stats_crawler import PlayerStatsCrawlerService
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,6 @@ class CrexScraperService:
         self.cache = ScrapeCache()
         self.metrics = MetricsCollector()
         self.health = HealthGrader()
-        self.discovery = LiveMatchDiscoverer(self.pool)
         self._running = False
         self._workers = []
         self._monitor_task: Optional[asyncio.Task] = None
@@ -82,6 +82,19 @@ class CrexScraperService:
             auth_token_provider=lambda: self._auth_token,  # Provide current token for immediate pushes
             cache=self.cache,  # Pass cache for localStorage caching
         )
+        self.player_stats_crawler = None
+        if self.settings.enable_player_stats_crawler:
+            self.player_stats_crawler = PlayerStatsCrawlerService(
+                pool=self.pool,
+                cache=self.cache,
+                registry=self.registry,
+                auth_token_provider=lambda: self._auth_token,
+            )
+
+        self.discovery = LiveMatchDiscoverer(
+            self.pool,
+            on_match_catalog_updated=self._on_match_catalog_updated,
+        )
 
     async def start(self):
         """Start the scraper service."""
@@ -102,6 +115,10 @@ class CrexScraperService:
                 logger.warning("Failed to obtain initial auth token.")
         except Exception as e:
             logger.error(f"Auth token fetch failed: {e}")
+
+        if self.player_stats_crawler:
+            await self.player_stats_crawler.start()
+            logger.info("PlayerStatsCrawlerService started.")
 
         # Start worker tasks
         for i in range(self.settings.concurrency_cap):
@@ -144,6 +161,10 @@ class CrexScraperService:
             self._fast_poll_task.cancel()
 
         await self.discovery.stop()
+
+        if self.player_stats_crawler:
+            await self.player_stats_crawler.stop()
+            logger.info("PlayerStatsCrawlerService stopped.")
         
         # Stop fast update manager (Feature 007)
         if self.fast_update_manager:
@@ -186,6 +207,7 @@ class CrexScraperService:
                      self._auth_token = await asyncio.to_thread(CricketDataService.get_bearer_token)
 
                 matches = await asyncio.to_thread(CricketDataService.get_live_matches, self._auth_token)
+                live_urls = []
                 
                 for match in matches:
                     # Handle both dict (from JSON) and string (if backend returns list of strings)
@@ -196,9 +218,13 @@ class CrexScraperService:
                         url = match
                     
                     if url:
+                        live_urls.append(url)
                         # Use URL as ID or extract it. For now URL is unique enough.
                         match_id = url 
                         await self.submit_task(match_id, url, "LIVE")
+
+                if self.player_stats_crawler:
+                    await self.player_stats_crawler.update_live_candidates(live_urls)
                 
                 await asyncio.sleep(self.settings.polling_interval_seconds)
             except asyncio.CancelledError:
@@ -206,6 +232,11 @@ class CrexScraperService:
             except Exception as e:
                 logger.error(f"Poll loop error: {e}")
                 await asyncio.sleep(5)
+
+    async def _on_match_catalog_updated(self, live_urls: list[str], schedule_matches: list[dict]) -> None:
+        if not self.player_stats_crawler:
+            return
+        await self.player_stats_crawler.update_candidates(live_urls, schedule_matches)
 
     async def _fast_poll_loop(self):
         """

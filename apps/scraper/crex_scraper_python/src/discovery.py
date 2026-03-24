@@ -4,8 +4,9 @@ Periodically scrapes the main page to find new live matches and syncs them with 
 """
 
 import asyncio
+import inspect
 import logging
-from typing import List, Optional
+from typing import Any, Awaitable, Callable, List, Optional
 
 from playwright.async_api import Page
 
@@ -21,12 +22,17 @@ class LiveMatchDiscoverer:
     Discovers live matches from the main listing page.
     """
 
-    def __init__(self, pool: AsyncBrowserPool):
+    def __init__(
+        self,
+        pool: AsyncBrowserPool,
+        on_match_catalog_updated: Optional[Callable[[List[str], List[dict]], Any]] = None,
+    ):
         self.pool = pool
         self.settings = get_settings()
         self._running = False
         self._task: Optional[asyncio.Task] = None
         self.base_url = "https://crex.com"
+        self._on_match_catalog_updated = on_match_catalog_updated
 
     async def start(self):
         """Start the discovery loop."""
@@ -210,6 +216,11 @@ class LiveMatchDiscoverer:
         
         logger.info(f"Discovered {len(valid_urls)} live matches: {valid_urls}")
         print(f"[DISCOVERY] Found {len(valid_urls)} matches: {valid_urls}", flush=True)
+
+        if self._on_match_catalog_updated:
+            callback_result = self._on_match_catalog_updated(valid_urls, schedule_matches)
+            if inspect.isawaitable(callback_result):
+                await callback_result
         
         if valid_urls or schedule_matches:
             # Sync with backend

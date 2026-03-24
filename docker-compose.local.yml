@@ -31,6 +31,8 @@ services:
       REDIS_PORT: "6379"
       SCRAPER_HYDRATE_URL: http://scraper:5000/hydrate-match-details
       RAPIDAPI_KEY: "${RAPIDAPI_KEY:-}"
+      GSC_ENABLED: "false"
+      CRAWLER_PLAYER_STATS_ENABLED: "true"
     depends_on:
       - redis
     networks:
@@ -58,6 +60,7 @@ services:
       SYNC_SCHEDULE_MATCHES_URL: http://backend:8099/cricket-data/sync-schedule-matches
       API_ENDPOINT: http://backend:8099/cricket-data/match-info/save
       API_ENDPOINT_SC4: http://backend:8099/cricket-data/sC4-stats/save
+      PLAYER_STATS_API_ENDPOINT: http://backend:8099/crawler/player-stats/ingest
       # Redis Configuration  
       REDIS_URL: redis://redis:6379/0
       REDIS_HOST: redis
@@ -69,6 +72,10 @@ services:
       POLLING_INTERVAL_SECONDS: "2.5"
       STALENESS_THRESHOLD_SECONDS: "60"
       ENABLE_PERSISTENT_PAGES: "true"
+      ENABLE_PLAYER_STATS_CRAWLER: "true"
+      PLAYER_STATS_POLLING_INTERVAL_SECONDS: "30"
+      PLAYER_STATS_LIVE_COOLDOWN_SECONDS: "30"
+      PLAYER_STATS_UPCOMING_COOLDOWN_SECONDS: "120"
     volumes:
       - scraper_data:/app/storage
     depends_on:

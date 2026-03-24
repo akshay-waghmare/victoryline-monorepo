@@ -14,6 +14,86 @@ interface CacheEntry {
   ts: number;     // epoch ms when cached
 }
 
+export interface PlayerStatsSnapshotView {
+  category: string;
+  label: string;
+  capturedAt?: number | null;
+  payload?: any;
+}
+
+export interface PlayerStatsSquadPlayerView {
+  externalId?: string;
+  name: string;
+  shortName?: string;
+  role?: string;
+  battingStyle?: string;
+  bowlingStyle?: string;
+  country?: string;
+  imageUrl?: string;
+  captain?: boolean;
+  wicketKeeper?: boolean;
+  probable?: boolean;
+  announced?: boolean;
+  lineupOrder?: number;
+  stats?: PlayerStatsSnapshotView[];
+}
+
+export interface PlayerStatsTeamView {
+  externalId?: string;
+  name: string;
+  shortName?: string;
+  teamCode?: string;
+  squad?: PlayerStatsSquadPlayerView[];
+}
+
+export interface PlayerStatsSeriesView {
+  externalId?: string;
+  name?: string;
+  shortName?: string;
+  seasonName?: string;
+}
+
+export interface PlayerStatsMatchView {
+  url?: string;
+  matchExternalKey?: string;
+  liveMatchId?: number;
+  source?: string;
+  series?: PlayerStatsSeriesView | null;
+  teams?: PlayerStatsTeamView[];
+}
+
+export interface PlayerStatsPlayerDetailView {
+  url?: string;
+  source?: string;
+  externalId?: string;
+  name?: string;
+  shortName?: string;
+  role?: string;
+  battingStyle?: string;
+  bowlingStyle?: string;
+  country?: string;
+  imageUrl?: string;
+  stats?: PlayerStatsSnapshotView[];
+}
+
+export interface PlayerStatsTeamDetailView {
+  url?: string;
+  source?: string;
+  externalId?: string;
+  name?: string;
+  shortName?: string;
+  teamCode?: string;
+  stats?: PlayerStatsSnapshotView[];
+}
+
+export interface PlayerStatsSeriesDetailView {
+  url?: string;
+  source?: string;
+  series?: PlayerStatsSeriesView | null;
+  standings?: PlayerStatsSnapshotView[];
+  stats?: PlayerStatsSnapshotView[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -25,7 +105,15 @@ export class CricketService {
   private  getAllbetsFormatch = environment.REST_API_URL + 'cricket-data/' + 'bets/';
   private  getMatchInfoDetails = environment.REST_API_URL + 'cricket-data/' + 'match-info/get';
   private  getScorecardDetails = environment.REST_API_URL + 'cricket-data/' + 'sC4-stats/get';
-  private  getAllbetsFormatchNonUserBased = environment.REST_API_URL + 'cricket-data/' + 'get-match-bet-with-exposure/';
+  private  getPlayerStatsDetails = environment.REST_API_URL + 'crawler/player-stats/match';
+  private  getPlayerStatsPlayerDetails = environment.REST_API_URL + 'crawler/player-stats/player';
+  private  getPlayerStatsTeamDetails = environment.REST_API_URL + 'crawler/player-stats/team';
+  private  getPlayerStatsSeriesDetails = environment.REST_API_URL + 'crawler/player-stats/series';
+  private  getPlayerStatsSeriesStandingsDetails = environment.REST_API_URL + 'crawler/player-stats/series/standings';
+  private listPlayersEndpoint = environment.REST_API_URL + 'crawler/player-stats/players';
+  private listTeamsEndpoint = environment.REST_API_URL + 'crawler/player-stats/teams/list';
+  private listSeriesEndpoint = environment.REST_API_URL + 'crawler/player-stats/series/list';
+  private  getAllbetsFormatchNonUserBased= environment.REST_API_URL + 'cricket-data/' + 'get-match-bet-with-exposure/';
 
   /** In-memory cache for match data (stale-while-revalidate) */
   private matchDataCache: Map<string, CacheEntry> = new Map();
@@ -33,6 +121,10 @@ export class CricketService {
   private matchInfoCache: Map<string, CacheEntry> = new Map();
   /** In-memory cache for scorecard data */
   private scorecardCache: Map<string, CacheEntry> = new Map();
+  /** In-memory cache for player stats snapshots */
+  private playerStatsCache: Map<string, CacheEntry> = new Map();
+  /** In-memory cache for player/team/series detail reads */
+  private playerStatsReferenceCache: Map<string, CacheEntry> = new Map();
   /** Max age before cache is considered stale (5 minutes) */
   private readonly CACHE_MAX_AGE_MS = 5 * 60 * 1000;
   /** SessionStorage key prefix */
@@ -95,6 +187,10 @@ export class CricketService {
             this.matchInfoCache.set(remainder.substring('info_'.length), entry);
           } else if (remainder.startsWith('sc_')) {
             this.scorecardCache.set(remainder.substring('sc_'.length), entry);
+          } else if (remainder.startsWith('playerstats_')) {
+            this.playerStatsCache.set(remainder.substring('playerstats_'.length), entry);
+          } else if (remainder.startsWith('playerstatsref_')) {
+            this.playerStatsReferenceCache.set(remainder.substring('playerstatsref_'.length), entry);
           }
         }
       }
@@ -189,6 +285,136 @@ export class CricketService {
       catchError(err => {
         console.warn('SWR: HTTP error fetching scorecard, using cache if available', err.status);
         return EMPTY;
+      })
+    );
+
+    if (cached) {
+      return concat(of(cached), http$);
+    }
+    return http$;
+  }
+
+  getPlayerStatsMatch(matchUrl?: string, externalMatchKey?: string): Observable<PlayerStatsMatchView | null> {
+    const cacheKey = externalMatchKey || matchUrl || '';
+    if (!cacheKey) {
+      return of(null);
+    }
+
+    const cached = this.getCache(this.playerStatsCache, 'playerstats', cacheKey);
+    let params = new HttpParams();
+    if (matchUrl) {
+      params = params.set('url', matchUrl);
+    }
+    if (externalMatchKey) {
+      params = params.set('externalMatchKey', externalMatchKey);
+    }
+
+    const http$ = this.http.get<PlayerStatsMatchView>(this.getPlayerStatsDetails, { params: params }).pipe(
+      tap(data => {
+        if (data) {
+          this.setCache(this.playerStatsCache, 'playerstats', cacheKey, data);
+        }
+      }),
+      catchError(err => {
+        if (err && err.status !== 404) {
+          console.warn('SWR: HTTP error fetching player stats, using cache if available', err.status);
+        }
+        return cached ? EMPTY : of(null);
+      })
+    );
+
+    if (cached) {
+      return concat(of(cached), http$);
+    }
+    return http$;
+  }
+
+  getPlayerStatsPlayer(externalId?: string, source?: string): Observable<PlayerStatsPlayerDetailView | null> {
+    return this.getPlayerStatsReference<PlayerStatsPlayerDetailView>(
+      this.getPlayerStatsPlayerDetails,
+      'player',
+      externalId,
+      source
+    );
+  }
+
+  getPlayerStatsTeam(externalId?: string, source?: string): Observable<PlayerStatsTeamDetailView | null> {
+    return this.getPlayerStatsReference<PlayerStatsTeamDetailView>(
+      this.getPlayerStatsTeamDetails,
+      'team',
+      externalId,
+      source
+    );
+  }
+
+  getPlayerStatsSeries(externalId?: string, source?: string): Observable<PlayerStatsSeriesDetailView | null> {
+    return this.getPlayerStatsReference<PlayerStatsSeriesDetailView>(
+      this.getPlayerStatsSeriesDetails,
+      'series',
+      externalId,
+      source
+    );
+  }
+
+  getPlayerStatsSeriesStandings(externalId?: string, source?: string): Observable<PlayerStatsSeriesDetailView | null> {
+    return this.getPlayerStatsReference<PlayerStatsSeriesDetailView>(
+      this.getPlayerStatsSeriesStandingsDetails,
+      'series-standings',
+      externalId,
+      source
+    );
+  }
+
+  listPlayers(source?: string, query?: string): Observable<any[]> {
+    let params = new HttpParams();
+    if (source) { params = params.set('source', source); }
+    if (query) { params = params.set('q', query); }
+    return this.http.get<any[]>(this.listPlayersEndpoint, { params: params }).pipe(
+      catchError(() => of([]))
+    );
+  }
+
+  listTeams(source?: string, query?: string): Observable<any[]> {
+    let params = new HttpParams();
+    if (source) { params = params.set('source', source); }
+    if (query) { params = params.set('q', query); }
+    return this.http.get<any[]>(this.listTeamsEndpoint, { params: params }).pipe(
+      catchError(() => of([]))
+    );
+  }
+
+  listSeries(source?: string, query?: string): Observable<any[]> {
+    let params = new HttpParams();
+    if (source) { params = params.set('source', source); }
+    if (query) { params = params.set('q', query); }
+    return this.http.get<any[]>(this.listSeriesEndpoint, { params: params }).pipe(
+      catchError(() => of([]))
+    );
+  }
+
+  private getPlayerStatsReference<T>(endpoint: string, scope: string, externalId?: string, source?: string): Observable<T | null> {
+    if (!externalId) {
+      return of(null);
+    }
+
+    const cacheKey = `${scope}|${source || 'default'}|${externalId}`;
+    const cached = this.getCache(this.playerStatsReferenceCache, 'playerstatsref', cacheKey);
+    let params = new HttpParams().set('externalId', externalId);
+    if (source) {
+      params = params.set('source', source);
+    }
+
+    const http$: Observable<T | null> = this.http.get<T>(endpoint, { params: params }).pipe(
+      tap(data => {
+        if (data) {
+          this.setCache(this.playerStatsReferenceCache, 'playerstatsref', cacheKey, data);
+        }
+      }),
+      catchError(err => {
+        if (err && err.status !== 404) {
+          console.warn('SWR: HTTP error fetching player stats reference data, using cache if available', err.status);
+        }
+        return cached ? EMPTY : of(null as T | null);
       })
     );
 

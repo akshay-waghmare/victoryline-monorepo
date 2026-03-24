@@ -97,6 +97,12 @@ class ScrapeCache:
     def _key_local_storage(self, match_id: str) -> str:
         return f"match:{match_id}:localStorage"
 
+    def _key_player_stats_seed(self, match_id: str) -> str:
+        return f"stats:{match_id}:player-seed"
+
+    def _key_player_stats_reference(self, resource_id: str) -> str:
+        return f"stats:reference:{resource_id}"
+
     async def set_local_storage(self, match_id: str, data: Dict[str, str], ttl: int = 3600):
         """
         Cache localStorage data (player/team mappings) with 1h TTL.
@@ -117,6 +123,42 @@ class ScrapeCache:
         if not self._redis:
             return None
         key = self._key_local_storage(match_id)
+        data = await self._redis.get(key)
+        if data:
+            return json.loads(data)
+        return None
+
+    async def set_player_stats_seed(self, match_id: str, data: Dict[str, Any], ttl: int = 1800):
+        """Cache the latest player stats seed payload for deduplication."""
+        if not self._redis:
+            return
+        key = self._key_player_stats_seed(match_id)
+        serialized = json.dumps(data)
+        await self._redis.set(key, serialized, ex=ttl)
+
+    async def get_player_stats_seed(self, match_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve the last cached player stats seed payload."""
+        if not self._redis:
+            return None
+        key = self._key_player_stats_seed(match_id)
+        data = await self._redis.get(key)
+        if data:
+            return json.loads(data)
+        return None
+
+    async def set_player_stats_reference(self, resource_id: str, data: Dict[str, Any], ttl: int = 1800):
+        """Cache reference payloads (player/team/series) for deduplication."""
+        if not self._redis:
+            return
+        key = self._key_player_stats_reference(resource_id)
+        serialized = json.dumps(data)
+        await self._redis.set(key, serialized, ex=ttl)
+
+    async def get_player_stats_reference(self, resource_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve the last cached reference payload."""
+        if not self._redis:
+            return None
+        key = self._key_player_stats_reference(resource_id)
         data = await self._redis.get(key)
         if data:
             return json.loads(data)

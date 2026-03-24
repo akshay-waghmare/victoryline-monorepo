@@ -12,6 +12,8 @@ def test_default_settings_standard_profile():
     assert settings.memory_hard_limit_mb == 2048
     assert settings.enable_prometheus_metrics is True
     assert settings.memory_restart_grace_seconds == 60
+    assert settings.enable_player_stats_crawler is False
+    assert settings.player_stats_worker_count == 1
 
 
 def test_tiny_profile_adjustments():
@@ -41,6 +43,12 @@ def test_overrides_and_types():
         "SCRAPER_FAILING_ERROR_THRESHOLD": "8",
         "SCRAPER_DEGRADED_STALENESS_SECONDS": "150",
         "SCRAPER_RESTART_GRACE_SECONDS": "90",
+        "ENABLE_PLAYER_STATS_CRAWLER": "true",
+        "PLAYER_STATS_BATCH_SIZE": "3",
+        "PLAYER_STATS_QUEUE_SIZE": "9",
+        "PLAYER_STATS_WORKER_COUNT": "2",
+        "PLAYER_STATS_RATE_LIMIT_TOKENS_PER_SEC": "0.2",
+        "PLAYER_STATS_LIVE_COOLDOWN_SECONDS": "180",
     }
     settings = load_settings(env)
     assert settings.max_lifetime_hours == 7.5
@@ -58,6 +66,12 @@ def test_overrides_and_types():
     assert settings.failing_error_threshold == 8
     assert settings.degraded_staleness_seconds == 150
     assert settings.memory_restart_grace_seconds == 90
+    assert settings.enable_player_stats_crawler is True
+    assert settings.player_stats_batch_size == 3
+    assert settings.player_stats_queue_size == 9
+    assert settings.player_stats_worker_count == 2
+    assert settings.player_stats_rate_limit_tokens_per_sec == 0.2
+    assert settings.player_stats_live_cooldown_seconds == 180
 
 
 @pytest.mark.parametrize(
@@ -68,6 +82,7 @@ def test_overrides_and_types():
         ({"SCRAPER_FAILING_ERROR_THRESHOLD": "2", "SCRAPER_DEGRADED_ERROR_THRESHOLD": "5"}, "failing_lt_degraded"),
         ({"SCRAPER_MAX_CONSECUTIVE_ERRORS": "4", "SCRAPER_FAILING_ERROR_THRESHOLD": "5"}, "max_error_lt_failing"),
         ({"SCRAPER_RESTART_GRACE_SECONDS": "5"}, "restart_grace_too_low"),
+        ({"PLAYER_STATS_BATCH_SIZE": "5", "PLAYER_STATS_QUEUE_SIZE": "2"}, "player_stats_batch_gt_queue"),
     ],
 )
 def test_invalid_values_raise(env, key):

@@ -1,0 +1,152 @@
+<div class="stats-page">
+  <div class="stats-page__header">
+    <h1 class="stats-page__title">
+      <mat-icon class="stats-page__title-icon">person</mat-icon>
+      Players
+    </h1>
+    <div class="stats-page__search">
+      <mat-icon class="stats-page__search-icon">search</mat-icon>
+      <input
+        type="text"
+        class="stats-page__search-input"
+        placeholder="Search players..."
+        [value]="searchQuery"
+        (input)="onSearchChange($event.target.value)"
+      />
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="stats-page__loading">
+    <mat-spinner diameter="36"></mat-spinner>
+    <span>Loading players...</span>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && players.length === 0" class="stats-page__empty">
+    <mat-icon class="stats-page__empty-icon">person_off</mat-icon>
+    <p>No players found</p>
+    <span *ngIf="searchQuery">Try adjusting your search</span>
+  </div>
+
+  <!-- Player grid -->
+  <div *ngIf="!isLoading && players.length > 0" class="stats-page__grid">
+    <div
+      *ngFor="let player of players; trackBy: trackByExternalId"
+      class="stats-card"
+      (click)="selectPlayer(player)"
+    >
+      <div class="stats-card__avatar">
+        <mat-icon>person</mat-icon>
+      </div>
+      <div class="stats-card__info">
+        <span class="stats-card__name">{{ player.name }}</span>
+        <span *ngIf="player.role" class="stats-card__role" [ngClass]="getRoleBadgeClass(player.role)">
+          {{ player.role }}
+        </span>
+        <span *ngIf="player.country" class="stats-card__meta">{{ player.country }}</span>
+      </div>
+      <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
+    </div>
+  </div>
+
+  <!-- Detail panel (overlay) -->
+  <div *ngIf="selectedPlayer || isDetailLoading" class="stats-detail-overlay" (click)="closeDetail()">
+    <div class="stats-detail-panel" (click)="$event.stopPropagation()">
+      <button class="stats-detail-panel__close" (click)="closeDetail()">
+        <mat-icon>close</mat-icon>
+      </button>
+
+      <div *ngIf="isDetailLoading" class="stats-detail-panel__loading">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+
+      <div *ngIf="selectedPlayer && !isDetailLoading">
+        <div class="stats-detail-panel__header">
+          <mat-icon class="stats-detail-panel__avatar">person</mat-icon>
+          <div>
+            <h2 class="stats-detail-panel__name">{{ selectedPlayer.name }}</h2>
+            <span *ngIf="selectedPlayer.role" class="stats-card__role" [ngClass]="getRoleBadgeClass(selectedPlayer.role)">
+              {{ selectedPlayer.role }}
+            </span>
+          </div>
+        </div>
+
+        <div class="stats-detail-panel__meta">
+          <div *ngIf="selectedPlayer.country"><strong>Country:</strong> {{ selectedPlayer.country }}</div>
+          <div *ngIf="selectedPlayer.battingStyle"><strong>Batting:</strong> {{ selectedPlayer.battingStyle }}</div>
+          <div *ngIf="selectedPlayer.bowlingStyle"><strong>Bowling:</strong> {{ selectedPlayer.bowlingStyle }}</div>
+        </div>
+
+        <!-- Career Batting -->
+        <div *ngIf="getStatPayload(selectedPlayer.stats, 'career_batting').length > 0" class="stats-detail-panel__section">
+          <h3>Career Batting</h3>
+          <div class="stats-table-wrapper">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th *ngFor="let key of (getStatPayload(selectedPlayer.stats, 'career_batting')[0] | keyvalue)">
+                    {{ key.key }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of getStatPayload(selectedPlayer.stats, 'career_batting')">
+                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Career Bowling -->
+        <div *ngIf="getStatPayload(selectedPlayer.stats, 'career_bowling').length > 0" class="stats-detail-panel__section">
+          <h3>Career Bowling</h3>
+          <div class="stats-table-wrapper">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th *ngFor="let key of (getStatPayload(selectedPlayer.stats, 'career_bowling')[0] | keyvalue)">
+                    {{ key.key }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of getStatPayload(selectedPlayer.stats, 'career_bowling')">
+                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Form -->
+        <div *ngIf="getStatPayload(selectedPlayer.stats, 'recent_form').length > 0" class="stats-detail-panel__section">
+          <h3>Recent Form</h3>
+          <div class="stats-table-wrapper">
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th *ngFor="let key of (getStatPayload(selectedPlayer.stats, 'recent_form')[0] | keyvalue)">
+                    {{ key.key }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of getStatPayload(selectedPlayer.stats, 'recent_form')">
+                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div *ngIf="!selectedPlayer.stats || selectedPlayer.stats.length === 0" class="stats-detail-panel__empty">
+          <mat-icon>info_outline</mat-icon>
+          <p>Career stats not yet available for this player</p>
+          <span>Stats are populated when the crawler processes this player's CREX profile</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

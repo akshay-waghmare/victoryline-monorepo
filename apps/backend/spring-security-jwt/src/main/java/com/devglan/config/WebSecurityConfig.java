@@ -74,6 +74,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 						"/events", "/events/**", 
 						"/market/**", 
 						"/tennis", "/tennis/**", 
+						"/crawler/player-stats", "/crawler/player-stats/**",
 						"/cricket-data", "/cricket-data/**", 
 						"/bet-history", "/bet-history/**",
 						"/cricket-data/bets","cricket-data/bets/**",
@@ -97,6 +98,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		        "/h2-console/**", 
 		        "/ws/*", "/ws/**", 
 		        "/token", "/token/*", 
+		        "/crawler/player-stats", "/crawler/player-stats/**",
 		        "/cricket-data/update-winning-team", "/cricket-data/update-winning-team/**",
 		        // Ignore static public SEO endpoints entirely from security filter chain
 		        "/robots.txt", "/sitemap.xml", "/sitemaps/**",

@@ -1,0 +1,83 @@
+<div class="stats-page">
+  <div class="stats-page__header">
+    <h1 class="stats-page__title">
+      <mat-icon class="stats-page__title-icon">emoji_events</mat-icon>
+      Series
+    </h1>
+    <div class="stats-page__search">
+      <mat-icon class="stats-page__search-icon">search</mat-icon>
+      <input type="text" class="stats-page__search-input" placeholder="Search series..."
+        [value]="searchQuery" (input)="onSearchChange($event.target.value)" />
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="stats-page__loading">
+    <mat-spinner diameter="36"></mat-spinner>
+    <span>Loading series...</span>
+  </div>
+
+  <div *ngIf="!isLoading && seriesList.length === 0" class="stats-page__empty">
+    <mat-icon class="stats-page__empty-icon">event_busy</mat-icon>
+    <p>No series found</p>
+    <span *ngIf="searchQuery">Try adjusting your search</span>
+  </div>
+
+  <div *ngIf="!isLoading && seriesList.length > 0" class="stats-page__grid">
+    <div *ngFor="let series of seriesList; trackBy: trackByExternalId" class="stats-card" (click)="selectSeries(series)">
+      <div class="stats-card__avatar">
+        <mat-icon>emoji_events</mat-icon>
+      </div>
+      <div class="stats-card__info">
+        <span class="stats-card__name">{{ series.name }}</span>
+        <span *ngIf="series.seasonName" class="stats-card__meta">{{ series.seasonName }}</span>
+      </div>
+      <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
+    </div>
+  </div>
+
+  <!-- Detail overlay -->
+  <div *ngIf="selectedSeries || selectedStandings || isDetailLoading" class="stats-detail-overlay" (click)="closeDetail()">
+    <div class="stats-detail-panel" (click)="$event.stopPropagation()">
+      <button class="stats-detail-panel__close" (click)="closeDetail()">
+        <mat-icon>close</mat-icon>
+      </button>
+
+      <div *ngIf="isDetailLoading" class="stats-detail-panel__loading">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+
+      <div *ngIf="(selectedSeries || selectedStandings) && !isDetailLoading">
+        <div class="stats-detail-panel__header">
+          <mat-icon class="stats-detail-panel__avatar">emoji_events</mat-icon>
+          <div>
+            <h2 class="stats-detail-panel__name">{{ selectedSeries?.series?.name || 'Series Details' }}</h2>
+            <span *ngIf="selectedSeries?.series?.seasonName" class="stats-card__meta">{{ selectedSeries.series.seasonName }}</span>
+          </div>
+        </div>
+
+        <div *ngFor="let stat of getAllStats()" class="stats-detail-panel__section">
+          <h3>{{ stat.label || stat.category }}</h3>
+          <div *ngIf="stat.payload" class="stats-table-wrapper">
+            <table *ngIf="isArrayPayload(stat.payload)" class="stats-table">
+              <thead>
+                <tr><th *ngFor="let key of (stat.payload[0] | keyvalue)">{{ key.key }}</th></tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of stat.payload">
+                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <pre *ngIf="!isArrayPayload(stat.payload)" class="stats-detail-panel__json">{{ stat.payload | json }}</pre>
+          </div>
+        </div>
+
+        <div *ngIf="getAllStats().length === 0" class="stats-detail-panel__empty">
+          <mat-icon>info_outline</mat-icon>
+          <p>Series stats not yet available</p>
+          <span>Stats and standings are populated when the crawler processes this series</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

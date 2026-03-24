@@ -139,6 +139,21 @@ class ScraperSettings:
     persistent_page_max_errors: int = 5  # Recycle after N errors
     fast_poll_interval_ms: int = 1000  # Polling interval for sV3 (1 second)
 
+    # Player Stats Crawler Config
+    enable_player_stats_crawler: bool = False
+    player_stats_polling_interval_seconds: float = 300.0
+    player_stats_batch_size: int = 2
+    player_stats_queue_size: int = 100
+    player_stats_worker_count: int = 1
+    player_stats_rate_limit_tokens_per_sec: float = 0.1
+    player_stats_rate_limit_burst: int = 2
+    player_stats_task_timeout_seconds: float = 45.0
+    player_stats_cache_ttl_seconds: int = 1800
+    player_stats_upcoming_cooldown_seconds: int = 900
+    player_stats_live_cooldown_seconds: int = 300
+    player_stats_include_live_matches: bool = True
+    player_stats_include_upcoming_matches: bool = True
+
     @property
     def is_tiny_profile(self) -> bool:
         return self.profile.lower() == "tiny"
@@ -208,6 +223,19 @@ class ScraperSettings:
             "persistent_page_max_age_seconds": self.persistent_page_max_age_seconds,
             "persistent_page_max_errors": self.persistent_page_max_errors,
             "fast_poll_interval_ms": self.fast_poll_interval_ms,
+            "enable_player_stats_crawler": self.enable_player_stats_crawler,
+            "player_stats_polling_interval_seconds": self.player_stats_polling_interval_seconds,
+            "player_stats_batch_size": self.player_stats_batch_size,
+            "player_stats_queue_size": self.player_stats_queue_size,
+            "player_stats_worker_count": self.player_stats_worker_count,
+            "player_stats_rate_limit_tokens_per_sec": self.player_stats_rate_limit_tokens_per_sec,
+            "player_stats_rate_limit_burst": self.player_stats_rate_limit_burst,
+            "player_stats_task_timeout_seconds": self.player_stats_task_timeout_seconds,
+            "player_stats_cache_ttl_seconds": self.player_stats_cache_ttl_seconds,
+            "player_stats_upcoming_cooldown_seconds": self.player_stats_upcoming_cooldown_seconds,
+            "player_stats_live_cooldown_seconds": self.player_stats_live_cooldown_seconds,
+            "player_stats_include_live_matches": self.player_stats_include_live_matches,
+            "player_stats_include_upcoming_matches": self.player_stats_include_upcoming_matches,
         }
 
     @classmethod
@@ -280,12 +308,53 @@ class ScraperSettings:
         persistent_page_max_errors = _coerce_int(env.get("PERSISTENT_PAGE_MAX_ERRORS"), 5, minimum=1)
         fast_poll_interval_ms = _coerce_int(env.get("FAST_POLL_INTERVAL_MS"), 1000, minimum=100)
 
+        # Player Stats Crawler Config
+        enable_player_stats_crawler = _coerce_bool(env.get("ENABLE_PLAYER_STATS_CRAWLER"), False)
+        player_stats_polling_interval_seconds = _coerce_float(
+            env.get("PLAYER_STATS_POLLING_INTERVAL_SECONDS"),
+            300.0,
+            minimum=30.0,
+        )
+        player_stats_batch_size = _coerce_int(env.get("PLAYER_STATS_BATCH_SIZE"), 2, minimum=1)
+        player_stats_queue_size = _coerce_int(env.get("PLAYER_STATS_QUEUE_SIZE"), 100, minimum=1)
+        player_stats_worker_count = _coerce_int(env.get("PLAYER_STATS_WORKER_COUNT"), 1, minimum=1)
+        player_stats_rate_limit_tokens_per_sec = _coerce_float(
+            env.get("PLAYER_STATS_RATE_LIMIT_TOKENS_PER_SEC"),
+            0.1,
+            minimum=0.01,
+        )
+        player_stats_rate_limit_burst = _coerce_int(env.get("PLAYER_STATS_RATE_LIMIT_BURST"), 2, minimum=1)
+        player_stats_task_timeout_seconds = _coerce_float(
+            env.get("PLAYER_STATS_TASK_TIMEOUT_SECONDS"),
+            45.0,
+            minimum=5.0,
+        )
+        player_stats_cache_ttl_seconds = _coerce_int(
+            env.get("PLAYER_STATS_CACHE_TTL_SECONDS"),
+            1800,
+            minimum=60,
+        )
+        player_stats_upcoming_cooldown_seconds = _coerce_int(
+            env.get("PLAYER_STATS_UPCOMING_COOLDOWN_SECONDS"),
+            900,
+            minimum=60,
+        )
+        player_stats_live_cooldown_seconds = _coerce_int(
+            env.get("PLAYER_STATS_LIVE_COOLDOWN_SECONDS"),
+            300,
+            minimum=30,
+        )
+        player_stats_include_live_matches = _coerce_bool(env.get("PLAYER_STATS_INCLUDE_LIVE_MATCHES"), True)
+        player_stats_include_upcoming_matches = _coerce_bool(env.get("PLAYER_STATS_INCLUDE_UPCOMING_MATCHES"), True)
+
         if memory_soft_limit_mb > memory_hard_limit_mb:
             raise ValueError("MEMORY_SOFT_LIMIT_MB cannot be greater than MEMORY_HARD_LIMIT_MB")
         if failing_error_threshold < degraded_error_threshold:
             raise ValueError("SCRAPER_FAILING_ERROR_THRESHOLD cannot be less than SCRAPER_DEGRADED_ERROR_THRESHOLD")
         if max_consecutive_errors < failing_error_threshold:
             raise ValueError("SCRAPER_MAX_CONSECUTIVE_ERRORS cannot be less than SCRAPER_FAILING_ERROR_THRESHOLD")
+        if player_stats_batch_size > player_stats_queue_size:
+            raise ValueError("PLAYER_STATS_BATCH_SIZE cannot be greater than PLAYER_STATS_QUEUE_SIZE")
 
         return cls(
             scraper_id=scraper_id,
@@ -346,6 +415,19 @@ class ScraperSettings:
             persistent_page_max_age_seconds=persistent_page_max_age_seconds,
             persistent_page_max_errors=persistent_page_max_errors,
             fast_poll_interval_ms=fast_poll_interval_ms,
+            enable_player_stats_crawler=enable_player_stats_crawler,
+            player_stats_polling_interval_seconds=player_stats_polling_interval_seconds,
+            player_stats_batch_size=player_stats_batch_size,
+            player_stats_queue_size=player_stats_queue_size,
+            player_stats_worker_count=player_stats_worker_count,
+            player_stats_rate_limit_tokens_per_sec=player_stats_rate_limit_tokens_per_sec,
+            player_stats_rate_limit_burst=player_stats_rate_limit_burst,
+            player_stats_task_timeout_seconds=player_stats_task_timeout_seconds,
+            player_stats_cache_ttl_seconds=player_stats_cache_ttl_seconds,
+            player_stats_upcoming_cooldown_seconds=player_stats_upcoming_cooldown_seconds,
+            player_stats_live_cooldown_seconds=player_stats_live_cooldown_seconds,
+            player_stats_include_live_matches=player_stats_include_live_matches,
+            player_stats_include_upcoming_matches=player_stats_include_upcoming_matches,
         )
 
 

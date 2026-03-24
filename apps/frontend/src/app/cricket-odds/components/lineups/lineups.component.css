@@ -92,6 +92,20 @@
   letter-spacing: 0.5px;
 }
 
+.team-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.team-card__header .team-name {
+  margin: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
 .players-list {
   list-style: none;
   padding: 0;
@@ -148,6 +162,32 @@
   font-size: 0.9375rem;
 }
 
+.player-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.player-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.player-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
 .player-role-label {
   font-size: 0.75rem;
   color: #64748b;
@@ -157,6 +197,30 @@
   background: #f1f5f9;
   padding: 4px 10px;
   border-radius: 12px;
+}
+
+.team-details-button,
+.player-details-button {
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.team-details-button:hover,
+.player-details-button:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.player-details-button {
+  flex-shrink: 0;
 }
 
 /* Role-specific colors (enhanced with gradients) */
@@ -198,6 +262,18 @@
 
   .player-item {
     font-size: 0.875rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .team-card__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .player-role-label,
+  .player-details-button {
+    margin-left: 42px;
   }
 }
 

@@ -25,6 +25,9 @@ import { BannerComponent } from 'src/app/component/banner/banner.component';
 import { PrivacyPolicyComponent } from 'src/app/privacy-policy/privacy-policy.component';
 import { TermsOfServiceComponent } from 'src/app/terms-of-service/terms-of-service.component';
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
+import { PlayersPageComponent } from 'src/app/features/stats/players-page/players-page.component';
+import { TeamsPageComponent } from 'src/app/features/stats/teams-page/teams-page.component';
+import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-page.component';
 
 
 export const AdminLayoutsRoute: Routes = [
@@ -51,6 +54,9 @@ export const AdminLayoutsRoute: Routes = [
   { path: 'banner', component: BannerComponent},
   { path: 'privacy-policy', component: PrivacyPolicyComponent },
   { path: 'terms-of-service', component: TermsOfServiceComponent },
+  { path: 'players', component: PlayersPageComponent },
+  { path: 'teams', component: TeamsPageComponent },
+  { path: 'series', component: SeriesPageComponent },
 ];
 
 

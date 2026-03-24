@@ -342,7 +342,11 @@
         <mat-tab label="Scorecard">
           <!-- Use existing scorecard component (already working) -->
           <div *ngIf="scorecardData">
-            <app-scorecard [scorecardInfo]="scorecardData"></app-scorecard>
+            <app-scorecard
+              [scorecardInfo]="scorecardData"
+              [playerStatsMatch]="playerStatsMatch"
+              (playerSelected)="openPlayerStatsFromScorecard($event)">
+            </app-scorecard>
           </div>
           
           <!-- Loading state -->
@@ -353,13 +357,18 @@
           <div *ngIf="!scorecardData && !showLiveHero">
             <p>Detailed scorecard is not available for this match yet.</p>
           </div>
+
+          <ng-container *ngTemplateOutlet="statsExplorerTemplate"></ng-container>
         </mat-tab>
         
         <!-- Fourth Tab: Lineups (NEW - T032-T035) -->
         <mat-tab label="Lineups">
           <app-lineups
             *ngIf="matchInfo && matchInfo.playing_xi"
-            [playingXIData]="matchInfo">
+            [playingXIData]="matchInfo"
+            [playerStatsMatch]="playerStatsMatch"
+            (playerSelected)="openPlayerStatsFromLineups($event)"
+            (teamSelected)="openTeamStatsFromSelection($event)">
           </app-lineups>
           
           <div *ngIf="(!matchInfo || !matchInfo.playing_xi) && showLiveHero">
@@ -369,8 +378,282 @@
           <div *ngIf="(!matchInfo || !matchInfo.playing_xi) && !showLiveHero">
             <p>Lineups are not available for this match.</p>
           </div>
+
+          <ng-container *ngTemplateOutlet="statsExplorerTemplate"></ng-container>
         </mat-tab>
       </mat-tab-group>
+
+      <ng-template #statsExplorerTemplate>
+        <section class="stats-explorer" *ngIf="shouldShowStatsExplorer()">
+          <div class="stats-explorer__header">
+            <div>
+              <h3 class="stats-explorer__title">Stats explorer</h3>
+              <p class="stats-explorer__subtitle" *ngIf="hasSeriesStatsContext()">
+                {{ getPlayerStatsSeries()?.name }}<span *ngIf="getPlayerStatsSeries()?.seasonName"> • {{ getPlayerStatsSeries()?.seasonName }}</span>
+              </p>
+            </div>
+            <span class="stats-explorer__status" *ngIf="isLoadingPlayerStats">Refreshing CREX snapshot...</span>
+          </div>
+
+          <div class="stats-explorer__quick-actions" *ngIf="hasPlayerStatsData()">
+            <button
+              type="button"
+              class="stats-explorer__action"
+              *ngIf="hasSeriesStatsContext()"
+              (click)="openSeriesStandings(statsExplorerSource || 'lineups')">
+              Tournament table
+            </button>
+            <button
+              type="button"
+              class="stats-explorer__action"
+              *ngFor="let team of getPlayerStatsTeams(); trackBy: trackByPlayerStatsTeam"
+              (click)="openTeamStats(team, statsExplorerSource || 'lineups')">
+              {{ team.shortName || team.name }} team stats
+            </button>
+          </div>
+
+          <div class="stats-explorer__empty" *ngIf="!hasPlayerStatsData() && !isLoadingPlayerStats && playerStatsError">
+            Player stats snapshot is not available yet. Give the crawler a minute and refresh this page.
+          </div>
+
+          <div class="stats-explorer__empty" *ngIf="!hasSelectedStatsExplorer() && !isLoadingStatsExplorer && !statsExplorerErrorMessage && hasPlayerStatsData()">
+            Tap a player from the lineup or scorecard to inspect richer player stats. Team rankings and tournament standings are available above.
+          </div>
+
+          <div class="stats-explorer__state" *ngIf="isLoadingStatsExplorer">
+            Loading detailed CREX stats...
+          </div>
+
+          <div class="stats-explorer__state stats-explorer__state--error" *ngIf="!isLoadingStatsExplorer && statsExplorerErrorMessage">
+            {{ statsExplorerErrorMessage }}
+          </div>
+
+          <article class="stats-detail" *ngIf="selectedStatsExplorerType === 'player' && selectedPlayerStatsDetail">
+            <div class="stats-detail__header">
+              <div>
+                <h4 class="stats-detail__title">{{ getStatsExplorerHeading() }}</h4>
+                <p class="stats-detail__subtitle" *ngIf="getStatsExplorerSubheading()">{{ getStatsExplorerSubheading() }}</p>
+              </div>
+              <button type="button" class="stats-detail__close" (click)="closeStatsExplorerSelection()">Close</button>
+            </div>
+
+            <div class="stats-detail__meta">
+              <span *ngIf="selectedPlayerStatsDetail.battingStyle">{{ selectedPlayerStatsDetail.battingStyle }}</span>
+              <span *ngIf="selectedPlayerStatsDetail.bowlingStyle">{{ selectedPlayerStatsDetail.bowlingStyle }}</span>
+            </div>
+
+            <div class="stats-detail__actions">
+              <button
+                type="button"
+                class="stats-detail__action"
+                *ngIf="selectedStatsExplorerTeam"
+                (click)="openTeamStats(selectedStatsExplorerTeam, statsExplorerSource || 'lineups')">
+                Team stats
+              </button>
+              <button
+                type="button"
+                class="stats-detail__action"
+                *ngIf="hasSeriesStatsContext()"
+                (click)="openSeriesStandings(statsExplorerSource || 'lineups')">
+                Tournament table
+              </button>
+            </div>
+
+            <ng-container *ngIf="hasSnapshotCards(selectedPlayerStatsDetail.stats)">
+              <div class="stats-snapshot-grid">
+                <article class="stats-snapshot-card" *ngFor="let snapshot of selectedPlayerStatsDetail.stats; trackBy: trackByStatsSnapshot">
+                  <header class="stats-snapshot-card__header">
+                    <div>
+                      <h5 class="stats-snapshot-card__title">{{ snapshot.label || formatSnapshotLabel(snapshot.category) }}</h5>
+                      <p class="stats-snapshot-card__meta" *ngIf="snapshot.category && snapshot.label && snapshot.category !== snapshot.label">
+                        {{ formatSnapshotLabel(snapshot.category) }}
+                      </p>
+                    </div>
+                    <span class="stats-snapshot-card__meta" *ngIf="snapshot.capturedAt">
+                      {{ snapshot.capturedAt | date:'short' }}
+                    </span>
+                  </header>
+
+                  <div class="stats-snapshot-card__pairs" *ngIf="isSnapshotObjectPayload(snapshot.payload)">
+                    <div class="stats-snapshot-card__pair" *ngFor="let entry of getSnapshotPayloadEntries(snapshot.payload)">
+                      <span class="stats-snapshot-card__key">{{ formatSnapshotLabel(entry.key) }}</span>
+                      <span class="stats-snapshot-card__value">{{ formatSnapshotValue(entry.value) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="stats-snapshot-card__tags" *ngIf="isSnapshotPrimitiveList(snapshot.payload)">
+                    <span class="stats-snapshot-card__tag" *ngFor="let item of snapshot.payload">
+                      {{ formatSnapshotValue(item) }}
+                    </span>
+                  </div>
+
+                  <div class="stats-detail__table-wrap" *ngIf="isSnapshotTablePayload(snapshot.payload)">
+                    <table class="stats-detail__table">
+                      <thead>
+                        <tr>
+                          <th *ngFor="let column of getSnapshotTableColumns(snapshot.payload)">{{ formatSnapshotLabel(column) }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let row of snapshot.payload">
+                          <td *ngFor="let column of getSnapshotTableColumns(snapshot.payload)">
+                            {{ formatSnapshotValue(row[column]) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <p class="stats-snapshot-card__value stats-snapshot-card__value--full" *ngIf="!isSnapshotObjectPayload(snapshot.payload) && !isSnapshotPrimitiveList(snapshot.payload) && !isSnapshotTablePayload(snapshot.payload)">
+                    {{ formatSnapshotValue(snapshot.payload) }}
+                  </p>
+                </article>
+              </div>
+            </ng-container>
+          </article>
+
+          <article class="stats-detail" *ngIf="selectedStatsExplorerType === 'team' && selectedTeamStatsDetail">
+            <div class="stats-detail__header">
+              <div>
+                <h4 class="stats-detail__title">{{ getStatsExplorerHeading() }}</h4>
+                <p class="stats-detail__subtitle" *ngIf="getStatsExplorerSubheading()">{{ getStatsExplorerSubheading() }}</p>
+              </div>
+              <button type="button" class="stats-detail__close" (click)="closeStatsExplorerSelection()">Close</button>
+            </div>
+
+            <div class="stats-detail__actions">
+              <button
+                type="button"
+                class="stats-detail__action"
+                *ngIf="hasSeriesStatsContext()"
+                (click)="openSeriesStandings(statsExplorerSource || 'lineups')">
+                Tournament table
+              </button>
+            </div>
+
+            <div class="stats-snapshot-grid" *ngIf="hasSnapshotCards(selectedTeamStatsDetail.stats)">
+              <article class="stats-snapshot-card" *ngFor="let snapshot of selectedTeamStatsDetail.stats; trackBy: trackByStatsSnapshot">
+                <header class="stats-snapshot-card__header">
+                  <div>
+                    <h5 class="stats-snapshot-card__title">{{ snapshot.label || formatSnapshotLabel(snapshot.category) }}</h5>
+                    <p class="stats-snapshot-card__meta" *ngIf="snapshot.category && snapshot.label && snapshot.category !== snapshot.label">
+                      {{ formatSnapshotLabel(snapshot.category) }}
+                    </p>
+                  </div>
+                  <span class="stats-snapshot-card__meta" *ngIf="snapshot.capturedAt">
+                    {{ snapshot.capturedAt | date:'short' }}
+                  </span>
+                </header>
+
+                <div class="stats-snapshot-card__pairs" *ngIf="isSnapshotObjectPayload(snapshot.payload)">
+                  <div class="stats-snapshot-card__pair" *ngFor="let entry of getSnapshotPayloadEntries(snapshot.payload)">
+                    <span class="stats-snapshot-card__key">{{ formatSnapshotLabel(entry.key) }}</span>
+                    <span class="stats-snapshot-card__value">{{ formatSnapshotValue(entry.value) }}</span>
+                  </div>
+                </div>
+
+                <div class="stats-snapshot-card__tags" *ngIf="isSnapshotPrimitiveList(snapshot.payload)">
+                  <span class="stats-snapshot-card__tag" *ngFor="let item of snapshot.payload">
+                    {{ formatSnapshotValue(item) }}
+                  </span>
+                </div>
+
+                <div class="stats-detail__table-wrap" *ngIf="isSnapshotTablePayload(snapshot.payload)">
+                  <table class="stats-detail__table">
+                    <thead>
+                      <tr>
+                        <th *ngFor="let column of getSnapshotTableColumns(snapshot.payload)">{{ formatSnapshotLabel(column) }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of snapshot.payload">
+                        <td *ngFor="let column of getSnapshotTableColumns(snapshot.payload)">
+                          {{ formatSnapshotValue(row[column]) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <p class="stats-snapshot-card__value stats-snapshot-card__value--full" *ngIf="!isSnapshotObjectPayload(snapshot.payload) && !isSnapshotPrimitiveList(snapshot.payload) && !isSnapshotTablePayload(snapshot.payload)">
+                  {{ formatSnapshotValue(snapshot.payload) }}
+                </p>
+              </article>
+            </div>
+          </article>
+
+          <article class="stats-detail" *ngIf="selectedStatsExplorerType === 'series' && selectedSeriesStatsDetail">
+            <div class="stats-detail__header">
+              <div>
+                <h4 class="stats-detail__title">{{ getStatsExplorerHeading() }}</h4>
+                <p class="stats-detail__subtitle" *ngIf="getStatsExplorerSubheading()">{{ getStatsExplorerSubheading() }}</p>
+              </div>
+              <button type="button" class="stats-detail__close" (click)="closeStatsExplorerSelection()">Close</button>
+            </div>
+
+            <div class="stats-detail__table-wrap" *ngIf="getSelectedSeriesStandingsRows().length">
+              <table class="stats-detail__table stats-detail__table--standings">
+                <thead>
+                  <tr>
+                    <th *ngFor="let column of getSelectedSeriesStandingsColumns()">{{ formatSnapshotLabel(column) }}</th>
+                    <th>Team</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of getSelectedSeriesStandingsRows(); trackBy: trackByStandingsRow">
+                    <td *ngFor="let column of getSelectedSeriesStandingsColumns()">
+                      {{ formatSnapshotValue(row[column]) }}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="stats-detail__inline-button"
+                        *ngIf="standingsRowHasTeam(row)"
+                        (click)="openStandingsTeam(row)">
+                        Team stats
+                      </button>
+                      <span *ngIf="!standingsRowHasTeam(row)">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="stats-snapshot-grid" *ngIf="hasSnapshotCards(getSelectedSeriesAdditionalStats())">
+              <article class="stats-snapshot-card" *ngFor="let snapshot of getSelectedSeriesAdditionalStats(); trackBy: trackByStatsSnapshot">
+                <header class="stats-snapshot-card__header">
+                  <div>
+                    <h5 class="stats-snapshot-card__title">{{ snapshot.label || formatSnapshotLabel(snapshot.category) }}</h5>
+                    <p class="stats-snapshot-card__meta" *ngIf="snapshot.category && snapshot.label && snapshot.category !== snapshot.label">
+                      {{ formatSnapshotLabel(snapshot.category) }}
+                    </p>
+                  </div>
+                  <span class="stats-snapshot-card__meta" *ngIf="snapshot.capturedAt">
+                    {{ snapshot.capturedAt | date:'short' }}
+                  </span>
+                </header>
+
+                <div class="stats-snapshot-card__pairs" *ngIf="isSnapshotObjectPayload(snapshot.payload)">
+                  <div class="stats-snapshot-card__pair" *ngFor="let entry of getSnapshotPayloadEntries(snapshot.payload)">
+                    <span class="stats-snapshot-card__key">{{ formatSnapshotLabel(entry.key) }}</span>
+                    <span class="stats-snapshot-card__value">{{ formatSnapshotValue(entry.value) }}</span>
+                  </div>
+                </div>
+
+                <div class="stats-snapshot-card__tags" *ngIf="isSnapshotPrimitiveList(snapshot.payload)">
+                  <span class="stats-snapshot-card__tag" *ngFor="let item of snapshot.payload">
+                    {{ formatSnapshotValue(item) }}
+                  </span>
+                </div>
+
+                <p class="stats-snapshot-card__value stats-snapshot-card__value--full" *ngIf="!isSnapshotObjectPayload(snapshot.payload) && !isSnapshotPrimitiveList(snapshot.payload) && !isSnapshotTablePayload(snapshot.payload)">
+                  {{ formatSnapshotValue(snapshot.payload) }}
+                </p>
+              </article>
+            </div>
+          </article>
+        </section>
+      </ng-template>
 
     </mat-card-content>
     </main> <!-- End main role -->

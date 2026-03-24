@@ -21,7 +21,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     { label: 'Home', icon: 'home', route: '/', exact: true },
     { label: 'Matches', icon: 'sports_cricket', route: '/matches' },
     { label: 'Players', icon: 'person', route: '/players' },
-    { label: 'Teams', icon: 'groups', route: '/teams' }
+    { label: 'Teams', icon: 'groups', route: '/teams' },
+    { label: 'Series', icon: 'emoji_events', route: '/series' }
   ];
   
   constructor(private themeService: ThemeService, private router: Router) {}

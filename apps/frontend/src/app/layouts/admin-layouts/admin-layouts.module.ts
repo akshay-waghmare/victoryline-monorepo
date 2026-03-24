@@ -69,6 +69,11 @@ import { SkeletonCardComponent } from 'src/app/shared/components/skeleton-card/s
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
 import { TabNavComponent } from 'src/app/shared/components/tab-nav/tab-nav.component';
 
+// Stats browse pages
+import { PlayersPageComponent } from 'src/app/features/stats/players-page/players-page.component';
+import { TeamsPageComponent } from 'src/app/features/stats/teams-page/teams-page.component';
+import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-page.component';
+
 // 002-match-details-ux: Shared components
 import { StalenessIndicatorComponent } from 'src/app/shared/components/staleness-indicator/staleness-indicator.component';
 
@@ -169,7 +174,10 @@ const myRxStompConfig: InjectableRxStompConfig = {
     MatchDetailsScorecardComponent,
     LineupsComponent,
     MatchDetailsInfoComponent,
-    
+    // Stats browse pages
+    PlayersPageComponent,
+    TeamsPageComponent,
+    SeriesPageComponent,
   ],
   providers: [
     {

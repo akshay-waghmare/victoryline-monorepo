@@ -11,6 +11,9 @@ RUN mvn dependency:go-offline -B
 # Copy source code
 COPY src ./src
 
+# Allow local/docker builds without committing the sensitive GSC credentials file.
+RUN if [ ! -f /app/src/main/resources/gsc-service-account.json ]; then printf '{}' > /app/src/main/resources/gsc-service-account.json; fi
+
 # Build the application
 RUN mvn clean package -DskipTests
 

@@ -8,8 +8,8 @@ import json
 import os
 import re
 from datetime import datetime
-from typing import Callable, Dict, Any, Optional
-from urllib.parse import urlparse, parse_qs
+from typing import Callable, Dict, Any, Optional, List
+from urllib.parse import urlparse, parse_qs, urljoin
 from playwright.async_api import BrowserContext, Page, Response
 from bs4 import BeautifulSoup
 
@@ -19,6 +19,7 @@ from ..parsers.crex_parser import extract_match_stats_by_innings, parse_runs_and
 from ..config import get_settings
 from ..cricket_data_service import CricketDataService
 from ..cache import ScrapeCache
+from ..crex_stats_analysis import analyze_player_page_html, analyze_standings_html
 
 logger = logging.getLogger(__name__)
 
@@ -1519,3 +1520,192 @@ class CrexAdapter(SourceAdapter):
             return {}
         finally:
             await page.close()
+
+    async def fetch_player_stats_seed(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+        """
+        Fetch a lightweight player roster payload for the dedicated stats crawler.
+
+        This intentionally targets the info page / playing XI surface instead of the
+        full live pipeline so it can run with lower frequency and isolation.
+        """
+        page = await context.new_page()
+        try:
+            logger.info(f"Navigating to player stats seed URL: {url}")
+            try:
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            except Exception:
+                logger.warning(f"domcontentloaded timeout on {url}, continuing with best-effort extraction")
+
+            try:
+                await page.wait_for_selector(".playingxi-button, .match-header, .s-name", timeout=8000)
+            except Exception:
+                logger.warning(f"Timed out waiting for player stats seed selectors on {url}")
+
+            content = await page.content()
+            soup = BeautifulSoup(content, "html.parser")
+
+            toss_elem = soup.select_one('.toss-wrap p')
+            toss_info = toss_elem.get_text(strip=True) if toss_elem else 'No toss information'
+
+            date_elem = soup.select_one('.match-date')
+            match_date = date_elem.get_text(strip=True) if date_elem else 'No match date'
+
+            venue_elem = soup.select_one('.match-venue')
+            venue = venue_elem.get_text(strip=True) if venue_elem else 'No venue info'
+
+            name_elem = soup.select_one('.s-name')
+            match_name = name_elem.get_text(strip=True) if name_elem else 'No match name'
+
+            series_url = None
+            series_name = None
+            for anchor in soup.select('a[href]'):
+                href = (anchor.get('href') or '').strip()
+                if '/series/' not in href:
+                    continue
+                series_url = urljoin(url, href)
+                series_name = anchor.get_text(strip=True) or None
+                if series_url:
+                    break
+
+            team_links: List[Dict[str, str]] = []
+            seen_team_urls = set()
+            for anchor in soup.select('a[href*="/team/"]'):
+                href = urljoin(url, anchor.get('href') or '')
+                team_name = anchor.get_text(" ", strip=True)
+                if not href or href in seen_team_urls:
+                    continue
+                seen_team_urls.add(href)
+                team_links.append({
+                    "name": team_name or None,
+                    "url": href,
+                })
+
+            players: List[Dict[str, Any]] = []
+            buttons = await page.query_selector_all('.playingxi-button')
+
+            for button in buttons:
+                team_name = (await button.inner_text()).strip() or 'Unknown Team'
+                try:
+                    await button.click()
+                    await asyncio.sleep(0.25)
+                except Exception as exc:
+                    logger.debug(f"Failed to toggle playing XI tab for {team_name}: {exc}")
+
+                team_players = await page.evaluate(
+                    """(selectedTeam) => {
+                        return Array.from(document.querySelectorAll('.playingxi-card-row')).map((player, index) => {
+                            const anchor = player.querySelector('a[href]');
+                            const rawName = player.querySelector('.player-name')?.innerText?.trim()
+                                || anchor?.innerText?.trim()
+                                || 'Unknown Player';
+                            const normalizedName = rawName.replace(/\\s*\\((c|wk)\\)\\s*/ig, '').trim();
+                            const href = anchor ? anchor.href : '';
+                            const role = player.querySelector('.bat-ball-type')?.innerText?.trim() || null;
+                            return {
+                                team_name: selectedTeam,
+                                player_name: normalizedName || rawName,
+                                player_role: role,
+                                player_url: href || null,
+                                lineup_order: index + 1,
+                                is_captain: /\\(c\\)/i.test(rawName),
+                                is_wicket_keeper: /\\(wk\\)/i.test(rawName),
+                                source: 'playing_xi'
+                            };
+                        });
+                    }""",
+                    team_name,
+                )
+                if team_players:
+                    players.extend(team_players)
+
+            if not players:
+                players = await page.evaluate(
+                    """() => {
+                        return Array.from(document.querySelectorAll('.playingxi-card-row')).map((player, index) => {
+                            const anchor = player.querySelector('a[href]');
+                            const rawName = player.querySelector('.player-name')?.innerText?.trim()
+                                || anchor?.innerText?.trim()
+                                || 'Unknown Player';
+                            return {
+                                team_name: null,
+                                player_name: rawName.replace(/\\s*\\((c|wk)\\)\\s*/ig, '').trim() || rawName,
+                                player_role: player.querySelector('.bat-ball-type')?.innerText?.trim() || null,
+                                player_url: anchor ? anchor.href : null,
+                                lineup_order: index + 1,
+                                is_captain: /\\(c\\)/i.test(rawName),
+                                is_wicket_keeper: /\\(wk\\)/i.test(rawName),
+                                source: 'playing_xi'
+                            };
+                        });
+                    }"""
+                )
+
+            return {
+                "match_name": match_name,
+                "match_date": match_date,
+                "start_date": parse_match_date_to_iso(match_date),
+                "venue": venue,
+                "toss_info": toss_info,
+                "series_name": series_name,
+                "series_url": series_url,
+                "team_links": team_links,
+                "players": players,
+            }
+        except Exception as e:
+            logger.error(f"Error fetching player stats seed: {e}")
+            return {}
+        finally:
+            await page.close()
+
+    async def _fetch_reference_html(
+        self,
+        context: BrowserContext,
+        url: str,
+        *,
+        wait_selectors: Optional[List[str]] = None,
+        timeout_ms: int = 30000,
+    ) -> str:
+        page = await context.new_page()
+        try:
+            logger.info(f"Navigating to reference URL: {url}")
+            try:
+                await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+            except Exception:
+                logger.warning(f"networkidle timeout on reference URL {url}, continuing with best-effort extraction")
+
+            for selector in wait_selectors or []:
+                try:
+                    await page.wait_for_selector(selector, timeout=8000)
+                except Exception:
+                    continue
+
+            # Allow SPA content to finish rendering after selectors found
+            await asyncio.sleep(5)
+
+            return await page.content()
+        finally:
+            await page.close()
+
+    async def fetch_player_reference(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+        html = await self._fetch_reference_html(
+            context,
+            url,
+            wait_selectors=[
+                "h2:has-text('Career Stats')",
+                "table",
+                ".player-name",
+            ],
+        )
+        payload = analyze_player_page_html(html, source_url=url)
+        payload["url"] = url
+        return payload
+
+    async def fetch_standings_reference(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+        html = await self._fetch_reference_html(
+            context,
+            url,
+            wait_selectors=["h1", "h2", "table"],
+        )
+        payload = analyze_standings_html(html)
+        payload["url"] = url
+        return payload

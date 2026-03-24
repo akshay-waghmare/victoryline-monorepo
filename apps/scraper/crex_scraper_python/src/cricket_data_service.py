@@ -11,6 +11,7 @@ logger = get_logger(component="cricket_data_service")
 # Circuit breakers for external dependencies
 _auth_breaker = CircuitBreaker.from_settings("backend_auth")
 _api_breaker = CircuitBreaker.from_settings("backend_api")
+_player_stats_breaker = CircuitBreaker.from_settings("backend_player_stats")
 
 # Track fast update timestamps per match URL to avoid stale regular pushes overwriting fresh data
 # Key: source_url, Value: timestamp of last fast update
@@ -60,6 +61,13 @@ class CricketDataService:
             return None  # Don't raise, just return None so scraping can continue
 
     @staticmethod
+    def _build_headers(token: Optional[str]) -> Dict[str, str]:
+        headers = {"Content-Type": "application/json"}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        return headers
+
+    @staticmethod
     def add_live_matches(urls, token):
         """Adds live match URLs to the local backend service."""
         # NOTE: /cricket-data/add-live-matches endpoint is public (permitAll in WebSecurityConfig)
@@ -69,9 +77,7 @@ class CricketDataService:
         add_matches_url = os.getenv('ADD_LIVE_MATCHES_URL', 'http://127.0.0.1:8099/cricket-data/add-live-matches')
         
         def _post_matches():
-            headers = {"Content-Type": "application/json"}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
+            headers = CricketDataService._build_headers(token)
             response = requests.post(add_matches_url, json=urls, headers=headers, timeout=CricketDataService.BACKEND_TIMEOUT)
             response.raise_for_status()
             return response
@@ -99,9 +105,7 @@ class CricketDataService:
         )
 
         def _post_schedule():
-            headers = {"Content-Type": "application/json"}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
+            headers = CricketDataService._build_headers(token)
             response = requests.post(
                 sync_schedule_url,
                 json=matches,
@@ -172,9 +176,7 @@ class CricketDataService:
             metadata={"attempt": attempt, "error": str(exc), "delay": delay, "url": source_url}
         ))
         def _push_with_retry():
-            headers = {"Content-Type": "application/json"}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
+            headers = CricketDataService._build_headers(token)
             
             # Transform data to match backend DTO structure
             try:
@@ -347,9 +349,7 @@ class CricketDataService:
         service_url = os.getenv('API_ENDPOINT', 'http://127.0.0.1:8099/cricket-data/match-info/save')
         
         def _push():
-            headers = {"Content-Type": "application/json"}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
+            headers = CricketDataService._build_headers(token)
             
             # The legacy code copies data and adds url
             payload = data.copy()
@@ -387,9 +387,7 @@ class CricketDataService:
              service_url = 'http://backend:8099/cricket-data/sC4-stats/save'
         
         def _push():
-            headers = {"Content-Type": "application/json"}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
+            headers = CricketDataService._build_headers(token)
             
             # Construct payload matching legacy format
             # The backend expects the raw sC4 stats object + url
@@ -416,6 +414,212 @@ class CricketDataService:
         except Exception as e:
             logger.error("matches.push_sc4.error", metadata={"error": str(e), "url": service_url})
             return False
+
+    @staticmethod
+    def push_player_stats(data: Dict[str, Any], token: Optional[str], source_url: str) -> bool:
+        """
+        Push player stats crawler payloads to a dedicated backend ingestion path.
+
+        The endpoint is intentionally separate from the live match update flow so
+        failures or slower ingestion do not impact the live pipeline.
+        """
+        logger.info("player_stats.push.start", metadata={"url": source_url})
+        start_time = time.time()
+        service_url = os.getenv(
+            'PLAYER_STATS_API_ENDPOINT',
+            CricketDataService.BASE_URL.rstrip('/') + '/crawler/player-stats/ingest'
+        )
+
+        push_retry_config = RetryConfig(
+            max_attempts=2,
+            base_delay=1.0,
+            max_delay=5.0,
+            jitter=0.25,
+            retry_exceptions=(requests.RequestException, requests.Timeout, ConnectionError),
+        )
+
+        @retryable(config=push_retry_config, on_retry=lambda attempt, exc, delay: logger.warning(
+            "player_stats.push.retry",
+            metadata={"attempt": attempt, "error": str(exc), "delay": delay, "url": source_url}
+        ))
+        def _push():
+            headers = CricketDataService._build_headers(token)
+            payload = dict(data or {})
+            payload.setdefault("url", source_url)
+            response = requests.post(
+                service_url,
+                json=payload,
+                headers=headers,
+                timeout=min(CricketDataService.BACKEND_TIMEOUT, 20),
+            )
+            response.raise_for_status()
+            return response
+
+        try:
+            _player_stats_breaker.call(_push)
+            elapsed = time.time() - start_time
+            logger.info("player_stats.push.success", metadata={"url": source_url, "elapsed_ms": elapsed * 1000})
+            return True
+        except CircuitBreakerOpenError:
+            logger.warning("player_stats.push.circuit_open", metadata={"breaker": "backend_player_stats"})
+            return False
+        except RetryError as e:
+            elapsed = time.time() - start_time
+            logger.error(
+                "player_stats.push.retry_exhausted",
+                metadata={"error": str(e), "url": service_url, "elapsed_ms": elapsed * 1000},
+            )
+            return False
+        except Exception as e:
+            elapsed = time.time() - start_time
+            logger.warning(
+                "player_stats.push.error",
+                metadata={"error": str(e), "url": service_url, "elapsed_ms": elapsed * 1000},
+            )
+            return False
+
+    @staticmethod
+    def push_player_stats_reference(data: Dict[str, Any], token: Optional[str], source_url: str) -> bool:
+        """Push non-match player/team/series reference payloads to the dedicated backend path."""
+        logger.info("player_stats.reference.push.start", metadata={"url": source_url})
+        start_time = time.time()
+        service_url = os.getenv(
+            'PLAYER_STATS_REFERENCE_API_ENDPOINT',
+            CricketDataService.BASE_URL.rstrip('/') + '/crawler/player-stats/reference/ingest'
+        )
+
+        push_retry_config = RetryConfig(
+            max_attempts=2,
+            base_delay=1.0,
+            max_delay=5.0,
+            jitter=0.25,
+            retry_exceptions=(requests.RequestException, requests.Timeout, ConnectionError),
+        )
+
+        @retryable(config=push_retry_config, on_retry=lambda attempt, exc, delay: logger.warning(
+            "player_stats.reference.push.retry",
+            metadata={"attempt": attempt, "error": str(exc), "delay": delay, "url": source_url}
+        ))
+        def _push():
+            headers = CricketDataService._build_headers(token)
+            payload = dict(data or {})
+            payload.setdefault("url", source_url)
+            payload.setdefault("source", "crex")
+            response = requests.post(
+                service_url,
+                json=payload,
+                headers=headers,
+                timeout=min(CricketDataService.BACKEND_TIMEOUT, 20),
+            )
+            response.raise_for_status()
+            return response
+
+        try:
+            _player_stats_breaker.call(_push)
+            elapsed = time.time() - start_time
+            logger.info(
+                "player_stats.reference.push.success",
+                metadata={"url": source_url, "elapsed_ms": elapsed * 1000},
+            )
+            return True
+        except CircuitBreakerOpenError:
+            logger.warning("player_stats.reference.push.circuit_open", metadata={"breaker": "backend_player_stats"})
+            return False
+        except RetryError as e:
+            elapsed = time.time() - start_time
+            logger.error(
+                "player_stats.reference.push.retry_exhausted",
+                metadata={"error": str(e), "url": service_url, "elapsed_ms": elapsed * 1000},
+            )
+            return False
+        except Exception as e:
+            elapsed = time.time() - start_time
+            logger.warning(
+                "player_stats.reference.push.error",
+                metadata={"error": str(e), "url": service_url, "elapsed_ms": elapsed * 1000},
+            )
+            return False
+
+    @staticmethod
+    def _get_player_stats_reference_view(resource_path: str, external_id: str, token: Optional[str]) -> Optional[Dict[str, Any]]:
+        if not external_id:
+            return None
+
+        service_url = CricketDataService.BASE_URL.rstrip('/') + f'/crawler/player-stats/{resource_path}'
+
+        def _fetch():
+            headers = CricketDataService._build_headers(token)
+            response = requests.get(
+                service_url,
+                params={"externalId": external_id},
+                headers=headers,
+                timeout=min(CricketDataService.BACKEND_TIMEOUT, 20),
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json()
+
+        try:
+            return _player_stats_breaker.call(_fetch)
+        except CircuitBreakerOpenError:
+            logger.warning(
+                "player_stats.reference.read.circuit_open",
+                metadata={"breaker": "backend_player_stats", "resource_path": resource_path},
+            )
+            return None
+        except Exception as e:
+            logger.debug(
+                "player_stats.reference.read.error",
+                metadata={"error": str(e), "resource_path": resource_path, "externalId": external_id},
+            )
+            return None
+
+    @staticmethod
+    def get_player_stats_player(external_id: str, token: Optional[str]) -> Optional[Dict[str, Any]]:
+        return CricketDataService._get_player_stats_reference_view("player", external_id, token)
+
+    @staticmethod
+    def get_player_stats_team(external_id: str, token: Optional[str]) -> Optional[Dict[str, Any]]:
+        return CricketDataService._get_player_stats_reference_view("team", external_id, token)
+
+    @staticmethod
+    def get_player_stats_series(external_id: str, token: Optional[str]) -> Optional[Dict[str, Any]]:
+        return CricketDataService._get_player_stats_reference_view("series", external_id, token)
+
+    @staticmethod
+    def get_player_stats_series_standings(external_id: str, token: Optional[str]) -> Optional[Dict[str, Any]]:
+        return CricketDataService._get_player_stats_reference_view("series/standings", external_id, token)
+
+    @staticmethod
+    def get_last_updated_data(source_url: str, token: Optional[str]) -> Optional[Dict[str, Any]]:
+        """Fetch the latest live match snapshot for a specific match URL."""
+        if not source_url:
+            return None
+
+        service_url = CricketDataService._service_base_url() + '/last-updated-data'
+
+        def _fetch():
+            headers = CricketDataService._build_headers(token)
+            response = requests.get(
+                service_url,
+                params={"url": source_url},
+                headers=headers,
+                timeout=min(CricketDataService.BACKEND_TIMEOUT, 20),
+            )
+            response.raise_for_status()
+            return response.json()
+
+        try:
+            snapshot = _api_breaker.call(_fetch)
+            logger.debug("player_stats.live_snapshot.success", metadata={"url": source_url})
+            return snapshot
+        except CircuitBreakerOpenError:
+            logger.warning("player_stats.live_snapshot.circuit_open", metadata={"breaker": "backend_api"})
+            return None
+        except Exception as e:
+            logger.warning("player_stats.live_snapshot.error", metadata={"error": str(e), "url": source_url})
+            return None
 
     @staticmethod
     def get_live_matches(token):
@@ -486,9 +690,7 @@ class CricketDataService:
         }
         
         try:
-            headers = {"Content-Type": "application/json"}
-            if token:
-                headers["Authorization"] = f"Bearer {token}"
+            headers = CricketDataService._build_headers(token)
             
             # Build payload matching CricketDataDTO exactly
             payload = {
