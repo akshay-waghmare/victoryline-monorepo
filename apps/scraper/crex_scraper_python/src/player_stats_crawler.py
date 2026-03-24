@@ -544,8 +544,17 @@ class PlayerStatsCrawlerService:
         if task_type == "UPCOMING":
             return 2
         if task_type == "PLAYER_REFERENCE":
+            # Boost priority for players from live/upcoming matches
+            source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
+            if source_type == "LIVE":
+                return 2
+            if source_type == "UPCOMING":
+                return 2
             return 3
         if task_type == "SERIES_STANDINGS":
+            source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
+            if source_type in ("LIVE", "UPCOMING"):
+                return 3
             return 4
         return 5
 
@@ -554,10 +563,18 @@ class PlayerStatsCrawlerService:
         if task_type == "LIVE":
             return float(self.settings.player_stats_live_cooldown_seconds)
         if task_type == "PLAYER_REFERENCE":
+            # First-time scrape (never succeeded): minimal cooldown so we
+            # quickly populate stats for players in today's matches
+            if not candidate.last_success_at:
+                return 30.0
             return max(float(self.settings.player_stats_cache_ttl_seconds), 6 * 3600.0)
         if task_type == "SERIES_STANDINGS":
+            if not candidate.last_success_at:
+                return 60.0
             return max(float(self.settings.player_stats_upcoming_cooldown_seconds), 1800.0)
         if task_type == "TEAM_RANKINGS":
+            if not candidate.last_success_at:
+                return 60.0
             return max(float(self.settings.player_stats_cache_ttl_seconds), 6 * 3600.0)
 
         cooldown = float(self.settings.player_stats_upcoming_cooldown_seconds)
@@ -586,6 +603,7 @@ class PlayerStatsCrawlerService:
                 task_type="PLAYER_REFERENCE",
                 metadata={
                     "_candidate_scope": "reference",
+                    "sourceMatchTaskType": task.task_type,
                     "player": {
                         "externalId": external_id,
                         "name": player_name,
@@ -610,6 +628,7 @@ class PlayerStatsCrawlerService:
                 task_type="SERIES_STANDINGS",
                 metadata={
                     "_candidate_scope": "reference",
+                    "sourceMatchTaskType": task.task_type,
                     "series": series_payload,
                     "teams": teams,
                     "sourceMatchUrl": task.match_url,
@@ -625,6 +644,7 @@ class PlayerStatsCrawlerService:
                 task_type="TEAM_RANKINGS",
                 metadata={
                     "_candidate_scope": "reference",
+                    "sourceMatchTaskType": task.task_type,
                     "teams": teams,
                     "sourceMatchUrl": task.match_url,
                 },
@@ -662,6 +682,12 @@ class PlayerStatsCrawlerService:
         for key, value in (incoming or {}).items():
             if key == "teams":
                 merged[key] = PlayerStatsCrawlerService._merge_team_lists(merged.get(key), value)
+            elif key == "sourceMatchTaskType":
+                # Keep the higher-urgency source: LIVE > UPCOMING > other
+                _priority = {"LIVE": 0, "UPCOMING": 1}
+                old_p = _priority.get(str(merged.get(key) or "").upper(), 99)
+                new_p = _priority.get(str(value or "").upper(), 99)
+                merged[key] = value if new_p <= old_p else merged.get(key, value)
             elif isinstance(merged.get(key), dict) and isinstance(value, dict):
                 nested = dict(merged.get(key) or {})
                 nested.update(value)

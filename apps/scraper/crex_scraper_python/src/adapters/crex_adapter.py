@@ -13,6 +13,12 @@ from urllib.parse import urlparse, parse_qs, urljoin
 from playwright.async_api import BrowserContext, Page, Response
 from bs4 import BeautifulSoup
 
+try:
+    import httpx
+    _HTTPX_AVAILABLE = True
+except ImportError:
+    _HTTPX_AVAILABLE = False
+
 from .base import SourceAdapter
 from ..dom_match_extract import extract_match_dom_fields
 from ..parsers.crex_parser import extract_match_stats_by_innings, parse_runs_and_balls, parse_batsman_stats
@@ -1686,7 +1692,48 @@ class CrexAdapter(SourceAdapter):
         finally:
             await page.close()
 
+    _FAST_HTTP_HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    async def _fetch_reference_html_fast(self, url: str, *, min_length: int = 5000) -> Optional[str]:
+        """Fetch reference page HTML via async httpx (no browser).
+        Returns None if httpx is unavailable or the response looks incomplete,
+        so the caller can fall back to the Playwright path.
+        """
+        if not _HTTPX_AVAILABLE:
+            return None
+        try:
+            async with httpx.AsyncClient(
+                follow_redirects=True,
+                timeout=httpx.Timeout(15.0, connect=10.0),
+            ) as client:
+                resp = await client.get(url, headers=self._FAST_HTTP_HEADERS)
+            if resp.status_code != 200:
+                logger.debug(f"Fast HTTP fetch {url} returned {resp.status_code}, falling back to browser")
+                return None
+            html = resp.text
+            if len(html) < min_length:
+                logger.debug(f"Fast HTTP fetch {url} returned short HTML ({len(html)} bytes), falling back to browser")
+                return None
+            return html
+        except Exception as exc:
+            logger.debug(f"Fast HTTP fetch failed for {url}: {exc}")
+            return None
+
     async def fetch_player_reference(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+        # Try fast HTTP first — CREX player pages are server-side rendered
+        html = await self._fetch_reference_html_fast(url)
+        if html is not None:
+            payload = analyze_player_page_html(html, source_url=url)
+            if payload.get("career_stats") or payload.get("profile"):
+                logger.info(f"Fast HTTP fetch succeeded for player reference: {url}")
+                payload["url"] = url
+                return payload
+            logger.debug(f"Fast HTTP fetch for {url} returned incomplete data, falling back to browser")
+
         html = await self._fetch_reference_html(
             context,
             url,
@@ -1701,6 +1748,16 @@ class CrexAdapter(SourceAdapter):
         return payload
 
     async def fetch_standings_reference(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+        # Try fast HTTP first for standings pages
+        html = await self._fetch_reference_html_fast(url)
+        if html is not None:
+            payload = analyze_standings_html(html)
+            if payload.get("standings") or payload.get("points_table"):
+                logger.info(f"Fast HTTP fetch succeeded for standings reference: {url}")
+                payload["url"] = url
+                return payload
+            logger.debug(f"Fast HTTP fetch for {url} returned incomplete standings, falling back to browser")
+
         html = await self._fetch_reference_html(
             context,
             url,

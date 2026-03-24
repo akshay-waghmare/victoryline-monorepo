@@ -1341,7 +1341,74 @@ trackByStatsSnapshot(index: number, snapshot: PlayerStatsSnapshotView): string {
 }
 
 isSnapshotObjectPayload(payload: any): boolean {
-  return !!payload && !Array.isArray(payload) && typeof payload === 'object';
+  if (!payload || Array.isArray(payload) || typeof payload !== 'object') {
+    return false;
+  }
+  // Not a table wrapper {headers, rows} or recent_form {batting, bowling}
+  if (this.isHeaderRowsPayload(payload) || this.isRecentFormPayload(payload)) {
+    return false;
+  }
+  // If it has a nested 'profile' key, unwrap it
+  if (payload.profile && typeof payload.profile === 'object' && !Array.isArray(payload.profile)) {
+    return true;
+  }
+  return true;
+}
+
+isHeaderRowsPayload(payload: any): boolean {
+  return !!payload
+    && !Array.isArray(payload)
+    && typeof payload === 'object'
+    && Array.isArray(payload.rows)
+    && payload.rows.length > 0;
+}
+
+isRecentFormPayload(payload: any): boolean {
+  return !!payload
+    && !Array.isArray(payload)
+    && typeof payload === 'object'
+    && (Array.isArray(payload.batting) || Array.isArray(payload.bowling));
+}
+
+unwrapPayloadRows(payload: any): any[] {
+  if (this.isHeaderRowsPayload(payload)) {
+    return payload.rows;
+  }
+  return [];
+}
+
+unwrapProfileEntries(payload: any): Array<{ key: string; value: string }> {
+  var source = (payload && payload.profile && typeof payload.profile === 'object')
+    ? payload.profile
+    : payload;
+  if (!source || Array.isArray(source) || typeof source !== 'object') {
+    return [];
+  }
+  var skipKeys = ['bio', 'pageTitle', 'url', 'sourceMatchUrl', 'headers', 'rows', 'batting', 'bowling'];
+  return Object.keys(source)
+    .filter(function(key: string) { return skipKeys.indexOf(key) === -1; })
+    .filter(function(key: string) {
+      var v = source[key];
+      return v !== null && v !== undefined && v !== '' && typeof v !== 'object';
+    })
+    .map(function(key: string) {
+      return { key: key, value: String(source[key]) };
+    });
+}
+
+getRecentFormBatting(payload: any): any[] {
+  if (!payload || !Array.isArray(payload.batting)) { return []; }
+  // Skip the header-like first entry
+  return payload.batting.filter(function(entry: any) {
+    return entry && entry.scorecard_url && entry.scorecard_url !== payload.batting[0].scorecard_url;
+  }).slice(0, 10);
+}
+
+getRecentFormBowling(payload: any): any[] {
+  if (!payload || !Array.isArray(payload.bowling)) { return []; }
+  return payload.bowling.filter(function(entry: any) {
+    return entry && entry.scorecard_url && entry.scorecard_url !== payload.bowling[0].scorecard_url;
+  }).slice(0, 10);
 }
 
 isSnapshotTablePayload(payload: any): boolean {
@@ -1361,12 +1428,24 @@ getSnapshotPayloadEntries(payload: any): Array<{ key: string; value: any }> {
     return [];
   }
 
-  return Object.keys(payload).map(function(key: string) {
-    return {
-      key: key,
-      value: payload[key]
-    };
-  });
+  // For profile payloads, use the unwrapper
+  if (payload && payload.profile && typeof payload.profile === 'object') {
+    return this.unwrapProfileEntries(payload);
+  }
+
+  var skipKeys = ['headers', 'rows', 'batting', 'bowling', 'bio', 'pageTitle', 'url', 'sourceMatchUrl'];
+  return Object.keys(payload)
+    .filter(function(key: string) { return skipKeys.indexOf(key) === -1; })
+    .filter(function(key: string) {
+      var v = payload[key];
+      return typeof v !== 'object' || v === null;
+    })
+    .map(function(key: string) {
+      return {
+        key: key,
+        value: payload[key]
+      };
+    });
 }
 
 getSnapshotTableColumns(rows: any[]): string[] {

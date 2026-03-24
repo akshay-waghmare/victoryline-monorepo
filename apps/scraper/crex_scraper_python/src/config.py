@@ -142,11 +142,11 @@ class ScraperSettings:
     # Player Stats Crawler Config
     enable_player_stats_crawler: bool = False
     player_stats_polling_interval_seconds: float = 300.0
-    player_stats_batch_size: int = 2
-    player_stats_queue_size: int = 100
+    player_stats_batch_size: int = 8
+    player_stats_queue_size: int = 200
     player_stats_worker_count: int = 1
-    player_stats_rate_limit_tokens_per_sec: float = 0.1
-    player_stats_rate_limit_burst: int = 2
+    player_stats_rate_limit_tokens_per_sec: float = 0.5
+    player_stats_rate_limit_burst: int = 8
     player_stats_task_timeout_seconds: float = 45.0
     player_stats_cache_ttl_seconds: int = 1800
     player_stats_upcoming_cooldown_seconds: int = 900
@@ -315,15 +315,15 @@ class ScraperSettings:
             300.0,
             minimum=30.0,
         )
-        player_stats_batch_size = _coerce_int(env.get("PLAYER_STATS_BATCH_SIZE"), 2, minimum=1)
-        player_stats_queue_size = _coerce_int(env.get("PLAYER_STATS_QUEUE_SIZE"), 100, minimum=1)
+        player_stats_batch_size = _coerce_int(env.get("PLAYER_STATS_BATCH_SIZE"), 8, minimum=1)
+        player_stats_queue_size = _coerce_int(env.get("PLAYER_STATS_QUEUE_SIZE"), 200, minimum=1)
         player_stats_worker_count = _coerce_int(env.get("PLAYER_STATS_WORKER_COUNT"), 1, minimum=1)
         player_stats_rate_limit_tokens_per_sec = _coerce_float(
             env.get("PLAYER_STATS_RATE_LIMIT_TOKENS_PER_SEC"),
-            0.1,
+            0.5,
             minimum=0.01,
         )
-        player_stats_rate_limit_burst = _coerce_int(env.get("PLAYER_STATS_RATE_LIMIT_BURST"), 2, minimum=1)
+        player_stats_rate_limit_burst = _coerce_int(env.get("PLAYER_STATS_RATE_LIMIT_BURST"), 8, minimum=1)
         player_stats_task_timeout_seconds = _coerce_float(
             env.get("PLAYER_STATS_TASK_TIMEOUT_SECONDS"),
             45.0,
