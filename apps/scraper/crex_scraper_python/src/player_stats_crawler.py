@@ -12,12 +12,18 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
+try:
+    import httpx
+except ImportError:
+    httpx = None  # type: ignore[assignment]
+
 from .adapters.rate_limit import TokenBucket
 from .cache import ScrapeCache
 from .config import get_settings
 from .cricket_data_service import CricketDataService
+from .loggers.adapters import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(component="player_stats_crawler")
 
 
 @dataclass(order=True)
@@ -372,14 +378,21 @@ class PlayerStatsCrawlerService:
         await self._record_candidate_result(task.match_id, success=False, error="unsupported_task_type")
 
     async def _process_match_task(self, task: PlayerStatsTask) -> None:
-        adapter = self.registry.get_adapter("crex")
-        if adapter is None or not hasattr(adapter, "fetch_player_stats_seed"):
-            logger.warning("Player stats crawler skipped because CREX adapter seed extraction is unavailable.")
-            return
+        # Fast path: iV4 API + localStorage (no Playwright)
+        seed_payload = await self._fetch_iv4_seed(task.match_url)
+        if seed_payload and (seed_payload.get("players") or []):
+            logger.info(f"[iV4-FAST] Got seed for {task.match_id} with {len(seed_payload['players'])} players (no browser)")
+        else:
+            # Fallback: Playwright-based seed fetch
+            adapter = self.registry.get_adapter("crex")
+            if adapter is None or not hasattr(adapter, "fetch_player_stats_seed"):
+                logger.warning("Player stats crawler skipped because CREX adapter seed extraction is unavailable.")
+                return
+            logger.info(f"[iV4-FALLBACK] Using Playwright seed for {task.match_id}")
+            info_url = self._ensure_variant(task.match_url, "info")
+            async with self.pool.get_context() as context:
+                seed_payload = await adapter.fetch_player_stats_seed(context, info_url)
 
-        info_url = self._ensure_variant(task.match_url, "info")
-        async with self.pool.get_context() as context:
-            seed_payload = await adapter.fetch_player_stats_seed(context, info_url)
         await self._discover_reference_candidates(task, seed_payload)
 
         players = seed_payload.get("players") or []
@@ -420,6 +433,150 @@ class PlayerStatsCrawlerService:
             await self._record_candidate_result(task.match_id, success=True)
         else:
             await self._record_candidate_result(task.match_id, success=False, error="push_failed")
+
+    async def _fetch_iv4_seed(self, match_url: str) -> Optional[Dict[str, Any]]:
+        """Fetch player/team data via iV4 API + cached localStorage — no browser needed.
+
+        Returns a seed payload in the same format as fetch_player_stats_seed(), or None.
+        """
+        if httpx is None:
+            return None
+
+        api_key = self._extract_api_key(match_url)
+        if not api_key:
+            logger.debug(f"[iV4] Cannot extract API key from {match_url}")
+            return None
+
+        match_id = self._extract_match_id(match_url)
+        local_storage: Optional[Dict[str, str]] = None
+        if match_id and self.cache:
+            try:
+                local_storage = await self.cache.get_local_storage(match_id)
+            except Exception as exc:
+                logger.debug(f"[iV4] localStorage cache miss for {match_id}: {exc}")
+
+        if not local_storage:
+            logger.debug(f"[iV4] No localStorage for {match_id}; skipping fast path")
+            return None
+
+        try:
+            async with httpx.AsyncClient(
+                follow_redirects=True,
+                timeout=httpx.Timeout(10.0, connect=5.0),
+            ) as client:
+                resp = await client.get(
+                    f"https://api-v1.com/w/iV4.php?key={api_key}",
+                    headers={"User-Agent": "Mozilla/5.0"},
+                )
+                resp.raise_for_status()
+                iv4 = resp.json()
+        except Exception as exc:
+            logger.debug(f"[iV4] API call failed for key={api_key}: {exc}")
+            return None
+
+        if not isinstance(iv4, dict) or "tp" not in iv4:
+            logger.debug(f"[iV4] Invalid response for key={api_key}")
+            return None
+
+        return self._decode_iv4_to_seed(iv4, local_storage, match_url)
+
+    def _decode_iv4_to_seed(
+        self,
+        iv4: Dict[str, Any],
+        local_storage: Dict[str, str],
+        match_url: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Decode an iV4 API response into the seed payload format expected by the crawler."""
+        team_codes = iv4.get("t", "").split("-")
+
+        # Build player name lookup from localStorage
+        player_names: Dict[str, str] = {}
+        for k, v in local_storage.items():
+            if k.startswith("p_") and k.endswith("_name"):
+                code = k[2:-5]
+                player_names[code] = v
+
+        team_names: Dict[str, str] = {}
+        for k, v in local_storage.items():
+            if k.startswith("t_") and k.endswith("_name"):
+                code = k[2:-5]
+                team_names[code] = v
+
+        # Parse team players from tp (batting) and tb (bowling)
+        tp_teams = iv4.get("tp", "").split("/")
+        tb_teams = iv4.get("tb", "").split("/")
+
+        players: List[Dict[str, Any]] = []
+        team_links: List[Dict[str, Any]] = []
+
+        for team_idx, team_code in enumerate(team_codes):
+            team_name = team_names.get(team_code, team_code)
+            team_links.append({"name": team_name, "url": None})
+
+            # Collect all player codes for this team from tp + tb
+            seen_codes: Dict[str, bool] = {}
+            if team_idx < len(tp_teams):
+                for entry in tp_teams[team_idx].split("-"):
+                    code = entry.split(".")[0]
+                    if code:
+                        seen_codes[code] = True  # batting player
+            if team_idx < len(tb_teams):
+                for entry in tb_teams[team_idx].split("-"):
+                    code = entry.split(".")[0]
+                    if code and code not in seen_codes:
+                        seen_codes[code] = False  # bowling-only player
+
+            for order, (code, is_batter) in enumerate(seen_codes.items(), start=1):
+                name = player_names.get(code)
+                if not name:
+                    continue
+                slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+                player_url = f"https://crex.live/player/{slug}-{code}"
+                players.append({
+                    "team_name": team_name,
+                    "player_name": name,
+                    "player_role": None,
+                    "player_url": player_url,
+                    "lineup_order": order,
+                    "is_captain": False,
+                    "is_wicket_keeper": False,
+                    "source": "iv4_api",
+                })
+
+        if not players:
+            return None
+
+        # Series info from localStorage
+        series_code = iv4.get("s", "")
+        series_name = local_storage.get(f"s_{series_code}_name", "")
+        venue_code = iv4.get("v", "")
+        venue_name = local_storage.get(f"v_{venue_code}_name", "")
+
+        return {
+            "match_name": None,
+            "match_date": iv4.get("dt"),
+            "start_date": iv4.get("dt"),
+            "venue": venue_name or None,
+            "toss_info": None,
+            "series_name": series_name or None,
+            "series_url": None,
+            "team_links": team_links,
+            "players": players,
+        }
+
+    @staticmethod
+    def _extract_api_key(match_url: str) -> Optional[str]:
+        """Extract the CREX API key from a scoreboard URL.
+
+        URL format: /scoreboard/{apiKey}/{seriesKey}/{matchType}/{team1}/{team2}/{slug}/live
+        """
+        trimmed = (match_url or "").strip()
+        if "/scoreboard/" not in trimmed:
+            return None
+        parts = trimmed.split("/scoreboard/", 1)[1].split("/")
+        if parts and parts[0]:
+            return parts[0]
+        return None
 
     async def _process_player_reference_task(self, task: PlayerStatsTask) -> None:
         adapter = self.registry.get_adapter("crex")

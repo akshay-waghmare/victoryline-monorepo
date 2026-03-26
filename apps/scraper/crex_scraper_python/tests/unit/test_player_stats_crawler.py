@@ -451,3 +451,131 @@ def test_discover_reference_candidates_enqueues_player_series_and_rankings_resou
     assert "reference:player:virat-kohli" in service._candidates
     assert "reference:series:champions-trophy:standings" in service._candidates
     assert "reference:team-rankings:men" in service._candidates
+
+
+# ---------------------------------------------------------------------------
+# iV4 fast-path tests
+# ---------------------------------------------------------------------------
+
+class TestExtractApiKey:
+    """Verify _extract_api_key parses the match API key from scoreboard URLs."""
+
+    def test_full_scoreboard_url(self):
+        url = "https://crex.com/scoreboard/113X/2F5/2nd-Semi-Final/1ER/1EU/gw-vs-ss-2nd-semi-final-2026/live"
+        assert PlayerStatsCrawlerService._extract_api_key(url) == "113X"
+
+    def test_short_scoreboard_url(self):
+        url = "https://crex.com/scoreboard/ABCD/series/match-type/t1/t2/slug/live"
+        assert PlayerStatsCrawlerService._extract_api_key(url) == "ABCD"
+
+    def test_no_scoreboard_returns_none(self):
+        url = "https://crex.com/player/virat-kohli-ABC"
+        assert PlayerStatsCrawlerService._extract_api_key(url) is None
+
+    def test_empty_string_returns_none(self):
+        assert PlayerStatsCrawlerService._extract_api_key("") is None
+
+    def test_none_returns_none(self):
+        assert PlayerStatsCrawlerService._extract_api_key(None) is None
+
+    def test_scoreboard_with_trailing_slash(self):
+        url = "https://crex.com/scoreboard/XYZ/"
+        assert PlayerStatsCrawlerService._extract_api_key(url) == "XYZ"
+
+
+class TestDecodeIv4ToSeed:
+    """Verify _decode_iv4_to_seed builds a valid seed payload from iV4 response."""
+
+    def _make_service(self):
+        reload_settings({})
+        return PlayerStatsCrawlerService(
+            pool=None,
+            cache=_DummyCache(),
+            registry=_DummyRegistry(),
+            auth_token_provider=lambda: None,
+        )
+
+    def test_basic_decode(self):
+        svc = self._make_service()
+        iv4 = {
+            "t": "1EU-1ER",
+            "tp": "IFW..2.1.0.0.1.4.4.0-IJK..1.0.0.0.0.2.0.0/NJH..3.2.0.0.0.5.6.0",
+            "tb": "/NJH..4.1.2.0.1.15.0.0-NKM..3.0.1.0.0.12.0.0",
+            "s": "2F5",
+            "v": "V99",
+            "dt": "2026-05-20",
+        }
+        local_storage = {
+            "t_1EU_name": "Gandiv Warriors",
+            "t_1ER_name": "Saryu Superheroes",
+            "p_IFW_name": "Divya Prakash Singh",
+            "p_IJK_name": "Ajay Kumar",
+            "p_NJH_name": "Rahul Sharma",
+            "p_NKM_name": "Mohit Verma",
+            "s_2F5_name": "Ayodhya Premier League 2026",
+            "v_V99_name": "Ayodhya Stadium",
+        }
+
+        result = svc._decode_iv4_to_seed(iv4, local_storage, "https://crex.com/scoreboard/113X/2F5/final/1EU/1ER/slug/live")
+
+        assert result is not None
+        assert result["series_name"] == "Ayodhya Premier League 2026"
+        assert result["venue"] == "Ayodhya Stadium"
+        assert result["match_date"] == "2026-05-20"
+        assert len(result["players"]) == 4
+        assert len(result["team_links"]) == 2
+        assert result["team_links"][0]["name"] == "Gandiv Warriors"
+        assert result["team_links"][1]["name"] == "Saryu Superheroes"
+
+        # Check player URL construction
+        dp_player = next(p for p in result["players"] if p["player_name"] == "Divya Prakash Singh")
+        assert dp_player["player_url"] == "https://crex.live/player/divya-prakash-singh-IFW"
+        assert dp_player["source"] == "iv4_api"
+        assert dp_player["team_name"] == "Gandiv Warriors"
+
+    def test_missing_player_name_skips_player(self):
+        svc = self._make_service()
+        iv4 = {
+            "t": "1EU",
+            "tp": "IFW..1.0.0.0.0.0.0.0-UNKNOWN..1.0.0.0.0.0.0.0",
+            "tb": "",
+            "s": "2F5",
+            "v": "V99",
+            "dt": "2026-05-20",
+        }
+        local_storage = {
+            "t_1EU_name": "Warriors",
+            "p_IFW_name": "Known Player",
+            # UNKNOWN not in localStorage
+        }
+        result = svc._decode_iv4_to_seed(iv4, local_storage, "url")
+        assert result is not None
+        assert len(result["players"]) == 1
+        assert result["players"][0]["player_name"] == "Known Player"
+
+    def test_empty_teams_returns_none(self):
+        svc = self._make_service()
+        iv4 = {"t": "", "tp": "", "tb": "", "s": "", "v": "", "dt": ""}
+        result = svc._decode_iv4_to_seed(iv4, {}, "url")
+        assert result is None
+
+    def test_bowling_only_player_included(self):
+        """Players only in tb (bowling) but not in tp should still appear."""
+        svc = self._make_service()
+        iv4 = {
+            "t": "A",
+            "tp": "P1..1.0.0.0.0.0.0.0",  # P1 bats
+            "tb": "P1..1.0.0.0.0.0.0.0-P2..2.0.0.0.0.0.0.0",  # P2 bowls only
+            "s": "",
+            "v": "",
+            "dt": "",
+        }
+        local_storage = {
+            "t_A_name": "Team A",
+            "p_P1_name": "Player One",
+            "p_P2_name": "Player Two",
+        }
+        result = svc._decode_iv4_to_seed(iv4, local_storage, "url")
+        assert result is not None
+        names = {p["player_name"] for p in result["players"]}
+        assert names == {"Player One", "Player Two"}
