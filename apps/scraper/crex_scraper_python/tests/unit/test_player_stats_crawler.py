@@ -288,6 +288,126 @@ def test_build_team_rankings_reference_requests_reuses_observed_team_aliases():
     assert requests[0]["snapshots"][0]["category"] == "team_ranking_odi"
 
 
+# ---------------------------------------------------------------------------
+# Priority & cooldown tests
+# ---------------------------------------------------------------------------
+
+from src.player_stats_crawler import PlayerStatsCandidate
+import time
+
+
+def _make_service():
+    reload_settings({
+        "PLAYER_STATS_LIVE_COOLDOWN_SECONDS": "30",
+        "PLAYER_STATS_UPCOMING_COOLDOWN_SECONDS": "120",
+        "PLAYER_STATS_CACHE_TTL_SECONDS": "1800",
+    })
+    return PlayerStatsCrawlerService(
+        pool=None,
+        cache=_DummyCache(),
+        registry=_DummyRegistry(),
+        auth_token_provider=lambda: None,
+    )
+
+
+def _candidate(task_type, *, source_match=None, last_success=False, scheduled_start_time=None):
+    metadata = {}
+    if source_match:
+        metadata["sourceMatchTaskType"] = source_match
+    return PlayerStatsCandidate(
+        match_id=f"test:{task_type}",
+        match_url="https://crex.com/test",
+        task_type=task_type,
+        scheduled_start_time=scheduled_start_time,
+        metadata=metadata,
+        last_success_at=time.time() if last_success else 0.0,
+    )
+
+
+class TestPriorityForCandidate:
+    """Verify live-context tasks get highest priority."""
+
+    def test_live_match_is_priority_1(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("LIVE")) == 1
+
+    def test_player_reference_from_live_is_priority_1(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("PLAYER_REFERENCE", source_match="LIVE")) == 1
+
+    def test_series_standings_from_live_is_priority_1(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("SERIES_STANDINGS", source_match="LIVE")) == 1
+
+    def test_series_standings_from_upcoming_is_priority_2(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("SERIES_STANDINGS", source_match="UPCOMING")) == 2
+
+    def test_team_rankings_from_live_is_priority_2(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("TEAM_RANKINGS", source_match="LIVE")) == 2
+
+    def test_team_rankings_from_upcoming_is_priority_3(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("TEAM_RANKINGS", source_match="UPCOMING")) == 3
+
+    def test_team_rankings_default_is_priority_5(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("TEAM_RANKINGS")) == 5
+
+    def test_completed_never_scraped_is_priority_3(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("COMPLETED", last_success=False)) == 3
+
+    def test_completed_already_scraped_is_priority_5(self):
+        svc = _make_service()
+        assert svc._priority_for_candidate(_candidate("COMPLETED", last_success=True)) == 5
+
+    def test_upcoming_today_is_priority_2(self):
+        svc = _make_service()
+        soon = int((time.time() + 3600) * 1000)  # 1 hour from now
+        assert svc._priority_for_candidate(_candidate("UPCOMING", scheduled_start_time=soon)) == 2
+
+
+class TestCooldownForCandidate:
+    """Verify live-context tasks get shorter cooldowns."""
+
+    def test_live_match_uses_live_cooldown(self):
+        svc = _make_service()
+        cd = svc._cooldown_for_candidate(_candidate("LIVE"))
+        assert cd == 30.0
+
+    def test_series_standings_live_after_success_uses_live_cooldown(self):
+        svc = _make_service()
+        cd = svc._cooldown_for_candidate(_candidate("SERIES_STANDINGS", source_match="LIVE", last_success=True))
+        assert cd == 30.0  # live cooldown, not 1800s
+
+    def test_series_standings_non_live_after_success_uses_long_cooldown(self):
+        svc = _make_service()
+        cd = svc._cooldown_for_candidate(_candidate("SERIES_STANDINGS", last_success=True))
+        assert cd >= 1800.0
+
+    def test_team_rankings_live_after_success_uses_short_cooldown(self):
+        svc = _make_service()
+        cd = svc._cooldown_for_candidate(_candidate("TEAM_RANKINGS", source_match="LIVE", last_success=True))
+        assert cd == 60.0  # live_cooldown * 2
+
+    def test_team_rankings_non_live_after_success_uses_long_cooldown(self):
+        svc = _make_service()
+        cd = svc._cooldown_for_candidate(_candidate("TEAM_RANKINGS", last_success=True))
+        assert cd >= 6 * 3600.0
+
+    def test_player_reference_live_after_success_uses_moderate_cooldown(self):
+        svc = _make_service()
+        cd = svc._cooldown_for_candidate(_candidate("PLAYER_REFERENCE", source_match="LIVE", last_success=True))
+        assert cd == 120.0  # live_cooldown * 4
+
+    def test_player_reference_non_live_after_success_uses_long_cooldown(self):
+        svc = _make_service()
+        cd = svc._cooldown_for_candidate(_candidate("PLAYER_REFERENCE", last_success=True))
+        assert cd >= 6 * 3600.0
+
+
 def test_discover_reference_candidates_enqueues_player_series_and_rankings_resources():
     reload_settings({})
     service = PlayerStatsCrawlerService(

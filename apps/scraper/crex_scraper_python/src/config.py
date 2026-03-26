@@ -144,9 +144,9 @@ class ScraperSettings:
     player_stats_polling_interval_seconds: float = 300.0
     player_stats_batch_size: int = 8
     player_stats_queue_size: int = 200
-    player_stats_worker_count: int = 1
-    player_stats_rate_limit_tokens_per_sec: float = 0.5
-    player_stats_rate_limit_burst: int = 8
+    player_stats_worker_count: int = 3
+    player_stats_rate_limit_tokens_per_sec: float = 1.0
+    player_stats_rate_limit_burst: int = 10
     player_stats_task_timeout_seconds: float = 45.0
     player_stats_cache_ttl_seconds: int = 1800
     player_stats_upcoming_cooldown_seconds: int = 900

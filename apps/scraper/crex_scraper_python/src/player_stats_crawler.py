@@ -544,9 +544,9 @@ class PlayerStatsCrawlerService:
 
     def _priority_for_candidate(self, candidate: PlayerStatsCandidate) -> int:
         """Priority hierarchy:
-        1 = LIVE matches (highest)
-        2 = Today's upcoming matches + their players
-        3 = Completed matches (not yet scraped) + their players
+        1 = LIVE matches + their standings/player refs (highest)
+        2 = Today's upcoming matches + live team rankings + their players
+        3 = Completed matches (not yet scraped) + upcoming standings
         4 = Tomorrow's upcoming matches + their players
         5 = Far-future matches / low-priority references
         """
@@ -566,9 +566,9 @@ class PlayerStatsCrawlerService:
         if task_type == "PLAYER_REFERENCE":
             source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
             if source_type == "LIVE":
-                return 2
+                return 1  # Live player data is critical UX
             if source_type == "UPCOMING":
-                return 2  # Player from today's match
+                return 2
             if source_type == "COMPLETED":
                 if not candidate.last_success_at:
                     return 3
@@ -576,7 +576,16 @@ class PlayerStatsCrawlerService:
             return 4
         if task_type == "SERIES_STANDINGS":
             source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
-            if source_type in ("LIVE", "UPCOMING"):
+            if source_type == "LIVE":
+                return 1  # Live tournament standings are critical UX
+            if source_type == "UPCOMING":
+                return 2
+            return 5
+        if task_type == "TEAM_RANKINGS":
+            source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
+            if source_type == "LIVE":
+                return 2  # Team stats for live match viewers
+            if source_type == "UPCOMING":
                 return 3
             return 5
         return 5
@@ -603,18 +612,30 @@ class PlayerStatsCrawlerService:
                 return 30.0
             return 24 * 3600.0
         if task_type == "PLAYER_REFERENCE":
-            # First-time scrape (never succeeded): minimal cooldown so we
+            source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
+            # First-time scrape: minimal cooldown so we
             # quickly populate stats for players in today's matches
             if not candidate.last_success_at:
                 return 30.0
+            # Live player references refresh on live cadence (lineup can change)
+            if source_type == "LIVE":
+                return float(self.settings.player_stats_live_cooldown_seconds) * 4
             return max(float(self.settings.player_stats_cache_ttl_seconds), 6 * 3600.0)
         if task_type == "SERIES_STANDINGS":
+            source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
             if not candidate.last_success_at:
                 return 60.0
+            # Live standings must refresh frequently for UX
+            if source_type == "LIVE":
+                return float(self.settings.player_stats_live_cooldown_seconds)
             return max(float(self.settings.player_stats_upcoming_cooldown_seconds), 1800.0)
         if task_type == "TEAM_RANKINGS":
+            source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
             if not candidate.last_success_at:
                 return 60.0
+            # Live team rankings refresh on a moderate cadence
+            if source_type == "LIVE":
+                return float(self.settings.player_stats_live_cooldown_seconds) * 2
             return max(float(self.settings.player_stats_cache_ttl_seconds), 6 * 3600.0)
 
         cooldown = float(self.settings.player_stats_upcoming_cooldown_seconds)
