@@ -67,8 +67,10 @@ export class LineupsComponent implements OnInit, OnChanges {
     if (this.playingXIData && this.playingXIData.playing_xi) {
       const teamNames = Object.keys(this.playingXIData.playing_xi);
       this.teams = teamNames.map((teamName, index) => {
-        const snapshotTeam = this.findSnapshotTeam(teamName);
-        const players = this.playingXIData.playing_xi[teamName].map((p: any) => {
+        const lineupEntries = this.playingXIData.playing_xi[teamName] || [];
+        const lineupPlayerNames = lineupEntries.map((p: any) => this.sanitizePlayerName(p.playerName));
+        const snapshotTeam = this.findSnapshotTeam(teamName, lineupPlayerNames);
+        const players = lineupEntries.map((p: any) => {
           const playerName = this.sanitizePlayerName(p.playerName);
           const snapshotPlayer = this.findSnapshotPlayer(snapshotTeam, playerName);
 
@@ -223,7 +225,7 @@ export class LineupsComponent implements OnInit, OnChanges {
     };
   }
 
-  private findSnapshotTeam(teamName: string): PlayerStatsTeamView | null {
+  private findSnapshotTeam(teamName: string, lineupPlayerNames?: string[]): PlayerStatsTeamView | null {
     if (!this.playerStatsMatch || !this.playerStatsMatch.teams) {
       return null;
     }
@@ -239,6 +241,31 @@ export class LineupsComponent implements OnInit, OnChanges {
 
       if (possibleMatches.indexOf(normalizedTarget) !== -1) {
         return team;
+      }
+    }
+
+    if (lineupPlayerNames && lineupPlayerNames.length) {
+      let bestMatch: PlayerStatsTeamView | null = null;
+      let bestScore = 0;
+
+      for (let index = 0; index < this.playerStatsMatch.teams.length; index++) {
+        const team = this.playerStatsMatch.teams[index];
+        let score = 0;
+
+        for (let playerIndex = 0; playerIndex < lineupPlayerNames.length; playerIndex++) {
+          if (this.findSnapshotPlayer(team, lineupPlayerNames[playerIndex])) {
+            score += 1;
+          }
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = team;
+        }
+      }
+
+      if (bestMatch && bestScore > 0) {
+        return bestMatch;
       }
     }
 
