@@ -138,6 +138,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   playerStatsMatch: PlayerStatsMatchView | null = null;
   isLoadingPlayerStats: boolean = false;
   playerStatsError: boolean = false;
+  seriesPageUrlFallback: string | null = null;
+  private resolvedSeriesContext: PlayerStatsSeriesView | null = null;
+  private lastResolvedRouteSlug: string | null = null;
   statsExplorerSource: 'lineups' | 'scorecard' | null = null;
   selectedStatsExplorerType: 'player' | 'team' | 'series' | null = null;
   selectedStatsExplorerPlayer: PlayerStatsSquadPlayerView | null = null;
@@ -261,37 +264,45 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
 
   private fetchCricketData() {
-    this.activatedRoute.params.subscribe(params => {
-      const match = params['path']; // Use 'path' instead of 'match'
-      this.matchUrl = match;
-      this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId')
-                    || params['matchId']
-                    || match
-                    || this.matchId;
+    const params = this.activatedRoute.snapshot.params;
+    const match = params['path']; // Use 'path' instead of 'match'
+    const isSameRouteMatch = !!(match && this.lastResolvedRouteSlug && this.lastResolvedRouteSlug === match);
+
+    this.matchUrl = match;
+    this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId')
+                  || params['matchId']
+                  || match
+                  || this.matchId;
+
+    if (!isSameRouteMatch) {
       this.resetStatsExplorerState();
       this.playerStatsMatch = null;
       this.playerStatsError = false;
-      this.fetchPlayerStatsForMatch(null, match);
-      this.resolveRouteMatch(match);
+      this.currentMatch = null;
+      this.resolvedSeriesContext = null;
+      this.seriesPageUrlFallback = null;
+      this.lastResolvedRouteSlug = match;
+    }
 
-      this.cricketService.getLastUpdatedData(match).subscribe(data => {
-        this.parseCricObjData(data);
-      });
-      //watching live score for cricket data
-      this.cricetTopicSubscription = this.rxStompService.watch(`/topic/cricket.${match}.*`).subscribe((data) => {
-        this.parseCricObjData(data);
-        // Cache WebSocket updates for instant load on next visit
-        try {
-          const parsed = data && 'body' in data ? JSON.parse(data.body) : data;
-          if (parsed) {
-            this.cricketService.updateMatchDataCache(match, parsed);
-          }
-        } catch (_) { /* non-critical */ }
-      });
-      
-      // Fetch match info for hero component
-      this.fetchMatchInfo(match);
+    this.resolveRouteMatch(match);
+
+    this.cricketService.getLastUpdatedData(match).subscribe(data => {
+      this.parseCricObjData(data);
     });
+    //watching live score for cricket data
+    this.cricetTopicSubscription = this.rxStompService.watch(`/topic/cricket.${match}.*`).subscribe((data) => {
+      this.parseCricObjData(data);
+      // Cache WebSocket updates for instant load on next visit
+      try {
+        const parsed = data && 'body' in data ? JSON.parse(data.body) : data;
+        if (parsed) {
+          this.cricketService.updateMatchDataCache(match, parsed);
+        }
+      } catch (_) { /* non-critical */ }
+    });
+    
+    // Fetch match info for hero component
+    this.fetchMatchInfo(match);
   }
 
   private parseCricObjData(data) {
@@ -880,30 +891,18 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 }
 
 onTabChange(event: MatTabChangeEvent) {
+  var match = this.activatedRoute.snapshot.params['path'];
   if (event.index === 1) { // Match Info tab is selected
-    this.activatedRoute.params.subscribe(params => {
-      const match = params['path']; // Use 'path' instead of 'match'
-      this.matchUrl = match;
-
-      this.fetchMatchInfo(this.matchUrl);
-    });
+    this.matchUrl = match;
+    this.fetchMatchInfo(this.matchUrl);
   } else if (event.index === 2) { // Scorecard tab is selected
-    //this.fetchScorecardInfo(this.matchUrl);
-
-    this.activatedRoute.params.subscribe(params => {
-      const match = params['path']; // Use 'path' instead of 'match'
-      this.matchUrl = match;
-
-      this.fetchScorecardInfo(this.matchUrl);
-    });
+    this.matchUrl = match;
+    this.fetchScorecardInfo(this.matchUrl);
   } else if (event.index === 3) { // Lineups tab is selected (002-match-details-ux)
     // Load match info if not already loaded (needed for playing XI data)
     if (!this.matchInfo) {
-      this.activatedRoute.params.subscribe(params => {
-        const match = params['path'];
-        this.matchUrl = match;
-        this.fetchMatchInfo(this.matchUrl);
-      });
+      this.matchUrl = match;
+      this.fetchMatchInfo(this.matchUrl);
     }
   }
 }
@@ -974,12 +973,14 @@ private resolveRouteMatch(matchSlug: string): void {
         .find(match => this.routeSlugMatches(matchSlug, match));
 
       if (!resolvedMatch) {
+        this.fetchPlayerStatsForMatch(null, matchSlug);
         return;
       }
 
       this.currentMatch = resolvedMatch;
       this.showLiveHero = this.isLiveLikeStatus(resolvedMatch.status);
       this.heroFallbackView = this.buildHeroFallbackView(resolvedMatch);
+      this.updateSeriesFallbackContext(resolvedMatch);
 
       var resolvedUrl = resolvedMatch.url || matchSlug;
       if (resolvedUrl && resolvedUrl !== this.matchUrl) {
@@ -1041,12 +1042,13 @@ private isLiveLikeStatus(status: string | null | undefined): boolean {
 private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): void {
   var matchUrl = match && match.url ? match.url : (this.matchUrl || this.currentUrl);
   var externalMatchKey = match && match.externalMatchKey ? match.externalMatchKey : (this.matchId || fallbackExternalKey);
+  var hasFreshCachedSnapshot = this.cricketService.hasFreshPlayerStatsMatchCache(matchUrl, externalMatchKey);
 
   if (!matchUrl && !externalMatchKey) {
     return;
   }
 
-  this.isLoadingPlayerStats = true;
+  this.isLoadingPlayerStats = !hasFreshCachedSnapshot && !this.hasPlayerStatsData();
   this.playerStatsError = false;
 
   this.cricketService.getPlayerStatsMatch(matchUrl, externalMatchKey)
@@ -1055,7 +1057,7 @@ private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): voi
       (data: PlayerStatsMatchView | null) => {
         this.isLoadingPlayerStats = false;
         if (data && data.teams && data.teams.length > 0) {
-          this.playerStatsMatch = data;
+          this.playerStatsMatch = this.mergeSeriesFallbackIntoMatch(data);
           this.playerStatsError = false;
           return;
         }
@@ -1216,7 +1218,7 @@ hasSelectedStatsExplorer(): boolean {
 }
 
 hasSeriesStatsContext(): boolean {
-  return !!(this.playerStatsMatch && this.playerStatsMatch.series && this.playerStatsMatch.series.externalId);
+  return !!(this.getPlayerStatsSeries() && this.getPlayerStatsSeries().externalId) || !!this.seriesPageUrlFallback;
 }
 
 openPlayerStatsFromLineups(selection: PlayerStatsSelectionEvent): void {
@@ -1271,6 +1273,11 @@ openTeamStats(team: PlayerStatsTeamView, source: 'lineups' | 'scorecard' = 'line
 
 openSeriesStandings(source: 'lineups' | 'scorecard' = 'lineups'): void {
   var series = this.getPlayerStatsSeries();
+  if ((!series || !series.externalId) && this.seriesPageUrlFallback) {
+    window.open(this.seriesPageUrlFallback, '_blank');
+    return;
+  }
+
   if (!series || !series.externalId) {
     this.showToast('Tournament standings are not available yet.', 'Dismiss');
     return;
@@ -1318,7 +1325,82 @@ closeStatsExplorerSelection(): void {
 }
 
 getPlayerStatsSeries(): PlayerStatsSeriesView | null {
-  return this.playerStatsMatch && this.playerStatsMatch.series ? this.playerStatsMatch.series : null;
+  if (this.playerStatsMatch && this.playerStatsMatch.series) {
+    return this.playerStatsMatch.series;
+  }
+  return this.resolvedSeriesContext;
+}
+
+private mergeSeriesFallbackIntoMatch(data: PlayerStatsMatchView): PlayerStatsMatchView {
+  if (!data) {
+    return data;
+  }
+
+  if (data.series && data.series.externalId) {
+    this.resolvedSeriesContext = data.series;
+    return data;
+  }
+
+  if (!this.resolvedSeriesContext) {
+    return data;
+  }
+
+  return {
+    ...data,
+    series: {
+      ...this.resolvedSeriesContext,
+      ...(data.series || {})
+    }
+  };
+}
+
+private updateSeriesFallbackContext(match: any): void {
+  var matchUrl = match && match.url ? match.url : (this.matchUrl || this.currentUrl || '');
+  var seriesCode = this.extractSeriesCodeFromUrl(matchUrl);
+  var seriesName = match && match.seriesName ? String(match.seriesName).trim() : '';
+
+  this.seriesPageUrlFallback = this.buildSeriesPageUrl(seriesName, seriesCode);
+  this.resolvedSeriesContext = seriesName ? {
+    name: seriesName,
+    shortName: seriesName
+  } : null;
+}
+
+private extractSeriesCodeFromUrl(url: string | null | undefined): string | null {
+  if (!url || url.indexOf('/scoreboard/') === -1) {
+    return null;
+  }
+
+  var trimmed = String(url).trim();
+  var segments = trimmed.split('/scoreboard/')[1].split('/');
+  if (segments.length < 2 || !segments[1]) {
+    return null;
+  }
+
+  try {
+    return decodeURIComponent(segments[1]).toUpperCase();
+  } catch (_) {
+    return String(segments[1]).toUpperCase();
+  }
+}
+
+private buildSeriesPageUrl(seriesName: string, seriesCode: string | null): string | null {
+  var normalizedName = this.slugifySeriesName(seriesName);
+  if (!normalizedName || !seriesCode) {
+    return null;
+  }
+  return 'https://crex.com/series/' + normalizedName + '-' + seriesCode;
+}
+
+private slugifySeriesName(value: string | null | undefined): string {
+  if (!value) {
+    return '';
+  }
+
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 getStatsExplorerHeading(): string {

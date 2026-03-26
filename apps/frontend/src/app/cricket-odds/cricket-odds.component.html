@@ -392,7 +392,7 @@
                 {{ getPlayerStatsSeries()?.name }}<span *ngIf="getPlayerStatsSeries()?.seasonName"> • {{ getPlayerStatsSeries()?.seasonName }}</span>
               </p>
             </div>
-            <span class="stats-explorer__status" *ngIf="isLoadingPlayerStats">Refreshing CREX snapshot...</span>
+            <span class="stats-explorer__status" *ngIf="isLoadingPlayerStats && !hasPlayerStatsData()">Refreshing CREX snapshot...</span>
           </div>
 
           <div class="stats-explorer__quick-actions" *ngIf="hasPlayerStatsData()">

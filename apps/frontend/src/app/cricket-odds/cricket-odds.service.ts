@@ -153,22 +153,41 @@ export class CricketService {
     } catch (_) { /* quota exceeded – non-critical */ }
   }
 
-  /** Read from in-memory map; returns null if missing */
-  private getCache(cache: Map<string, CacheEntry>, storageKey: string, key: string): any | null {
+  private getCacheEntry(cache: Map<string, CacheEntry>, storageKey: string, key: string): CacheEntry | null {
+    if (!key) {
+      return null;
+    }
+
     const entry = cache.get(key);
     if (entry) {
-      return JSON.parse(entry.data);
+      return entry;
     }
-    // Fallback: try sessionStorage (cold start after navigation)
+
     try {
       const raw = sessionStorage.getItem(this.CACHE_PREFIX + storageKey + '_' + key);
       if (raw) {
         const parsed: CacheEntry = JSON.parse(raw);
-        cache.set(key, parsed); // re-hydrate in-memory
-        return JSON.parse(parsed.data);
+        cache.set(key, parsed);
+        return parsed;
       }
     } catch (_) { /* corrupted – ignore */ }
+
     return null;
+  }
+
+  /** Read from in-memory map; returns null if missing */
+  private getCache(cache: Map<string, CacheEntry>, storageKey: string, key: string): any | null {
+    const entry = this.getCacheEntry(cache, storageKey, key);
+    return entry ? JSON.parse(entry.data) : null;
+  }
+
+  hasFreshPlayerStatsMatchCache(matchUrl?: string, externalMatchKey?: string): boolean {
+    const cacheKey = externalMatchKey || matchUrl || '';
+    const entry = this.getCacheEntry(this.playerStatsCache, 'playerstats', cacheKey);
+    if (!entry) {
+      return false;
+    }
+    return (Date.now() - entry.ts) <= this.CACHE_MAX_AGE_MS;
   }
 
   /** Restore in-memory maps from sessionStorage on service init */
