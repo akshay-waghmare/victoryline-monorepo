@@ -266,9 +266,13 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private fetchCricketData() {
     const params = this.activatedRoute.snapshot.params;
     const match = params['path']; // Use 'path' instead of 'match'
+    const directMatchUrl = this.activatedRoute.snapshot.queryParamMap.get('url')
+                        || params['url']
+                        || this.currentUrl;
     const isSameRouteMatch = !!(match && this.lastResolvedRouteSlug && this.lastResolvedRouteSlug === match);
 
-    this.matchUrl = match;
+    this.currentUrl = directMatchUrl || match;
+    this.matchUrl = directMatchUrl || match;
     this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId')
                   || params['matchId']
                   || match
@@ -955,6 +959,23 @@ fetchMatchInfo(matchUrl:string) {
 
 private resolveRouteMatch(matchSlug: string): void {
   if (!matchSlug) {
+    return;
+  }
+
+  var directMatchUrl = this.currentUrl || this.matchUrl;
+  if (directMatchUrl && directMatchUrl.indexOf('/scoreboard/') !== -1) {
+    var directMatch = {
+      url: directMatchUrl,
+      externalMatchKey: this.matchId || matchSlug,
+      seriesName: this.currentMatch && this.currentMatch.seriesName ? this.currentMatch.seriesName : null,
+      status: this.currentMatch && this.currentMatch.status ? this.currentMatch.status : null
+    };
+
+    this.currentMatch = directMatch;
+    this.updateSeriesFallbackContext(directMatch);
+    this.fetchPlayerStatsForMatch(directMatch, matchSlug);
+    this.fetchMatchInfo(directMatchUrl);
+    this.fetchScorecardInfo(directMatchUrl);
     return;
   }
 

@@ -132,7 +132,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       const matchUrlPath = urlParts[urlParts.length - 2]; // Get the part before '/live'
       
       // Navigate to cric-live route (existing route in the app)
-      this.router.navigate(['cric-live', matchUrlPath]);
+      this.router.navigate(['cric-live', matchUrlPath], {
+        queryParams: { url: match.matchUrl }
+      });
     } else {
       console.warn('No match URL available for navigation');
     }
