@@ -25,6 +25,7 @@ from ..parsers.crex_parser import extract_match_stats_by_innings, parse_runs_and
 from ..config import get_settings
 from ..cricket_data_service import CricketDataService
 from ..cache import ScrapeCache
+from ..crex_url_utils import extract_crex_match_key, get_crex_details_url, get_crex_live_url, get_crex_scorecard_url
 from ..crex_stats_analysis import analyze_player_page_html, analyze_standings_html
 
 logger = logging.getLogger(__name__)
@@ -133,24 +134,9 @@ class CrexAdapter(SourceAdapter):
         Returns:
             Match ID string or None if not found
         """
-        try:
-            # New URL format: /scoreboard/{codes}/{slug}/live
-            # Extract the slug (e.g., "kar-vs-raj-37th-match-...")
-            if "/scoreboard/" in url:
-                # Split and get the slug part before /live or /scorecard
-                parts = url.split("/scoreboard/")[1].split("/")
-                # The slug is typically the 6th part (0-indexed: code/code/match-num/code/code/slug)
-                if len(parts) >= 6:
-                    slug = parts[5].split("/")[0]  # Remove trailing /live etc
-                    return f"crex:{slug}"
-            
-            # Legacy URL pattern: /match/{id}/...
-            parts = url.split("/match/")
-            if len(parts) >= 2:
-                match_part = parts[1].split("/")[0]
-                return self.get_canonical_id(match_part)
-        except Exception as e:
-            logger.warning(f"Failed to extract match_id from URL {url}: {e}")
+        match_key = extract_crex_match_key(url)
+        if match_key:
+            return self.get_canonical_id(match_key)
         return None
 
     async def fetch_match(self, context: BrowserContext, url: str) -> Dict[str, Any]:
@@ -190,10 +176,12 @@ class CrexAdapter(SourceAdapter):
             except Exception as e:
                 logger.warning(f"Failed to get cached localStorage: {e}")
 
+        live_url = get_crex_live_url(url)
+
         # Only pre-fetch if we don't have cached localStorage
-        if "/live" in url and not cached_ls:
-            scorecard_url = url.replace("/live", "/scorecard")
-            info_url = url.replace("/live", "/info")
+        if url == live_url and not cached_ls:
+            scorecard_url = get_crex_scorecard_url(live_url)
+            info_url = get_crex_details_url(live_url)
             
             async def fetch_scorecard_ls():
                 try:

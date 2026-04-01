@@ -396,20 +396,43 @@ export function getRecentBallDisplay(value: any): RecentBallDisplay {
 }
 
 /**
- * Extract the match slug from a full URL, e.g., '.../some-match-slug/live' => 'some-match-slug'.
- * Also supports '/scorecard' ending.
+ * Extract the match slug from CREX match URLs.
+ * Supports legacy endings like '/live', '/scorecard', '/info'
+ * and newer endings like '/match-scorecard', '/match-details',
+ * while also accepting the newer base live URL where the slug is
+ * the final segment.
  */
 export function extractSlugFromUrl(url: string): string | null {
   if (!url || url.indexOf('/') === -1) return null;
-  var parts = url.split('/').filter(function(p) { return !!p; });
+
+  var normalized = String(url).trim().split('#')[0].split('?')[0].replace(/\/+$/, '');
+  var parts = normalized.split('/').filter(function(p) { return !!p; });
   if (parts.length < 2) return null;
+
   var last = parts[parts.length - 1];
   var prev = parts[parts.length - 2];
-  if (last && prev) {
-    var lastLower = last.toLowerCase();
-    if (lastLower === 'live' || lastLower === 'scorecard') {
-      return prev;
-    }
+  if (!last) return null;
+
+  var lastLower = last.toLowerCase();
+  var suffixSegments: { [key: string]: boolean } = {
+    live: true,
+    scorecard: true,
+    info: true,
+    'match-scorecard': true,
+    'match-details': true
+  };
+  var nonSlugSegments: { [key: string]: boolean } = {
+    scoreboard: true,
+    'cricket-live-score': true
+  };
+
+  if (suffixSegments[lastLower]) {
+    return prev || null;
   }
-  return null;
+
+  if (nonSlugSegments[lastLower]) {
+    return null;
+  }
+
+  return last;
 }

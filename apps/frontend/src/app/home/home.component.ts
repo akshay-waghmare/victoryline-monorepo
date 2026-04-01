@@ -6,7 +6,7 @@ import { BlogListService, BlogPost } from '../component/blog-list.service';
 import { NewsService, NewsItem } from '../component/news.service';
 import { MatchesService } from '../features/matches/services/matches.service';
 import { MatchCardViewModel, MatchStatus } from '../features/matches/models/match-card.models';
-import { filterLiveMatches, filterUpcomingMatches, filterCompletedMatches } from '../core/utils/match-utils';
+import { extractSlugFromUrl, filterLiveMatches, filterUpcomingMatches, filterCompletedMatches } from '../core/utils/match-utils';
 import { Subscription } from 'rxjs';
 
 
@@ -126,10 +126,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     
     // Navigate to match details using the original URL structure
     if (match.matchUrl) {
-      // Extract the match URL path from the full URL
-      // URL format: https://crex.com/scoreboard/.../ind-a-vs-sa-a-2nd-test.../live
-      const urlParts = match.matchUrl.split('/');
-      const matchUrlPath = urlParts[urlParts.length - 2]; // Get the part before '/live'
+      const matchUrlPath = extractSlugFromUrl(match.matchUrl);
+      if (!matchUrlPath) {
+        console.warn('Could not extract match slug from URL', match.matchUrl);
+        return;
+      }
       
       // Navigate to cric-live route (existing route in the app)
       this.router.navigate(['cric-live', matchUrlPath], {

@@ -118,7 +118,7 @@ async def async_main(argv: list[str]) -> int:
     if args.command == "player":
         html = await load_page_html(
             args,
-            selectors=["table", "h2", "[href*='/scoreboard/']"],
+            selectors=["table", "h2", "[href*='/scoreboard/'], [href*='/cricket-live-score/']"],
         )
         return write_result(analyze_player_page_html(html, source_url=args.url))
 

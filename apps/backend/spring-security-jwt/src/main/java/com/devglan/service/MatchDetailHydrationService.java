@@ -79,36 +79,10 @@ public class MatchDetailHydrationService {
     }
 
     private String normalizeScoreboardUrl(String url) {
-        String normalized = url;
-        if (normalized.endsWith("/info")) {
-            return normalized.substring(0, normalized.length() - "/info".length()) + "/scorecard";
-        }
-        if (normalized.endsWith("/live") || normalized.endsWith("/scorecard")) {
-            return normalized;
-        }
-        if (normalized.contains("/scoreboard/")) {
-            return normalized.endsWith("/") ? normalized + "scorecard" : normalized + "/scorecard";
-        }
-        return normalized;
+        return CrexMatchUrlHelper.toMatchScorecardUrl(url);
     }
 
     private String extractScoreboardSlug(String url) {
-        if (url == null) {
-            return null;
-        }
-
-        int scoreboardIndex = url.indexOf("/scoreboard/");
-        if (scoreboardIndex < 0) {
-            return null;
-        }
-
-        String remaining = url.substring(scoreboardIndex + "/scoreboard/".length());
-        String[] parts = remaining.split("/");
-        if (parts.length < 6) {
-            return null;
-        }
-
-        String slug = parts[5];
-        return slug == null || slug.trim().isEmpty() ? null : slug.trim();
+        return CrexMatchUrlHelper.extractMatchKey(url);
     }
 }

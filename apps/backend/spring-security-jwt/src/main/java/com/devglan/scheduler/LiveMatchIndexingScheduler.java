@@ -1,5 +1,6 @@
 package com.devglan.scheduler;
 
+import com.devglan.service.CrexMatchUrlHelper;
 import com.devglan.service.seo.GoogleSearchConsoleService;
 import com.devglan.service.seo.LiveMatchesService;
 import com.devglan.service.seo.LiveMatchesService.LiveMatchEntry;
@@ -152,30 +153,7 @@ public class LiveMatchIndexingScheduler {
      * Output: ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025
      */
     public String extractSlugFromUrl(String url) {
-        if (url == null || url.isEmpty()) {
-            return null;
-        }
-        
-        try {
-            // Remove trailing /live if present
-            String cleanUrl = url.replaceAll("/live$", "");
-            
-            // Get the last path segment
-            String[] parts = cleanUrl.split("/");
-            if (parts.length > 0) {
-                String lastPart = parts[parts.length - 1];
-                
-                // Validate it looks like a slug (contains hyphens, alphanumeric)
-                if (lastPart.contains("-") && lastPart.matches("^[a-zA-Z0-9-]+$")) {
-                    return lastPart;
-                }
-            }
-            
-            return null;
-        } catch (Exception e) {
-            logger.warn("[LiveMatchIndexer] Error extracting slug from URL {}: {}", url, e.getMessage());
-            return null;
-        }
+        return CrexMatchUrlHelper.extractMatchKey(url);
     }
     
     /**

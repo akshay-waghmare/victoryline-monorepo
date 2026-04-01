@@ -1,4 +1,4 @@
-import { getRecentBallDisplay } from './match-utils';
+import { extractSlugFromUrl, getRecentBallDisplay } from './match-utils';
 
 describe('match-utils recent ball helpers', () => {
   it('formats wicket and boundary events for compact display', () => {
@@ -45,5 +45,14 @@ describe('match-utils recent ball helpers', () => {
       fullLabel: 'Wide',
       kind: 'extra'
     });
+  });
+
+  it('extracts slugs from legacy and new CREX URL formats', () => {
+    expect(extractSlugFromUrl('https://crex.com/scoreboard/ABC/DEF/sample-match-slug/live')).toBe('sample-match-slug');
+    expect(extractSlugFromUrl('https://crex.com/scoreboard/ABC/DEF/sample-match-slug/scorecard')).toBe('sample-match-slug');
+    expect(extractSlugFromUrl('https://crex.com/scoreboard/ABC/DEF/sample-match-slug/info')).toBe('sample-match-slug');
+    expect(extractSlugFromUrl('https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC')).toBe('abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
+    expect(extractSlugFromUrl('https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/match-scorecard')).toBe('abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
+    expect(extractSlugFromUrl('https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/match-details')).toBe('abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
   });
 });

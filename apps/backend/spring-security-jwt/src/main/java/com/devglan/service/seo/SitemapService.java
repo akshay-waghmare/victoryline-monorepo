@@ -2,6 +2,7 @@ package com.devglan.service.seo;
 
 import com.devglan.dao.MatchRepository;
 import com.devglan.model.Matches;
+import com.devglan.service.CrexMatchUrlHelper;
 import com.devglan.service.seo.events.SeoContentChangeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -245,22 +246,7 @@ public class SitemapService {
     }
 
     private String extractSlugFromUrl(String url) {
-        try {
-            if (url == null || !url.contains("/")) return null;
-            String[] parts = url.split("/");
-            if (parts.length < 2) return null;
-            String last = parts[parts.length - 1];
-            String prev = parts[parts.length - 2];
-            if (last != null && prev != null) {
-                String lastLower = last.toLowerCase();
-                if ("live".equals(lastLower) || "scorecard".equals(lastLower)) {
-                    return prev;
-                }
-            }
-            return null;
-        } catch (Exception e) {
-            return null;
-        }
+        return CrexMatchUrlHelper.extractMatchKey(url);
     }
 
     private String deriveChangeFreq(Matches m) {

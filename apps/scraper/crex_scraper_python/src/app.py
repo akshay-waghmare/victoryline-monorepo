@@ -8,7 +8,6 @@ import logging
 import threading
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from typing import Optional, Dict, Any
-from urllib.parse import urlparse
 
 from flask import Flask, jsonify, Response, request
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
@@ -16,6 +15,12 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from .adapters.crex_adapter import CrexAdapter
 from .config import get_settings
 from .crex_scraper import CrexScraperService
+from .crex_url_utils import (
+    extract_crex_api_key,
+    get_crex_details_url,
+    get_crex_scorecard_url,
+    get_crex_live_url,
+)
 from .cricket_data_service import CricketDataService
 from .loggers.adapters import configure_logging
 
@@ -31,44 +36,15 @@ scraper_service = CrexScraperService()
 # Global event loop for the scraper service
 scraper_loop: Optional[asyncio.AbstractEventLoop] = None
 
-
-def _normalize_crex_url(url: str) -> str:
-    trimmed = (url or "").strip()
-    if not trimmed:
-        return trimmed
-    if trimmed.startswith("http://") or trimmed.startswith("https://"):
-        return trimmed
-    if trimmed.startswith("/"):
-        return f"https://crex.com{trimmed}"
-    return f"https://crex.com/{trimmed.lstrip('/')}"
-
-
-def _ensure_scoreboard_variant(url: str, variant: str) -> str:
-    trimmed = _normalize_crex_url(url).rstrip("/")
-    for existing_variant in ("/live", "/scorecard", "/info"):
-        if trimmed.endswith(existing_variant):
-            return trimmed[: -len(existing_variant)] + f"/{variant}"
-    return trimmed + f"/{variant}"
-
-
-def _extract_sc4_key(url: str) -> Optional[str]:
-    normalized = _normalize_crex_url(url)
-    path = urlparse(normalized).path
-    if "/scoreboard/" not in path:
-        return None
-    parts = [part for part in path.split("/scoreboard/", 1)[1].split("/") if part]
-    return parts[0] if parts else None
-
-
 async def _hydrate_match_details(url: str) -> Dict[str, Any]:
     adapter = scraper_service.registry.get_adapter("crex")
     if not isinstance(adapter, CrexAdapter):
         raise RuntimeError("CREX adapter is unavailable")
 
-    match_url = _normalize_crex_url(url)
-    info_url = _ensure_scoreboard_variant(match_url, "info")
-    scorecard_url = _ensure_scoreboard_variant(match_url, "scorecard")
-    sc4_key = _extract_sc4_key(match_url)
+    match_url = get_crex_live_url(url)
+    info_url = get_crex_details_url(match_url)
+    scorecard_url = get_crex_scorecard_url(match_url)
+    sc4_key = extract_crex_api_key(match_url)
 
     token = scraper_service._auth_token
     if not token:

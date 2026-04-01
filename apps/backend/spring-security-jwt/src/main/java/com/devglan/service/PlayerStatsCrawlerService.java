@@ -824,20 +824,7 @@ public class PlayerStatsCrawlerService {
     }
 
     private String extractExternalMatchKey(String url) {
-        if (!hasText(url)) {
-            return null;
-        }
-        List<String> parts = Arrays.stream(url.split("/"))
-                .filter(this::hasText)
-                .collect(Collectors.toList());
-        if (parts.isEmpty()) {
-            return null;
-        }
-        String last = parts.get(parts.size() - 1);
-        if ("live".equalsIgnoreCase(last) || "scorecard".equalsIgnoreCase(last) || "info".equalsIgnoreCase(last)) {
-            return parts.size() > 1 ? parts.get(parts.size() - 2) : last;
-        }
-        return last;
+        return CrexMatchUrlHelper.extractMatchKey(url);
     }
 
     private String buildPlayerKey(PlayerStatsTeamEntity team, PlayerStatsPlayerEntity player) {

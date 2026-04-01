@@ -20,6 +20,11 @@ except ImportError:
 from .adapters.rate_limit import TokenBucket
 from .cache import ScrapeCache
 from .config import get_settings
+from .crex_url_utils import (
+    ensure_crex_variant,
+    extract_crex_api_key,
+    extract_crex_match_key,
+)
 from .cricket_data_service import CricketDataService
 from .loggers.adapters import get_logger
 
@@ -566,17 +571,8 @@ class PlayerStatsCrawlerService:
 
     @staticmethod
     def _extract_api_key(match_url: str) -> Optional[str]:
-        """Extract the CREX API key from a scoreboard URL.
-
-        URL format: /scoreboard/{apiKey}/{seriesKey}/{matchType}/{team1}/{team2}/{slug}/live
-        """
-        trimmed = (match_url or "").strip()
-        if "/scoreboard/" not in trimmed:
-            return None
-        parts = trimmed.split("/scoreboard/", 1)[1].split("/")
-        if parts and parts[0]:
-            return parts[0]
-        return None
+        """Extract the CREX API key from old scoreboard or new match-updates URLs."""
+        return extract_crex_api_key(match_url)
 
     async def _process_player_reference_task(self, task: PlayerStatsTask) -> None:
         adapter = self.registry.get_adapter("crex")
@@ -1310,26 +1306,14 @@ class PlayerStatsCrawlerService:
 
     @staticmethod
     def _ensure_variant(url: str, variant: str) -> str:
-        trimmed = (url or "").strip().rstrip("/")
-        if not trimmed:
-            return trimmed
-        for existing_variant in ("/live", "/scorecard", "/info"):
-            if trimmed.endswith(existing_variant):
-                return trimmed[: -len(existing_variant)] + f"/{variant}"
-        return trimmed + f"/{variant}"
+        return ensure_crex_variant(url, variant)
 
     @staticmethod
     def _extract_match_id(url: str) -> Optional[str]:
-        trimmed = (url or "").strip()
-        if not trimmed or "/scoreboard/" not in trimmed:
+        match_key = extract_crex_match_key(url)
+        if not match_key:
             return None
-        parts = trimmed.split("/scoreboard/", 1)[1].split("/")
-        if len(parts) < 6:
-            return None
-        slug = parts[5].split("?")[0].strip()
-        if not slug:
-            return None
-        return f"crex:{slug}"
+        return f"crex:{match_key}"
 
     def _build_ingestion_request(
         self,
@@ -1507,16 +1491,7 @@ class PlayerStatsCrawlerService:
 
     @staticmethod
     def _extract_match_key(match_url: str) -> Optional[str]:
-        trimmed = (match_url or "").strip().rstrip("/")
-        if not trimmed:
-            return None
-        parts = [part for part in trimmed.split("/") if part]
-        if not parts:
-            return None
-        last = parts[-1].lower()
-        if last in {"live", "info", "scorecard"} and len(parts) > 1:
-            return parts[-2]
-        return parts[-1]
+        return extract_crex_match_key(match_url)
 
     @staticmethod
     def _strip_dynamic_fields(payload: Any) -> Any:

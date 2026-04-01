@@ -2344,9 +2344,7 @@ private titleCaseSlug(value: string): string {
    * Extract URL slug from match URL - matches prerender.js extractUrlSlug()
    */
   private extractUrlSlug(url: string): string | null {
-    if (!url) return null;
-    const parts = url.split('/').filter(p => p && p !== 'live' && p !== 'scoreboard' && !p.startsWith('http'));
-    return parts.pop() || null;
+    return extractSlugFromUrl(url);
   }
 
   setVenuePercentages() {
@@ -2491,6 +2489,11 @@ placeSessionBet() {
     const trimmed = String(url).trim();
     if (trimmed && trimmed.indexOf('/') === -1 && /[-\d]/.test(trimmed)) {
       return trimmed;
+    }
+
+    const extractedSlug = extractSlugFromUrl(trimmed);
+    if (extractedSlug) {
+      return extractedSlug;
     }
     
     // Try to extract match ID from various URL patterns

@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 from playwright.async_api import Page
 
+from ..crex_url_utils import extract_crex_match_key, get_crex_details_url, get_crex_live_url, get_crex_scorecard_url
+
 
 _COMPLETED_PATTERN = re.compile(
     r"(\bwon\b|\bwon by\b|\bbeat\b|match tied|no result|match abandoned|abandoned|tied)",
@@ -23,17 +25,7 @@ _MAX_MATCH_NAME_ENRICHMENTS = 12
 
 
 def extract_external_match_key(url: str) -> Optional[str]:
-    if not url:
-        return None
-
-    parts = [part for part in url.split("/") if part]
-    if not parts:
-        return None
-
-    last = parts[-1]
-    if last.lower() in {"live", "scorecard", "info"} and len(parts) > 1:
-        return parts[-2]
-    return last
+    return extract_crex_match_key(url)
 
 
 def classify_match_status(text: str) -> str:
@@ -261,21 +253,15 @@ async def _wait_for_team_name_cache(page: Page) -> Dict[str, str]:
 
 
 def _match_page_candidates(url: str) -> List[str]:
-    normalized = normalize_text(url).rstrip("/")
+    normalized = get_crex_live_url(normalize_text(url))
     if not normalized:
         return []
 
-    if normalized.endswith("/live"):
-        base = normalized[:-5]
-        candidates = [f"{base}/info", f"{base}/scorecard", normalized]
-    elif normalized.endswith("/scorecard"):
-        base = normalized[:-10]
-        candidates = [normalized, f"{base}/info", f"{base}/live"]
-    elif normalized.endswith("/info"):
-        base = normalized[:-5]
-        candidates = [normalized, f"{base}/scorecard", f"{base}/live"]
-    else:
-        candidates = [normalized]
+    candidates = [
+        get_crex_details_url(normalized),
+        get_crex_scorecard_url(normalized),
+        normalized,
+    ]
 
     deduped: List[str] = []
     for candidate in candidates:
@@ -376,7 +362,7 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
                     // Ignore malformed JSON-LD blocks.
                 }
             });
-            const anchors = Array.from(document.querySelectorAll("a[href*='/scoreboard/']"));
+            const anchors = Array.from(document.querySelectorAll("a[href*='/scoreboard/'], a[href*='/cricket-live-score/']"));
 
             anchors.forEach((anchor) => {
                 const href = anchor.getAttribute('href');

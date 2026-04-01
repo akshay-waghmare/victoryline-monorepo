@@ -83,9 +83,23 @@ function deriveStatus(lastKnownState) {
 
 function extractUrlSlug(url) {
   if (!url) return null;
-  // Extract slug from URL like: https://crex.com/scoreboard/.../ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025/live
-  const parts = url.split('/').filter(p => p && p !== 'live' && p !== 'scoreboard' && !p.startsWith('http'));
-  return parts.pop() || null;
+  const normalized = String(url).trim().split('#')[0].split('?')[0].replace(/\/+$/, '');
+  const parts = normalized.split('/').filter(Boolean);
+  if (parts.length < 2) return null;
+
+  const last = parts[parts.length - 1];
+  const prev = parts[parts.length - 2];
+  const lastLower = last.toLowerCase();
+
+  if (['live', 'scorecard', 'info', 'match-scorecard', 'match-details'].includes(lastLower)) {
+    return prev || null;
+  }
+
+  if (['scoreboard', 'cricket-live-score'].includes(lastLower)) {
+    return null;
+  }
+
+  return last;
 }
 
 function deriveTitle(m, matchInfo = null) {

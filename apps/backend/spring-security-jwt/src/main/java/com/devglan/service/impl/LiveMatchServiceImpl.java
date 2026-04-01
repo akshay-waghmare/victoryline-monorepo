@@ -24,6 +24,7 @@ import com.devglan.dao.ScheduledMatchDTO;
 import com.devglan.model.LiveMatch;
 import com.devglan.model.MatchLifecycleStatus;
 import com.devglan.repository.LiveMatchRepository;
+import com.devglan.service.CrexMatchUrlHelper;
 import com.devglan.service.LiveMatchService;
 import com.devglan.service.seo.events.SeoContentChangeEvent;
 import com.devglan.websocket.service.CricketDataService;
@@ -340,23 +341,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
     }
 
     private String extractExternalMatchKey(String url) {
-        if (url == null || url.trim().isEmpty()) {
-            return null;
-        }
-
-        String[] rawParts = url.split("/");
-        List<String> parts = Arrays.stream(rawParts)
-                .filter(part -> part != null && !part.trim().isEmpty())
-                .collect(Collectors.toList());
-        if (parts.isEmpty()) {
-            return url;
-        }
-
-        String last = parts.get(parts.size() - 1);
-        if ("live".equalsIgnoreCase(last) || "scorecard".equalsIgnoreCase(last)) {
-            return parts.size() > 1 ? parts.get(parts.size() - 2) : last;
-        }
-        return last;
+        return CrexMatchUrlHelper.extractMatchKey(url);
     }
 
     private LiveMatch findExistingMatch(String externalKey, String url) {

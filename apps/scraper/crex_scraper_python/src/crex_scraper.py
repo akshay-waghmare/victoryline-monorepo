@@ -15,6 +15,7 @@ from .cache import ScrapeCache
 from .metrics import MetricsCollector
 from .health import HealthGrader
 from .adapters.registry import AdapterRegistry
+from .crex_url_utils import extract_crex_match_key, get_crex_details_url
 from .cricket_data_service import CricketDataService
 from .discovery import LiveMatchDiscoverer
 from .player_stats_crawler import PlayerStatsCrawlerService
@@ -408,23 +409,10 @@ class CrexScraperService:
         Expected: /scoreboard/{codes}/{codes}/{match-type}/{codes}/{codes}/{slug}/live
         Returns: crex:{slug}
         """
-        try:
-            if "/scoreboard/" in url:
-                # Split and get the slug part before /live or /scorecard
-                parts = url.split("/scoreboard/")[1].split("/")
-                # The slug is typically the 6th part (0-indexed: code/code/match-num/code/code/slug)
-                if len(parts) >= 6:
-                    slug = parts[5].split("/")[0]  # Remove trailing /live etc
-                    return f"crex:{slug}"
-            
-            # Legacy URL pattern: /match/{id}/...
-            import re
-            match = re.search(r'/match/(\d+)', url)
-            if match:
-                return f"crex:{match.group(1)}"
-        except Exception:
-            pass
-        return None
+        match_key = extract_crex_match_key(url)
+        if not match_key:
+            return None
+        return f"crex:{match_key}"
 
     async def _monitor_loop(self):
         """Periodic health monitoring loop."""
@@ -529,10 +517,7 @@ class CrexScraperService:
                 try:
                     # Construct info URL (assuming standard Crex URL structure)
                     # e.g. .../live -> .../info
-                    info_url = task.url.replace("/live", "/info").replace("/scorecard", "/info")
-                    # If URL didn't change (no /live or /scorecard), append /info if not present
-                    if info_url == task.url and "/info" not in info_url:
-                         info_url = task.url.rstrip("/") + "/info"
+                    info_url = get_crex_details_url(task.url)
                          
                     logger.info(f"Fetching match info for {canonical_id} from {info_url}")
                     match_info = await adapter.fetch_match_info(context, info_url)
@@ -604,9 +589,7 @@ class CrexScraperService:
                 if match_info:
                      # Use info_url if available, else derive it again
                      if not info_url:
-                        info_url = task.url.replace("/live", "/info").replace("/scorecard", "/info")
-                        if info_url == task.url and "/info" not in info_url:
-                             info_url = task.url.rstrip("/") + "/info"
+                        info_url = get_crex_details_url(task.url)
 
                      await asyncio.to_thread(
                         CricketDataService.push_match_info,

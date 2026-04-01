@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import functools
 import os
+from pathlib import Path
 import sys
 
 import concurrent.futures
@@ -16,6 +17,12 @@ from shared import scraping_tasks
 from crex_info_url import scrape_match_info  # Import the modularized info scraper
 import time
 from urllib.parse import urlparse, parse_qs
+
+_SCRAPER_PYTHON_ROOT = Path(__file__).resolve().parents[1] / "crex_scraper_python"
+if str(_SCRAPER_PYTHON_ROOT) not in sys.path:
+    sys.path.insert(0, str(_SCRAPER_PYTHON_ROOT))
+
+from src.crex_url_utils import get_crex_details_url, get_crex_live_url, get_crex_scorecard_url
 
 # Initialize loggers
 api_logger = logging.getLogger('api_logger')
@@ -846,6 +853,7 @@ def fetchData(url, context=None):
     Returns:
         None
     """
+    url = get_crex_live_url(url)
     scraper_logger.info(f"Starting fetchData for URL: {url}")
     if context:
         scraper_logger.info(f"ScraperContext provided for {url}, restart logic enabled")
@@ -865,7 +873,7 @@ def fetchData(url, context=None):
     }
     
     # Scrape match info before proceeding to live scraping
-    info_url = url.replace('/live', '/info')
+    info_url = get_crex_details_url(url)
     scraper_logger.info(f"Fetching match info from URL: {info_url}")
     
     # Determine if the match is a test match
@@ -927,7 +935,7 @@ def fetchData(url, context=None):
             scraper_logger.info("Browser context and page created")
 
             # **Step 1: Open /scorecard in a new tab to trigger localStorage population**
-            scorecard_url = url.replace('/live', '/scorecard')
+            scorecard_url = get_crex_scorecard_url(url)
             scraper_logger.info(f"Opening scorecard URL in a new tab: {scorecard_url}")
             api_logger.info(f"[SCORECARD_TAB] Triggering scorecard page to populate localStorage")
             

@@ -1,5 +1,6 @@
 package com.devglan.service.seo;
 
+import com.devglan.service.CrexMatchUrlHelper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -101,38 +102,7 @@ public class LiveMatchesService {
     }
     
     public String extractSlugFromUrl(String url) {
-        if (url == null || url.isEmpty()) {
-            return null;
-        }
-        
-        try {
-            // Extract the slug from URLs like:
-            // https://crex.com/scoreboard/X1M/1YQ/1st-TEST/Z/W/ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025/live
-            String[] parts = url.split("/");
-            
-            // Find the slug (usually second to last part before "live" or "scorecard")
-            for (int i = parts.length - 1; i >= 0; i--) {
-                String part = parts[i].toLowerCase();
-                if ("live".equals(part) || "scorecard".equals(part)) {
-                    if (i > 0) {
-                        return parts[i - 1];
-                    }
-                }
-            }
-            
-            // Fallback: last non-empty part
-            for (int i = parts.length - 1; i >= 0; i--) {
-                if (parts[i] != null && !parts[i].isEmpty() && 
-                    !"live".equals(parts[i].toLowerCase()) && 
-                    !"scorecard".equals(parts[i].toLowerCase())) {
-                    return parts[i];
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("Error extracting slug: " + e.getMessage());
-        }
-        
-        return null;
+        return CrexMatchUrlHelper.extractMatchKey(url);
     }
     
     /**

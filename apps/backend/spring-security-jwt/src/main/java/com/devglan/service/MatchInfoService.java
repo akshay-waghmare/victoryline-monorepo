@@ -67,15 +67,15 @@ public class MatchInfoService {
 
         String trimmedUrl = url.trim();
         if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
-            return trimmedUrl.replace("/live", "/info").replace("/scorecard", "/info");
+            return CrexMatchUrlHelper.toMatchDetailsUrl(trimmedUrl);
         }
 
         LiveMatch liveMatch = liveMatchRepository.findByUrlContaining(trimmedUrl);
         if (liveMatch != null && liveMatch.getUrl() != null && !liveMatch.getUrl().trim().isEmpty()) {
-            return liveMatch.getUrl().replace("/live", "/info").replace("/scorecard", "/info");
+            return CrexMatchUrlHelper.toMatchDetailsUrl(liveMatch.getUrl());
         }
 
-        return trimmedUrl;
+        return CrexMatchUrlHelper.toMatchDetailsUrl(trimmedUrl);
     }
 
     public boolean existsByUrl(String url) {

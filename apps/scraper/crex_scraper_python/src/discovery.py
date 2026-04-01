@@ -12,6 +12,7 @@ from playwright.async_api import Page
 
 from .config import get_settings
 from .browser_pool import AsyncBrowserPool
+from .crex_url_utils import normalize_crex_url
 from .cricket_data_service import CricketDataService
 from .parsers.crex_schedule_parser import extract_schedule_matches
 
@@ -94,7 +95,7 @@ class LiveMatchDiscoverer:
                     # Wait for content to load - try multiple selectors
                     try:
                         # Try a broad selector for any match link or card
-                        await page.wait_for_selector("li.live-card, div.live-card, a[href*='/scoreboard/']", timeout=20000)
+                        await page.wait_for_selector("li.live-card, div.live-card, a[href*='/scoreboard/'], a[href*='/cricket-live-score/']", timeout=20000)
                         print("[DISCOVERY] Found match elements.", flush=True)
                     except Exception:
                         logger.warning("No live cards found on live-matches page (timeout).")
@@ -129,7 +130,7 @@ class LiveMatchDiscoverer:
                                     const a = li.querySelector('a');
                                     if (a) {
                                         const href = a.getAttribute('href');
-                                        if (href && href.includes('/scoreboard/')) {
+                                        if (href && (href.includes('/scoreboard/') || href.includes('/cricket-live-score/'))) {
                                             urls.push(href);
                                         }
                                     }
@@ -146,7 +147,7 @@ class LiveMatchDiscoverer:
                                         const a = div.querySelector('a');
                                         if (a) {
                                             const href = a.getAttribute('href');
-                                            if (href && href.includes('/scoreboard/')) {
+                                            if (href && (href.includes('/scoreboard/') || href.includes('/cricket-live-score/'))) {
                                                 urls.push(href);
                                             }
                                         }
@@ -155,9 +156,9 @@ class LiveMatchDiscoverer:
                             }
                         }
 
-                        // Strategy 3: Fallback - Look for any scoreboard links
+                        // Strategy 3: Fallback - Look for any CREX match links
                         if (urls.length === 0) {
-                            const links = document.querySelectorAll('a[href*="/scoreboard/"]');
+                            const links = document.querySelectorAll('a[href*="/scoreboard/"], a[href*="/cricket-live-score/"]');
                             links.forEach(a => {
                                 // Check the link text itself or its parent text
                                 const textToCheck = a.innerText + " " + (a.parentElement ? a.parentElement.innerText : "");
@@ -187,7 +188,7 @@ class LiveMatchDiscoverer:
                     print(f"[DISCOVERY] Navigating to {schedule_url}...", flush=True)
 
                     await schedule_page.goto(schedule_url, timeout=60000)
-                    await schedule_page.wait_for_selector("a[href*='/scoreboard/']", timeout=20000)
+                    await schedule_page.wait_for_selector("a[href*='/scoreboard/'], a[href*='/cricket-live-score/']", timeout=20000)
                     schedule_matches = await extract_schedule_matches(schedule_page, self.base_url)
                     print(f"[DISCOVERY] Parsed {len(schedule_matches)} schedule matches.", flush=True)
                 except Exception as schedule_error:
@@ -207,9 +208,7 @@ class LiveMatchDiscoverer:
         valid_urls = []
         for url in urls:
             if url:
-                if not url.startswith("http"):
-                    url = "https://crex.com" + url
-                valid_urls.append(url)
+                valid_urls.append(normalize_crex_url(url))
         
         # Remove duplicates
         valid_urls = list(set(valid_urls))

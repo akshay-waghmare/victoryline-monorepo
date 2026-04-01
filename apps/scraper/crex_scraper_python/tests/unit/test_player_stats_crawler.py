@@ -468,6 +468,10 @@ class TestExtractApiKey:
         url = "https://crex.com/scoreboard/ABCD/series/match-type/t1/t2/slug/live"
         assert PlayerStatsCrawlerService._extract_api_key(url) == "ABCD"
 
+    def test_new_cricket_live_score_url(self):
+        url = "https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC"
+        assert PlayerStatsCrawlerService._extract_api_key(url) == "11CC"
+
     def test_no_scoreboard_returns_none(self):
         url = "https://crex.com/player/virat-kohli-ABC"
         assert PlayerStatsCrawlerService._extract_api_key(url) is None
@@ -481,6 +485,12 @@ class TestExtractApiKey:
     def test_scoreboard_with_trailing_slash(self):
         url = "https://crex.com/scoreboard/XYZ/"
         assert PlayerStatsCrawlerService._extract_api_key(url) == "XYZ"
+
+
+class TestExtractMatchId:
+    def test_new_cricket_live_score_url_uses_stable_match_key(self):
+        url = "https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC"
+        assert PlayerStatsCrawlerService._extract_match_id(url) == "crex:abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC"
 
 
 class TestDecodeIv4ToSeed:
