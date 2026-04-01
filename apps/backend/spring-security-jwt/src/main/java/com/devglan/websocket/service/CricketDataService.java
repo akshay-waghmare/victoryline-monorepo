@@ -55,6 +55,7 @@ import com.devglan.repository.OversDataRepository;
 import com.devglan.repository.SessionOddsRepository;
 import com.devglan.repository.SessionOverDataRepository;
 import com.devglan.repository.TeamSessionDataRepository;
+import com.devglan.service.CrexMatchUrlHelper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -120,9 +121,11 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
 	}
 
 	public void sendCricketData(String url, Map<String, Object> dataToSend) {
-		 // Extracting the desired part from the URL
-	    String[] parts = url.split("/");
-	    String match = parts[parts.length - 2]; // Get the second-to-last part of the URL
+		String match = CrexMatchUrlHelper.extractMatchKey(url);
+		if (match == null || match.trim().isEmpty()) {
+			String[] parts = url.split("/");
+			match = parts.length >= 2 ? parts[parts.length - 2] : url;
+		}
 	    
 
 		ObjectMapper objectMapper = new ObjectMapper();
