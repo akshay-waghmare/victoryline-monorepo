@@ -121,7 +121,15 @@ class CrexAdapter(SourceAdapter):
         return "crex"
 
     def get_canonical_id(self, raw_id: str) -> str:
-        return f"crex:{raw_id}"
+        if not raw_id:
+            return "crex:"
+        trimmed = str(raw_id).strip()
+        if trimmed.startswith("crex:"):
+            return trimmed
+        match_key = extract_crex_match_key(trimmed)
+        if match_key:
+            return f"crex:{match_key}"
+        return f"crex:{trimmed}"
 
     def _extract_match_id_from_url(self, url: str) -> Optional[str]:
         """

@@ -221,8 +221,7 @@ class CrexScraperService:
                     
                     if url:
                         live_urls.append(url)
-                        # Use URL as ID or extract it. For now URL is unique enough.
-                        match_id = url 
+                        match_id = self._extract_match_id(url) or url
                         await self.submit_task(match_id, url, "LIVE")
 
                 if self.player_stats_crawler:

@@ -181,9 +181,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     // Navigate to match details page (cric-live/:path)
     const slug = this.getMatchSlug(match);
     if (slug) {
-      this.router.navigate(['/cric-live', slug], {
-        queryParams: { url: match.matchUrl || '' }
-      });
+      this.router.navigate(['/cric-live', slug]);
     } else {
       console.warn('Unable to derive match slug for navigation', match);
     }
@@ -196,9 +194,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     // Navigate to match details page (cric-live/:path)
     const slug = this.getMatchSlug(match);
     if (slug) {
-      this.router.navigate(['/cric-live', slug], {
-        queryParams: { url: match.matchUrl || '' }
-      });
+      this.router.navigate(['/cric-live', slug]);
     } else {
       console.warn('Unable to derive match slug for navigation', match);
     }

@@ -126,9 +126,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     const matchPart = parts[parts.length - 2];
 
     // Navigate to the 'cric-live' route with the extracted matchPart as a parameter
-    this.router.navigate(['cric-live', matchPart], {
-      queryParams: { url: urlToSend }
-    });
+    this.router.navigate(['cric-live', matchPart]);
   }
 
   toggle() {

@@ -71,7 +71,7 @@ class ScraperSettings:
     max_lifetime_hours: float = 6.0
     memory_soft_limit_mb: int = 1536
     memory_hard_limit_mb: int = 2048
-    polling_interval_seconds: float = 2.5
+    polling_interval_seconds: float = 1.0
     # Increased from 60s to 180s (3 min) to allow scrapers enough time for:
     # - Browser launch (5-10s)
     # - Page navigation (5-10s)
@@ -152,7 +152,7 @@ class ScraperSettings:
     player_stats_upcoming_cooldown_seconds: int = 900
     player_stats_live_cooldown_seconds: int = 300
     player_stats_include_live_matches: bool = True
-    player_stats_include_upcoming_matches: bool = True
+    player_stats_include_upcoming_matches: bool = False
 
     @property
     def is_tiny_profile(self) -> bool:
@@ -244,7 +244,7 @@ class ScraperSettings:
         max_lifetime_hours = _coerce_float(env.get("SCRAPER_MAX_LIFETIME_HOURS"), 6.0, minimum=0.1)
         memory_soft_limit_mb = _coerce_int(env.get("MEMORY_SOFT_LIMIT_MB"), 1536, minimum=128)
         memory_hard_limit_mb = _coerce_int(env.get("MEMORY_HARD_LIMIT_MB"), 2048, minimum=256)
-        polling_interval_seconds = _coerce_float(env.get("POLLING_INTERVAL_SECONDS"), 2.5, minimum=0.1)
+        polling_interval_seconds = _coerce_float(env.get("POLLING_INTERVAL_SECONDS"), 1.0, minimum=0.1)
         # Increased default from 60s to 180s (3 min) to prevent premature restarts
         # Minimum kept at 30s to avoid hyper‑aggressive restart loops
         staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 60, minimum=30)
@@ -345,7 +345,7 @@ class ScraperSettings:
             minimum=30,
         )
         player_stats_include_live_matches = _coerce_bool(env.get("PLAYER_STATS_INCLUDE_LIVE_MATCHES"), True)
-        player_stats_include_upcoming_matches = _coerce_bool(env.get("PLAYER_STATS_INCLUDE_UPCOMING_MATCHES"), True)
+        player_stats_include_upcoming_matches = _coerce_bool(env.get("PLAYER_STATS_INCLUDE_UPCOMING_MATCHES"), False)
 
         if memory_soft_limit_mb > memory_hard_limit_mb:
             raise ValueError("MEMORY_SOFT_LIMIT_MB cannot be greater than MEMORY_HARD_LIMIT_MB")

@@ -321,7 +321,7 @@ export class CricketService {
 
     const cached = this.getCache(this.playerStatsCache, 'playerstats', cacheKey);
     let params = new HttpParams();
-    if (matchUrl) {
+    if (matchUrl && !externalMatchKey) {
       params = params.set('url', matchUrl);
     }
     if (externalMatchKey) {

@@ -116,6 +116,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   cricetTopicSubscription: any;
   cricObj: any;
   private recentBallRenderToken: number = 0;
+  private lastLiveBallEventToken: string | null = null;
 
   private tossWonCountrySubject: Subject<string> = new Subject<string>();
   private batOrBallSelectedSubject: Subject<string> = new Subject<string>();
@@ -211,15 +212,17 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Phase 7 (T036): Hide odds by default on mobile viewports
     this.showOdds = window.innerWidth > 768;
-    
-    this.currentUrl = this.activatedRoute.snapshot.queryParamMap.get('url')
-            || this.activatedRoute.snapshot.params['url']
-            || this.activatedRoute.snapshot.params['path'];
+
+    const routeMatchKey = this.activatedRoute.snapshot.params['path']
+      || this.activatedRoute.snapshot.params['url']
+      || '';
+    const legacyMatchUrl = this.activatedRoute.snapshot.queryParamMap.get('url');
+    this.currentUrl = routeMatchKey;
     
     // 002-match-details-ux: Extract matchId from URL or route params
     this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId') 
           || this.activatedRoute.snapshot.params['matchId']
-          || this.activatedRoute.snapshot.params['path']
+          || routeMatchKey
           || this.extractMatchIdFromUrl(this.currentUrl);
 
     this.router.events.pipe(
@@ -248,6 +251,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     //watching live score for cricet data
     this.fetchCricketData();
 
+    if (legacyMatchUrl && routeMatchKey) {
+      this.stripLegacyMatchUrlParam(routeMatchKey);
+    }
+
     //fetch user details from tokenStorage
     const user = this.tokenStorage.getUser();
     this.loggedUser =  JSON.parse(user);
@@ -255,8 +262,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     //this.loadUserBets();
 
     // Fetch match info for hero component display
-    if (this.matchUrl || this.currentUrl) {
-      this.fetchMatchInfo(this.matchUrl || this.currentUrl);
+    if (this.matchId || this.currentUrl) {
+      this.fetchMatchInfo(this.matchId || this.currentUrl);
     }
 
   }
@@ -266,13 +273,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private fetchCricketData() {
     const params = this.activatedRoute.snapshot.params;
     const match = params['path']; // Use 'path' instead of 'match'
-    const directMatchUrl = this.activatedRoute.snapshot.queryParamMap.get('url')
-                        || params['url']
-                        || this.currentUrl;
     const isSameRouteMatch = !!(match && this.lastResolvedRouteSlug && this.lastResolvedRouteSlug === match);
 
-    this.currentUrl = directMatchUrl || match;
-    this.matchUrl = directMatchUrl || match;
+    this.currentUrl = match || '';
+    this.matchUrl = this.currentMatch && this.currentMatch.url ? this.currentMatch.url : (match || '');
     this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId')
                   || params['matchId']
                   || match
@@ -285,6 +289,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.currentMatch = null;
       this.resolvedSeriesContext = null;
       this.seriesPageUrlFallback = null;
+      this.lastLiveBallEventToken = null;
       this.lastResolvedRouteSlug = match;
     }
 
@@ -306,7 +311,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     });
     
     // Fetch match info for hero component
-    this.fetchMatchInfo(match);
+    this.fetchMatchInfo(this.matchId || match);
   }
 
   private parseCricObjData(data) {
@@ -463,6 +468,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         }
       } else {
         console.log("No overs_data available");
+      }
+
+      if ((this.cricObj.overs_data === undefined || this.cricObj.overs_data === null) && this.tryAppendRecentBallFromLiveUpdate()) {
+        console.log("Updated last6Balls from live update:", this.last6Balls);
       }
 
       // Fallback: derive last 6 balls from runs_on_ball stream if still empty
@@ -895,18 +904,15 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 }
 
 onTabChange(event: MatTabChangeEvent) {
-  var match = this.activatedRoute.snapshot.params['path'];
+  var match = this.matchId || this.activatedRoute.snapshot.params['path'];
   if (event.index === 1) { // Match Info tab is selected
-    this.matchUrl = match;
-    this.fetchMatchInfo(this.matchUrl);
+    this.fetchMatchInfo(match);
   } else if (event.index === 2) { // Scorecard tab is selected
-    this.matchUrl = match;
-    this.fetchScorecardInfo(this.matchUrl);
+    this.fetchScorecardInfo(match);
   } else if (event.index === 3) { // Lineups tab is selected (002-match-details-ux)
     // Load match info if not already loaded (needed for playing XI data)
     if (!this.matchInfo) {
-      this.matchUrl = match;
-      this.fetchMatchInfo(this.matchUrl);
+      this.fetchMatchInfo(match);
     }
   }
 }
@@ -962,7 +968,7 @@ private resolveRouteMatch(matchSlug: string): void {
     return;
   }
 
-  var directMatchUrl = this.currentUrl || this.matchUrl;
+  var directMatchUrl = this.matchUrl && this.matchUrl.indexOf('/scoreboard/') !== -1 ? this.matchUrl : null;
   if (directMatchUrl && directMatchUrl.indexOf('/scoreboard/') !== -1) {
     var directMatch = {
       url: directMatchUrl,
@@ -974,8 +980,8 @@ private resolveRouteMatch(matchSlug: string): void {
     this.currentMatch = directMatch;
     this.updateSeriesFallbackContext(directMatch);
     this.fetchPlayerStatsForMatch(directMatch, matchSlug);
-    this.fetchMatchInfo(directMatchUrl);
-    this.fetchScorecardInfo(directMatchUrl);
+    this.fetchMatchInfo(matchSlug);
+    this.fetchScorecardInfo(matchSlug);
     return;
   }
 
@@ -1006,7 +1012,6 @@ private resolveRouteMatch(matchSlug: string): void {
       var resolvedUrl = resolvedMatch.url || matchSlug;
       if (resolvedUrl && resolvedUrl !== this.matchUrl) {
         this.matchUrl = resolvedUrl;
-        this.currentUrl = resolvedUrl;
       }
 
       this.fetchPlayerStatsForMatch(resolvedMatch, matchSlug);
@@ -1015,9 +1020,9 @@ private resolveRouteMatch(matchSlug: string): void {
         this.populateFallbackMatchInfo(resolvedMatch);
       }
 
-      if (resolvedUrl && resolvedUrl !== matchSlug) {
-        this.fetchMatchInfo(resolvedUrl);
-        this.fetchScorecardInfo(resolvedUrl);
+      if (matchSlug) {
+        this.fetchMatchInfo(matchSlug);
+        this.fetchScorecardInfo(matchSlug);
       }
     },
     error => {
@@ -1061,8 +1066,8 @@ private isLiveLikeStatus(status: string | null | undefined): boolean {
 }
 
 private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): void {
-  var matchUrl = match && match.url ? match.url : (this.matchUrl || this.currentUrl);
   var externalMatchKey = match && match.externalMatchKey ? match.externalMatchKey : (this.matchId || fallbackExternalKey);
+  var matchUrl = externalMatchKey ? undefined : (match && match.url ? match.url : (this.matchUrl || this.currentUrl));
   var hasFreshCachedSnapshot = this.cricketService.hasFreshPlayerStatsMatchCache(matchUrl, externalMatchKey);
 
   if (!matchUrl && !externalMatchKey) {
@@ -1092,6 +1097,52 @@ private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): voi
         this.playerStatsError = true;
       }
     );
+}
+
+private stripLegacyMatchUrlParam(matchSlug: string): void {
+  this.router.navigate(['/cric-live', matchSlug], { replaceUrl: true });
+}
+
+private tryAppendRecentBallFromLiveUpdate(): boolean {
+  if (!this.cricObj) {
+    return false;
+  }
+
+  var candidateBall = this.cricObj.current_ball;
+  if (candidateBall === undefined || candidateBall === null || String(candidateBall).trim() === '') {
+    candidateBall = this.cricObj.score_update;
+  }
+  if (candidateBall === undefined || candidateBall === null || String(candidateBall).trim() === '') {
+    candidateBall = this.cricObj.runs_on_ball;
+  }
+
+  if (candidateBall === undefined || candidateBall === null || String(candidateBall).trim() === '') {
+    return false;
+  }
+
+  var recentBall = this.toRecentBallView(candidateBall);
+  if (!recentBall || recentBall.kind === 'other') {
+    return false;
+  }
+
+  var overToken = this.cricObj.over !== undefined && this.cricObj.over !== null
+    ? String(this.cricObj.over).trim()
+    : '';
+  var eventToken = overToken + '|' + recentBall.rawScore;
+  if (eventToken === this.lastLiveBallEventToken) {
+    return false;
+  }
+
+  this.lastLiveBallEventToken = eventToken;
+
+  var existingBalls = this.last6Balls.map((ball) => ball.rawScore);
+  if (!overToken && existingBalls.length > 0 && existingBalls[existingBalls.length - 1] === recentBall.rawScore) {
+    return false;
+  }
+
+  existingBalls.push(recentBall.rawScore);
+  this.last6Balls = this.buildRecentBalls(existingBalls.slice(-6));
+  return true;
 }
 
 hasPlayerStatsData(): boolean {
