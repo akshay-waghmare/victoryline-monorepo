@@ -63,10 +63,10 @@
   <div
     class="matches-list__content matches-list__content--swipeable"
     *ngIf="!isLoading && !hasError"
-    (touchstart)="onResultsTouchStart($event)"
-    (touchend)="onResultsTouchEnd($event)"
+      (touchstart)="onResultsTouchStart($event)"
+      (touchend)="onResultsTouchEnd($event)"
   >
-    <p class="matches-list__swipe-hint" *ngIf="filteredMatches.length > 1">
+    <p class="matches-list__swipe-hint" *ngIf="visibleMatches.length > 1">
       Swipe across the matches area to switch between categories.
     </p>
 
@@ -78,9 +78,9 @@
 
     <ng-container *ngIf="!isUpcomingGroupedView(); else groupedUpcomingMatches">
       <app-match-card
-        *ngFor="let match of filteredMatches; trackBy: trackByMatchId"
+        *ngFor="let match of visibleMatches; trackBy: trackByMatchId"
         [match]="match"
-        [enableAnimations]="true"
+        [enableAnimations]="selectedStatus === MatchStatus.LIVE && match.isLive"
         (cardClick)="onMatchClick(match)"
         (detailsClick)="onDetailsClick(match)"
       ></app-match-card>
@@ -94,11 +94,20 @@
         <app-match-card
           *ngFor="let match of group.matches; trackBy: trackByMatchId"
           [match]="match"
-          [enableAnimations]="true"
+          [enableAnimations]="false"
           (cardClick)="onMatchClick(match)"
           (detailsClick)="onDetailsClick(match)"
         ></app-match-card>
       </section>
     </ng-template>
+
+    <div class="matches-list__load-more" *ngIf="canLoadMore">
+      <p class="matches-list__load-more-copy">
+        Showing {{ visibleMatches.length }} of {{ filteredMatches.length }}
+      </p>
+      <button type="button" class="matches-list__load-more-btn" (click)="onLoadMore()">
+        {{ loadMoreLabel }}
+      </button>
+    </div>
   </div>
 </div>

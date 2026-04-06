@@ -1,86 +1,98 @@
 <div class="match-info-container" role="region" aria-label="Match information">
-  <div *ngIf="matchData || matchInfo" class="info-sections">
-    
-    <!-- Match Overview -->
-    <section class="info-section">
-      <h3 class="section-title"><mat-icon>info</mat-icon> Match Overview</h3>
-      <dl class="info-list">
-        <div class="info-item">
-          <dt>Series</dt>
-          <dd>{{ seriesName }}</dd>
+  <div *ngIf="hasData" class="match-info-shell">
+    <header class="match-info-header">
+      <div class="match-info-header__eyebrow">Match info</div>
+      <h2 class="match-info-header__title">{{ matchTitle }}</h2>
+      <p class="match-info-header__subtitle" *ngIf="seriesName && seriesName !== matchTitle">{{ seriesName }}</p>
+    </header>
+
+    <section class="facts-grid" aria-label="Key match facts">
+      <article class="fact-card" *ngFor="let fact of keyFacts" [attr.data-tone]="fact.tone || 'default'">
+        <div class="fact-card__icon">
+          <mat-icon>{{ fact.icon }}</mat-icon>
         </div>
-        <div class="info-item">
-          <dt>Format</dt>
-          <dd>{{ matchFormat }}</dd>
+        <div class="fact-card__content">
+          <div class="fact-card__label">{{ fact.label }}</div>
+          <div class="fact-card__value">{{ fact.value }}</div>
         </div>
-        <div class="info-item">
-          <dt>Status</dt>
-          <dd class="status-badge">{{ matchStatus }}</dd>
-        </div>
-        <div class="info-item" *ngIf="matchDate">
-          <dt>Date & Time</dt>
-          <dd>{{ matchDate | date: 'fullDate' }}, {{ matchDate | date: 'shortTime' }}</dd>
+      </article>
+    </section>
+
+    <section class="insights-section" *ngIf="smartInsights.length > 0" aria-label="Quick match takeaways">
+      <div class="section-heading">
+        <h3 class="section-title">Quick take</h3>
+        <span class="section-kicker">Most useful context first</span>
+      </div>
+
+      <div class="insights-grid">
+        <article class="insight-card" *ngFor="let insight of smartInsights" [attr.data-tone]="insight.tone">
+          <div class="insight-card__title-row">
+            <mat-icon>{{ insight.icon }}</mat-icon>
+            <h4>{{ insight.title }}</h4>
+          </div>
+          <p>{{ insight.text }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="compact-section" *ngIf="showVenueSection" aria-label="Venue trends">
+      <div class="section-heading">
+        <h3 class="section-title">Venue trends</h3>
+        <span class="section-kicker">{{ venueName }}</span>
+      </div>
+
+      <div class="mini-stats-grid">
+        <article class="mini-stat-card" *ngFor="let stat of venueMiniStats">
+          <div class="mini-stat-card__label">{{ stat.label }}</div>
+          <div class="mini-stat-card__value">{{ stat.value }}</div>
+          <div class="mini-stat-card__hint" *ngIf="stat.hint">{{ stat.hint }}</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="compact-section" *ngIf="showTeamSection" aria-label="Team comparison">
+      <div class="section-heading">
+        <h3 class="section-title">Team snapshot</h3>
+        <span class="section-kicker">Condensed comparison</span>
+      </div>
+
+      <div class="team-cards">
+        <article class="team-card" *ngFor="let team of teamCards">
+          <div class="team-card__header">
+            <h4>{{ team.name }}</h4>
+            <p *ngIf="team.highlight">{{ team.highlight }}</p>
+          </div>
+
+          <div class="team-card__metrics">
+            <div class="team-card__metric" *ngFor="let metric of team.metrics">
+              <span class="team-card__metric-label">{{ metric.label }}</span>
+              <strong class="team-card__metric-value">{{ metric.value }}</strong>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="compact-section" *ngIf="officialsList.length > 0" aria-label="Match officials">
+      <div class="section-heading">
+        <h3 class="section-title">Officials</h3>
+        <span class="section-kicker">Match crew</span>
+      </div>
+
+      <dl class="officials-list">
+        <div class="official-item" *ngFor="let official of officialsList">
+          <dt>{{ official.label }}</dt>
+          <dd>{{ official.value }}</dd>
         </div>
       </dl>
     </section>
-
-    <!-- Venue Information -->
-    <section class="info-section venue-section">
-      <h3 class="section-title"><mat-icon>location_on</mat-icon> Venue</h3>
-      <dl class="info-list">
-        <div class="info-item">
-          <dt>Ground</dt>
-          <dd class="venue-name">{{ venueName }}</dd>
-        </div>
-        <div class="info-item" *ngIf="venueLocation">
-          <dt>Location</dt>
-          <dd>{{ venueLocation }}</dd>
-        </div>
-        <div class="info-item" *ngIf="venueCapacity">
-          <dt>Capacity</dt>
-          <dd>{{ venueCapacity | number }} spectators</dd>
-        </div>
-      </dl>
-    </section>
-
-    <!-- Toss Information -->
-    <section class="info-section toss-section">
-      <h3 class="section-title"><mat-icon>monetization_on</mat-icon> Toss</h3>
-      <p class="toss-result">{{ tossInfo }}</p>
-    </section>
-
-    <!-- Match Officials -->
-    <section class="info-section officials-section" *ngIf="officials && (officials.umpire1 || officials.umpire2)">
-      <h3 class="section-title"><mat-icon>gavel</mat-icon> Match Officials</h3>
-      <dl class="info-list">
-        <div class="info-item" *ngIf="officials.umpire1">
-          <dt>Umpire 1</dt>
-          <dd>{{ officials.umpire1 }}</dd>
-        </div>
-        <div class="info-item" *ngIf="officials.umpire2">
-          <dt>Umpire 2</dt>
-          <dd>{{ officials.umpire2 }}</dd>
-        </div>
-        <div class="info-item" *ngIf="officials.thirdUmpire">
-          <dt>Third Umpire</dt>
-          <dd>{{ officials.thirdUmpire }}</dd>
-        </div>
-        <div class="info-item" *ngIf="officials.referee">
-          <dt>Match Referee</dt>
-          <dd>{{ officials.referee }}</dd>
-        </div>
-      </dl>
-    </section>
-
   </div>
 
-  <!-- Loading state -->
   <div class="loading-state" *ngIf="isLoading" role="status" aria-live="polite">
     <p>Loading match information...</p>
   </div>
 
-  <!-- Empty state -->
-  <div class="empty-state" *ngIf="!isLoading && !matchData && !matchInfo">
+  <div class="empty-state" *ngIf="!isLoading && !hasData">
     <p>No match information available</p>
   </div>
 </div>

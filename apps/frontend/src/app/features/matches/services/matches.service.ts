@@ -7,7 +7,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, forkJoin, timer } from 'rxjs';
 import { map, switchMap, catchError, shareReplay, timeout } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
 import { EventListService } from '../../../component/event-list.service';
@@ -29,6 +29,10 @@ export class MatchesService {
   
   private readonly matchesRequestTimeoutMs = 15000;
   private readonly scorecardRequestTimeoutMs = 8000;
+  private readonly noCacheHeaders = new HttpHeaders({
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+  });
   private scorecardApiUrl = environment.REST_API_URL + 'cricket-data/sC4-stats/get';
   constructor(
     private eventListService: EventListService,
@@ -165,7 +169,10 @@ export class MatchesService {
     console.log('Fetching scorecard from:', url);
     console.log('Match identifier:', matchIdentifier);
     
-    return this.http.get(url).pipe(
+    return this.http.get(url, {
+      headers: this.noCacheHeaders,
+      params: new HttpParams().set('_ts', Date.now().toString())
+    }).pipe(
       timeout(this.scorecardRequestTimeoutMs),
       map((data: any) => {
         console.log('Scorecard data received for', matchIdentifier, ':', data);

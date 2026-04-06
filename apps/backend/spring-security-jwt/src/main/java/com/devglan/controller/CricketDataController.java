@@ -404,19 +404,16 @@ public class CricketDataController {
 
 	@GetMapping("/last-updated-data")
 	public ResponseEntity<CricketDataDTO> getLastUpdatedData(@RequestParam String url) {
-		try {
-			CricketDataDTO data = cricketDataService.getLastUpdatedData(url);
-			if (data == null && matchDetailHydrationService.hydrate(url)) {
-				data = cricketDataService.getLastUpdatedData(url);
+		// Retrieve the last updated data for the specific URL
+		List<LiveMatch> liveMatches = liveMatchService.findAll();
+		for (LiveMatch liveMatch : liveMatches) {
+			if (liveMatch.getUrl().contains(url)) {
+				// Assuming you have a method to append the base URL
+				String completeUrl = liveMatchService.appendBaseUrl(liveMatch.getUrl()); // Implement this method
+				return liveMatchService.fetchAndSendData(completeUrl);
 			}
-			if (data != null) {
-				return ResponseEntity.ok(data);
-			}
-			return ResponseEntity.notFound().build();
-		} catch (Exception e) {
-			log.error("Error retrieving last updated data for {}", url, e);
-			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 		}
+		return ResponseEntity.notFound().build();
 	}
 
 	@PostMapping("/add-live-matches")

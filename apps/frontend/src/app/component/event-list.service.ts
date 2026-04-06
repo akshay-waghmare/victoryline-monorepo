@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { environment } from '../../environments/environment';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { map } from 'rxjs/operators';
@@ -10,12 +10,14 @@ import { N_ROUTES } from 'src/app/constants/constants';
   providedIn: 'root'
 })
 export class EventListService {
-  
-  
   private live_matches_url = environment.REST_API_URL + 'cricket-data/' + 'live-matches';
   private upcoming_matches_url = environment.REST_API_URL + 'cricket-data/' + 'upcoming-matches';
   private completed_matches_url = environment.REST_API_URL + 'cricket-data/' + 'completed-matches';
   private entity_url = environment.REST_API_URL + 'events';
+  private readonly noCacheHeaders = new HttpHeaders({
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache'
+  });
   constructor(private _http: HttpClient, private rxStompService: RxStompService) {
   }
   
@@ -23,19 +25,19 @@ export class EventListService {
     throw new Error('Method not implemented.');
   }
   getEvents(): Observable<any> {
-    return this._http.get(this.entity_url);
+    return this.getNoCache(this.entity_url);
   }
 
   getLiveMatches() {
-    return this._http.get(this.live_matches_url);
+    return this.getNoCache(this.live_matches_url);
   }
 
   getUpcomingMatches() {
-    return this._http.get(this.upcoming_matches_url);
+    return this.getNoCache(this.upcoming_matches_url);
   }
 
   getCompletedMatches() {
-    return this._http.get(this.completed_matches_url);
+    return this.getNoCache(this.completed_matches_url);
   }
 
   subscribeToEventsTopic(): Observable<any> {
@@ -62,5 +64,12 @@ export class EventListService {
         });
       })
     );
+  }
+
+  private getNoCache(url: string): Observable<any> {
+    return this._http.get(url, {
+      headers: this.noCacheHeaders,
+      params: new HttpParams().set('_ts', Date.now().toString())
+    });
   }
 }

@@ -31,19 +31,26 @@ import { Tab } from '../../../../shared/components/tab-nav/tab-nav.component';
 })
 export class MatchesListComponent implements OnInit, OnDestroy {
   private static readonly SWIPE_DISTANCE_PX = 72;
-  private readonly swipeableStatuses: Array<MatchStatus | 'all'> = [
-    'all',
+  private readonly swipeableStatuses: MatchStatus[] = [
     MatchStatus.LIVE,
     MatchStatus.UPCOMING,
     MatchStatus.COMPLETED
   ];
+  private readonly pageSizeByStatus: { [key: string]: number } = {
+    [MatchStatus.LIVE]: 12,
+    [MatchStatus.UPCOMING]: 24,
+    [MatchStatus.COMPLETED]: 24
+  };
   private swipeStartX: number | null = null;
   private swipeStartY: number | null = null;
   private suppressNavigationUntil = 0;
+  private hasInitializedStatus = false;
+  private visibleMatchCount = this.pageSizeByStatus[MatchStatus.LIVE];
 
   // Match data
   allMatches: MatchCardViewModel[] = [];
   filteredMatches: MatchCardViewModel[] = [];
+  visibleMatches: MatchCardViewModel[] = [];
   upcomingMatchGroups: { label: string; matches: MatchCardViewModel[] }[] = [];
   
   // Loading states
@@ -52,15 +59,14 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   errorMessage = '';
   
   // Filter state
-  selectedStatus: MatchStatus | 'all' = 'all';
+  selectedStatus: MatchStatus = MatchStatus.LIVE;
   searchQuery = '';
   
   // Tab navigation configuration
   filterTabs: Tab[] = [
-    { id: 'all', label: 'All Matches', icon: 'view_list', count: 0 },
     { id: MatchStatus.LIVE, label: 'Live', icon: 'sports_cricket', count: 0 },
     { id: MatchStatus.UPCOMING, label: 'Upcoming', icon: 'schedule', count: 0 },
-    { id: MatchStatus.COMPLETED, label: 'Completed', icon: 'check_circle', count: 0 }
+    { id: MatchStatus.COMPLETED, label: 'Results', icon: 'check_circle', count: 0 }
   ];
   
   // Expose MatchStatus enum to template
@@ -98,6 +104,11 @@ export class MatchesListComponent implements OnInit, OnDestroy {
       .subscribe(
         (matches) => {
           this.allMatches = sortMatchesByPriority(matches);
+          if (!this.hasInitializedStatus) {
+            this.selectedStatus = this.getDefaultStatus();
+            this.resetVisibleMatchCount();
+            this.hasInitializedStatus = true;
+          }
           this.updateTabCounts();
           this.applyFilters();
           this.isLoading = false;
@@ -119,9 +130,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     let matches = [...this.allMatches];
     
     // Apply status filter
-    if (this.selectedStatus !== 'all') {
-      matches = filterMatchesByStatus(matches, this.selectedStatus);
-    }
+    matches = filterMatchesByStatus(matches, this.selectedStatus);
     
     // Apply search filter
     if (this.searchQuery.trim()) {
@@ -129,8 +138,9 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     }
     
     this.filteredMatches = matches;
+    this.visibleMatches = matches.slice(0, this.visibleMatchCount);
     this.upcomingMatchGroups = this.selectedStatus === MatchStatus.UPCOMING
-      ? this.buildUpcomingGroups(matches)
+      ? this.buildUpcomingGroups(this.visibleMatches)
       : [];
   }
   
@@ -139,10 +149,9 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    */
   updateTabCounts(): void {
     this.filterTabs = [
-      { id: 'all', label: 'All Matches', icon: 'view_list', count: this.allMatches.length },
       { id: MatchStatus.LIVE, label: 'Live', icon: 'sports_cricket', count: this.liveMatchesCount },
       { id: MatchStatus.UPCOMING, label: 'Upcoming', icon: 'schedule', count: this.upcomingMatchesCount },
-      { id: MatchStatus.COMPLETED, label: 'Completed', icon: 'check_circle', count: this.completedMatchesCount }
+      { id: MatchStatus.COMPLETED, label: 'Results', icon: 'check_circle', count: this.completedMatchesCount }
     ];
   }
   
@@ -150,15 +159,17 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    * Handle tab change from tab-nav component
    */
   onTabChange(tabId: string): void {
-    this.selectedStatus = tabId as MatchStatus | 'all';
+    this.selectedStatus = tabId as MatchStatus;
+    this.resetVisibleMatchCount();
     this.applyFilters();
   }
   
   /**
    * Handle status filter change
    */
-  onStatusFilterChange(status: MatchStatus | 'all'): void {
+  onStatusFilterChange(status: MatchStatus): void {
     this.selectedStatus = status;
+    this.resetVisibleMatchCount();
     this.applyFilters();
   }
   
@@ -167,6 +178,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    */
   onSearchChange(query: string): void {
     this.searchQuery = query;
+    this.resetVisibleMatchCount();
     this.applyFilters();
   }
   
@@ -265,10 +277,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   /**
    * Get count of matches by status
    */
-  getMatchCount(status: MatchStatus | 'all'): number {
-    if (status === 'all') {
-      return this.allMatches.length;
-    }
+  getMatchCount(status: MatchStatus): number {
     return filterMatchesByStatus(this.allMatches, status).length;
   }
   
@@ -347,6 +356,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     }
 
     this.selectedStatus = this.swipeableStatuses[nextIndex];
+    this.resetVisibleMatchCount();
     this.applyFilters();
   }
 
@@ -385,5 +395,43 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     });
 
     return Object.keys(groups).map(key => groups[key]);
+  }
+
+  get canLoadMore(): boolean {
+    return this.visibleMatches.length < this.filteredMatches.length;
+  }
+
+  onLoadMore(): void {
+    this.visibleMatchCount += this.getPageSize(this.selectedStatus);
+    this.applyFilters();
+  }
+
+  get loadMoreLabel(): string {
+    switch (this.selectedStatus) {
+      case MatchStatus.UPCOMING:
+        return 'Show more upcoming matches';
+      case MatchStatus.COMPLETED:
+        return 'Show more results';
+      default:
+        return 'Show more live matches';
+    }
+  }
+
+  private getDefaultStatus(): MatchStatus {
+    if (this.liveMatchesCount > 0) {
+      return MatchStatus.LIVE;
+    }
+    if (this.upcomingMatchesCount > 0) {
+      return MatchStatus.UPCOMING;
+    }
+    return MatchStatus.COMPLETED;
+  }
+
+  private resetVisibleMatchCount(): void {
+    this.visibleMatchCount = this.getPageSize(this.selectedStatus);
+  }
+
+  private getPageSize(status: MatchStatus): number {
+    return this.pageSizeByStatus[status] || 24;
   }
 }

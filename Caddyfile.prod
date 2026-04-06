@@ -93,3 +93,75 @@ crickzen.com, www.crickzen.com {
 # www.crickzen.com {
 #   redir https://crickzen.com{uri} permanent
 # }
+
+# ─── betx21exch.live betting app ────────────────────────
+# Proxies to the betx21exch Express backend running on the host (port 3001)
+# and to the betx21 Caddy (port 8088) for frontend static files.
+# 172.18.0.1 is the Docker bridge gateway to the host.
+
+betx21exch.live {
+  encode zstd gzip
+
+  # API routes → Express backend directly
+  handle /api/* {
+    reverse_proxy 172.18.0.1:3001 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+      header_up X-Forwarded-Proto {scheme}
+      transport http {
+        read_timeout 300s
+        write_timeout 300s
+      }
+    }
+  }
+
+  # Socket.IO → Express backend directly (WebSocket upgrade is automatic)
+  handle /socket.io/* {
+    reverse_proxy 172.18.0.1:3001 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+      header_up X-Forwarded-Proto {scheme}
+      transport http {
+        read_timeout 86400s
+        write_timeout 86400s
+      }
+    }
+  }
+
+  # Frontend SPA → betx21 Caddy on 8088 (serves static files + SPA fallback)
+  handle {
+    reverse_proxy 172.18.0.1:8088 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+      header_up X-Forwarded-Proto {scheme}
+    }
+  }
+
+  # Security headers
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    -Server
+  }
+
+  log {
+    output file /data/betx21-access.log
+    format json
+  }
+}
+
+# cricket_ledger direct IP access
+http://204.12.199.137 {
+  reverse_proxy 172.18.0.1:3010 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+
+  log {
+    output file /data/cricket-ledger-ip-access.log
+    format json
+  }
+}
