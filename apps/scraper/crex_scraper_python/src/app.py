@@ -22,6 +22,7 @@ from .crex_url_utils import (
     get_crex_live_url,
 )
 from .cricket_data_service import CricketDataService
+from .health import HealthState
 from .loggers.adapters import configure_logging
 
 # Configure logging immediately
@@ -130,6 +131,17 @@ def health_check():
     Return service health status.
     """
     summary = scraper_service.health.get_summary()
+    restart_condition = scraper_service.get_restart_condition(summary)
+    restart_scheduled = False
+    if restart_condition:
+        restart_scheduled = scraper_service.schedule_container_restart(
+            restart_condition["reason"],
+            metadata=restart_condition["metadata"],
+            delay_seconds=0,
+        )
+
+    status_code = 503 if restart_condition else 200
+
     return jsonify({
         "status": "success",
         "data": {
@@ -139,9 +151,12 @@ def health_check():
             "pids": summary.pids_count,
             "memory_mb": summary.memory_usage_mb,
             "last_scrape": summary.last_scrape_timestamp,
-            "details": summary.details
+            "active_matches": summary.active_matches,
+            "details": summary.details,
+            "restart_scheduled": restart_scheduled,
+            "restart_reason": restart_condition["reason"] if restart_condition else None,
         }
-    })
+    }), status_code
 
 @app.route("/metrics")
 def metrics():
@@ -155,8 +170,22 @@ def manual_recycle():
     """
     Trigger manual browser recycle.
     """
-    # Stub for now, will implement full logic later
-    return jsonify({"status": "success", "message": "Recycle triggered (stub)"})
+    if scraper_loop is None or scraper_loop.is_closed() or not scraper_service._running:
+        return jsonify({"status": "error", "message": "scraper service is not ready"}), 503
+
+    try:
+        future = asyncio.run_coroutine_threadsafe(
+            scraper_service.recycle_browser_pool("manual_recycle"),
+            scraper_loop,
+        )
+        future.result(timeout=45)
+        return jsonify({"status": "success", "message": "Browser recycle completed"}), 202
+    except FutureTimeoutError:
+        logger.error("Manual recycle timed out")
+        return jsonify({"status": "error", "message": "manual recycle timed out"}), 504
+    except Exception as exc:
+        logger.error("Manual recycle failed: %s", exc, exc_info=True)
+        return jsonify({"status": "error", "message": str(exc)}), 500
 
 
 @app.route("/hydrate-match-details", methods=["POST"])

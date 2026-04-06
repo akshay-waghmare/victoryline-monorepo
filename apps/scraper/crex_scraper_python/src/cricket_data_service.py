@@ -932,16 +932,7 @@ class CricketDataService:
                 if overs_data:
                     payload["overs_data"] = overs_data
             
-            # Log payload with key values for debugging (to debug file)
             match_update_data = payload.get("match_update", {})
-            print(f"[FAST-PUSH] url={source_url}")
-            print(f"[FAST-PUSH] match_update={match_update_data}")
-            print(f"[FAST-PUSH] team_odds={payload.get('team_odds')}")
-            print(f"[FAST-PUSH] fav_team={payload.get('fav_team')}")
-            print(f"[FAST-PUSH] batting_team={payload.get('batting_team')}")
-            print(f"[FAST-PUSH] over={payload.get('over')}")
-            print(f"[FAST-PUSH] score_update={payload.get('score_update')}")
-            
             logger.debug("matches.push_immediate.payload", metadata={
                 "url": source_url, 
                 "fields": list(payload.keys()),

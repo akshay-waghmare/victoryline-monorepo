@@ -71,7 +71,7 @@ class ScraperSettings:
     max_lifetime_hours: float = 6.0
     memory_soft_limit_mb: int = 1536
     memory_hard_limit_mb: int = 2048
-    polling_interval_seconds: float = 1.0
+    polling_interval_seconds: float = 0.8
     # Increased from 60s to 180s (3 min) to allow scrapers enough time for:
     # - Browser launch (5-10s)
     # - Page navigation (5-10s)
@@ -134,10 +134,12 @@ class ScraperSettings:
     
     # Persistent Pages Config (Feature 007 - Phase 2)
     enable_persistent_pages: bool = False  # Feature flag - disabled by default until tested
-    persistent_page_max_count: int = 15  # Max pages in pool
+    persistent_page_max_count: int = 30  # Baseline pool size before auto-scaling to active live matches
     persistent_page_max_age_seconds: int = 7200  # Max age before recycle (2 hours)
     persistent_page_max_errors: int = 5  # Recycle after N errors
     fast_poll_interval_ms: int = 1000  # Polling interval for sV3 (1 second)
+    fast_poll_reconcile_interval_seconds: float = 0.8  # How often to attach/detach persistent pages
+    live_match_rescrape_interval_seconds: float = 15.0  # Slow full re-scrape cadence once fast pages are active
 
     # Player Stats Crawler Config
     enable_player_stats_crawler: bool = False
@@ -223,6 +225,8 @@ class ScraperSettings:
             "persistent_page_max_age_seconds": self.persistent_page_max_age_seconds,
             "persistent_page_max_errors": self.persistent_page_max_errors,
             "fast_poll_interval_ms": self.fast_poll_interval_ms,
+            "fast_poll_reconcile_interval_seconds": self.fast_poll_reconcile_interval_seconds,
+            "live_match_rescrape_interval_seconds": self.live_match_rescrape_interval_seconds,
             "enable_player_stats_crawler": self.enable_player_stats_crawler,
             "player_stats_polling_interval_seconds": self.player_stats_polling_interval_seconds,
             "player_stats_batch_size": self.player_stats_batch_size,
@@ -244,7 +248,7 @@ class ScraperSettings:
         max_lifetime_hours = _coerce_float(env.get("SCRAPER_MAX_LIFETIME_HOURS"), 6.0, minimum=0.1)
         memory_soft_limit_mb = _coerce_int(env.get("MEMORY_SOFT_LIMIT_MB"), 1536, minimum=128)
         memory_hard_limit_mb = _coerce_int(env.get("MEMORY_HARD_LIMIT_MB"), 2048, minimum=256)
-        polling_interval_seconds = _coerce_float(env.get("POLLING_INTERVAL_SECONDS"), 1.0, minimum=0.1)
+        polling_interval_seconds = _coerce_float(env.get("POLLING_INTERVAL_SECONDS"), 0.8, minimum=0.1)
         # Increased default from 60s to 180s (3 min) to prevent premature restarts
         # Minimum kept at 30s to avoid hyper‑aggressive restart loops
         staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 60, minimum=30)
@@ -303,10 +307,20 @@ class ScraperSettings:
 
         # Persistent Pages Config (Feature 007 - Phase 2)
         enable_persistent_pages = _coerce_bool(env.get("ENABLE_PERSISTENT_PAGES"), False)
-        persistent_page_max_count = _coerce_int(env.get("PERSISTENT_PAGE_MAX_COUNT"), 15, minimum=1)
+        persistent_page_max_count = _coerce_int(env.get("PERSISTENT_PAGE_MAX_COUNT"), 30, minimum=1)
         persistent_page_max_age_seconds = _coerce_int(env.get("PERSISTENT_PAGE_MAX_AGE_SECONDS"), 7200, minimum=60)
         persistent_page_max_errors = _coerce_int(env.get("PERSISTENT_PAGE_MAX_ERRORS"), 5, minimum=1)
         fast_poll_interval_ms = _coerce_int(env.get("FAST_POLL_INTERVAL_MS"), 1000, minimum=100)
+        fast_poll_reconcile_interval_seconds = _coerce_float(
+            env.get("FAST_POLL_RECONCILE_INTERVAL_SECONDS"),
+            0.8,
+            minimum=0.1,
+        )
+        live_match_rescrape_interval_seconds = _coerce_float(
+            env.get("LIVE_MATCH_RESCRAPE_INTERVAL_SECONDS"),
+            15.0,
+            minimum=1.0,
+        )
 
         # Player Stats Crawler Config
         enable_player_stats_crawler = _coerce_bool(env.get("ENABLE_PLAYER_STATS_CRAWLER"), False)
@@ -415,6 +429,8 @@ class ScraperSettings:
             persistent_page_max_age_seconds=persistent_page_max_age_seconds,
             persistent_page_max_errors=persistent_page_max_errors,
             fast_poll_interval_ms=fast_poll_interval_ms,
+            fast_poll_reconcile_interval_seconds=fast_poll_reconcile_interval_seconds,
+            live_match_rescrape_interval_seconds=live_match_rescrape_interval_seconds,
             enable_player_stats_crawler=enable_player_stats_crawler,
             player_stats_polling_interval_seconds=player_stats_polling_interval_seconds,
             player_stats_batch_size=player_stats_batch_size,

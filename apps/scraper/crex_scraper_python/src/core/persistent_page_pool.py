@@ -219,6 +219,15 @@ class PersistentPagePool:
         if match_id not in self._entries:
             return False
         return not self._entries[match_id].page.is_closed()
+
+    async def ensure_capacity(self, min_pages: int):
+        """Grow pool capacity to fit the current live-match count and avoid page eviction churn."""
+        if min_pages <= self._max_pages:
+            return
+        async with self._lock:
+            if min_pages > self._max_pages:
+                logger.info(f"[POOL] Growing capacity from {self._max_pages} to {min_pages}")
+                self._max_pages = min_pages
     
     def get_stats(self) -> Dict:
         """Get pool statistics for monitoring."""

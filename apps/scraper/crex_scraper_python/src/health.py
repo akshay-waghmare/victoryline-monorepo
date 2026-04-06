@@ -49,6 +49,7 @@ class HealthGrader:
         self._state = HealthState.HEALTHY
         self._start_time = time.time()
         self._last_successful_scrape = time.time()
+        self._active_matches = 0
         self._audit_log: Deque[AuditEntry] = deque(maxlen=self.settings.audit_max_entries)
         self._freshness_window: Deque[float] = deque(maxlen=1000) # Keep last 1000 samples
         self._consecutive_failures = 0
@@ -63,6 +64,14 @@ class HealthGrader:
     def record_reconciliation_warning(self, message: str):
         """Record a reconciliation warning."""
         self._reconciliation_warnings.append(f"{time.time()}: {message}")
+
+    def set_active_matches(self, count: int) -> None:
+        """Track how many live matches are currently being monitored."""
+        self._active_matches = max(int(count), 0)
+
+    def seconds_since_last_success(self) -> float:
+        """Return elapsed seconds since the last successful scrape."""
+        return max(time.time() - self._last_successful_scrape, 0.0)
 
     def should_trigger_recovery(self) -> bool:
         """
@@ -144,7 +153,7 @@ class HealthGrader:
         Check if the scraper has stalled (no success for threshold).
         Returns True if stalled.
         """
-        time_since_last = time.time() - self._last_successful_scrape
+        time_since_last = self.seconds_since_last_success()
         is_stalled = time_since_last > self.settings.staleness_threshold_seconds
         
         if is_stalled and self._state != HealthState.FAILING:
@@ -156,11 +165,15 @@ class HealthGrader:
         return is_stalled
 
     def get_pids_count(self) -> int:
-        """Get current number of PIDs (threads/processes) for this container."""
+        """Get current Linux task count (threads + processes) for this container."""
         try:
-            # In Docker, we might want to count all processes in the cgroup or just children
-            # For now, counting children of the current process
-            return len(self._process.children(recursive=True)) + 1
+            total = self._process.num_threads()
+            for child in self._process.children(recursive=True):
+                try:
+                    total += child.num_threads()
+                except Exception:
+                    total += 1
+            return total
         except Exception:
             return 0
 
@@ -208,6 +221,7 @@ class HealthGrader:
 
     def get_summary(self) -> HealthSummary:
         """Generate a health summary report."""
+        seconds_since_last_scrape = self.seconds_since_last_success()
         score = 100
         if self._state == HealthState.DEGRADED:
             score = 70
@@ -223,11 +237,12 @@ class HealthGrader:
             pids_count=self.get_pids_count(),
             memory_usage_mb=self.get_memory_usage(),
             last_scrape_timestamp=self._last_successful_scrape,
-            active_matches=0, # To be filled by caller
+            active_matches=self._active_matches,
             details={
                 "consecutive_failures": self._consecutive_failures,
                 "audit_log_count": len(self._audit_log),
                 "freshness": self.get_freshness_stats(),
+                "seconds_since_last_scrape": round(seconds_since_last_scrape, 2),
                 "reconciliation_warnings": list(self._reconciliation_warnings)
             }
         )
