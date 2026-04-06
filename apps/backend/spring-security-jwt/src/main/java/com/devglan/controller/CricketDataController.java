@@ -114,153 +114,147 @@ public class CricketDataController {
 	        if (data.getCommentary() == null && extractedCommentary != null) {
 	            data.setCommentary(extractedCommentary);
 	        }
-	        
-	        // Fetch the existing data including the merged matchInfo data
-	        CricketDataDTO existingData = cricketDataService.getLastUpdatedData(data.getUrl());
 
-	        // If no existing data found, create a new one
-	        if (existingData == null) {
-	            existingData = new CricketDataDTO();
-	            existingData.setUrl(data.getUrl());
-	        }
+            if (data.getUrl() == null || data.getUrl().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Error: url is required");
+            }
 
-	        //System.out.println("Received cricket data: " + data);
-
-	        Map<String, Object> nonNullFields = new HashMap<>();
-
-	        // Check each field for non-null values and update the existing data
-	        if (data.getTeamOdds() != null) {
-	            nonNullFields.put("team_odds", data.getTeamOdds());
-	            existingData.setTeamOdds(data.getTeamOdds());
-	            existingData.setLastUpdated(System.currentTimeMillis());
-	        }
-	        if (data.getCurrentRunRate() != null) {
-	            nonNullFields.put("crr", data.getCurrentRunRate());
-	            existingData.setCurrentRunRate(data.getCurrentRunRate());
-	        }
-	        if (data.getFinalResultText() != null) {
-	            nonNullFields.put("final_result_text", data.getFinalResultText());
-	            existingData.setFinalResultText(data.getFinalResultText());
-	        }
-	        if (data.getMatchOdds() != null && !data.getMatchOdds().isEmpty()) {
-	            nonNullFields.put("match_odds", data.getMatchOdds());
-	            existingData.setMatchOdds(data.getMatchOdds());
-	            existingData.setLastUpdated(System.currentTimeMillis());
-	        }
-	        if (data.getOver() != null) {
-	            nonNullFields.put("over", data.getOver());
-	            existingData.setOver(data.getOver());
-	        }
-	        if (data.getScore() != null) {
-	            nonNullFields.put("score", data.getScore());
-	            existingData.setScore(data.getScore());
-	        }
-	        if (data.getCurrentBall() != null) {
-	            nonNullFields.put("current_ball", data.getCurrentBall());
-	            existingData.setCurrentBall(data.getCurrentBall());
-	        }
-	        if (data.getRunsOnBall() != null) {
-	            nonNullFields.put("runs_on_ball", data.getRunsOnBall());
-	            existingData.setRunsOnBall(data.getRunsOnBall());
-	        }
-	        if (data.getFavTeam() != null) {
-	            nonNullFields.put("fav_team", data.getFavTeam());
-	            existingData.setFavTeam(data.getFavTeam());
-	        }
-	        if (data.getBattingTeamName() != null) {
-	            nonNullFields.put("batting_team", data.getBattingTeamName());
-	            existingData.setBattingTeamName(data.getBattingTeamName());
-	        }
-	        if (data.getBat_or_ball_selected() != null) {
-	            nonNullFields.put("bat_or_ball_selected", data.getBat_or_ball_selected());
-	            existingData.setBat_or_ball_selected(data.getBat_or_ball_selected());
-	        }
-	        if (data.getToss_won_country() != null) {
-	            nonNullFields.put("toss_won_country", data.getToss_won_country());
-	            existingData.setToss_won_country(data.getToss_won_country());
-	        }
-	        // Handle session odds
-	        if (data.getSessionOddsList() != null && !data.getSessionOddsList().isEmpty()) {
-	            nonNullFields.put("session_odds", data.getSessionOddsList());
-	            existingData.setSessionOddsList(data.getSessionOddsList());  // Updating to handle multiple session odds
-	            existingData.setLastUpdated(System.currentTimeMillis());
-	        }
-	        if (data.getUrl() != null) {
-	            nonNullFields.put("url", data.getUrl());
-	            existingData.setUrl(data.getUrl());
-	        }
-	        if (data.getOversData() != null && !data.getOversData().isEmpty()) {
-	            nonNullFields.put("overs_data", data.getOversData());
-	            existingData.setOversData(data.getOversData());
-	        }
-	        if (data.getTeamWiseSessionData() != null && !data.getTeamWiseSessionData().isEmpty()) {
-	            nonNullFields.put("team_wise_session_data", data.getTeamWiseSessionData());
-	            existingData.setTeamWiseSessionData(data.getTeamWiseSessionData());
-	        }
-
-	        // Handle matchInfo fields
-	        if (data.getMatchDate() != null) {
-	            nonNullFields.put("match_date", data.getMatchDate());
-	            existingData.setMatchDate(data.getMatchDate());
-	        }
-	        if (data.getVenue() != null) {
-	            nonNullFields.put("venue", data.getVenue());
-	            existingData.setVenue(data.getVenue());
-	        }
-	        if (data.getMatchName() != null) {
-	            nonNullFields.put("match_name", data.getMatchName());
-	            existingData.setMatchName(data.getMatchName());
-	        }
-	        if (data.getTossInfo() != null) {
-	            nonNullFields.put("toss_info", data.getTossInfo());
-	            existingData.setTossInfo(data.getTossInfo());
-	        }
-	        if (data.getTeamComparison() != null) {
-	            nonNullFields.put("team_comparison", data.getTeamComparison());
-	            existingData.setTeamComparison(data.getTeamComparison());
-	        }
-	        if (data.getTeamForm() != null) {
-	            nonNullFields.put("team_form", data.getTeamForm());
-	            existingData.setTeamForm(data.getTeamForm());
-	        }
-	        if (data.getVenueStats() != null) {
-	            nonNullFields.put("venue_stats", data.getVenueStats());
-	            existingData.setVenueStats(data.getVenueStats());
-	        }
-			if (data.getPlayingXI() != null) {
-				nonNullFields.put("playing_xi", data.getPlayingXI());
-				existingData.setPlayingXI(data.getPlayingXI());
-			}
-			// Extracting and handling batsman and bowler data
-	        if (data.getBatsmanData() != null && !data.getBatsmanData().isEmpty()) {
-	            nonNullFields.put("batsman_data", data.getBatsmanData());
-	            //existingData.setBatsmanData(data.getBatsmanData()); // Save Batsman Data
-	        }
-	        if (data.getBowlerData() != null && !data.getBowlerData().isEmpty()) {
-	            nonNullFields.put("bowler_data", data.getBowlerData());
-	            //existingData.setBowlerData(data.getBowlerData()); // Save Bowler Data
-	        }
-
-	        // Handle commentary data (transient, stored in-memory only)
-	        if (data.getCommentary() != null && !data.getCommentary().isEmpty()) {
-	            nonNullFields.put("commentary", data.getCommentary());
-	        }
-
-	        // Update and persist the data
-	        cricketDataService.setLastUpdatedData(existingData.getUrl(), existingData);
-	        cricketDataService.sendCricketData(data.getUrl(), nonNullFields);
-
-	        // Enrich the in-memory cache with transient fields (batsman/bowler data)
-	        // so getLastUpdatedData HTTP endpoint returns them instantly
-	        cricketDataService.enrichCacheWithTransientData(data.getUrl(), data);
-
-	        // Return a success response
-	        return ResponseEntity.ok("Data received successfully!");
+            return cricketDataService.withMatchLock(data.getUrl(), () -> mergeAndBroadcastCricketData(data));
 	    } catch (Exception e) {
 	        // Handle exceptions and return an error response if needed
 	        return ResponseEntity.status(500).body("Error: " + e.getMessage());
 	    }
 	}
+
+    private ResponseEntity<String> mergeAndBroadcastCricketData(CricketDataDTO data) {
+        // Fetch the existing data including the merged matchInfo data
+        CricketDataDTO existingData = cricketDataService.getLastUpdatedData(data.getUrl());
+
+        // If no existing data found, create a new one
+        if (existingData == null) {
+            existingData = new CricketDataDTO();
+            existingData.setUrl(data.getUrl());
+        }
+
+        Map<String, Object> nonNullFields = new HashMap<>();
+
+        // Check each field for non-null values and update the existing data
+        if (data.getTeamOdds() != null) {
+            nonNullFields.put("team_odds", data.getTeamOdds());
+            existingData.setTeamOdds(data.getTeamOdds());
+            existingData.setLastUpdated(System.currentTimeMillis());
+        }
+        if (data.getCurrentRunRate() != null) {
+            nonNullFields.put("crr", data.getCurrentRunRate());
+            existingData.setCurrentRunRate(data.getCurrentRunRate());
+        }
+        if (data.getFinalResultText() != null) {
+            nonNullFields.put("final_result_text", data.getFinalResultText());
+            existingData.setFinalResultText(data.getFinalResultText());
+        }
+        if (data.getMatchOdds() != null && !data.getMatchOdds().isEmpty()) {
+            nonNullFields.put("match_odds", data.getMatchOdds());
+            existingData.setMatchOdds(data.getMatchOdds());
+            existingData.setLastUpdated(System.currentTimeMillis());
+        }
+        if (data.getOver() != null) {
+            nonNullFields.put("over", data.getOver());
+            existingData.setOver(data.getOver());
+        }
+        if (data.getScore() != null) {
+            nonNullFields.put("score", data.getScore());
+            existingData.setScore(data.getScore());
+        }
+        if (data.getCurrentBall() != null) {
+            nonNullFields.put("current_ball", data.getCurrentBall());
+            existingData.setCurrentBall(data.getCurrentBall());
+        }
+        if (data.getRunsOnBall() != null) {
+            nonNullFields.put("runs_on_ball", data.getRunsOnBall());
+            existingData.setRunsOnBall(data.getRunsOnBall());
+        }
+        if (data.getFavTeam() != null) {
+            nonNullFields.put("fav_team", data.getFavTeam());
+            existingData.setFavTeam(data.getFavTeam());
+        }
+        if (data.getBattingTeamName() != null) {
+            nonNullFields.put("batting_team", data.getBattingTeamName());
+            existingData.setBattingTeamName(data.getBattingTeamName());
+        }
+        if (data.getBat_or_ball_selected() != null) {
+            nonNullFields.put("bat_or_ball_selected", data.getBat_or_ball_selected());
+            existingData.setBat_or_ball_selected(data.getBat_or_ball_selected());
+        }
+        if (data.getToss_won_country() != null) {
+            nonNullFields.put("toss_won_country", data.getToss_won_country());
+            existingData.setToss_won_country(data.getToss_won_country());
+        }
+        if (data.getSessionOddsList() != null && !data.getSessionOddsList().isEmpty()) {
+            nonNullFields.put("session_odds", data.getSessionOddsList());
+            existingData.setSessionOddsList(data.getSessionOddsList());
+            existingData.setLastUpdated(System.currentTimeMillis());
+        }
+        if (data.getUrl() != null) {
+            nonNullFields.put("url", data.getUrl());
+            existingData.setUrl(data.getUrl());
+        }
+        if (data.getOversData() != null && !data.getOversData().isEmpty()) {
+            nonNullFields.put("overs_data", data.getOversData());
+            existingData.setOversData(data.getOversData());
+        }
+        if (data.getTeamWiseSessionData() != null && !data.getTeamWiseSessionData().isEmpty()) {
+            nonNullFields.put("team_wise_session_data", data.getTeamWiseSessionData());
+            existingData.setTeamWiseSessionData(data.getTeamWiseSessionData());
+        }
+
+        if (data.getMatchDate() != null) {
+            nonNullFields.put("match_date", data.getMatchDate());
+            existingData.setMatchDate(data.getMatchDate());
+        }
+        if (data.getVenue() != null) {
+            nonNullFields.put("venue", data.getVenue());
+            existingData.setVenue(data.getVenue());
+        }
+        if (data.getMatchName() != null) {
+            nonNullFields.put("match_name", data.getMatchName());
+            existingData.setMatchName(data.getMatchName());
+        }
+        if (data.getTossInfo() != null) {
+            nonNullFields.put("toss_info", data.getTossInfo());
+            existingData.setTossInfo(data.getTossInfo());
+        }
+        if (data.getTeamComparison() != null) {
+            nonNullFields.put("team_comparison", data.getTeamComparison());
+            existingData.setTeamComparison(data.getTeamComparison());
+        }
+        if (data.getTeamForm() != null) {
+            nonNullFields.put("team_form", data.getTeamForm());
+            existingData.setTeamForm(data.getTeamForm());
+        }
+        if (data.getVenueStats() != null) {
+            nonNullFields.put("venue_stats", data.getVenueStats());
+            existingData.setVenueStats(data.getVenueStats());
+        }
+        if (data.getPlayingXI() != null) {
+            nonNullFields.put("playing_xi", data.getPlayingXI());
+            existingData.setPlayingXI(data.getPlayingXI());
+        }
+        if (data.getBatsmanData() != null && !data.getBatsmanData().isEmpty()) {
+            nonNullFields.put("batsman_data", data.getBatsmanData());
+        }
+        if (data.getBowlerData() != null && !data.getBowlerData().isEmpty()) {
+            nonNullFields.put("bowler_data", data.getBowlerData());
+        }
+        if (data.getCommentary() != null && !data.getCommentary().isEmpty()) {
+            nonNullFields.put("commentary", data.getCommentary());
+        }
+
+        cricketDataService.setLastUpdatedData(existingData.getUrl(), existingData);
+        cricketDataService.sendCricketData(data.getUrl(), nonNullFields);
+        cricketDataService.enrichCacheWithTransientData(data.getUrl(), data);
+
+        return ResponseEntity.ok("Data received successfully!");
+    }
 
 	@PostMapping("/match-info/save")
 	public ResponseEntity<String> saveMatchInfo(@RequestBody String data) {
@@ -410,16 +404,19 @@ public class CricketDataController {
 
 	@GetMapping("/last-updated-data")
 	public ResponseEntity<CricketDataDTO> getLastUpdatedData(@RequestParam String url) {
-		// Retrieve the last updated data for the specific URL
-		List<LiveMatch> liveMatches = liveMatchService.findAll();
-		for (LiveMatch liveMatch : liveMatches) {
-			if (liveMatch.getUrl().contains(url)) {
-				// Assuming you have a method to append the base URL
-				String completeUrl = liveMatchService.appendBaseUrl(liveMatch.getUrl()); // Implement this method
-				return liveMatchService.fetchAndSendData(completeUrl);
+		try {
+			CricketDataDTO data = cricketDataService.getLastUpdatedData(url);
+			if (data == null && matchDetailHydrationService.hydrate(url)) {
+				data = cricketDataService.getLastUpdatedData(url);
 			}
+			if (data != null) {
+				return ResponseEntity.ok(data);
+			}
+			return ResponseEntity.notFound().build();
+		} catch (Exception e) {
+			log.error("Error retrieving last updated data for {}", url, e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 		}
-		return ResponseEntity.notFound().build();
 	}
 
 	@PostMapping("/add-live-matches")

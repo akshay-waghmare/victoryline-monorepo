@@ -5,7 +5,10 @@ Coordinates browser pool, scheduler, cache, and adapters.
 
 import asyncio
 import logging
+import os
 import signal
+import threading
+import time
 from typing import Optional, Dict, Any
 
 from .config import get_settings
@@ -40,6 +43,10 @@ class CrexScraperService:
         self._poll_task: Optional[asyncio.Task] = None
         self._fast_poll_task: Optional[asyncio.Task] = None  # Persistent pages poll loop
         self._auth_token: Optional[str] = None
+        self._last_full_live_scrape_at: Dict[str, float] = {}
+        self._restart_lock = threading.Lock()
+        self._container_restart_scheduled = False
+        self._last_live_match_count = 0
         
         # Persistent page pool and fast poll service (Feature 007 - Phase 2)
         self.persistent_page_pool = None
@@ -106,7 +113,6 @@ class CrexScraperService:
         await self.cache.connect()
         await self.scheduler.setup()
         await self.pool.setup()
-        
         # Fetch initial auth token
         try:
             self._auth_token = await asyncio.to_thread(CricketDataService.get_bearer_token)
@@ -198,6 +204,97 @@ class CrexScraperService:
         await asyncio.gather(*self._workers, return_exceptions=True)
         logger.info("CrexScraperService stopped.")
 
+    async def recycle_browser_pool(self, reason: str) -> None:
+        """Recycle the browser pool."""
+        await self.pool.recycle()
+        self.metrics.browser_restarts.labels(reason=reason).inc()
+        self.health.add_audit_log(
+            "recovery_executed",
+            {"action": "browser_recycle", "reason": reason},
+            level="WARNING",
+        )
+
+    def get_restart_condition(self, summary: Optional[Any] = None) -> Optional[Dict[str, Any]]:
+        """Return a hard-restart reason when in-process recovery is no longer enough."""
+        summary = summary or self.health.get_summary()
+        seconds_since_last_scrape = max(time.time() - summary.last_scrape_timestamp, 0.0)
+        stale_restart_threshold = max(
+            float(self.settings.staleness_threshold_seconds),
+            float(self.settings.memory_restart_grace_seconds),
+        )
+
+        if summary.pids_count >= self.settings.pid_restart_threshold:
+            return {
+                "reason": "pid_threshold_exceeded",
+                "metadata": {
+                    "pids": summary.pids_count,
+                    "pid_restart_threshold": self.settings.pid_restart_threshold,
+                },
+            }
+
+        if summary.active_matches > 0 and seconds_since_last_scrape >= stale_restart_threshold:
+            return {
+                "reason": "stale_live_data",
+                "metadata": {
+                    "active_matches": summary.active_matches,
+                    "seconds_since_last_scrape": round(seconds_since_last_scrape, 2),
+                    "staleness_threshold_seconds": self.settings.staleness_threshold_seconds,
+                    "restart_after_seconds": round(stale_restart_threshold, 2),
+                },
+            }
+
+        return None
+
+    def schedule_container_restart(
+        self,
+        reason: str,
+        *,
+        metadata: Optional[Dict[str, Any]] = None,
+        delay_seconds: float = 5.0,
+    ) -> bool:
+        """Exit the scraper process so Docker restarts the container."""
+        payload = dict(metadata or {})
+
+        with self._restart_lock:
+            if self._container_restart_scheduled:
+                return False
+            self._container_restart_scheduled = True
+
+        self.health.add_audit_log(
+            "container_restart_scheduled",
+            {"reason": reason, "delay_seconds": delay_seconds, **payload},
+            level="ERROR",
+        )
+        logger.critical(
+            "Scheduling scraper container restart: reason=%s metadata=%s",
+            reason,
+            payload,
+        )
+
+        if delay_seconds <= 0:
+            logger.critical(
+                "Exiting scraper process immediately for container restart: reason=%s metadata=%s",
+                reason,
+                payload,
+            )
+            os._exit(1)
+
+        def delayed_exit() -> None:
+            time.sleep(max(delay_seconds, 0.0))
+            logger.critical(
+                "Exiting scraper process for container restart: reason=%s metadata=%s",
+                reason,
+                payload,
+            )
+            os._exit(1)
+
+        threading.Thread(
+            target=delayed_exit,
+            daemon=False,
+            name="ScraperContainerRestart",
+        ).start()
+        return True
+
     async def _poll_loop(self):
         """Periodic backend polling loop."""
         logger.info("Backend poller started.")
@@ -222,7 +319,12 @@ class CrexScraperService:
                     if url:
                         live_urls.append(url)
                         match_id = self._extract_match_id(url) or url
-                        await self.submit_task(match_id, url, "LIVE")
+                        if self._should_submit_live_task(match_id):
+                            if await self.submit_task(match_id, url, "LIVE"):
+                                self._last_full_live_scrape_at[match_id] = time.monotonic()
+
+                self._last_live_match_count = len(live_urls)
+                self.health.set_active_matches(self._last_live_match_count)
 
                 if self.player_stats_crawler:
                     await self.player_stats_crawler.update_live_candidates(live_urls)
@@ -238,10 +340,7 @@ class CrexScraperService:
                                 await self.player_stats_crawler.update_candidates(
                                     live_urls, all_matches
                                 )
-                                logger.info(
-                                    "poll.schedule_candidates_seeded",
-                                    metadata={"count": len(all_matches)},
-                                )
+                                logger.info(f"poll.schedule_candidates_seeded count={len(all_matches)}")
                         except Exception as e:
                             logger.warning(f"poll.schedule_seed_error: {e}")
 
@@ -282,6 +381,7 @@ class CrexScraperService:
                 )
                 
                 current_match_urls = set()
+                await self.persistent_page_pool.ensure_capacity(len(matches))
                 
                 for match in matches:
                     url = None
@@ -338,6 +438,7 @@ class CrexScraperService:
                         logger.info(f"[FASTPOLL] Match {match_id} no longer live, removing page")
                         self.fast_poll_service.detach(match_id)
                         await self.persistent_page_pool.remove(match_id)
+                        self._last_full_live_scrape_at.pop(match_id, None)
                     else:
                         logger.debug(f"[FASTPOLL] Match {match_id} still live")
                 
@@ -348,7 +449,7 @@ class CrexScraperService:
                     logger.debug(f"[FASTPOLL] Pool: {stats}, Intercepts: {poll_stats}")
                 
                 # Wait before checking for new matches (interceptors run passively)
-                await asyncio.sleep(5)  # Check for new/ended matches every 5s
+                await asyncio.sleep(self.settings.fast_poll_reconcile_interval_seconds)
                 
             except asyncio.CancelledError:
                 break
@@ -427,15 +528,20 @@ class CrexScraperService:
                     logger.warning("Triggering automated recovery...")
                     self.health.record_recovery_attempt()
                     try:
-                        await self.pool.recycle()
-                        self.metrics.browser_restarts.labels(reason="stall_recovery").inc()
-                        self.health.add_audit_log("recovery_executed", {"action": "browser_recycle"}, level="WARNING")
+                        await self.recycle_browser_pool("stall_recovery")
                     except Exception as e:
                         logger.error(f"Recovery failed: {e}")
                         self.health.add_audit_log("recovery_failed", {"error": str(e)}, level="ERROR")
 
                 # Update health score metric for Prometheus
                 summary = self.health.get_summary()
+                restart_condition = self.get_restart_condition(summary)
+                if restart_condition:
+                    self.schedule_container_restart(
+                        restart_condition["reason"],
+                        metadata=restart_condition["metadata"],
+                        delay_seconds=0,
+                    )
                 self.metrics.health_score.set(summary.score)
 
                 await asyncio.sleep(5)
@@ -479,6 +585,7 @@ class CrexScraperService:
     async def _process_task(self, task: ScrapeTask):
         """Process a single scrape task."""
         start_time = asyncio.get_running_loop().time()
+        fetch_timeout_seconds = max(float(self.settings.circuit_breaker_timeout_seconds), 45.0)
         
         # Determine adapter (hardcoded to crex for now, logic can be expanded)
         adapter = self.registry.get_adapter("crex")
@@ -492,8 +599,17 @@ class CrexScraperService:
             logger.info(f"Skipping {canonical_id} (negative cache)")
             return
 
+        logger.info(f"scrape.task.start match_id={canonical_id} url={task.url} timeout={fetch_timeout_seconds:.0f}s")
+
         async with self.pool.get_context() as context:
-            data = await adapter.fetch_match(context, task.url)
+            try:
+                data = await asyncio.wait_for(
+                    adapter.fetch_match(context, task.url),
+                    timeout=fetch_timeout_seconds,
+                )
+            except asyncio.TimeoutError as exc:
+                logger.warning(f"scrape.task.timeout match_id={canonical_id} url={task.url} timeout={fetch_timeout_seconds:.0f}s")
+                raise TimeoutError(f"Timed out scraping {canonical_id} after {fetch_timeout_seconds:.0f}s") from exc
             
             # Check validity (if only metadata exists, assume scrape failed/empty)
             if len(data) <= 2: # source_url + adapter
@@ -625,3 +741,14 @@ class CrexScraperService:
         result = await self.scheduler.enqueue(match_id, url, task_type)
         self.metrics.queue_depth.set(self.scheduler.qsize)
         return result
+
+    def _should_submit_live_task(self, match_id: str) -> bool:
+        """Use the heavy full scrape path sparingly once a match is already covered by a persistent page."""
+        if not self.persistent_page_pool or not self.persistent_page_pool.is_page_active(match_id):
+            return True
+
+        last_full_scrape = self._last_full_live_scrape_at.get(match_id)
+        if last_full_scrape is None:
+            return True
+
+        return (time.monotonic() - last_full_scrape) >= self.settings.live_match_rescrape_interval_seconds

@@ -39,9 +39,9 @@ TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties
 
 ## Known Issues & Active Incidents
 
-### 🔴 CRITICAL: Scraper Thread/PID Leak (2025-11-15)
-**Status**: Active - Immediate Action Required  
-**Severity**: Critical - Service Degraded  
+### ✅ RESOLVED: Scraper Thread/PID Leak (2025-11-15)
+**Status**: Resolved — Fixed with container auto-restart, PID limits, and browser pool recycling  
+**Severity**: Was Critical — Now mitigated  
 **Reference**: `specs/004-scraper-resilience/incidents/SCRAPER_THREAD_LEAK_INCIDENT.md`
 
 **Issue Summary**:
@@ -94,5 +94,23 @@ curl http://localhost:5000/health | jq '.data.scrapers[0].status'
 - [ ] Data staleness <60 seconds
 
 ---
+
+### 🟡 RESOLVED: Scraper TypeError Crash Loop (2026-04-06)
+**Status**: Resolved — Fixed in commit, deployed  
+**Severity**: Was Critical — Scraper 100% failure rate, no live score updates  
+**Reference**: `docs/DEPLOYMENT_TROUBLESHOOTING.md` → Issue 8
+
+**Root Cause**: `crex_scraper.py` uses `logging.getLogger(__name__)` (standard Python logger) but had calls like `logger.info("msg", metadata={...})`. The `metadata=` kwarg is only supported by structlog's `get_logger()`, not standard logging. This caused `TypeError` on every scrape task.
+
+**Logging Convention**:
+- ⚠️ Files using `logging.getLogger(__name__)` → use f-strings: `logger.info(f"event key={value}")`
+- ✅ Files using `get_logger()` from `loggers/adapters.py` → `metadata={}` kwargs are safe
+- ⚠️ **Never mix these patterns** — it causes silent runtime crashes
+
+**Deployment Convention**:
+- ⚠️ Always backup `.env` before changing image tags: `cp .env .env.bak.$(date +%Y%m%d_%H%M%S)`
+- ⚠️ Never rebuild images from uncommitted code — commit and push first
+- ⚠️ Keep local and prod repos in sync: `git pull` on prod before building images
+- ⚠️ Use `docker compose` (v2 space) not `docker-compose` (v1 hyphen) on prod
 
 <!-- MANUAL ADDITIONS END -->

@@ -27,6 +27,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 import javax.transaction.Transactional;
 
@@ -98,6 +100,8 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
     private final ConcurrentHashMap<String, CacheEntry<CricketDataDTO>> matchDataCache = new ConcurrentHashMap<>();
     /** In-memory commentary cache keyed by URL – stores latest commentary entries per match */
     private final ConcurrentHashMap<String, List<Map<String, Object>>> commentaryCache = new ConcurrentHashMap<>();
+    /** Per-match locks avoid cross-match serialization while preserving same-match ordering. */
+    private final ConcurrentHashMap<String, ReentrantLock> matchLocks = new ConcurrentHashMap<>();
     /** Max commentary entries to keep per match */
     private static final int MAX_COMMENTARY_ENTRIES = 200;
 	
@@ -177,9 +181,26 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
 	    }
 	}
 
+    public <T> T withMatchLock(String url, Supplier<T> action) {
+        if (url == null || url.trim().isEmpty()) {
+            return action.get();
+        }
+
+        ReentrantLock lock = matchLocks.computeIfAbsent(url, key -> new ReentrantLock());
+        lock.lock();
+        try {
+            return action.get();
+        } finally {
+            lock.unlock();
+            if (!lock.hasQueuedThreads()) {
+                matchLocks.remove(url, lock);
+            }
+        }
+    }
+
 	
 	 // Method to set the last updated data for a specific URL
-    public synchronized void setLastUpdatedData(String url, CricketDataDTO data) {
+    public void setLastUpdatedData(String url, CricketDataDTO data) {
         //lastUpdatedDataMap.put(url, data);
         CricketDataEntity entity = convertDtoToEntity(url, data);
         cricketDataRepository.save(entity);
@@ -399,16 +420,26 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
 
     // Method to get the last updated data for a specific URL
     @org.springframework.transaction.annotation.Transactional
-    public synchronized CricketDataDTO getLastUpdatedData(String url) {
+    public CricketDataDTO getLastUpdatedData(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return null;
+        }
+
+        String requestedUrl = url.trim();
         // Check in-memory cache first (avoids DB round-trip within TTL window)
-        CacheEntry<CricketDataDTO> cached = matchDataCache.get(url);
+        CacheEntry<CricketDataDTO> cached = matchDataCache.get(requestedUrl);
         if (cached != null && !cached.isExpired(CACHE_TTL_MS)) {
             return cached.data;
         }
 
-        //return lastUpdatedDataMap.get(url);
-    	CricketDataEntity entity = cricketDataRepository.findByUrlWithTeamWiseSessionData(url);
-        MatchInfoEntity matchInfoEntity = matchInfoRepository.findById(url).orElse(null); // Get MatchInfoEntity by URL
+        String matchKey = CrexMatchUrlHelper.extractMatchKey(requestedUrl);
+        CricketDataEntity entity = findLastUpdatedEntity(requestedUrl, matchKey);
+        String canonicalUrl = entity != null && entity.getUrl() != null ? entity.getUrl() : requestedUrl;
+
+        MatchInfoEntity matchInfoEntity = matchInfoRepository.findById(requestedUrl).orElse(null);
+        if (matchInfoEntity == null && entity != null && entity.getUrl() != null && !entity.getUrl().equals(requestedUrl)) {
+            matchInfoEntity = matchInfoRepository.findById(entity.getUrl()).orElse(null);
+        }
 
         if (entity == null && matchInfoEntity == null) {
             return null;
@@ -437,17 +468,44 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
             }
         }
         // Preserve commentary from commentaryCache
-        List<Map<String, Object>> commentary = commentaryCache.get(url);
+        List<Map<String, Object>> commentary = commentaryCache.get(canonicalUrl);
+        if ((commentary == null || commentary.isEmpty()) && !canonicalUrl.equals(requestedUrl)) {
+            commentary = commentaryCache.get(requestedUrl);
+        }
+        if ((commentary == null || commentary.isEmpty())
+                && matchKey != null
+                && !matchKey.equals(requestedUrl)
+                && !matchKey.equals(canonicalUrl)) {
+            commentary = commentaryCache.get(matchKey);
+        }
         if (commentary != null && !commentary.isEmpty()) {
             data.setCommentary(commentary);
         }
 
         // Store in cache for subsequent requests
-        matchDataCache.put(url, new CacheEntry<>(data));
+        CacheEntry<CricketDataDTO> refreshed = new CacheEntry<>(data);
+        matchDataCache.put(requestedUrl, refreshed);
+        if (!canonicalUrl.equals(requestedUrl)) {
+            matchDataCache.put(canonicalUrl, refreshed);
+        }
+        if (matchKey != null && !matchKey.equals(requestedUrl) && !matchKey.equals(canonicalUrl)) {
+            matchDataCache.put(matchKey, refreshed);
+        }
         
         return data;
     	
     	
+    }
+
+    private CricketDataEntity findLastUpdatedEntity(String requestedUrl, String matchKey) {
+        CricketDataEntity entity = cricketDataRepository.findByUrlWithTeamWiseSessionData(requestedUrl);
+        if (entity == null) {
+            entity = cricketDataRepository.findByUrlContaining(requestedUrl);
+        }
+        if (entity == null && matchKey != null && !matchKey.trim().isEmpty() && !matchKey.equals(requestedUrl)) {
+            entity = cricketDataRepository.findByUrlContaining(matchKey);
+        }
+        return entity;
     }
     
  // Convert MatchInfoEntity to CricketDataDTO and merge it
