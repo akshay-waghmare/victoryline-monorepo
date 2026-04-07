@@ -72,11 +72,16 @@ if [[ -n "$(git status --porcelain)" ]]; then
 fi
 
 # --- Service definitions ---
+# context = docker build context dir; dockerfile = Dockerfile path (if not context/Dockerfile)
 declare -A SERVICES=(
-  [backend]="apps/backend"
+  [backend]="apps/backend/spring-security-jwt"
   [frontend]="apps/frontend"
-  [scraper]="apps/scraper/crex_scraper_python"
-  [prerender]="apps/prerender"
+  [scraper]="apps/scraper"
+  [prerender]="apps/frontend"
+)
+
+declare -A DOCKERFILES=(
+  [prerender]="apps/frontend/prerender-sidecar/Dockerfile"
 )
 
 declare -A IMAGE_NAMES=(
@@ -106,12 +111,20 @@ for service in backend frontend scraper prerender; do
     exit 1
   fi
 
-  echo "  Building $image from $context ..."
+  dockerfile="${DOCKERFILES[$service]:-}"
+  if [[ -n "$dockerfile" ]]; then
+    echo "  Building $image from $context (Dockerfile: $dockerfile) ..."
+    build_cmd="docker build -t $image -f $dockerfile $context --quiet"
+  else
+    echo "  Building $image from $context ..."
+    build_cmd="docker build -t $image $context --quiet"
+  fi
+
   if ! $DRY_RUN; then
-    docker build -t "$image" "$context" --quiet
+    eval "$build_cmd"
     echo "  ✅ $image built"
   else
-    echo "  [DRY RUN] Would build: docker build -t $image $context"
+    echo "  [DRY RUN] Would build: $build_cmd"
   fi
 done
 
