@@ -18,6 +18,8 @@ def test_status_freshness_fields(client):
         # Mock health summary
         mock_health = MagicMock()
         mock_service.health = mock_health
+        mock_service.get_restart_condition.return_value = None
+        mock_service._container_restart_scheduled = False
         
         summary = HealthSummary(
             state=HealthState.HEALTHY,

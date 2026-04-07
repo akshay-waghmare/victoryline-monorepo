@@ -43,6 +43,69 @@ Behavioral Boundaries & Safety Protocols:
 - **DO** check service health, connectivity, and resource utilization
 - **DO** verify that logs exist and are being captured before assuming silent failures
 
+## Scraper Health/Restart Incident Fast Path
+
+Use this checklist first when prod shows **scraper container up but live data stale**.
+
+### Critical endpoint rule
+
+- Docker healthchecks hit `http://localhost:5000/health` in prod (`docker-compose.prod.yml`)
+- Therefore `/health` and `/status` must be **observational only**
+- Never make those endpoints trigger recovery actions, restarts, cleanup, state mutation, or expensive work
+- Safe behavior: return current health, counters, timestamps, and scraper state only
+
+### Verified symptom fingerprint
+
+- `curl http://localhost:5000/metrics` succeeds
+- repeated `curl http://localhost:5000/health` can return **empty reply** on broken versions
+- `docker inspect victoryline-scraper --format '{{.RestartCount}}'` keeps climbing
+- `docker ps` may still show scraper as `Up`
+- live score data stays stale
+
+### First commands to run on the server
+
+```bash
+cd /home/administrator/victoryline-monorepo
+
+grep IMAGE= .env
+docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}'
+docker inspect victoryline-scraper --format '{{.RestartCount}}'
+
+for i in 1 2 3; do
+  echo "--- /health attempt $i ---"
+  curl -sv http://localhost:5000/health
+  sleep 3
+done
+
+curl -s http://localhost:5000/metrics | grep -E 'scraper_domain_failures|scraper_scrapes_total' | head
+git status --short
+git rev-parse HEAD
+```
+
+### How to interpret the results
+
+- `/metrics` works but `/health` intermittently returns empty reply + restart count rises → suspect current scraper image has a health-endpoint regression
+- `.env` image pins do not match `docker ps` output → config/runtime drift
+- dirty `git status --short` → code/config drift on the server; treat rebuilds as risky until captured
+
+### Rebuild / rollback capture requirements
+
+Before rebuilding, retagging, or rolling back, always record:
+
+```bash
+cd /home/administrator/victoryline-monorepo
+
+cp .env .env.bak.$(date +%Y%m%d_%H%M%S)
+git rev-parse HEAD
+git status --short
+grep IMAGE= .env
+docker ps --format 'table {{.Names}}\t{{.Image}}'
+```
+
+- Prod may run local commit-based images built from the **server working copy**
+- Agents must capture git head, image pins, and `.env` backup before rebuilds
+- Current stable prod scraper image pattern: `victoryline-scraper:healthfix-<sha>`
+
 Edge Cases & Special Handling:
 1. **Intermittent Failures**: Analyze time windows, look for race conditions, resource spikes, or external service degradation
 2. **Cascading Failures**: One service down may break dependent services—find and fix the root cause, not the symptoms

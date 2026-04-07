@@ -10,8 +10,12 @@ def test_default_settings_standard_profile():
     assert settings.max_lifetime_hours == 6.0
     assert settings.memory_soft_limit_mb == 1536
     assert settings.memory_hard_limit_mb == 2048
+    assert settings.polling_interval_seconds == 0.8
     assert settings.enable_prometheus_metrics is True
     assert settings.memory_restart_grace_seconds == 60
+    assert settings.persistent_page_max_count == 30
+    assert settings.fast_poll_reconcile_interval_seconds == 0.8
+    assert settings.live_match_rescrape_interval_seconds == 15.0
     assert settings.enable_player_stats_crawler is False
     assert settings.player_stats_worker_count == 1
 
@@ -49,6 +53,8 @@ def test_overrides_and_types():
         "PLAYER_STATS_WORKER_COUNT": "2",
         "PLAYER_STATS_RATE_LIMIT_TOKENS_PER_SEC": "0.2",
         "PLAYER_STATS_LIVE_COOLDOWN_SECONDS": "180",
+        "FAST_POLL_RECONCILE_INTERVAL_SECONDS": "0.6",
+        "LIVE_MATCH_RESCRAPE_INTERVAL_SECONDS": "12",
     }
     settings = load_settings(env)
     assert settings.max_lifetime_hours == 7.5
@@ -72,6 +78,8 @@ def test_overrides_and_types():
     assert settings.player_stats_worker_count == 2
     assert settings.player_stats_rate_limit_tokens_per_sec == 0.2
     assert settings.player_stats_live_cooldown_seconds == 180
+    assert settings.fast_poll_reconcile_interval_seconds == 0.6
+    assert settings.live_match_rescrape_interval_seconds == 12.0
 
 
 @pytest.mark.parametrize(

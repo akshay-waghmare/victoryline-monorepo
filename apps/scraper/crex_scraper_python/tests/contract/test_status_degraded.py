@@ -17,6 +17,8 @@ def test_status_degraded(client):
     with patch('crex_scraper_python.src.app.scraper_service') as mock_service:
         mock_health = MagicMock()
         mock_service.health = mock_health
+        mock_service.get_restart_condition.return_value = None
+        mock_service._container_restart_scheduled = False
         
         summary = HealthSummary(
             state=HealthState.DEGRADED,

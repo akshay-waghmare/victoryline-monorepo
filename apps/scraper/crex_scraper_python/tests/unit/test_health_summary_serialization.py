@@ -4,6 +4,7 @@ from crex_scraper_python.src.health import HealthGrader, HealthSummary, HealthSt
 
 def test_health_summary_serialization():
     grader = HealthGrader()
+    grader.set_active_matches(3)
     summary = grader.get_summary()
     
     # Convert to dict (simulating what Flask/FastAPI does via dataclasses or custom encoder)
@@ -29,4 +30,6 @@ def test_health_summary_serialization():
     
     assert parsed["state"] == "healthy"
     assert parsed["score"] == 100
+    assert parsed["active_matches"] == 3
+    assert "seconds_since_last_scrape" in parsed["details"]
     assert "uptime_seconds" in parsed

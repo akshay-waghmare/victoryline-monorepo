@@ -6,29 +6,42 @@ This document captures the production deployment issues observed on `204.12.199.
 
 - Host: `administrator@204.12.199.137`
 - Repo path: `/home/administrator/victoryline-monorepo`
-- Compose binary: `docker-compose 1.29.2`
-- Docker CLI: modern Docker is installed, but the host workflow currently depends on `docker-compose`, not `docker compose`
+- Compose binary: `docker compose v2.29.2` is available, and `docker-compose 1.29.2` remains installed for legacy fallback
+- Docker CLI: prefer `docker compose` (v2 syntax with space) for current production work
 - Passwordless SSH from this workstation is configured through `~/.ssh/id_server_wc`
+
+## Snapshot Before Any Prod Change
+
+Run this from the Windows workstation repo before editing prod `.env`, pulling images, or rebuilding anything:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\Track-ProdImageState.ps1 -OperatorLabel before-<change>
+ssh administrator@204.12.199.137 "cd /home/administrator/victoryline-monorepo && git status --short"
+```
+
+The tracker persists repo-local history in `ops\prod-state\history.jsonl`, updates `ops\prod-state\latest.json`, and saves a full timestamped snapshot in `ops\prod-state\snapshots\`. Its output shows previous vs current git HEAD, `.env` image pins, and running container images.
+
+If `git status --short` is not empty, stop. Never rebuild production images from a dirty server tree. Commit and push first, then pull that exact commit onto prod before any build or retag.
 
 ## Issue 1: Wrong Compose Command
 
 ### Symptom
 
-Commands that use `docker compose -f docker-compose.prod.yml ...` fail on the production host.
+Older deployment notes still reference `docker-compose`, and operators can end up mixing v1/v2 commands during the same rollout.
 
 ### Cause
 
-The host only has the legacy `docker-compose` v1 workflow available in the deployment path that is currently used.
+The host now has both Compose binaries installed, but the current production workflow is standardized on `docker compose` v2.
 
 ### Fix
 
-Use `docker-compose -f docker-compose.prod.yml ...` on the server.
+Use `docker compose -f docker-compose.prod.yml ...` on the server.
 
 ### Verification
 
 ```bash
-docker-compose --version
-docker-compose -f docker-compose.prod.yml config > /tmp/victoryline-prod-rendered.yml
+docker compose version
+docker compose -f docker-compose.prod.yml config
 ```
 
 ## Issue 2: Mixed Image Tags in .env
@@ -50,11 +63,13 @@ The server `.env` pins the deployed images independently of the git checkout.
 
 ### Fix
 
-Before restart, inspect and update `.env` so all four app images point at the intended release tag or commit-based local image tag.
+Before restart, inspect and update `.env` so all four app images point at one release tag family or one commit-based build set.
 
 ```bash
 grep -E '^(BACKEND_IMAGE|FRONTEND_IMAGE|SCRAPER_IMAGE|PRERENDER_IMAGE)=' .env
 ```
+
+For incident tracking, prefer commit-based tags such as `victoryline-scraper:healthfix-<sha>`. Do not pin the scraper to a hotfix tag while leaving backend/frontend/prerender on an unrelated release.
 
 ## Issue 3: docker-compose v1 Recreate Bug
 
@@ -428,7 +443,7 @@ Preferred path for future releases:
 4. Pull images on the server.
 5. Restart services.
 
-If local Docker is unavailable, building on the server is acceptable, but verify `.env` image pins before restart and be prepared for the `ContainerConfig` recovery steps above.
+Avoid prod-side builds during incidents unless they are truly necessary. If local Docker is unavailable, build on the server only from a clean tree that matches `git rev-parse HEAD`, after taking the snapshot above and verifying `.env` image pins before restart. Never build from a dirty server checkout.
 
 ## Issue 8: Scraper TypeError Crash Loop After Rebuilding Image (2026-04-06)
 
@@ -470,7 +485,7 @@ The `logger.info("scrape.task.start", metadata={...})` call runs BEFORE the try/
 
 ```bash
 cat .env.bak.matchinfo-20260406_083630  # or other recent backup
-# SCRAPER_IMAGE=victoryline-scraper:liveupdates-20260406-0635  ← working
+# SCRAPER_IMAGE=victoryline-scraper:healthfix-<sha>  ← preferred commit-based hotfix tag style
 ```
 
 2. Revert .env to working image:
@@ -478,7 +493,7 @@ cat .env.bak.matchinfo-20260406_083630  # or other recent backup
 ```bash
 cd /home/administrator/victoryline-monorepo
 cp .env .env.bak.broken-$(date +%Y%m%d_%H%M%S)
-sed -i 's|SCRAPER_IMAGE=.*|SCRAPER_IMAGE=victoryline-scraper:liveupdates-20260406-0635|' .env
+sed -i 's|SCRAPER_IMAGE=.*|SCRAPER_IMAGE=victoryline-scraper:healthfix-<sha>|' .env
 ```
 
 3. Restart:
@@ -516,7 +531,31 @@ logger.info(f"scrape.task.start match_id={canonical_id} url={task.url} timeout={
 1. **Always back up `.env` before changing image tags** — it is the only record of what was running
 2. **Never rebuild images from uncommitted code** — always commit and push first
 3. **Check `docker images` for rollback targets** — old image tags are available locally
-4. **The scraper TypeError pattern is silent** — no traceback in logs, only Prometheus `error_type="TypeError"` counter
+4. **Use commit-based incident tags for hotfixes** — for example `victoryline-scraper:healthfix-<sha>` so `.env` backups, running containers, and git history can be matched quickly
+5. **The scraper TypeError pattern is silent** — no traceback in logs, only Prometheus `error_type="TypeError"` counter
+
+## Issue 9: `/health` Triggered Scraper Restart Loop
+
+### Symptom
+
+`curl -fsS http://localhost:5000/metrics` succeeds, but `curl -fsS http://localhost:5000/health` returns `Empty reply from server`, and `docker inspect victoryline-scraper --format '{{.RestartCount}}'` keeps climbing.
+
+### Cause
+
+Older scraper code called `schedule_container_restart(..., delay_seconds=0)` directly inside the `/health` handler whenever staleness or PID restart conditions were met. Because `docker-compose.prod.yml` probes `/health`, the healthcheck request itself could kill the scraper process and create a restart loop.
+
+### Durable Fix
+
+1. Make `/health` and `/status` observational only. They may report `restart_recommended`, but they must not schedule or execute a restart from the request path.
+2. Leave hard-restart orchestration in the scraper monitor loop.
+3. Raise the default scraper staleness threshold to `180` seconds so transient scrape gaps do not immediately escalate into restart conditions.
+4. Restore the scraper PID ceiling to `512` in production compose without conflicting `pids_limit` / `deploy.resources.limits.pids` settings.
+
+### Deployment Discipline
+
+1. Keep all service image pins aligned to the same release or commit-based build before restarting the stack.
+2. Never rebuild production images from uncommitted code.
+3. Back up `.env` before changing image pins or scraper tuning.
 
 ## .env Backup Policy
 
@@ -532,7 +571,13 @@ Before changing image tags, record what was running:
 grep IMAGE= .env > .env.images.$(date +%Y%m%d_%H%M%S)
 ```
 
-Keep at least the last 3 backups. The `.env` file is the **only** record of which exact images are running in production.
+Record the current checked-out commit too:
+
+```bash
+printf 'HEAD=%s\n' "$(git rev-parse HEAD)" > .git.head.$(date +%Y%m%d_%H%M%S)
+```
+
+Keep at least the last 3 backups. Store `.env.bak.*`, `.env.images.*`, and `.git.head.*` together so humans and agents can reconstruct what was pinned, what was running, and which commit the server had checked out.
 
 ## Docker Compose v2 Note
 
@@ -541,6 +586,9 @@ As of 2026-04-06, the production server has **Docker Compose v2.29.2** installed
 ## Final Verification Commands
 
 ```bash
+grep -E '^(BACKEND_IMAGE|FRONTEND_IMAGE|SCRAPER_IMAGE|PRERENDER_IMAGE)=' .env
+for service in backend frontend scraper prerender; do docker inspect "victoryline-$service" --format "victoryline-$service -> {{.Config.Image}}"; done
+git log --oneline --decorate -5
 docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
 curl -fsS http://localhost:8099/api/v1/seo/indexing/status
 curl -fsS http://localhost:5000/health

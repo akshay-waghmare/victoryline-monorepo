@@ -20,6 +20,9 @@ async def test_freshness_update_on_success():
 
         # Setup mocks
         mock_cache = AsyncMock()
+        mock_cache.is_negative_cached.return_value = False
+        mock_cache.get_snapshot.return_value = None
+        mock_cache.get_match_info.return_value = None
         MockCache.return_value = mock_cache
         
         mock_metrics = MagicMock()
@@ -29,7 +32,7 @@ async def test_freshness_update_on_success():
         MockRegistry.return_value = mock_registry
         
         mock_adapter = MagicMock()
-        mock_adapter.fetch_match = AsyncMock(return_value={"match_id": "123", "status": "Live"})
+        mock_adapter.fetch_match = AsyncMock(return_value={"match_id": "123", "status": "Live", "score": "100/2"})
         mock_adapter.get_canonical_id.return_value = "123"
         mock_registry.get_adapter.return_value = mock_adapter
 

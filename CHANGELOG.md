@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Condensed Match Info UI**: Simplified the match info tab into a compact facts-and-insights layout, removed duplicate overview content, and left lineup-heavy details to their dedicated tabs.
+- **Match Route Prerender Serving**: Updated `apps/frontend/nginx.conf` so regular users on `/cric-live/<slug>` get the Angular SPA while bots can still receive prerendered match HTML, avoiding stale prerender pages masking new UI changes.
+
+### Docs
+- **Deployment Troubleshooting**: Added a production troubleshooting note for stale match-page UI caused by old frontend/prerender images or prerendered match HTML being served to human users.
+
 ## [1.2.2] - 2026-03-12
 
 ### Fixed

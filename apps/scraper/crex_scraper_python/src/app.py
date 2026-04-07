@@ -128,19 +128,14 @@ def start_scraper_background():
 @app.route("/status")
 def health_check():
     """
-    Return service health status.
+    Return service health status without mutating process lifecycle.
     """
     summary = scraper_service.health.get_summary()
     restart_condition = scraper_service.get_restart_condition(summary)
-    restart_scheduled = False
-    if restart_condition:
-        restart_scheduled = scraper_service.schedule_container_restart(
-            restart_condition["reason"],
-            metadata=restart_condition["metadata"],
-            delay_seconds=0,
-        )
+    restart_recommended = restart_condition is not None
+    restart_scheduled = getattr(scraper_service, "_container_restart_scheduled", False) is True
 
-    status_code = 503 if restart_condition else 200
+    status_code = 503 if restart_recommended else 200
 
     return jsonify({
         "status": "success",
@@ -153,8 +148,10 @@ def health_check():
             "last_scrape": summary.last_scrape_timestamp,
             "active_matches": summary.active_matches,
             "details": summary.details,
+            "restart_recommended": restart_recommended,
             "restart_scheduled": restart_scheduled,
             "restart_reason": restart_condition["reason"] if restart_condition else None,
+            "restart_metadata": restart_condition["metadata"] if restart_condition else None,
         }
     }), status_code
 
