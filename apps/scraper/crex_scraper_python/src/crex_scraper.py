@@ -308,6 +308,11 @@ class CrexScraperService:
 
                 matches = await asyncio.to_thread(CricketDataService.get_live_matches, self._auth_token)
                 live_urls = []
+
+                # Cap to top N matches to avoid PID exhaustion with many concurrent Chrome tabs
+                if self.settings.max_live_matches > 0:
+                    matches = matches[:self.settings.max_live_matches]
+                    logger.info(f"poll.matches_capped count={len(matches)} limit={self.settings.max_live_matches}")
                 
                 for match in matches:
                     # Handle both dict (from JSON) and string (if backend returns list of strings)

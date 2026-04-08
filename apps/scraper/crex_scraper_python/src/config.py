@@ -113,6 +113,9 @@ class ScraperSettings:
     pid_restart_threshold: int = 500  # New: restart scrapers if observed chrome/playwright PIDs exceed this
     container_restart_interval_minutes: int = 10  # Periodic container restart interval to prevent resource leaks
     
+    # Match concurrency limit — cap live matches to avoid PID exhaustion
+    max_live_matches: int = 5
+
     # Async Scraper & Redis Config
     redis_url: str = "redis://localhost:6379/0"
     concurrency_cap: int = 10
@@ -293,6 +296,7 @@ class ScraperSettings:
         # Async Scraper & Redis Config
         redis_url = _coerce_str(env.get("REDIS_URL"), "redis://localhost:6379/0")
         concurrency_cap = _coerce_int(env.get("CONCURRENCY_CAP"), 10, minimum=1)
+        max_live_matches = _coerce_int(env.get("MAX_LIVE_MATCHES"), 5, minimum=1)
         cache_live_ttl = _coerce_int(env.get("CACHE_LIVE_TTL"), 5, minimum=1)  # Reduced for fast updates
         pause_cooldown = _coerce_int(env.get("PAUSE_COOLDOWN"), 300, minimum=10)
         audit_max_entries = _coerce_int(env.get("AUDIT_MAX_ENTRIES"), 1000, minimum=10)
@@ -413,6 +417,7 @@ class ScraperSettings:
             container_restart_interval_minutes=container_restart_interval_minutes,
             redis_url=redis_url,
             concurrency_cap=concurrency_cap,
+            max_live_matches=max_live_matches,
             cache_live_ttl=cache_live_ttl,
             pause_cooldown=pause_cooldown,
             audit_max_entries=audit_max_entries,
