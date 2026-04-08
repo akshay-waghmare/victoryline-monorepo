@@ -5,8 +5,8 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, of, forkJoin, timer } from 'rxjs';
-import { map, switchMap, catchError, shareReplay, timeout } from 'rxjs/operators';
+import { Observable, of, forkJoin, timer, merge, EMPTY } from 'rxjs';
+import { map, switchMap, catchError, shareReplay, timeout, debounceTime } from 'rxjs/operators';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
@@ -34,29 +34,45 @@ export class MatchesService {
     'Pragma': 'no-cache'
   });
   private scorecardApiUrl = environment.REST_API_URL + 'cricket-data/sC4-stats/get';
+
+  // Singleton shared stream — all components subscribe to the same timer + WebSocket triggers.
+  // This prevents multiple components (Home, MatchesList) from each creating their own
+  // independent polling loops and multiplying HTTP requests.
+  private readonly sharedMatches$: Observable<MatchCardViewModel[]>;
+
   constructor(
     private eventListService: EventListService,
     private http: HttpClient
-  ) {}
-  
-  /**
-   * Get live matches with automatic refresh every 30 seconds
-   * Returns an Observable that emits updated match data periodically
-   */
-  getLiveMatchesWithAutoRefresh(): Observable<MatchCardViewModel[]> {
-    // Emit immediately, then every 30 seconds
-    return timer(0, 30000).pipe(
+  ) {
+    // WebSocket-triggered refresh: backend pushes to /topic/live-matches on every scraper update.
+    // Debounce to 3s so rapid scraper bursts don't hammer the backend with repeated fetches.
+    const wsRefresh$ = this.eventListService.subscribeToEventsTopic().pipe(
+      debounceTime(3000),
+      catchError(() => EMPTY)
+    );
+
+    this.sharedMatches$ = merge(
+      timer(0, 30000),
+      wsRefresh$
+    ).pipe(
       switchMap(() => this.getAllMatches()),
-      shareReplay(1) // Cache the latest emission
+      shareReplay(1)
     );
   }
   
   /**
-   * Stop auto-refresh (call this when component is destroyed)
+   * Get live matches with automatic refresh.
+   * Returns a singleton observable shared by all subscribers — Home, MatchesList, etc.
+   * Refreshes every 30s via timer AND immediately on WebSocket push from backend.
    */
-  stopAutoRefresh(): void {
-    // Subscriptions manage their own teardown; method retained for backwards compatibility.
+  getLiveMatchesWithAutoRefresh(): Observable<MatchCardViewModel[]> {
+    return this.sharedMatches$;
   }
+  
+  /**
+   * Stop auto-refresh (retained for backwards compatibility — teardown is managed by subscriptions).
+   */
+  stopAutoRefresh(): void {}
   
   /**
    * Get live matches transformed to MatchCardViewModel
