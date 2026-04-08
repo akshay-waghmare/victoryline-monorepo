@@ -47,6 +47,7 @@ class CrexScraperService:
         self._restart_lock = threading.Lock()
         self._container_restart_scheduled = False
         self._last_live_match_count = 0
+        self._restart_condition_consecutive_count: int = 0
         
         # Persistent page pool and fast poll service (Feature 007 - Phase 2)
         self.persistent_page_pool = None
@@ -536,12 +537,30 @@ class CrexScraperService:
                 # Update health score metric for Prometheus
                 summary = self.health.get_summary()
                 restart_condition = self.get_restart_condition(summary)
+
                 if restart_condition:
-                    self.schedule_container_restart(
+                    self._restart_condition_consecutive_count += 1
+                    required = 3 if restart_condition["reason"] == "pid_threshold_exceeded" else 6
+                    logger.warning(
+                        "restart_condition_detected count=%d/%d reason=%s",
+                        self._restart_condition_consecutive_count,
+                        required,
                         restart_condition["reason"],
-                        metadata=restart_condition["metadata"],
-                        delay_seconds=0,
                     )
+                    if self._restart_condition_consecutive_count >= required:
+                        self.schedule_container_restart(
+                            restart_condition["reason"],
+                            metadata=restart_condition["metadata"],
+                            delay_seconds=5,
+                        )
+                else:
+                    if self._restart_condition_consecutive_count > 0:
+                        logger.info(
+                            "restart_condition_cleared after %d cycles",
+                            self._restart_condition_consecutive_count,
+                        )
+                    self._restart_condition_consecutive_count = 0
+
                 self.metrics.health_score.set(summary.score)
 
                 await asyncio.sleep(5)

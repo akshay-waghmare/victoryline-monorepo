@@ -262,8 +262,9 @@ class ScraperSettings:
         retry_max_delay_seconds = _coerce_float(env.get("RETRY_MAX_DELAY_SECONDS"), 16.0, minimum=retry_base_delay_seconds)
         retry_jitter_seconds = _coerce_float(env.get("RETRY_JITTER_SECONDS"), 0.3, minimum=0.0)
         memory_restart_grace_seconds = _coerce_int(env.get("SCRAPER_RESTART_GRACE_SECONDS"), 60, minimum=10)
-        pid_soft_limit = _coerce_int(env.get("PID_SOFT_LIMIT"), 360, minimum=100)
-        pid_restart_threshold = _coerce_int(env.get("PID_RESTART_THRESHOLD"), pid_soft_limit, minimum=100)
+        pid_soft_limit = _coerce_int(env.get("PID_SOFT_LIMIT"), 360, minimum=150)
+        # Chrome+Playwright threads inflate PID count; minimum 200 prevents crash loops on startup
+        pid_restart_threshold = _coerce_int(env.get("PID_RESTART_THRESHOLD"), pid_soft_limit, minimum=200)
         enable_prometheus_metrics = _coerce_bool(env.get("ENABLE_PROMETHEUS_METRICS"), True)
         prometheus_host = _coerce_str(env.get("PROMETHEUS_HOST"), "0.0.0.0")
         prometheus_port = _coerce_int(env.get("PROMETHEUS_PORT"), 9090, minimum=1)
