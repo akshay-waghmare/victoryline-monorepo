@@ -22,18 +22,28 @@ const OUT_DIR = process.env.PRERENDER_OUT_DIR
   : path.resolve(__dirname, '..', 'prerender');
 // Try to include Angular asset tags from the built index.html so the app boots after prerender
 const INDEX_HTML_PATH = process.env.PRERENDER_INDEX_HTML || '/shared-html/index.html';
+const MAX_MATCH_PAGES = parseInt(process.env.PRERENDER_MAX_MATCH_PAGES || '5000', 10);
+const DEFAULT_OG_IMAGE = 'https://www.crickzen.com/assets/img/logos/crickzen-circular-logo-512.png';
 
-async function fetchLiveMatches() {
-  const url = `${BACKEND_URL}/cricket-data/live-matches`;
+async function fetchJsonArray(endpoint, timeout = 5000) {
+  const url = `${BACKEND_URL}${endpoint}`;
   try {
-    const res = await axios.get(url, { timeout: 5000 });
+    const res = await axios.get(url, { timeout });
     if (Array.isArray(res.data)) return res.data;
-    // Some controllers wrap in an object
     if (res.data && Array.isArray(res.data.matches)) return res.data.matches;
     return [];
   } catch (e) {
     return [];
   }
+}
+
+async function fetchLiveMatches() {
+  return fetchJsonArray('/cricket-data/live-matches');
+}
+
+async function fetchAllMatches() {
+  const matches = await fetchJsonArray('/cricket-data/matches');
+  return matches.length ? matches : fetchLiveMatches();
 }
 
 async function fetchMatchInfo(urlSlug) {
@@ -102,13 +112,83 @@ function extractUrlSlug(url) {
   return last;
 }
 
+function getCanonicalSlug(match) {
+  if (!match) return null;
+  return extractUrlSlug(match.url) || match.externalMatchKey || match.external_match_key || match.id || null;
+}
+
+function dedupeMatchesBySlug(matches) {
+  const seen = new Set();
+  const result = [];
+  for (const match of matches || []) {
+    const slug = getCanonicalSlug(match);
+    if (!slug || seen.has(String(slug))) continue;
+    seen.add(String(slug));
+    result.push(match);
+    if (result.length >= MAX_MATCH_PAGES) break;
+  }
+  return result;
+}
+
+function toIsoFromEpochMillis(value) {
+  if (!value) return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return new Date(numeric).toISOString();
+}
+
+function matchInfoFromMatch(m) {
+  if (!m) return null;
+  const team1 = m.team1Name || m.team1_name || m.homeTeam || m.team1;
+  const team2 = m.team2Name || m.team2_name || m.awayTeam || m.team2;
+  const series = m.seriesName || m.series_name || m.matchName || m.match_name;
+  const format = m.matchFormat || m.match_format;
+  const startDate = m.startDate || m.start_date || m.matchDate || m.match_date || toIsoFromEpochMillis(m.scheduledStartTime);
+  return {
+    team1_name: team1 || null,
+    team2_name: team2 || null,
+    match_name: series || (team1 && team2 ? `${team1} vs ${team2}` : null),
+    match_format: format || null,
+    venue: m.venue || null,
+    start_date: startDate || null,
+    result_summary: m.resultSummary || m.result_summary || null
+  };
+}
+
+function getMatchState(m) {
+  const rawStatus = String((m && (m.status || m.matchStatus)) || '').toLowerCase();
+  const stateText = String((m && (m.lastKnownState || m.resultSummary)) || '').toLowerCase();
+
+  if (rawStatus.includes('cancel') || stateText.includes('cancel')) return 'cancelled';
+  if (rawStatus.includes('abandon') || stateText.includes('abandon')) return 'completed';
+  if ((m && m.finished) || rawStatus.includes('completed') || rawStatus.includes('finished') || stateText.includes('won by') || stateText.includes('match drawn') || stateText.includes('match tied')) {
+    return 'completed';
+  }
+  if (rawStatus.includes('upcoming') || rawStatus.includes('scheduled')) return 'scheduled';
+  return 'live';
+}
+
+function getSchemaEventStatus(m) {
+  const state = getMatchState(m);
+  if (state === 'completed') return 'https://schema.org/EventCompleted';
+  if (state === 'cancelled') return 'https://schema.org/EventCancelled';
+  if (state === 'scheduled') return 'https://schema.org/EventScheduled';
+  return 'https://schema.org/EventInProgress';
+}
+
+function truncateText(value, maxLength) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return text.slice(0, Math.max(0, maxLength - 3)).replace(/\s+\S*$/, '') + '...';
+}
+
 function deriveTitle(m, matchInfo = null) {
   // Use match info venue if available
   if (matchInfo && matchInfo.venue) {
     const venue = matchInfo.venue;
     // Try to extract team names from venue or use URL parsing
-    if (m.url) {
-      const urlPart = extractUrlSlug(m.url);
+    if (m.url || m.externalMatchKey || m.external_match_key || m.id) {
+      const urlPart = getCanonicalSlug(m);
       if (urlPart) {
         const vsMatch = urlPart.match(/^([a-z]{3})-vs-([a-z]{3})-(.+)/i);
         if (vsMatch) {
@@ -134,8 +214,8 @@ function deriveTitle(m, matchInfo = null) {
   }
   
   // Fallback: parse team names from URL if possible
-  if (m.url) {
-    const urlPart = extractUrlSlug(m.url);
+  if (m.url || m.externalMatchKey || m.external_match_key || m.id) {
+    const urlPart = getCanonicalSlug(m);
     if (urlPart) {
       const vsMatch = urlPart.match(/^([a-z]{3})-vs-([a-z]{3})-(.+)/i);
       if (vsMatch) {
@@ -195,9 +275,9 @@ function renderMatchItem(m, matchInfo = null) {
   const matchName = matchInfo && matchInfo.match_name ? escapeHtml(matchInfo.match_name) : '';
   const status = deriveStatus(m.lastKnownState || m.status || m.matchStatus || '');
   // Use slug for SEO-friendly URLs (matching sitemap format)
-  const urlSlug = extractUrlSlug(m.url);
+  const urlSlug = getCanonicalSlug(m);
   const linkPath = urlSlug ? `/cric-live/${urlSlug}` : '#';
-  const matchState = m.finished ? 'Completed' : 'Live';
+  const matchState = getMatchState(m) === 'completed' ? 'Completed' : 'Live';
   const venue = matchInfo && matchInfo.venue ? escapeHtml(matchInfo.venue) : 'Cricket Stadium';
   const playingXiHtml = matchInfo && matchInfo.playing_xi ? renderPlayingXI(matchInfo.playing_xi) : '';
   const tossInfo = matchInfo && matchInfo.toss_info ? escapeHtml(matchInfo.toss_info) : '';
@@ -213,7 +293,7 @@ function renderMatchItem(m, matchInfo = null) {
       ${tossInfo ? `<p class="toss-info">🪙 ${tossInfo}</p>` : ''}
     </a>
     ${playingXiHtml}
-    <meta itemprop="eventStatus" content="${m.finished ? 'EventScheduled' : 'EventLive'}" />
+    <meta itemprop="eventStatus" content="${getSchemaEventStatus(m)}" />
     <meta itemprop="sport" content="Cricket" />
   </li>`;
 }
@@ -282,12 +362,12 @@ function buildMatchesJsonLd(matchesWithInfo) {
       const info = item.info;
       const title = deriveTitle(m, info);
       const status = deriveStatus(m.lastKnownState || m.status || '');
-      const eventStatus = m.finished ? 'EventScheduled' : 'EventLive';
+      const eventStatus = getSchemaEventStatus(m);
       const venue = info && info.venue ? info.venue : 'Cricket Stadium';
       const matchName = info && info.match_name ? info.match_name : title;
       
       // Use slug for SEO-friendly URLs
-      const urlSlug = extractUrlSlug(m.url) || m.id;
+      const urlSlug = getCanonicalSlug(m);
       
       // Extract all players from playing XI for rich schema
       const performers = [];
@@ -317,7 +397,7 @@ function buildMatchesJsonLd(matchesWithInfo) {
         'startDate': (info && info.start_date) 
           ? new Date(info.start_date).toISOString() 
           : (m.startDate ? new Date(m.startDate).toISOString() : new Date().toISOString()),
-        'eventStatus': `https://schema.org/${eventStatus}`,
+        'eventStatus': eventStatus,
         'sport': 'Cricket',
         'location': {
           '@type': 'Place',
@@ -360,21 +440,33 @@ function buildBlogJsonLd(posts) {
   return `<script type="application/ld+json">${JSON.stringify(itemList)}</script>`;
 }
 
-function pageTemplate({ title, description, canonical, contentHtml, jsonLd }) {
+function pageTemplate({ title, description, canonical, contentHtml, jsonLd, ogImage }) {
   const assets = extractAngularAssets();
   const baseHref = extractBaseHref();
+  const safeTitle = truncateText(title, 60);
+  const safeDescription = truncateText(description, 155);
+  const image = ogImage || DEFAULT_OG_IMAGE;
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     ${baseHref}
-    <title>${escapeHtml(title)}</title>
-    <meta name="description" content="${escapeHtml(description)}" />
+    <title>${escapeHtml(safeTitle)}</title>
+    <meta name="description" content="${escapeHtml(safeDescription)}" />
+    <meta name="robots" content="index,follow" />
     ${canonical ? `<link rel="canonical" href="${escapeHtml(canonical)}" />` : ''}
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta property="og:title" content="${escapeHtml(title)}" />
-    <meta property="og:description" content="${escapeHtml(description)}" />
+    <meta property="og:title" content="${escapeHtml(safeTitle)}" />
+    <meta property="og:description" content="${escapeHtml(safeDescription)}" />
+    ${canonical ? `<meta property="og:url" content="${escapeHtml(canonical)}" />` : ''}
+    <meta property="og:image" content="${escapeHtml(image)}" />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Crickzen" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@crickzen" />
+    <meta name="twitter:title" content="${escapeHtml(safeTitle)}" />
+    <meta name="twitter:description" content="${escapeHtml(safeDescription)}" />
+    <meta name="twitter:image" content="${escapeHtml(image)}" />
     <style>
       #prerender-root { max-width: 1200px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif; }
       h1 { color: #1a73e8; margin-bottom: 20px; }
@@ -421,14 +513,15 @@ function pageTemplate({ title, description, canonical, contentHtml, jsonLd }) {
 async function build() {
   ensureDir(OUT_DIR);
   const live = await fetchLiveMatches();
+  const allMatches = dedupeMatchesBySlug(await fetchAllMatches());
   const blogs = await fetchBlogPosts();
 
-  // Fetch match info for each live match to get venue details
+  // Fetch match info for listed live matches only; all prerender pages use embedded match metadata.
   const matchesWithInfo = [];
   if (live && live.length) {
     for (const match of live) {
-      const urlSlug = extractUrlSlug(match.url);
-      const info = urlSlug ? await fetchMatchInfo(urlSlug) : null;
+      const urlSlug = getCanonicalSlug(match);
+      const info = urlSlug ? (await fetchMatchInfo(urlSlug) || matchInfoFromMatch(match)) : matchInfoFromMatch(match);
       matchesWithInfo.push({ match, info });
     }
   }
@@ -474,19 +567,19 @@ async function build() {
   const matchPagesDir = path.join(OUT_DIR, 'cric-live');
   ensureDir(matchPagesDir);
   
-  for (const item of matchesWithInfo) {
-    const m = item.match;
-    const info = item.info;
+  const infoBySlug = new Map(matchesWithInfo.map(item => [getCanonicalSlug(item.match), item.info]));
+  const matchPages = allMatches.length ? allMatches : live;
+  for (const m of matchPages) {
+    const embeddedInfo = matchInfoFromMatch(m);
     
     // Use URL slug for SEO-friendly URLs (matches sitemap format)
-    const urlSlug = extractUrlSlug(m.url);
+    const urlSlug = getCanonicalSlug(m);
     if (!urlSlug) continue;
+    const info = infoBySlug.get(urlSlug) || embeddedInfo;
     
     // Generate SEO-optimized title following Feature 008 spec
     const matchTitle = generateMatchPageTitle(m, info);
     const matchDescription = generateMatchPageDescription(m, info);
-    const matchStatus = m.finished ? 'completed' : 'live';
-    
     // Build match-specific JSON-LD
     const matchJsonLd = buildMatchPageJsonLd(m, info, urlSlug);
     
@@ -504,7 +597,7 @@ async function build() {
     fs.writeFileSync(path.join(matchPagesDir, `${urlSlug}.html`), matchPageHtml, 'utf8');
   }
   
-  console.log(`[prerender] Generated ${matchesWithInfo.length} individual match pages in ${matchPagesDir}`);
+  console.log(`[prerender] Generated ${matchPages.length} individual match pages in ${matchPagesDir}`);
 }
 
 /**
@@ -533,8 +626,8 @@ function generateMatchPageTitle(m, info) {
   }
   
   // Fallback: parse from URL slug (handles both short codes and full names)
-  if ((!team1 || !team2) && m.url) {
-    const urlSlug = extractUrlSlug(m.url);
+  if ((!team1 || !team2) && (m.url || m.externalMatchKey || m.external_match_key || m.id)) {
+    const urlSlug = getCanonicalSlug(m);
     if (urlSlug) {
       // Pattern for simple 3-letter codes: ind-vs-aus-...
       const shortMatch = urlSlug.match(/^([a-z]{3})-vs-([a-z]{3})-/i);
@@ -576,7 +669,7 @@ function generateMatchPageTitle(m, info) {
   if (!team2) team2 = 'Team B';
   
   const teams = `${team1} vs ${team2}`;
-  const isCompleted = m.finished || (m.lastKnownState && /won by|match drawn|match tied/i.test(m.lastKnownState));
+  const isCompleted = getMatchState(m) === 'completed';
   
   let suffix;
   if (isCompleted) {
@@ -619,8 +712,8 @@ function generateMatchPageDescription(m, info) {
   }
   
   // Fallback: parse from URL slug
-  if ((!team1 || !team2) && m.url) {
-    const urlSlug = extractUrlSlug(m.url);
+  if ((!team1 || !team2) && (m.url || m.externalMatchKey || m.external_match_key || m.id)) {
+    const urlSlug = getCanonicalSlug(m);
     if (urlSlug) {
       // Pattern for simple 3-letter codes: ind-vs-aus-...
       const shortMatch = urlSlug.match(/^([a-z]{3})-vs-([a-z]{3})-/i);
@@ -659,12 +752,12 @@ function generateMatchPageDescription(m, info) {
   if (!team2) team2 = 'Team B';
   
   const teams = `${team1} vs ${team2}`;
-  const isCompleted = m.finished || (m.lastKnownState && /won by|match drawn|match tied/i.test(m.lastKnownState));
+  const isCompleted = getMatchState(m) === 'completed';
   
   if (isCompleted) {
-    return `${teams} final score, full scorecard, match summary, and highlights on Crickzen.`;
+    return truncateText(`${teams} final score, full scorecard, match summary, and highlights on Crickzen.`, 155);
   }
-  return `${teams} live score, ball by ball commentary, latest runs, wickets, overs, and match updates.`;
+  return truncateText(`${teams} live score, ball by ball commentary, latest runs, wickets, overs, and match updates.`, 155);
 }
 
 /**
@@ -672,7 +765,6 @@ function generateMatchPageDescription(m, info) {
  */
 function buildMatchPageJsonLd(m, info, urlSlug) {
   const title = generateMatchPageTitle(m, info);
-  const isCompleted = m.finished || (m.lastKnownState && /won by|match drawn|match tied/i.test(m.lastKnownState));
   const venue = info && info.venue ? info.venue : 'Cricket Stadium';
   const matchName = info && info.match_name ? info.match_name : title;
   
@@ -688,7 +780,7 @@ function buildMatchPageJsonLd(m, info, urlSlug) {
     'description': generateMatchPageDescription(m, info),
     'url': `https://www.crickzen.com/cric-live/${urlSlug}`,
     'startDate': startDate,
-    'eventStatus': isCompleted ? 'https://schema.org/EventScheduled' : 'https://schema.org/EventLive',
+    'eventStatus': getSchemaEventStatus(m),
     'sport': 'Cricket',
     'location': {
       '@type': 'Place',
@@ -712,23 +804,39 @@ function renderMatchPageContent(m, info, urlSlug) {
   const status = deriveStatus(m.lastKnownState || m.status || '');
   const venue = info && info.venue ? escapeHtml(info.venue) : 'Cricket Stadium';
   const matchName = info && info.match_name ? escapeHtml(info.match_name) : '';
+  const format = info && info.match_format ? escapeHtml(info.match_format) : 'Cricket';
+  const result = info && info.result_summary ? escapeHtml(info.result_summary) : '';
   const tossInfo = info && info.toss_info ? escapeHtml(info.toss_info) : '';
   const playingXiHtml = info && info.playing_xi ? renderPlayingXI(info.playing_xi) : '';
   
   return `
     <h1>${escapeHtml(title)}</h1>
     ${matchName ? `<p class="match-series"><strong>${matchName}</strong></p>` : ''}
+    <p>${escapeHtml(title)} coverage on Crickzen includes live score updates, scorecard context, match status, venue details, and ball-by-ball match updates when available.</p>
     ${status ? `<p class="match-status">${escapeHtml(status)}</p>` : ''}
+    ${result ? `<p class="match-status">${result}</p>` : ''}
+    <p class="match-format"><strong>Format:</strong> ${format}</p>
     <p class="match-venue">📍 ${venue}</p>
     ${tossInfo ? `<p class="toss-info">🪙 ${tossInfo}</p>` : ''}
     ${playingXiHtml}
-    <p style="margin-top: 30px;">
-      <a href="/matches" style="color: #1a73e8;">← Back to All Matches</a>
-    </p>
+    <nav style="margin-top: 30px;">
+      <a href="/" style="color: #1a73e8;">Home</a>
+      <span> · </span>
+      <a href="/matches" style="color: #1a73e8;">All Cricket Matches</a>
+    </nav>
   `;
 }
 
-module.exports = { build };
+module.exports = {
+  build,
+  _internals: {
+    extractUrlSlug,
+    getCanonicalSlug,
+    getMatchState,
+    getSchemaEventStatus,
+    truncateText
+  }
+};
 
 if (require.main === module) {
   build().then(() => {
