@@ -1,0 +1,32 @@
+[
+  {
+    "id": "seo-match-pages",
+    "title": "Deploy dynamic match page titles with exact team names",
+    "description": "Deploy dynamic match page titles with exact team names + 'Live Score Ball by Ball' format for all ongoing matches. Match-specific pages indexed in Google Search Console.",
+    "status": "pending",
+    "priority": "high",
+    "deadline": "2026-02-04",
+    "metric": "deployed",
+    "target": 30.0
+  },
+  {
+    "id": "social-share-buttons",
+    "title": "Add one-tap share buttons on match pages",
+    "description": "Add one-tap share buttons on match pages that pre-fill social media text with team scores when wickets fall or in close finishes.",
+    "status": "pending",
+    "priority": "high",
+    "deadline": "2026-02-04",
+    "metric": "week_add_one",
+    "target": 8.0
+  },
+  {
+    "id": "tournament-landing-pages",
+    "title": "Create tournament landing pages",
+    "description": "Create tournament landing pages (e.g., '/bpl-2026-live-scores', '/pakistan-super-league-2026') aggregating all matches in that tournament.",
+    "status": "pending",
+    "priority": "high",
+    "deadline": "2026-02-04",
+    "metric": "created",
+    "target": 3.0
+  }
+]

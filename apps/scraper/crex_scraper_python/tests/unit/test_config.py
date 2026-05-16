@@ -17,7 +17,7 @@ def test_default_settings_standard_profile():
     assert settings.fast_poll_reconcile_interval_seconds == 0.8
     assert settings.live_match_rescrape_interval_seconds == 15.0
     assert settings.enable_player_stats_crawler is False
-    assert settings.player_stats_worker_count == 1
+    assert settings.player_stats_worker_count == 3
 
 
 def test_tiny_profile_adjustments():

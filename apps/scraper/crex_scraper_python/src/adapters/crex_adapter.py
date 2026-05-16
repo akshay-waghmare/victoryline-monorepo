@@ -1743,6 +1743,44 @@ class CrexAdapter(SourceAdapter):
         payload["url"] = url
         return payload
 
+    async def fetch_team_reference(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+        html = await self._fetch_reference_html_fast(url)
+        if html is not None:
+            payload = analyze_standings_html(html)
+            if payload.get("sections") or payload.get("page_title"):
+                logger.info(f"Fast HTTP fetch succeeded for team reference: {url}")
+                payload["url"] = url
+                return payload
+            logger.debug(f"Fast HTTP fetch for {url} returned incomplete team data, falling back to browser")
+
+        html = await self._fetch_reference_html(
+            context,
+            url,
+            wait_selectors=["h1", "h2", "table"],
+        )
+        payload = analyze_standings_html(html)
+        payload["url"] = url
+        return payload
+
+    async def fetch_series_reference(self, context: BrowserContext, url: str) -> Dict[str, Any]:
+        html = await self._fetch_reference_html_fast(url)
+        if html is not None:
+            payload = analyze_standings_html(html)
+            if payload.get("sections") or payload.get("page_title"):
+                logger.info(f"Fast HTTP fetch succeeded for series reference: {url}")
+                payload["url"] = url
+                return payload
+            logger.debug(f"Fast HTTP fetch for {url} returned incomplete series data, falling back to browser")
+
+        html = await self._fetch_reference_html(
+            context,
+            url,
+            wait_selectors=["h1", "h2", "table"],
+        )
+        payload = analyze_standings_html(html)
+        payload["url"] = url
+        return payload
+
     async def fetch_standings_reference(self, context: BrowserContext, url: str) -> Dict[str, Any]:
         # Try fast HTTP first for standings pages
         html = await self._fetch_reference_html_fast(url)

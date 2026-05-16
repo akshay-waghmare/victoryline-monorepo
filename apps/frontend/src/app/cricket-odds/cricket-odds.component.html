@@ -415,7 +415,24 @@
                   </span>
                 </header>
 
-                <div class="stats-snapshot-card__pairs" *ngIf="isSnapshotObjectPayload(snapshot.payload)">
+                <div class="stats-detail__table-wrap" *ngIf="isHeaderRowsPayload(snapshot.payload)">
+                  <table class="stats-detail__table">
+                    <thead>
+                      <tr>
+                        <th *ngFor="let column of getHeaderRowsColumns(snapshot.payload)">{{ formatSnapshotLabel(column) }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of unwrapPayloadRows(snapshot.payload)">
+                        <td *ngFor="let column of getHeaderRowsColumns(snapshot.payload)">
+                          {{ formatSnapshotValue(row[column]) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="stats-snapshot-card__pairs" *ngIf="!isHeaderRowsPayload(snapshot.payload) && isSnapshotObjectPayload(snapshot.payload)">
                   <div class="stats-snapshot-card__pair" *ngFor="let entry of getSnapshotPayloadEntries(snapshot.payload)">
                     <span class="stats-snapshot-card__key">{{ formatSnapshotLabel(entry.key) }}</span>
                     <span class="stats-snapshot-card__value">{{ formatSnapshotValue(entry.value) }}</span>
@@ -445,7 +462,7 @@
                   </table>
                 </div>
 
-                <p class="stats-snapshot-card__value stats-snapshot-card__value--full" *ngIf="!isSnapshotObjectPayload(snapshot.payload) && !isSnapshotPrimitiveList(snapshot.payload) && !isSnapshotTablePayload(snapshot.payload)">
+                <p class="stats-snapshot-card__value stats-snapshot-card__value--full" *ngIf="!isHeaderRowsPayload(snapshot.payload) && !isSnapshotObjectPayload(snapshot.payload) && !isSnapshotPrimitiveList(snapshot.payload) && !isSnapshotTablePayload(snapshot.payload)">
                   {{ formatSnapshotValue(snapshot.payload) }}
                 </p>
               </article>
@@ -503,7 +520,41 @@
                   </span>
                 </header>
 
-                <div class="stats-snapshot-card__pairs" *ngIf="isSnapshotObjectPayload(snapshot.payload)">
+                <div class="stats-detail__table-wrap" *ngIf="isHeaderRowsPayload(snapshot.payload)">
+                  <table class="stats-detail__table">
+                    <thead>
+                      <tr>
+                        <th *ngFor="let column of getHeaderRowsColumns(snapshot.payload)">{{ formatSnapshotLabel(column) }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of unwrapPayloadRows(snapshot.payload)">
+                        <td *ngFor="let column of getHeaderRowsColumns(snapshot.payload)">
+                          {{ formatSnapshotValue(row[column]) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="stats-detail__table-wrap" *ngIf="!isHeaderRowsPayload(snapshot.payload) && isSnapshotTablePayload(snapshot.payload)">
+                  <table class="stats-detail__table">
+                    <thead>
+                      <tr>
+                        <th *ngFor="let column of getSnapshotTableColumns(snapshot.payload)">{{ formatSnapshotLabel(column) }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of snapshot.payload">
+                        <td *ngFor="let column of getSnapshotTableColumns(snapshot.payload)">
+                          {{ formatSnapshotValue(row[column]) }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="stats-snapshot-card__pairs" *ngIf="!isHeaderRowsPayload(snapshot.payload) && !isSnapshotTablePayload(snapshot.payload) && isSnapshotObjectPayload(snapshot.payload)">
                   <div class="stats-snapshot-card__pair" *ngFor="let entry of getSnapshotPayloadEntries(snapshot.payload)">
                     <span class="stats-snapshot-card__key">{{ formatSnapshotLabel(entry.key) }}</span>
                     <span class="stats-snapshot-card__value">{{ formatSnapshotValue(entry.value) }}</span>
@@ -516,7 +567,7 @@
                   </span>
                 </div>
 
-                <p class="stats-snapshot-card__value stats-snapshot-card__value--full" *ngIf="!isSnapshotObjectPayload(snapshot.payload) && !isSnapshotPrimitiveList(snapshot.payload) && !isSnapshotTablePayload(snapshot.payload)">
+                <p class="stats-snapshot-card__value stats-snapshot-card__value--full" *ngIf="!isHeaderRowsPayload(snapshot.payload) && !isSnapshotObjectPayload(snapshot.payload) && !isSnapshotPrimitiveList(snapshot.payload) && !isSnapshotTablePayload(snapshot.payload)">
                   {{ formatSnapshotValue(snapshot.payload) }}
                 </p>
               </article>

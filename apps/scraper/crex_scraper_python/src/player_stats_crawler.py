@@ -75,10 +75,10 @@ class PlayerStatsScheduler:
         if self._lock is None:
             self._lock = asyncio.Lock()
 
-    async def enqueue(self, task: PlayerStatsTask) -> bool:
+    async def enqueue(self, task: PlayerStatsTask, *, bypass_rate_limit: bool = False) -> bool:
         if self._shutting_down or self._queue is None or self._lock is None:
             return False
-        if not self.rate_limiter.consume():
+        if not bypass_rate_limit and not self.rate_limiter.consume():
             logger.debug("player_stats.scheduler.rate_limited", extra={"match_id": task.match_id})
             return False
 
@@ -373,6 +373,12 @@ class PlayerStatsCrawlerService:
         if task_type == "PLAYER_REFERENCE":
             await self._process_player_reference_task(task)
             return
+        if task_type == "TEAM_REFERENCE":
+            await self._process_team_reference_task(task)
+            return
+        if task_type == "SERIES_REFERENCE":
+            await self._process_series_reference_task(task)
+            return
         if task_type == "SERIES_STANDINGS":
             await self._process_series_standings_task(task)
             return
@@ -419,14 +425,22 @@ class PlayerStatsCrawlerService:
 
         previous_payload = await self.cache.get_player_stats_seed(task.match_id)
         if previous_payload and self._payload_signature(previous_payload) == self._payload_signature(payload):
-            await self.cache.set_player_stats_seed(
-                task.match_id,
-                payload,
-                ttl=self.settings.player_stats_cache_ttl_seconds,
+            backend_snapshot = await asyncio.to_thread(
+                CricketDataService.get_player_stats_match,
+                task.match_url,
+                payload.get("matchExternalKey"),
+                token,
             )
-            await self._record_candidate_result(task.match_id, success=True)
-            logger.debug(f"Player stats seed unchanged for {task.match_id}; skipping backend push.")
-            return
+            if backend_snapshot:
+                await self.cache.set_player_stats_seed(
+                    task.match_id,
+                    payload,
+                    ttl=self.settings.player_stats_cache_ttl_seconds,
+                )
+                await self._record_candidate_result(task.match_id, success=True)
+                logger.debug(f"Player stats seed unchanged for {task.match_id}; skipping backend push.")
+                return
+            logger.info(f"Player stats seed unchanged for {task.match_id}, but backend snapshot is missing; pushing again.")
 
         pushed = await asyncio.to_thread(CricketDataService.push_player_stats, payload, token, task.match_url)
         if pushed:
@@ -516,7 +530,12 @@ class PlayerStatsCrawlerService:
 
         for team_idx, team_code in enumerate(team_codes):
             team_name = team_names.get(team_code, team_code)
-            team_links.append({"name": team_name, "url": None})
+            team_links.append({
+                "name": team_name,
+                "url": self._build_crex_entity_url("team", team_name, team_code),
+                "externalId": self._build_external_id("team", team_name),
+                "teamCode": team_code,
+            })
 
             # Collect all player codes for this team from tp + tb
             seen_codes: Dict[str, bool] = {}
@@ -552,10 +571,11 @@ class PlayerStatsCrawlerService:
             return None
 
         # Series info from localStorage
-        series_code = iv4.get("s", "")
+        series_code = iv4.get("sf") or iv4.get("s") or ""
         series_name = local_storage.get(f"s_{series_code}_name", "")
         venue_code = iv4.get("v", "")
         venue_name = local_storage.get(f"v_{venue_code}_name", "")
+        series_url = self._build_crex_entity_url("series", series_name, series_code) if series_name and series_code else None
 
         return {
             "match_name": None,
@@ -564,7 +584,8 @@ class PlayerStatsCrawlerService:
             "venue": venue_name or None,
             "toss_info": None,
             "series_name": series_name or None,
-            "series_url": None,
+            "series_url": series_url,
+            "series_external_id": self._build_external_id("series", series_name) if series_name else None,
             "team_links": team_links,
             "players": players,
         }
@@ -591,9 +612,17 @@ class PlayerStatsCrawlerService:
 
         previous_payload = await self._get_cached_reference_payload(task.match_id)
         if previous_payload and self._payload_signature(previous_payload) == self._payload_signature(request):
-            await self._set_cached_reference_payload(task.match_id, request)
-            await self._record_candidate_result(task.match_id, success=True)
-            return
+            player_external_id = (request.get("player") or {}).get("externalId")
+            backend_player = await asyncio.to_thread(
+                CricketDataService.get_player_stats_player,
+                player_external_id,
+                self._auth_token_provider(),
+            )
+            if backend_player and backend_player.get("stats"):
+                await self._set_cached_reference_payload(task.match_id, request)
+                await self._record_candidate_result(task.match_id, success=True)
+                return
+            logger.info(f"Player reference unchanged for {task.match_id}, but backend detail is missing; pushing again.")
 
         token = self._auth_token_provider()
         pushed = await asyncio.to_thread(
@@ -607,6 +636,90 @@ class PlayerStatsCrawlerService:
             await self._record_candidate_result(task.match_id, success=True)
         else:
             await self._record_candidate_result(task.match_id, success=False, error="push_reference_failed")
+
+    async def _process_team_reference_task(self, task: PlayerStatsTask) -> None:
+        adapter = self.registry.get_adapter("crex")
+        if adapter is None or not hasattr(adapter, "fetch_team_reference"):
+            logger.warning("Team reference task skipped because CREX adapter team extraction is unavailable.")
+            await self._record_candidate_result(task.match_id, success=False, error="missing_adapter")
+            return
+
+        async with self.pool.get_context() as context:
+            reference_payload = await adapter.fetch_team_reference(context, task.match_url)
+
+        request = self._build_team_profile_reference_request(task, reference_payload)
+        if not request.get("snapshots"):
+            await self._record_candidate_result(task.match_id, success=False, error="empty_team_reference")
+            return
+
+        previous_payload = await self._get_cached_reference_payload(task.match_id)
+        if previous_payload and self._payload_signature(previous_payload) == self._payload_signature(request):
+            team_external_id = (request.get("team") or {}).get("externalId")
+            backend_team = await asyncio.to_thread(
+                CricketDataService.get_player_stats_team,
+                team_external_id,
+                self._auth_token_provider(),
+            )
+            if backend_team and backend_team.get("stats"):
+                await self._set_cached_reference_payload(task.match_id, request)
+                await self._record_candidate_result(task.match_id, success=True)
+                return
+            logger.info(f"Team reference unchanged for {task.match_id}, but backend detail is missing; pushing again.")
+
+        token = self._auth_token_provider()
+        pushed = await asyncio.to_thread(
+            CricketDataService.push_player_stats_reference,
+            request,
+            token,
+            task.match_url,
+        )
+        if pushed:
+            await self._set_cached_reference_payload(task.match_id, request)
+            await self._record_candidate_result(task.match_id, success=True)
+        else:
+            await self._record_candidate_result(task.match_id, success=False, error="push_team_reference_failed")
+
+    async def _process_series_reference_task(self, task: PlayerStatsTask) -> None:
+        adapter = self.registry.get_adapter("crex")
+        if adapter is None or not hasattr(adapter, "fetch_series_reference"):
+            logger.warning("Series reference task skipped because CREX adapter series extraction is unavailable.")
+            await self._record_candidate_result(task.match_id, success=False, error="missing_adapter")
+            return
+
+        async with self.pool.get_context() as context:
+            reference_payload = await adapter.fetch_series_reference(context, task.match_url)
+
+        request = self._build_series_profile_reference_request(task, reference_payload)
+        if not request.get("snapshots"):
+            await self._record_candidate_result(task.match_id, success=False, error="empty_series_reference")
+            return
+
+        previous_payload = await self._get_cached_reference_payload(task.match_id)
+        if previous_payload and self._payload_signature(previous_payload) == self._payload_signature(request):
+            series_external_id = (request.get("series") or {}).get("externalId")
+            backend_series = await asyncio.to_thread(
+                CricketDataService.get_player_stats_series,
+                series_external_id,
+                self._auth_token_provider(),
+            )
+            if backend_series and backend_series.get("stats"):
+                await self._set_cached_reference_payload(task.match_id, request)
+                await self._record_candidate_result(task.match_id, success=True)
+                return
+            logger.info(f"Series reference unchanged for {task.match_id}, but backend detail is missing; pushing again.")
+
+        token = self._auth_token_provider()
+        pushed = await asyncio.to_thread(
+            CricketDataService.push_player_stats_reference,
+            request,
+            token,
+            task.match_url,
+        )
+        if pushed:
+            await self._set_cached_reference_payload(task.match_id, request)
+            await self._record_candidate_result(task.match_id, success=True)
+        else:
+            await self._record_candidate_result(task.match_id, success=False, error="push_series_reference_failed")
 
     async def _process_series_standings_task(self, task: PlayerStatsTask) -> None:
         adapter = self.registry.get_adapter("crex")
@@ -716,10 +829,10 @@ class PlayerStatsCrawlerService:
             if not candidate.last_success_at:
                 return 3  # Never scraped completed match
             return 5  # Already scraped
-        if task_type == "PLAYER_REFERENCE":
+        if task_type in {"PLAYER_REFERENCE", "TEAM_REFERENCE", "SERIES_REFERENCE"}:
             source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
             if source_type == "LIVE":
-                return 1  # Live player data is critical UX
+                return 1  # Live reference data is critical UX
             if source_type == "UPCOMING":
                 return 2
             if source_type == "COMPLETED":
@@ -764,13 +877,13 @@ class PlayerStatsCrawlerService:
             if not candidate.last_success_at:
                 return 30.0
             return 24 * 3600.0
-        if task_type == "PLAYER_REFERENCE":
+        if task_type in {"PLAYER_REFERENCE", "TEAM_REFERENCE", "SERIES_REFERENCE"}:
             source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
             # First-time scrape: minimal cooldown so we
-            # quickly populate stats for players in today's matches
+            # quickly populate stats for live match references
             if not candidate.last_success_at:
                 return 30.0
-            # Live player references refresh on live cadence (lineup can change)
+            # Live references refresh on live cadence (lineup can change)
             if source_type == "LIVE":
                 return float(self.settings.player_stats_live_cooldown_seconds) * 4
             return max(float(self.settings.player_stats_cache_ttl_seconds), 6 * 3600.0)
@@ -805,14 +918,41 @@ class PlayerStatsCrawlerService:
         teams = self._collect_task_teams(task.metadata, seed_payload)
         self._remember_team_aliases(*(team.get("name") for team in teams))
 
+        for team in teams:
+            team_url = str(team.get("url") or "").strip()
+            team_name = str(team.get("name") or "").strip()
+            if not team_url or not team_name:
+                continue
+            team_external_id = team.get("externalId") or self._build_external_id("team", team_name)
+            candidate_id = f"reference:{team_external_id}:profile"
+            await self._upsert_reference_candidate(
+                candidate_id=candidate_id,
+                match_url=team_url,
+                task_type="TEAM_REFERENCE",
+                metadata={
+                    "_candidate_scope": "reference",
+                    "sourceMatchTaskType": task.task_type,
+                    "team": {
+                        "externalId": team_external_id,
+                        "name": team_name,
+                        "shortName": team.get("shortName") or team.get("teamCode") or self._build_short_name(team_name),
+                        "teamCode": team.get("teamCode") or team.get("shortName") or self._build_short_name(team_name),
+                    },
+                    "sourceMatchUrl": task.match_url,
+                },
+            )
+            if task.task_type.upper() == "LIVE":
+                await self._enqueue_candidate_now(candidate_id, bypass_rate_limit=True)
+
         for player in seed_payload.get("players") or []:
             player_url = str(player.get("player_url") or "").strip()
             player_name = str(player.get("player_name") or "").strip()
             if not player_url or not player_name:
                 continue
             external_id = self._extract_external_id(player_url, "player", player_name)
+            candidate_id = f"reference:{external_id}"
             await self._upsert_reference_candidate(
-                candidate_id=f"reference:{external_id}",
+                candidate_id=candidate_id,
                 match_url=player_url,
                 task_type="PLAYER_REFERENCE",
                 metadata={
@@ -832,10 +972,28 @@ class PlayerStatsCrawlerService:
                     "team": self._build_team_payload(player.get("team_name")),
                 },
             )
+            if task.task_type.upper() == "LIVE":
+                await self._enqueue_candidate_now(candidate_id, bypass_rate_limit=True)
 
         series_payload = self._build_series_payload(task.metadata, seed_payload)
         series_url = str(seed_payload.get("series_url") or task.metadata.get("seriesUrl") or "").strip()
         if series_url and series_payload:
+            series_candidate_id = f"reference:{series_payload['externalId']}:profile"
+            await self._upsert_reference_candidate(
+                candidate_id=series_candidate_id,
+                match_url=series_url,
+                task_type="SERIES_REFERENCE",
+                metadata={
+                    "_candidate_scope": "reference",
+                    "sourceMatchTaskType": task.task_type,
+                    "series": series_payload,
+                    "teams": teams,
+                    "sourceMatchUrl": task.match_url,
+                },
+            )
+            if task.task_type.upper() == "LIVE":
+                await self._enqueue_candidate_now(series_candidate_id, bypass_rate_limit=True)
+
             await self._upsert_reference_candidate(
                 candidate_id=f"reference:{series_payload['externalId']}:standings",
                 match_url=self._build_series_standings_url(series_url),
@@ -889,6 +1047,30 @@ class PlayerStatsCrawlerService:
                 candidate.last_error = existing.last_error
                 candidate.metadata = self._merge_candidate_metadata(existing.metadata, candidate.metadata)
             self._candidates[candidate_id] = candidate
+
+    async def _enqueue_candidate_now(self, candidate_id: str, *, bypass_rate_limit: bool = False) -> bool:
+        if self._candidate_lock is None:
+            return False
+
+        async with self._candidate_lock:
+            candidate = self._candidates.get(candidate_id)
+            if candidate is None:
+                return False
+            if candidate.next_due_at > time.time():
+                return False
+            task = PlayerStatsTask(
+                priority=self._priority_for_candidate(candidate),
+                match_id=candidate.match_id,
+                match_url=candidate.match_url,
+                task_type=candidate.task_type,
+                scheduled_start_time=candidate.scheduled_start_time,
+                metadata=dict(candidate.metadata),
+            )
+
+        enqueued = await self.scheduler.enqueue(task, bypass_rate_limit=bypass_rate_limit)
+        if enqueued:
+            await self._mark_candidate_enqueued(candidate_id)
+        return enqueued
 
     @staticmethod
     def _merge_candidate_metadata(existing: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
@@ -1070,6 +1252,78 @@ class PlayerStatsCrawlerService:
         }
         return series_request, list(team_requests.values())
 
+    def _build_team_profile_reference_request(
+        self,
+        task: PlayerStatsTask,
+        reference_payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        captured_at = int(time.time() * 1000)
+        team_meta = dict(task.metadata.get("team") or {})
+        team_name = str(team_meta.get("name") or reference_payload.get("page_heading") or "").strip()
+        team_external_id = team_meta.get("externalId") or self._build_external_id("team", team_name)
+        request = self._build_team_reference_request_template(
+            str(reference_payload.get("url") or task.match_url or "").strip(),
+            team_external_id,
+            team_name or team_external_id,
+            team_meta.get("teamCode") or team_meta.get("shortName"),
+            captured_at,
+        )
+        request["snapshots"] = self._build_generic_reference_snapshots("team", reference_payload, captured_at)
+        return request
+
+    def _build_series_profile_reference_request(
+        self,
+        task: PlayerStatsTask,
+        reference_payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        captured_at = int(time.time() * 1000)
+        series = self._build_series_payload(task.metadata, reference_payload)
+        if series is None:
+            series = dict(task.metadata.get("series") or {})
+        return {
+            "url": str(reference_payload.get("url") or task.match_url or "").strip(),
+            "source": "crex",
+            "capturedAt": captured_at,
+            "series": series,
+            "snapshots": self._build_generic_reference_snapshots("series", reference_payload, captured_at),
+        }
+
+    def _build_generic_reference_snapshots(
+        self,
+        prefix: str,
+        reference_payload: Dict[str, Any],
+        captured_at: int,
+    ) -> List[Dict[str, Any]]:
+        snapshots: List[Dict[str, Any]] = []
+        if reference_payload.get("page_heading") or reference_payload.get("page_title"):
+            snapshots.append({
+                "category": f"{prefix}_summary",
+                "label": f"{self._display_label(prefix)} summary",
+                "capturedAt": captured_at,
+                "payload": {
+                    "pageHeading": reference_payload.get("page_heading"),
+                    "pageTitle": reference_payload.get("page_title"),
+                    "sectionCount": reference_payload.get("section_count"),
+                },
+            })
+
+        for section in reference_payload.get("sections") or []:
+            label = str(section.get("label") or "Details").strip() or "Details"
+            rows = section.get("rows") or []
+            if not rows:
+                continue
+            snapshots.append({
+                "category": self._build_reference_category(f"{prefix}_section", label),
+                "label": label,
+                "capturedAt": captured_at,
+                "payload": {
+                    "headers": section.get("headers") or [],
+                    "rows": rows,
+                },
+            })
+
+        return snapshots
+
     def _build_team_rankings_reference_requests(
         self,
         task: PlayerStatsTask,
@@ -1183,6 +1437,24 @@ class PlayerStatsCrawlerService:
                 "shortName": self._build_short_name(resolved_name),
                 "teamCode": self._build_short_name(resolved_name),
             }
+        for link in (seed_payload or {}).get("team_links") or []:
+            if not isinstance(link, dict):
+                continue
+            name = str(link.get("name") or "").strip()
+            url = str(link.get("url") or "").strip()
+            if not name:
+                continue
+            resolved_name = self._resolve_team_alias(name) or name
+            external_id = link.get("externalId") or self._build_external_id("team", resolved_name)
+            team_code = link.get("teamCode") or self._build_short_name(resolved_name)
+            existing = deduped.get(external_id, {})
+            deduped[external_id] = {
+                "externalId": external_id,
+                "name": existing.get("name") or resolved_name,
+                "shortName": existing.get("shortName") or team_code,
+                "teamCode": existing.get("teamCode") or team_code,
+                "url": url or existing.get("url"),
+            }
         return list(deduped.values())
 
     def _build_team_payload(self, team_name: Any) -> Optional[Dict[str, Any]]:
@@ -1204,22 +1476,34 @@ class PlayerStatsCrawlerService:
         seed_payload: Optional[Dict[str, Any]] = None,
     ) -> Optional[Dict[str, Any]]:
         source = seed_payload or {}
+        existing_series = metadata.get("series") if isinstance(metadata.get("series"), dict) else {}
         series_name = str(
             metadata.get("seriesName")
             or metadata.get("competitionName")
+            or existing_series.get("name")
             or source.get("series_name")
             or ""
         ).strip()
         if not series_name:
             return None
-        season_name = str(metadata.get("seasonName") or metadata.get("season") or "").strip() or None
-        short_name = str(metadata.get("seriesShortName") or "").strip() or None
+        season_name = str(metadata.get("seasonName") or metadata.get("season") or existing_series.get("seasonName") or "").strip() or None
+        short_name = str(metadata.get("seriesShortName") or existing_series.get("shortName") or "").strip() or None
         return {
-            "externalId": self._build_external_id("series", series_name),
+            "externalId": source.get("series_external_id") or existing_series.get("externalId") or self._build_external_id("series", series_name),
             "name": series_name,
             "shortName": short_name,
             "seasonName": season_name,
         }
+
+    def _build_crex_entity_url(self, scope: str, name: Any, code: Any) -> Optional[str]:
+        normalized_code = str(code or "").strip()
+        normalized_name = str(name or "").strip()
+        if not normalized_code or not normalized_name:
+            return None
+        slug = re.sub(r"[^a-z0-9]+", "-", normalized_name.lower()).strip("-")
+        if not slug:
+            return None
+        return f"https://crex.live/{scope}/{slug}-{normalized_code}"
 
     def _build_series_standings_url(self, series_url: str) -> str:
         trimmed = str(series_url or "").strip().rstrip("/")

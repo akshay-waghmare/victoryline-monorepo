@@ -1,7 +1,7 @@
 import asyncio
 
 from src.config import reload_settings
-from src.player_stats_crawler import PlayerStatsCrawlerService, PlayerStatsTask
+from src.player_stats_crawler import PlayerStatsCandidate, PlayerStatsCrawlerService, PlayerStatsTask
 
 
 class _DummyCache:
@@ -444,13 +444,108 @@ def test_discover_reference_candidates_enqueues_player_series_and_rankings_resou
 
     async def _run() -> None:
         service._candidate_lock = asyncio.Lock()
+        await service.scheduler.setup()
         await service._discover_reference_candidates(task, seed_payload)
 
     asyncio.run(_run())
 
     assert "reference:player:virat-kohli" in service._candidates
+    assert "reference:series:champions-trophy:profile" in service._candidates
     assert "reference:series:champions-trophy:standings" in service._candidates
     assert "reference:team-rankings:men" in service._candidates
+    assert service.scheduler.qsize == 2
+
+
+def test_discover_reference_candidates_does_not_immediately_queue_upcoming_player_refs():
+    reload_settings({})
+    service = PlayerStatsCrawlerService(
+        pool=None,
+        cache=_DummyCache(),
+        registry=_DummyRegistry(),
+        auth_token_provider=lambda: None,
+    )
+    task = PlayerStatsTask(
+        priority=2,
+        match_id="crex:match-1",
+        match_url="https://crex.com/scoreboard/series/example/fixture/match-1/live",
+        task_type="UPCOMING",
+        metadata={
+            "seriesName": "Champions Trophy",
+            "team1Name": "India",
+            "team2Name": "Australia",
+        },
+    )
+    seed_payload = {
+        "players": [
+            {
+                "team_name": "India",
+                "player_name": "Virat Kohli",
+                "player_role": "BATTER",
+                "player_url": "https://crex.com/player/virat-kohli",
+            }
+        ],
+    }
+
+    async def _run() -> None:
+        service._candidate_lock = asyncio.Lock()
+        await service.scheduler.setup()
+        await service._discover_reference_candidates(task, seed_payload)
+
+    asyncio.run(_run())
+
+    assert "reference:player:virat-kohli" in service._candidates
+    assert service.scheduler.qsize == 0
+
+
+def test_discover_reference_candidates_respects_existing_live_player_ref_cooldown():
+    reload_settings({})
+    service = PlayerStatsCrawlerService(
+        pool=None,
+        cache=_DummyCache(),
+        registry=_DummyRegistry(),
+        auth_token_provider=lambda: None,
+    )
+    service._candidates["reference:player:virat-kohli"] = PlayerStatsCandidate(
+        match_id="reference:player:virat-kohli",
+        match_url="https://crex.com/player/virat-kohli",
+        task_type="PLAYER_REFERENCE",
+        metadata={
+            "_candidate_scope": "reference",
+            "sourceMatchTaskType": "LIVE",
+        },
+        next_due_at=9999999999.0,
+        last_success_at=1.0,
+    )
+    task = PlayerStatsTask(
+        priority=1,
+        match_id="crex:match-1",
+        match_url="https://crex.com/scoreboard/series/example/fixture/match-1/live",
+        task_type="LIVE",
+        metadata={
+            "seriesName": "Champions Trophy",
+            "team1Name": "India",
+            "team2Name": "Australia",
+        },
+    )
+    seed_payload = {
+        "players": [
+            {
+                "team_name": "India",
+                "player_name": "Virat Kohli",
+                "player_role": "BATTER",
+                "player_url": "https://crex.com/player/virat-kohli",
+            }
+        ],
+    }
+
+    async def _run() -> None:
+        service._candidate_lock = asyncio.Lock()
+        await service.scheduler.setup()
+        await service._discover_reference_candidates(task, seed_payload)
+
+    asyncio.run(_run())
+
+    assert service.scheduler.qsize == 0
 
 
 # ---------------------------------------------------------------------------
@@ -535,7 +630,10 @@ class TestDecodeIv4ToSeed:
         assert len(result["players"]) == 4
         assert len(result["team_links"]) == 2
         assert result["team_links"][0]["name"] == "Gandiv Warriors"
+        assert result["team_links"][0]["url"] == "https://crex.live/team/gandiv-warriors-1EU"
         assert result["team_links"][1]["name"] == "Saryu Superheroes"
+        assert result["team_links"][1]["url"] == "https://crex.live/team/saryu-superheroes-1ER"
+        assert result["series_url"] == "https://crex.live/series/ayodhya-premier-league-2026-2F5"
 
         # Check player URL construction
         dp_player = next(p for p in result["players"] if p["player_name"] == "Divya Prakash Singh")

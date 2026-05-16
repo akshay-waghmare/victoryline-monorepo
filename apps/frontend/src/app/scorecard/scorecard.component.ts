@@ -239,8 +239,12 @@ export class ScorecardComponent implements OnInit, OnChanges {
   }
 
   canInspectPlayer(playerName: string): boolean {
-    if (!playerName || !this.playerStatsMatch || !this.playerStatsMatch.teams) {
+    if (!playerName || !this.normalizePlayerKey(playerName)) {
       return false;
+    }
+
+    if (!this.playerStatsMatch || !this.playerStatsMatch.teams) {
+      return true;
     }
 
     const normalizedTarget = this.normalizePlayerKey(playerName);
@@ -259,7 +263,7 @@ export class ScorecardComponent implements OnInit, OnChanges {
       }
     }
 
-    return false;
+    return true;
   }
 
   selectPlayer(playerName: string): void {

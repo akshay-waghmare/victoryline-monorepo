@@ -74,13 +74,18 @@ services:
       ENABLE_PERSISTENT_PAGES: "true"
       PERSISTENT_PAGE_MAX_COUNT: "30"
       FAST_POLL_RECONCILE_INTERVAL_SECONDS: "0.8"
-      LIVE_MATCH_RESCRAPE_INTERVAL_SECONDS: "15"
+      LIVE_MATCH_RESCRAPE_INTERVAL_SECONDS: "8"
+      # PID limits - persistent pages create 2x browser contexts (discovery + fast-poll pages per match)
+      # With 5 matches + 2 player stats workers, stable PID count is ~450-550
+      PID_SOFT_LIMIT: "500"
+      PID_RESTART_THRESHOLD: "650"
       ENABLE_PLAYER_STATS_CRAWLER: "true"
       PLAYER_STATS_INCLUDE_LIVE_MATCHES: "true"
       PLAYER_STATS_INCLUDE_UPCOMING_MATCHES: "false"
       PLAYER_STATS_POLLING_INTERVAL_SECONDS: "30"
       PLAYER_STATS_LIVE_COOLDOWN_SECONDS: "30"
       PLAYER_STATS_UPCOMING_COOLDOWN_SECONDS: "120"
+      PLAYER_STATS_WORKER_COUNT: "2"
     volumes:
       - scraper_data:/app/storage
     depends_on:

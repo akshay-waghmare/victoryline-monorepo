@@ -113,6 +113,83 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
     return '';
   }
 
+  getPlayerInitials(player: any): string {
+    if (!player) { return '?'; }
+    const name: string = player.name || '';
+    if (!name) { return '?'; }
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) { return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase(); }
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  getPlayerBadgeColor(role: string): string {
+    if (!role) { return '#78909c'; }
+    const r = role.toLowerCase();
+    if (r.indexOf('bat') >= 0) { return '#1565c0'; }
+    if (r.indexOf('bowl') >= 0) { return '#b71c1c'; }
+    if (r.indexOf('all') >= 0) { return '#2e7d32'; }
+    if (r.indexOf('keeper') >= 0 || r.indexOf('wk') >= 0) { return '#6a1b9a'; }
+    return '#78909c';
+  }
+
+  getOtherPlayerStats(): any[] {
+    const handled = ['career_batting', 'career_bowling', 'recent_form', 'player_profile'];
+    if (!this.selectedPlayer || !this.selectedPlayer.stats) { return []; }
+    const result: any[] = [];
+    for (let i = 0; i < this.selectedPlayer.stats.length; i++) {
+      const s = this.selectedPlayer.stats[i];
+      if (handled.indexOf(s.category) !== -1 || !s.payload) { continue; }
+      if (!this.isArrayPayload(s.payload) && this.getObjectEntries(s.payload).length === 0) { continue; }
+      result.push(s);
+    }
+    return result;
+  }
+
+  getTableHeaders(payload: any): string[] {
+    if (!payload) { return []; }
+    if (payload.headers && Array.isArray(payload.headers)) { return payload.headers; }
+    if (Array.isArray(payload) && payload.length > 0) { return Object.keys(payload[0]); }
+    if (payload.rows && Array.isArray(payload.rows) && payload.rows.length > 0) {
+      return Object.keys(payload.rows[0]);
+    }
+    return [];
+  }
+
+  isArrayPayload(payload: any): boolean {
+    if (!payload) { return false; }
+    if (payload.rows && Array.isArray(payload.rows)) { return true; }
+    return Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'object';
+  }
+
+  private readonly HIDDEN_KEYS = [
+    'pageHeading', 'pageTitle', 'sectionCount', 'section',
+    'externalId', 'crexId', 'crex_id', 'source', 'provider', 'url'
+  ];
+
+  getObjectEntries(payload: any): Array<{key: string, value: any}> {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) { return []; }
+    const keys = Object.keys(payload);
+    const result: Array<{key: string, value: any}> = [];
+    for (let i = 0; i < keys.length; i++) {
+      if (this.HIDDEN_KEYS.indexOf(keys[i]) !== -1) { continue; }
+      const val = payload[keys[i]];
+      if (val === null || val === undefined || val === '') { continue; }
+      result.push({ key: keys[i], value: val });
+    }
+    return result;
+  }
+
+  formatStatLabel(category: string): string {
+    if (!category) { return ''; }
+    const words = category.split('_');
+    const titled: string[] = [];
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+      if (w.length > 0) { titled.push(w.charAt(0).toUpperCase() + w.slice(1)); }
+    }
+    return titled.join(' ');
+  }
+
   getStatPayload(stats: any[], category: string): any[] {
     if (!stats) { return []; }
     const snap = stats.find(s => s.category === category);

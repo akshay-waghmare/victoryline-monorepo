@@ -82,6 +82,53 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
     this.detailOpen = false;
   }
 
+  getTeamInitials(team: any): string {
+    if (!team) { return '?'; }
+    if (team.teamCode) { return team.teamCode.substring(0, 3); }
+    if (team.name) { return team.name.substring(0, 3).toUpperCase(); }
+    return '?';
+  }
+
+  getTeamBadgeColor(code: string | undefined | null): string {
+    const colors = ['#4361ee', '#3a0ca3', '#7209b7', '#f72585', '#4cc9f0', '#2e9e4f', '#f4a213', '#e53935', '#00897b', '#78909c'];
+    if (!code) { return colors[0]; }
+    let hash = 0;
+    for (let i = 0; i < code.length; i++) { hash = (hash + code.charCodeAt(i)) % colors.length; }
+    return colors[hash];
+  }
+
+  getTeamRanking(): any {
+    if (!this.selectedTeam || !this.selectedTeam.stats) { return null; }
+    const s = this.selectedTeam.stats.find(x => x.category === 'team_ranking_men_s_teams_ranking');
+    return (s && s.payload && !Array.isArray(s.payload)) ? s.payload : null;
+  }
+
+  private getAboutStat(): any {
+    if (!this.selectedTeam || !this.selectedTeam.stats) { return null; }
+    const s = this.selectedTeam.stats.find(x => x.category === 'team_section_about');
+    return s ? s.payload : null;
+  }
+
+  getAboutFoundingYear(): string {
+    const about = this.getAboutStat();
+    if (!about || !about.headers || about.headers.length < 2) { return ''; }
+    return about.headers[1] || '';
+  }
+
+  getAboutBoard(): string {
+    const about = this.getAboutStat();
+    if (!about || !about.rows || !about.rows.length || !about.headers || !about.headers.length) { return ''; }
+    const key = about.headers[1];
+    return (key && about.rows[0] && about.rows[0][key]) ? about.rows[0][key] : '';
+  }
+
+  getAboutBio(): string {
+    const about = this.getAboutStat();
+    if (!about || !about.rows || about.rows.length < 2 || !about.headers || !about.headers.length) { return ''; }
+    const key = about.headers[1];
+    return (key && about.rows[1] && about.rows[1][key]) ? about.rows[1][key] : '';
+  }
+
   isArrayPayload(payload: any): boolean {
     if (!payload) { return false; }
     if (payload.rows && Array.isArray(payload.rows)) { return true; }
@@ -94,6 +141,60 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
     if (Array.isArray(payload)) { return payload; }
     return [];
   }
+
+  getTableHeaders(payload: any): string[] {
+    if (!payload) { return []; }
+    if (payload.headers && Array.isArray(payload.headers)) { return payload.headers; }
+    if (Array.isArray(payload) && payload.length > 0) { return Object.keys(payload[0]); }
+    if (payload.rows && Array.isArray(payload.rows) && payload.rows.length > 0) {
+      return Object.keys(payload.rows[0]);
+    }
+    return [];
+  }
+
+  private readonly HIDDEN_KEYS = [
+    'pageHeading', 'pageTitle', 'sectionCount', 'section',
+    'externalId', 'crexId', 'crex_id', 'source', 'provider', 'url'
+  ];
+
+  getObjectEntries(payload: any): Array<{key: string, value: any}> {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) { return []; }
+    const keys = Object.keys(payload);
+    const result: Array<{key: string, value: any}> = [];
+    for (let i = 0; i < keys.length; i++) {
+      if (this.HIDDEN_KEYS.indexOf(keys[i]) !== -1) { continue; }
+      const val = payload[keys[i]];
+      if (val === null || val === undefined || val === '') { continue; }
+      result.push({ key: keys[i], value: val });
+    }
+    return result;
+  }
+
+  getOtherStats(): any[] {
+    const handled = ['team_ranking_men_s_teams_ranking', 'team_section_about'];
+    if (!this.selectedTeam || !this.selectedTeam.stats) { return []; }
+    const result: any[] = [];
+    for (let i = 0; i < this.selectedTeam.stats.length; i++) {
+      const stat = this.selectedTeam.stats[i];
+      if (handled.indexOf(stat.category) !== -1 || !stat.payload) { continue; }
+      if (!this.isArrayPayload(stat.payload) && this.getObjectEntries(stat.payload).length === 0) { continue; }
+      result.push(stat);
+    }
+    return result;
+  }
+
+  formatStatLabel(category: string): string {
+    const words = category.split('_');
+    const titled: string[] = [];
+    for (let i = 0; i < words.length; i++) {
+      const w = words[i];
+      if (w.length > 0) { titled.push(w.charAt(0).toUpperCase() + w.slice(1)); }
+    }
+    return titled.join(' ');
+  }
+
+  bioExpanded = false;
+  toggleBio(): void { this.bioExpanded = !this.bioExpanded; }
 
   getStatPayload(stats: any[], category: string): any[] {
     if (!stats) { return []; }

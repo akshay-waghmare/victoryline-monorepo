@@ -23,13 +23,18 @@
   </div>
 
   <div *ngIf="!isLoading && seriesList.length > 0" class="stats-page__grid">
-    <div *ngFor="let series of seriesList; trackBy: trackByExternalId" class="stats-card" (click)="selectSeries(series)">
-      <div class="stats-card__avatar">
+    <div *ngFor="let series of seriesList; trackBy: trackByExternalId" class="stats-card series-card" (click)="selectSeries(series)">
+      <div class="series-icon-wrap">
         <mat-icon>emoji_events</mat-icon>
       </div>
       <div class="stats-card__info">
         <span class="stats-card__name">{{ series.name }}</span>
-        <span *ngIf="series.seasonName" class="stats-card__meta">{{ series.seasonName }}</span>
+        <div class="series-card-meta">
+          <span class="series-type-badge" [ngClass]="getSeriesTypeBadgeClass(series.name)">
+            {{ getSeriesTypeLabel(series.name) }}
+          </span>
+          <span *ngIf="series.seasonName" class="stats-card__meta">{{ series.seasonName }}</span>
+        </div>
       </div>
       <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
     </div>
@@ -47,37 +52,113 @@
       </div>
 
       <ng-container *ngIf="!isDetailLoading">
+        <!-- Header -->
         <div class="stats-detail-panel__header">
-          <mat-icon class="stats-detail-panel__avatar">emoji_events</mat-icon>
-          <div>
-            <h2 class="stats-detail-panel__name">{{ selectedSeries?.series?.name || selectedSeriesSummary?.name || 'Series Details' }}</h2>
-            <span *ngIf="selectedSeries?.series?.seasonName || selectedSeriesSummary?.seasonName" class="stats-card__meta">
-              {{ selectedSeries?.series?.seasonName || selectedSeriesSummary?.seasonName }}
-            </span>
+          <div class="series-detail-icon">
+            <mat-icon>emoji_events</mat-icon>
+          </div>
+          <div class="series-detail-header-info">
+            <h2 class="stats-detail-panel__name">
+              {{ selectedSeries?.series?.name || selectedSeriesSummary?.name || 'Series Details' }}
+            </h2>
+            <div class="series-detail-meta-row">
+              <span class="series-type-badge"
+                    [ngClass]="getSeriesTypeBadgeClass(selectedSeries?.series?.name || selectedSeriesSummary?.name)">
+                {{ getSeriesTypeLabel(selectedSeries?.series?.name || selectedSeriesSummary?.name) }}
+              </span>
+              <span *ngIf="selectedSeries?.series?.seasonName || selectedSeriesSummary?.seasonName" class="stats-card__meta">
+                {{ selectedSeries?.series?.seasonName || selectedSeriesSummary?.seasonName }}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div *ngFor="let stat of getAllStats()" class="stats-detail-panel__section">
-          <h3>{{ stat.label || stat.category }}</h3>
-          <div *ngIf="stat.payload" class="stats-table-wrapper">
-            <table *ngIf="isArrayPayload(stat.payload)" class="stats-table">
+        <!-- Series summary -->
+        <div *ngIf="getSeriesSummary()" class="stats-detail-panel__section">
+          <h3>About</h3>
+          <p class="series-summary" [class.series-summary--collapsed]="!summaryExpanded">{{ getSeriesSummary() }}</p>
+          <button *ngIf="getSeriesSummary().length > 220" class="series-summary-toggle" (click)="toggleSummary()">
+            {{ summaryExpanded ? 'Show less ▲' : 'Read more ▼' }}
+          </button>
+        </div>
+
+        <!-- Points Table -->
+        <div *ngIf="getSeriesStandingsRows().length > 0" class="stats-detail-panel__section">
+          <h3>Points Table</h3>
+          <div class="points-table-wrapper">
+            <table class="points-table">
               <thead>
-                <tr><th *ngFor="let key of (getPayloadRows(stat.payload)[0] | keyvalue)">{{ key.key }}</th></tr>
+                <tr>
+                  <th class="pt-col-rank">#</th>
+                  <th class="pt-col-team">Team</th>
+                  <th class="pt-col-num" title="Played">P</th>
+                  <th class="pt-col-num" title="Won">W</th>
+                  <th class="pt-col-num" title="Lost">L</th>
+                  <th class="pt-col-num" title="No Result">NR</th>
+                  <th class="pt-col-nrr" title="Net Run Rate">NRR</th>
+                  <th class="pt-col-pts" title="Points">Pts</th>
+                </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of getPayloadRows(stat.payload)">
-                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                <tr *ngFor="let row of getSeriesStandingsRows(); let i = index"
+                    [ngClass]="getStandingRowClass(i)">
+                  <td class="pt-col-rank">{{ i + 1 }}</td>
+                  <td class="pt-col-team">
+                    <div class="pt-team-cell">
+                      <span class="pt-team-badge">{{ (row.teamCode || row.Team || '?').substring(0,3) }}</span>
+                      <span class="pt-team-name">{{ row.teamName || row.Team }}</span>
+                    </div>
+                  </td>
+                  <td class="pt-col-num">{{ row.P }}</td>
+                  <td class="pt-col-num pt-wins">{{ row.W }}</td>
+                  <td class="pt-col-num pt-losses">{{ row.L }}</td>
+                  <td class="pt-col-num">{{ row.Nr }}</td>
+                  <td class="pt-col-nrr" [ngClass]="getNrrClass(row.Nrr)">{{ row.Nrr }}</td>
+                  <td class="pt-col-pts">{{ row.Pts }}</td>
                 </tr>
               </tbody>
             </table>
-            <pre *ngIf="!isArrayPayload(stat.payload)" class="stats-detail-panel__json">{{ stat.payload | json }}</pre>
+          </div>
+          <div class="points-table-legend">
+            <span class="legend-dot legend-dot--top"></span> Qualification zone
           </div>
         </div>
 
-        <div *ngIf="getAllStats().length === 0" class="stats-detail-panel__empty">
+        <!-- All other stat sections -->
+        <ng-container *ngFor="let stat of getSeriesOtherStats()">
+          <div class="stats-detail-panel__section">
+            <h3>{{ stat.label || formatStatLabel(stat.category) }}</h3>
+
+            <!-- Array / rows → table -->
+            <div *ngIf="isArrayPayload(stat.payload)" class="stats-table-wrapper">
+              <table class="stats-table">
+                <thead>
+                  <tr><th *ngFor="let h of getTableHeaders(stat.payload)">{{ h }}</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of getPayloadRows(stat.payload)">
+                    <td *ngFor="let h of getTableHeaders(stat.payload)">{{ row[h] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Object → key-value list -->
+            <div *ngIf="!isArrayPayload(stat.payload)" class="stat-kv-list">
+              <div *ngFor="let entry of getObjectEntries(stat.payload)" class="stat-kv-row">
+                <span class="stat-kv-key">{{ entry.key }}</span>
+                <span class="stat-kv-value">{{ entry.value }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Empty state -->
+        <div *ngIf="getSeriesStandingsRows().length === 0 && getSeriesOtherStats().length === 0 && !getSeriesSummary()"
+             class="stats-detail-panel__empty">
           <mat-icon>info_outline</mat-icon>
-          <p>Series stats not yet available</p>
-          <span>Stats and standings are populated when the crawler processes this series</span>
+          <p>Series data not yet available</p>
+          <span>Points table and stats are populated when the crawler processes this series</span>
         </div>
       </ng-container>
     </div>

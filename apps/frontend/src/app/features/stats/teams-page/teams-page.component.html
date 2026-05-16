@@ -24,13 +24,12 @@
 
   <div *ngIf="!isLoading && teams.length > 0" class="stats-page__grid">
     <div *ngFor="let team of teams; trackBy: trackByExternalId" class="stats-card" (click)="selectTeam(team)">
-      <div class="stats-card__avatar">
-        <mat-icon>groups</mat-icon>
+      <div class="team-badge" [style.background]="getTeamBadgeColor(team.teamCode)">
+        {{ getTeamInitials(team) }}
       </div>
       <div class="stats-card__info">
         <span class="stats-card__name">{{ team.name }}</span>
-        <span *ngIf="team.shortName" class="stats-card__meta">{{ team.shortName }}</span>
-        <span *ngIf="team.teamCode" class="stats-card__meta">{{ team.teamCode }}</span>
+        <span *ngIf="team.teamCode" class="team-code-pill">{{ team.teamCode }}</span>
       </div>
       <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
     </div>
@@ -48,34 +47,89 @@
       </div>
 
       <ng-container *ngIf="!isDetailLoading">
+        <!-- Header with colored badge -->
         <div class="stats-detail-panel__header">
-          <mat-icon class="stats-detail-panel__avatar">groups</mat-icon>
-          <div>
-            <h2 class="stats-detail-panel__name">{{ selectedTeam ? selectedTeam.name : selectedTeamSummary?.name }}</h2>
-            <span *ngIf="(selectedTeam ? selectedTeam.shortName : selectedTeamSummary?.shortName) as shortName" class="stats-card__meta">{{ shortName }}</span>
+          <div class="team-badge team-badge--lg"
+               [style.background]="getTeamBadgeColor(selectedTeam?.teamCode || selectedTeamSummary?.teamCode)">
+            {{ getTeamInitials(selectedTeam || selectedTeamSummary) }}
           </div>
-        </div>
-
-        <div *ngIf="selectedTeam">
-          <div *ngFor="let stat of selectedTeam.stats" class="stats-detail-panel__section">
-            <h3>{{ stat.label || stat.category }}</h3>
-            <div *ngIf="stat.payload" class="stats-table-wrapper">
-              <table *ngIf="isArrayPayload(stat.payload)" class="stats-table">
-                <thead>
-                  <tr><th *ngFor="let key of (getPayloadRows(stat.payload)[0] | keyvalue)">{{ key.key }}</th></tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let row of getPayloadRows(stat.payload)">
-                    <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
-                  </tr>
-                </tbody>
-              </table>
-              <pre *ngIf="!isArrayPayload(stat.payload)" class="stats-detail-panel__json">{{ stat.payload | json }}</pre>
+          <div class="team-detail-header-info">
+            <h2 class="stats-detail-panel__name">{{ selectedTeam?.name || selectedTeamSummary?.name }}</h2>
+            <div class="team-detail-meta-row">
+              <span *ngIf="selectedTeam?.teamCode || selectedTeamSummary?.teamCode" class="team-code-pill">
+                {{ selectedTeam?.teamCode || selectedTeamSummary?.teamCode }}
+              </span>
+              <span *ngIf="getAboutFoundingYear()" class="team-founding-badge">
+                <mat-icon class="team-founding-badge__icon">event</mat-icon>
+                {{ getAboutFoundingYear() }}
+              </span>
             </div>
           </div>
         </div>
 
-        <div *ngIf="!selectedTeam || !selectedTeam.stats || selectedTeam.stats.length === 0" class="stats-detail-panel__empty">
+        <!-- ICC Ranking card -->
+        <ng-container *ngIf="getTeamRanking() as ranking">
+          <div class="team-ranking-card">
+            <div class="team-ranking-card__rank">
+              <span class="team-ranking-card__number">#{{ ranking.Rank }}</span>
+              <span class="team-ranking-card__label">ICC Ranking</span>
+            </div>
+            <div class="team-ranking-card__divider"></div>
+            <div class="team-ranking-card__stat">
+              <span class="team-ranking-card__stat-value">{{ ranking.Rating }}</span>
+              <span class="team-ranking-card__stat-label">Rating</span>
+            </div>
+            <span class="team-ranking-card__section-label">{{ ranking.section }}</span>
+          </div>
+        </ng-container>
+
+        <!-- Governing board -->
+        <div *ngIf="getAboutBoard()" class="team-board-info">
+          <mat-icon class="team-board-info__icon">corporate_fare</mat-icon>
+          <span>{{ getAboutBoard() }}</span>
+        </div>
+
+        <!-- Bio -->
+        <div *ngIf="getAboutBio()" class="stats-detail-panel__section">
+          <h3>About</h3>
+          <p class="team-bio" [class.team-bio--collapsed]="!bioExpanded">{{ getAboutBio() }}</p>
+          <button *ngIf="getAboutBio().length > 220" class="team-bio-toggle" (click)="toggleBio()">
+            {{ bioExpanded ? 'Show less ▲' : 'Read more ▼' }}
+          </button>
+        </div>
+
+        <!-- All other stat categories (tables + key-value) -->
+        <ng-container *ngFor="let stat of getOtherStats()">
+          <div *ngIf="stat.payload" class="stats-detail-panel__section">
+            <h3>{{ stat.label || formatStatLabel(stat.category) }}</h3>
+
+            <!-- Array / rows payload → table -->
+            <div *ngIf="isArrayPayload(stat.payload)" class="stats-table-wrapper">
+              <table class="stats-table">
+                <thead>
+                  <tr><th *ngFor="let h of getTableHeaders(stat.payload)">{{ h }}</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of getPayloadRows(stat.payload)">
+                    <td *ngFor="let h of getTableHeaders(stat.payload)">{{ row[h] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Plain object payload → key-value list -->
+            <div *ngIf="!isArrayPayload(stat.payload)" class="stat-kv-list">
+              <div *ngFor="let entry of getObjectEntries(stat.payload)" class="stat-kv-row">
+                <span class="stat-kv-key">{{ entry.key }}</span>
+                <span class="stat-kv-value">{{ entry.value }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <!-- Empty state -->
+        <div *ngIf="!selectedTeam || !selectedTeam.stats || selectedTeam.stats.length === 0"
+             class="stats-detail-panel__empty">
           <mat-icon>info_outline</mat-icon>
           <p>Team stats not yet available</p>
           <span>Stats are populated when the crawler processes this team's CREX profile</span>

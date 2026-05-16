@@ -336,7 +336,7 @@ class ScraperSettings:
         )
         player_stats_batch_size = _coerce_int(env.get("PLAYER_STATS_BATCH_SIZE"), 8, minimum=1)
         player_stats_queue_size = _coerce_int(env.get("PLAYER_STATS_QUEUE_SIZE"), 200, minimum=1)
-        player_stats_worker_count = _coerce_int(env.get("PLAYER_STATS_WORKER_COUNT"), 1, minimum=1)
+        player_stats_worker_count = _coerce_int(env.get("PLAYER_STATS_WORKER_COUNT"), 3, minimum=1)
         player_stats_rate_limit_tokens_per_sec = _coerce_float(
             env.get("PLAYER_STATS_RATE_LIMIT_TOKENS_PER_SEC"),
             0.5,

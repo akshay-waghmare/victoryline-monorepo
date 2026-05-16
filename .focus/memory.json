@@ -64,9 +64,137 @@
         "Game Theory Copilot",
         "Growth Strategy Expert"
       ]
+    },
+    {
+      "id": "68d218d0",
+      "timestamp": "2026-04-20T11:43:21.085320",
+      "user_question": "what are the most effective jobs to pull customers to the app",
+      "bottleneck": {
+        "description": "Cricket fans searching for live scores cannot find your app because it has no visibility in the places they look.",
+        "identified_at": "2026-04-20T11:43:21.033544",
+        "last_validated_at": "2026-04-20T11:43:21.033544",
+        "category": "unclear",
+        "metric": null,
+        "status": "active",
+        "resolved_at": null
+      },
+      "recommendation": {
+        "bottleneck": "Cricket fans searching for live scores cannot find your app because it has no visibility in the places they look.",
+        "focus": "Launch and measure a targeted SEO landing page campaign for live cricket scores.",
+        "why": "Cricket fans already search Google for live scores during matches. If your app appears in those search results, you can attract highly motivated users at the exact moment they want your service. This approach is measurable, scalable, and directly addresses the discovery problem.",
+        "plan": {
+          "duration_weeks": 3,
+          "steps": [
+            {
+              "description": "Publish 3 SEO-optimized landing pages for high-traffic cricket match keywords; target: rank in Google\u2019s top 20 for at least 1 keyword.",
+              "metric": "publish_seo_optimized",
+              "target": 3.0,
+              "deadline": "2026-04-27"
+            },
+            {
+              "description": "Track organic search visits and click-throughs;+ unique visitors from search in 3 weeks.",
+              "metric": "track_organic_search",
+              "target": 100.0,
+              "deadline": "2026-04-27"
+            },
+            {
+              "description": "Add a clear \u201cGet Live Scores\u201d call-to-action on each page;%+ click-through to app.",
+              "metric": "add_a_clear",
+              "target": 10.0,
+              "deadline": "2026-04-27"
+            }
+          ],
+          "dependencies": []
+        },
+        "ignore_list": [
+          "Do not build social media campaigns (not direct intent, slower feedback).",
+          "Do not run paid ads (costly, not sustainable for discovery).",
+          "Do not add new app features (doesn\u2019t solve visibility).",
+          "Do not focus on partnerships or sponsorships (longer lead time).",
+          "Do not redesign the homepage (not the bottleneck)."
+        ],
+        "direction": "This will create a repeatable way for cricket fans to find and try your app when they need live scores most.",
+        "generated_at": "2026-04-20T11:43:21.033544",
+        "personas_used": [
+          "StoryBrand Advisor"
+        ],
+        "validation_status": "valid"
+      },
+      "outcome": null,
+      "personas_used": [
+        "StoryBrand Advisor"
+      ]
+    },
+    {
+      "id": "22e45bcf",
+      "timestamp": "2026-05-01T14:37:28.201469",
+      "user_question": "My priority is STRICTLY getting customers and generating income now. Crickzen is a live cricket score app with Angular frontend, Spring Boot backend, real-time scraper. It's deployed but has zero paying users. What is the single most important thing to do RIGHT NOW to get revenue or paying customers?",
+      "bottleneck": {
+        "description": "No cricket fans searching for live scores are finding or visiting your app, so you have zero potential paying users.",
+        "identified_at": "2026-05-01T14:37:28.189702",
+        "last_validated_at": "2026-05-01T14:37:28.189702",
+        "category": "unclear",
+        "metric": null,
+        "status": "active",
+        "resolved_at": null
+      },
+      "recommendation": {
+        "bottleneck": "No cricket fans searching for live scores are finding or visiting your app, so you have zero potential paying users.",
+        "focus": "Launch a targeted campaign to get your app listed and visible on Google for \u201clive cricket score\u201d searches within 2 weeks.",
+        "why": "If no one can find your app, nothing else matters\u2014no traffic means no revenue. Getting listed on Google is the fastest way to reach cricket fans who are already searching for live scores. Even a small amount of organic or paid search visibility can immediately drive real users, giving you a chance to convert them to paying customers.",
+        "plan": {
+          "duration_weeks": 2,
+          "steps": [
+            {
+              "description": "Submit your site to Google Search Console and ensure it\u2019s indexed; target: site appears for \u201clive cricket score\u201d within 7 days.",
+              "metric": "submit_your_site",
+              "target": 7.0,
+              "deadline": "2026-05-08"
+            },
+            {
+              "description": "Run a $100 Google Ads campaign targeting \u201clive cricket score\u201d in your region;+ clicks in 7 days.",
+              "metric": "run_a_google",
+              "target": 500.0,
+              "deadline": "2026-05-08"
+            },
+            {
+              "description": "Add a clear \u201cUpgrade for Premium\u201d call-to-action on the homepage;+ paid signups or upgrade attempts.",
+              "metric": "add_a_clear",
+              "target": 5.0,
+              "deadline": "2026-05-08"
+            }
+          ],
+          "dependencies": []
+        },
+        "ignore_list": [
+          "Do NOT build new features\u2014focus only on getting found.",
+          "Do NOT redesign the UI\u2014current design is good enough for first users.",
+          "Do NOT spend time on social media or content marketing\u2014search intent is the fastest path.",
+          "Do NOT optimize for performance or scalability\u2014handle that after you have users.",
+          "Do NOT pursue partnerships or sponsorships\u2014too slow for immediate results."
+        ],
+        "direction": "This puts your app in front of real cricket fans now, creating your first opportunities for revenue and learning what paying users want.",
+        "generated_at": "2026-05-01T14:37:28.188186",
+        "personas_used": [
+          "Growth Strategy Expert",
+          "StoryBrand Advisor"
+        ],
+        "validation_status": "valid"
+      },
+      "outcome": {
+        "reported_at": "2026-05-06T17:14:52.656481",
+        "summary": "Assigned intern Crickzen growth work with score-app-led distribution: community promotion, Telegram traffic capture, match/result tracking support, and only later basic UI polish after promotion and proof tasks.",
+        "metric_changes": {},
+        "bottleneck_resolved": false,
+        "notes": null
+      },
+      "personas_used": [
+        "Growth Strategy Expert",
+        "StoryBrand Advisor"
+      ]
     }
   ],
-  "total_count": 1,
+  "total_count": 3,
   "archived_files": [],
   "active_window_size": 50,
   "archive_threshold": 100

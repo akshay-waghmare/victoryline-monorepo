@@ -142,6 +142,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   seriesPageUrlFallback: string | null = null;
   private resolvedSeriesContext: PlayerStatsSeriesView | null = null;
   private lastResolvedRouteSlug: string | null = null;
+  private routeMatchHint: any = null;
   statsExplorerSource: 'lineups' | 'scorecard' | null = null;
   selectedStatsExplorerType: 'player' | 'team' | 'series' | null = null;
   selectedStatsExplorerPlayer: PlayerStatsSquadPlayerView | null = null;
@@ -218,6 +219,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       || '';
     const legacyMatchUrl = this.activatedRoute.snapshot.queryParamMap.get('url');
     this.currentUrl = routeMatchKey;
+    this.routeMatchHint = this.getNavigationMatchHint(routeMatchKey);
+    if (this.routeMatchHint) {
+      this.applyRouteMatchHint(this.routeMatchHint);
+    }
     
     // 002-match-details-ux: Extract matchId from URL or route params
     this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId') 
@@ -291,6 +296,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.seriesPageUrlFallback = null;
       this.lastLiveBallEventToken = null;
       this.lastResolvedRouteSlug = match;
+    }
+
+    if (this.routeMatchHint && this.routeSlugMatches(match, this.routeMatchHint)) {
+      this.applyRouteMatchHint(this.routeMatchHint);
     }
 
     this.resolveRouteMatch(match);
@@ -1031,16 +1040,46 @@ private resolveRouteMatch(matchSlug: string): void {
   );
 }
 
-private extractMatchCollection(payload: any): any[] {
-  if (Array.isArray(payload)) {
-    return payload;
-  }
+  private extractMatchCollection(payload: any): any[] {
+    if (Array.isArray(payload)) {
+      return payload;
+    }
 
   if (payload && Array.isArray(payload.data)) {
     return payload.data;
   }
 
   return [];
+}
+
+private getNavigationMatchHint(routeMatchKey: string): any {
+  var state = window && window.history ? window.history.state : null;
+  var match = state && state.match ? state.match : null;
+  if (!match || !this.routeSlugMatches(routeMatchKey, match)) {
+    return null;
+  }
+  return match;
+}
+
+private applyRouteMatchHint(match: any): void {
+  if (!match) {
+    return;
+  }
+
+  this.currentMatch = match;
+  this.showLiveHero = this.isLiveLikeStatus(match.status);
+  this.heroFallbackView = this.buildHeroFallbackView(match);
+  this.updateSeriesFallbackContext(match);
+
+  if (!this.matchUrl && match.matchUrl) {
+    this.matchUrl = match.matchUrl;
+  } else if (!this.matchUrl && match.url) {
+    this.matchUrl = match.url;
+  }
+
+  if (!this.matchInfo || this.isFallbackMatchInfo) {
+    this.populateFallbackMatchInfo(match);
+  }
 }
 
 private routeSlugMatches(matchSlug: string, match: any): boolean {
@@ -1053,12 +1092,17 @@ private routeSlugMatches(matchSlug: string, match: any): boolean {
     return true;
   }
 
-  var urlSlug = match.url ? extractSlugFromUrl(match.url) : null;
+  var sourceUrl = match.url || match.matchUrl;
+  var urlSlug = sourceUrl ? extractSlugFromUrl(sourceUrl) : null;
   if (urlSlug && urlSlug === matchSlug) {
     return true;
   }
 
-  return !!(match.url && match.url.indexOf(matchSlug) !== -1);
+  if (match.id && match.id === matchSlug) {
+    return true;
+  }
+
+  return !!(sourceUrl && sourceUrl.indexOf(matchSlug) !== -1);
 }
 
 private isLiveLikeStatus(status: string | null | undefined): boolean {
@@ -1316,12 +1360,12 @@ openPlayerStatsFromLineups(selection: PlayerStatsSelectionEvent): void {
 
 openPlayerStatsFromScorecard(playerName: string): void {
   var resolved = this.findPlayerByName(playerName);
-  if (!resolved || !resolved.player || !resolved.player.externalId) {
-    this.showToast('Detailed player stats are not available for ' + playerName + '.', 'Dismiss');
+  if (resolved && resolved.player && resolved.player.externalId) {
+    this.loadPlayerStatsDetail(resolved.player, resolved.team, 'scorecard');
     return;
   }
 
-  this.loadPlayerStatsDetail(resolved.player, resolved.team, 'scorecard');
+  this.loadPlayerStatsDetailFromGlobalSearch(playerName);
 }
 
 openTeamStatsFromSelection(selection: TeamStatsSelectionEvent, source: 'lineups' | 'scorecard' = 'lineups'): void {
@@ -1568,6 +1612,19 @@ unwrapPayloadRows(payload: any): any[] {
   return [];
 }
 
+getHeaderRowsColumns(payload: any): string[] {
+  if (!this.isHeaderRowsPayload(payload)) {
+    return [];
+  }
+
+  var headers = Array.isArray(payload.headers) ? payload.headers.filter(Boolean) : [];
+  if (headers.length) {
+    return headers;
+  }
+
+  return this.getSnapshotTableColumns(payload.rows);
+}
+
 unwrapProfileEntries(payload: any): Array<{ key: string; value: string }> {
   var source = (payload && payload.profile && typeof payload.profile === 'object')
     ? payload.profile
@@ -1752,10 +1809,34 @@ formatSnapshotValue(value: any): string {
   }
 
   if (typeof value === 'object') {
-    return JSON.stringify(value);
+    return this.formatSnapshotObjectValue(value);
   }
 
   return String(value);
+}
+
+private formatSnapshotObjectValue(value: any): string {
+  if (!value || Array.isArray(value) || typeof value !== 'object') {
+    return String(value || '—');
+  }
+
+  var entries = Object.keys(value)
+    .filter(function(key: string) {
+      var item = value[key];
+      return item !== null && item !== undefined && item !== '';
+    })
+    .slice(0, 6)
+    .map((key: string) => {
+      var item = value[key];
+      if (Array.isArray(item)) {
+        item = item.map((child: any) => this.formatSnapshotValue(child)).join(', ');
+      } else if (item && typeof item === 'object') {
+        item = this.formatSnapshotObjectValue(item);
+      }
+      return this.formatSnapshotLabel(key) + ': ' + String(item);
+    });
+
+  return entries.length ? entries.join(' • ') : '—';
 }
 
 private loadPlayerStatsDetail(
@@ -1795,6 +1876,73 @@ private loadPlayerStatsDetail(
         this.statsExplorerErrorMessage = 'Detailed player stats could not be loaded right now.';
       }
     );
+}
+
+private loadPlayerStatsDetailFromGlobalSearch(playerName: string): void {
+  var normalizedName = this.normalizeComparableText(playerName);
+  if (!normalizedName) {
+    this.showToast('Detailed player stats are not available for this player.', 'Dismiss');
+    return;
+  }
+
+  this.statsExplorerSource = 'scorecard';
+  this.selectedStatsExplorerType = 'player';
+  this.selectedStatsExplorerPlayer = {
+    name: playerName
+  };
+  this.selectedStatsExplorerTeam = null;
+  this.selectedPlayerStatsDetail = null;
+  this.selectedTeamStatsDetail = null;
+  this.selectedSeriesStatsDetail = null;
+  this.isLoadingStatsExplorer = true;
+  this.statsExplorerErrorMessage = null;
+
+  this.cricketService.listPlayers('crex', playerName)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(
+      (players: PlayerStatsSquadPlayerView[]) => {
+        var player = this.findBestGlobalPlayerMatch(players, playerName);
+        if (!player || !player.externalId) {
+          this.isLoadingStatsExplorer = false;
+          this.statsExplorerErrorMessage = 'Detailed player stats are not available for ' + playerName + '.';
+          return;
+        }
+
+        this.loadPlayerStatsDetail(player, null, 'scorecard');
+      },
+      error => {
+        console.error('Error searching player details:', error);
+        this.isLoadingStatsExplorer = false;
+        this.statsExplorerErrorMessage = 'Detailed player stats could not be loaded right now.';
+      }
+    );
+}
+
+private findBestGlobalPlayerMatch(players: PlayerStatsSquadPlayerView[], playerName: string): PlayerStatsSquadPlayerView | null {
+  if (!players || !players.length) {
+    return null;
+  }
+
+  var normalizedTarget = this.normalizeComparableText(playerName);
+  var exact = players.find((player: PlayerStatsSquadPlayerView) => {
+    return [
+      this.normalizeComparableText(player && player.name),
+      this.normalizeComparableText(player && player.shortName)
+    ].indexOf(normalizedTarget) !== -1;
+  });
+
+  if (exact) {
+    return exact;
+  }
+
+  var contained = players.find((player: PlayerStatsSquadPlayerView) => {
+    var fullName = this.normalizeComparableText(player && player.name);
+    var shortName = this.normalizeComparableText(player && player.shortName);
+    return (fullName && (fullName.indexOf(normalizedTarget) !== -1 || normalizedTarget.indexOf(fullName) !== -1))
+      || (shortName && (shortName.indexOf(normalizedTarget) !== -1 || normalizedTarget.indexOf(shortName) !== -1));
+  });
+
+  return contained || players[0];
 }
 
 private loadTeamStatsDetail(team: PlayerStatsTeamView, source: 'lineups' | 'scorecard'): void {
@@ -2087,18 +2235,21 @@ private populateFallbackMatchInfo(match: any = this.currentMatch): void {
 }
 
 private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
-  if (!match || this.isLiveLikeStatus(match.status)) {
+  if (!match) {
     return null;
   }
 
-  var score = this.extractFallbackScore(match);
-  var timestampMs = match.lastStateUpdatedAt || match.scheduledStartTime || Date.now();
+  var score = this.isLiveLikeStatus(match.status)
+    ? this.extractLiveFallbackScore(match)
+    : this.extractFallbackScore(match);
+  var timestampMs = match.lastStateUpdatedAt || match.lastUpdated || match.scheduledStartTime || Date.now();
   var oversValue = this.parseOversValue(score.overs);
   var runRate = oversValue > 0 ? score.runs / oversValue : 0;
+  var status = this.isLiveLikeStatus(match.status) ? match.status : 'COMPLETED';
 
   // Build a clean formatted result summary with both teams' scores
   var formattedResult = match.resultSummary || match.lastKnownState || null;
-  if (score.allScores.length >= 2) {
+  if (!this.isLiveLikeStatus(match.status) && score.allScores.length >= 2) {
     var parts: string[] = score.allScores.map(function(s) {
       return s.teamName + ' ' + s.runs + '/' + s.wickets + ' (' + s.overs + ')';
     });
@@ -2114,7 +2265,7 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
 
   return {
     matchId: match.externalMatchKey || this.matchId || 'match',
-    status: 'COMPLETED',
+    status: status,
     timestamp: new Date(timestampMs).toISOString(),
     score: {
       teamCode: score.teamCode,
@@ -2123,7 +2274,7 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
       wickets: score.wickets,
       overs: score.overs,
       runRateLabel: 'CRR ' + runRate.toFixed(2),
-      status: 'COMPLETED',
+      status: status,
       resultSummary: formattedResult,
       currentBall: null
     },
@@ -2147,7 +2298,7 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
     ],
     currentStriker: null,
     lastValidStriker: null,
-    completedScores: score.allScores.length >= 2 ? {
+    completedScores: !this.isLiveLikeStatus(match.status) && score.allScores.length >= 2 ? {
       team1: score.allScores[0],
       team2: score.allScores[1],
       resultText: (function() {
@@ -2155,6 +2306,41 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
         return wm ? wm[0].trim() : 'Match Completed';
       })()
     } : null
+  };
+}
+
+private extractLiveFallbackScore(match: any): { teamCode: string; teamName: string; runs: number; wickets: number; overs: string; allScores: Array<{ teamName: string; runs: number; wickets: number; overs: string }> } {
+  var candidates = [match && match.team1, match && match.team2].filter(function(team: any) {
+    return !!(team && team.score);
+  });
+  var selectedTeam = candidates.length > 1 ? candidates[candidates.length - 1] : candidates[0];
+
+  if (!selectedTeam) {
+    return this.extractFallbackScore(match);
+  }
+
+  var score = selectedTeam.score || {};
+  var overs = score.overs !== null && score.overs !== undefined ? String(score.overs) : '0.0';
+  var runs = score.runs !== null && score.runs !== undefined ? Number(score.runs) : 0;
+  var wickets = score.wickets !== null && score.wickets !== undefined ? Number(score.wickets) : 0;
+  var teamName = selectedTeam.shortName || selectedTeam.name || 'Batting Team';
+  var allScores = candidates.map(function(team: any) {
+    var teamScore = team.score || {};
+    return {
+      teamName: team.shortName || team.name || 'Team',
+      runs: teamScore.runs !== null && teamScore.runs !== undefined ? Number(teamScore.runs) : 0,
+      wickets: teamScore.wickets !== null && teamScore.wickets !== undefined ? Number(teamScore.wickets) : 0,
+      overs: teamScore.overs !== null && teamScore.overs !== undefined ? String(teamScore.overs) : '0.0'
+    };
+  });
+
+  return {
+    teamCode: selectedTeam.shortName || (teamName.length <= 4 ? teamName.toUpperCase() : teamName.slice(0, 3).toUpperCase()),
+    teamName: teamName,
+    runs: isNaN(runs) ? 0 : runs,
+    wickets: isNaN(wickets) ? 0 : wickets,
+    overs: overs,
+    allScores: allScores
   };
 }
 

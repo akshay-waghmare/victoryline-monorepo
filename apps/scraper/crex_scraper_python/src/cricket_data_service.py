@@ -592,6 +592,43 @@ class CricketDataService:
         return CricketDataService._get_player_stats_reference_view("series/standings", external_id, token)
 
     @staticmethod
+    def get_player_stats_match(source_url: str, external_match_key: Optional[str], token: Optional[str]) -> Optional[Dict[str, Any]]:
+        service_url = CricketDataService.BASE_URL.rstrip('/') + '/crawler/player-stats/match'
+
+        def _fetch():
+            headers = CricketDataService._build_headers(token)
+            params: Dict[str, str] = {}
+            if external_match_key:
+                params["externalMatchKey"] = external_match_key
+            elif source_url:
+                params["url"] = source_url
+            response = requests.get(
+                service_url,
+                params=params,
+                headers=headers,
+                timeout=min(CricketDataService.BACKEND_TIMEOUT, 20),
+            )
+            if response.status_code == 404:
+                return None
+            response.raise_for_status()
+            return response.json()
+
+        try:
+            return _player_stats_breaker.call(_fetch)
+        except CircuitBreakerOpenError:
+            logger.warning(
+                "player_stats.match.read.circuit_open",
+                metadata={"breaker": "backend_player_stats", "url": source_url, "externalMatchKey": external_match_key},
+            )
+            return None
+        except Exception as e:
+            logger.debug(
+                "player_stats.match.read.error",
+                metadata={"error": str(e), "url": source_url, "externalMatchKey": external_match_key},
+            )
+            return None
+
+    @staticmethod
     def get_last_updated_data(source_url: str, token: Optional[str]) -> Optional[Dict[str, Any]]:
         """Fetch the latest live match snapshot for a specific match URL."""
         if not source_url:

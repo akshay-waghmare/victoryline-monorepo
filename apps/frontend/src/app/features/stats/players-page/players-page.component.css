@@ -50,6 +50,17 @@
 .stats-table td { padding: 6px 10px; border-bottom: 1px solid var(--vl-border, #e0e0e0); white-space: nowrap; color: var(--vl-text, #1a1a2e); }
 .stats-table tr:hover td { background: var(--vl-accent-bg, #eef1ff); }
 
+/* Player initials badge */
+.player-initials-badge { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; }
+.player-initials-badge--lg { width: 52px; height: 52px; font-size: 1.1rem; }
+
+/* Key-value list for object payloads */
+.stat-kv-list { display: flex; flex-direction: column; gap: 0; }
+.stat-kv-row { display: flex; gap: 12px; font-size: 0.85rem; padding: 7px 0; border-bottom: 1px solid var(--vl-border, #e0e0e0); }
+.stat-kv-row:last-child { border-bottom: none; }
+.stat-kv-key { font-weight: 600; color: var(--vl-text-secondary, #6c757d); min-width: 110px; flex-shrink: 0; }
+.stat-kv-value { color: var(--vl-text, #1a1a2e); word-break: break-word; }
+
 @media (max-width: 600px) {
   .stats-page { padding: 12px; }
   .stats-page__header { flex-direction: column; align-items: stretch; }

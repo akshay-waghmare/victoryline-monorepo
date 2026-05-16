@@ -36,8 +36,9 @@
       class="stats-card"
       (click)="selectPlayer(player)"
     >
-      <div class="stats-card__avatar">
-        <mat-icon>person</mat-icon>
+      <div class="stats-card__avatar player-initials-badge"
+           [style.background]="getPlayerBadgeColor(player.role)">
+        {{ getPlayerInitials(player) }}
       </div>
       <div class="stats-card__info">
         <span class="stats-card__name">{{ player.name }}</span>
@@ -63,7 +64,10 @@
 
       <ng-container *ngIf="!isDetailLoading">
         <div class="stats-detail-panel__header">
-          <mat-icon class="stats-detail-panel__avatar">person</mat-icon>
+          <div class="player-initials-badge player-initials-badge--lg"
+               [style.background]="getPlayerBadgeColor((selectedPlayer ? selectedPlayer.role : selectedPlayerSummary?.role) || '')">
+            {{ getPlayerInitials(selectedPlayer || selectedPlayerSummary) }}
+          </div>
           <div>
             <h2 class="stats-detail-panel__name">{{ selectedPlayer ? selectedPlayer.name : selectedPlayerSummary?.name }}</h2>
             <span *ngIf="(selectedPlayer ? selectedPlayer.role : selectedPlayerSummary?.role) as role" class="stats-card__role" [ngClass]="getRoleBadgeClass(role)">
@@ -93,15 +97,11 @@
           <div class="stats-table-wrapper">
             <table class="stats-table">
               <thead>
-                <tr>
-                  <th *ngFor="let key of (getStatPayload(selectedPlayer.stats, 'career_batting')[0] | keyvalue)">
-                    {{ key.key }}
-                  </th>
-                </tr>
+                <tr><th *ngFor="let h of getTableHeaders(getStatPayload(selectedPlayer.stats, 'career_batting'))">{{ h }}</th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let row of getStatPayload(selectedPlayer.stats, 'career_batting')">
-                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                  <td *ngFor="let h of getTableHeaders(getStatPayload(selectedPlayer.stats, 'career_batting'))">{{ row[h] }}</td>
                 </tr>
               </tbody>
             </table>
@@ -114,15 +114,11 @@
           <div class="stats-table-wrapper">
             <table class="stats-table">
               <thead>
-                <tr>
-                  <th *ngFor="let key of (getStatPayload(selectedPlayer.stats, 'career_bowling')[0] | keyvalue)">
-                    {{ key.key }}
-                  </th>
-                </tr>
+                <tr><th *ngFor="let h of getTableHeaders(getStatPayload(selectedPlayer.stats, 'career_bowling'))">{{ h }}</th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let row of getStatPayload(selectedPlayer.stats, 'career_bowling')">
-                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                  <td *ngFor="let h of getTableHeaders(getStatPayload(selectedPlayer.stats, 'career_bowling'))">{{ row[h] }}</td>
                 </tr>
               </tbody>
             </table>
@@ -135,20 +131,41 @@
           <div class="stats-table-wrapper">
             <table class="stats-table">
               <thead>
-                <tr>
-                  <th *ngFor="let key of (getStatPayload(selectedPlayer.stats, 'recent_form')[0] | keyvalue)">
-                    {{ key.key }}
-                  </th>
-                </tr>
+                <tr><th *ngFor="let h of getTableHeaders(getStatPayload(selectedPlayer.stats, 'recent_form'))">{{ h }}</th></tr>
               </thead>
               <tbody>
                 <tr *ngFor="let row of getStatPayload(selectedPlayer.stats, 'recent_form')">
-                  <td *ngFor="let cell of (row | keyvalue)">{{ cell.value }}</td>
+                  <td *ngFor="let h of getTableHeaders(getStatPayload(selectedPlayer.stats, 'recent_form'))">{{ row[h] }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
+
+        <!-- All other stat sections -->
+        <ng-container *ngFor="let stat of getOtherPlayerStats()">
+          <div class="stats-detail-panel__section">
+            <h3>{{ formatStatLabel(stat.category) }}</h3>
+            <div *ngIf="isArrayPayload(stat.payload)" class="stats-table-wrapper">
+              <table class="stats-table">
+                <thead>
+                  <tr><th *ngFor="let h of getTableHeaders(stat.payload)">{{ h }}</th></tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of (stat.payload.rows || stat.payload)">
+                    <td *ngFor="let h of getTableHeaders(stat.payload)">{{ row[h] }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div *ngIf="!isArrayPayload(stat.payload)" class="stat-kv-list">
+              <div *ngFor="let entry of getObjectEntries(stat.payload)" class="stat-kv-row">
+                <span class="stat-kv-key">{{ entry.key }}</span>
+                <span class="stat-kv-value">{{ entry.value }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
 
         <div *ngIf="!selectedPlayer || !selectedPlayer.stats || selectedPlayer.stats.length === 0" class="stats-detail-panel__empty">
           <mat-icon>info_outline</mat-icon>
