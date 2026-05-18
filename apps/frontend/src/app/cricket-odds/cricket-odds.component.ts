@@ -299,6 +299,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.lastResolvedRouteSlug = match;
     }
 
+    this.populateFallbackMatchInfo();
+
     if (this.routeMatchHint && this.routeSlugMatches(match, this.routeMatchHint)) {
       this.applyRouteMatchHint(this.routeMatchHint);
     }
@@ -2215,7 +2217,15 @@ private findSeriesStandingForTeam(
 
 private populateFallbackMatchInfo(match: any = this.currentMatch): void {
   if (!match) {
-    return;
+    var fallbackKey = this.matchUrl || this.currentUrl || this.matchId;
+    if (!fallbackKey) {
+      return;
+    }
+    match = {
+      externalMatchKey: extractSlugFromUrl(fallbackKey) || fallbackKey,
+      url: fallbackKey,
+      status: 'LIVE'
+    };
   }
 
   this.matchInfo = {
