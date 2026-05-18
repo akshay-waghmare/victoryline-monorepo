@@ -53,10 +53,11 @@ export class MatchesService {
         )
       : EMPTY;
 
-    this.sharedMatches$ = merge(
-      timer(0, 30000),
-      wsRefresh$
-    ).pipe(
+    const refresh$ = this.isBrowser()
+      ? merge(timer(0, 30000), wsRefresh$)
+      : of(null);
+
+    this.sharedMatches$ = refresh$.pipe(
       switchMap(() => this.getAllMatches()),
       shareReplay(1)
     );

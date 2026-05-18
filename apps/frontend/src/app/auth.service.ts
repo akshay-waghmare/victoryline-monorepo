@@ -30,7 +30,9 @@ export class AuthService {
   constructor(
     private readonly http:HttpClient, private tokenStorage : TokenStorage , private router: Router
   ) { 
-    this.startTokenCheck();
+    if (this.isBrowser()) {
+      this.startTokenCheck();
+    }
   }
 
   attemptAuth(formData:any) : any {
@@ -66,5 +68,9 @@ export class AuthService {
         this.router.navigate(['login']);
       }
     }, 60000); // Check every 60 seconds
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && !(window as any).__SSR__;
   }
 }

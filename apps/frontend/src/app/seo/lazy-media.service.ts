@@ -121,6 +121,6 @@ export class LazyMediaService {
   }
 
   private isBrowser(): boolean {
-    return typeof window !== 'undefined' && typeof document !== 'undefined';
+    return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as any).__SSR__;
   }
 }
