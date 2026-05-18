@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Production Upcoming Matches**: Backend `/upcoming-matches` now filters out past `UPCOMING` rows from the start of the current India date, and `/matches` applies the same frontend guard so stale schedule rows do not appear as future fixtures.
 - **CREX Match Announcements**: Scraper now extracts CREX `C` tag messages such as reduced-over/revised-target announcements, sends them through the backend, and displays them as a match-detail banner.
+- **Info-Only Live Updates**: Backend live-update parsing now accepts announcement/toss-delay updates with no over value instead of returning HTTP 500.
 - **Scorecard Scraping Reliability**: CREX `sC4` scorecard fetches now retry transient failures and fall back to the match API key when the network intercept misses the scorecard call.
 - **Condensed Match Info UI**: Simplified the match info tab into a compact facts-and-insights layout, removed duplicate overview content, and left lineup-heavy details to their dedicated tabs.
 - **Match Route Prerender Serving**: Updated `apps/frontend/nginx.conf` so regular users on `/cric-live/<slug>` get the Angular SPA while bots can still receive prerendered match HTML, avoiding stale prerender pages masking new UI changes.
