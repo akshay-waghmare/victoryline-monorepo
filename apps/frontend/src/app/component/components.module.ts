@@ -11,7 +11,7 @@ import {MatFormFieldModule,
         MatDialogModule,
         MatIconModule,
         MatTooltipModule} from '@angular/material';
-import { InjectableRxStompConfig, RxStompService, StompConfig, rxStompServiceFactory } from '@stomp/ng2-stompjs';
+import { InjectableRxStompConfig, RxStompService, StompConfig } from '@stomp/ng2-stompjs';
 import { HTTP_INTERCEPTORS } from '@angular/common/http';
 import { LoaderInterceptor } from '../loader/loader.interceptor';
 import { environment } from 'src/environments/environment';
@@ -23,6 +23,7 @@ import { BannerComponent } from './banner/banner.component';
 import { MobileNavComponent } from '../core/layout/mobile-nav/mobile-nav.component';
 import { LogoComponent } from '../shared/components/logo/logo.component';
 import { FooterComponent } from '../shared/components/footer/footer.component';
+import { ssrSafeRxStompServiceFactory } from '../ssr/server-rx-stomp.service';
 
 const myRxStompConfig: InjectableRxStompConfig = {
   // added '/websocket' for spring boot SockJS
@@ -84,7 +85,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     },
     {
       provide: RxStompService,
-      useFactory: rxStompServiceFactory,
+      useFactory: ssrSafeRxStompServiceFactory,
       deps: [InjectableRxStompConfig]
     }]
 })

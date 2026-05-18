@@ -45,7 +45,7 @@ import {
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { AuthenticationGuard } from 'src/app/authentication.guard';
 import { BetMarketComponent } from 'src/app/bet-market/bet-market.component';
-import { StompService, StompConfig ,rxStompServiceFactory ,RxStompService, InjectableRxStompConfig  } from '@stomp/ng2-stompjs';
+import { StompService, StompConfig, RxStompService, InjectableRxStompConfig } from '@stomp/ng2-stompjs';
 import { FootballCardListComponent } from 'src/app/football-card-list/football-card-list.component';
 import { TennisListComponent } from 'src/app/tennis-card-list/tennis-list/tennis-list.component';
 import { TennisCardListComponent } from 'src/app/tennis-card-list/tennis-card-list.component';
@@ -88,6 +88,7 @@ import { MatchApiService } from 'src/app/cricket-odds/match-api.service';
 import { AnalyticsService } from 'src/app/cricket-odds/analytics.service';
 import { MatchFallbackService } from 'src/app/cricket-odds/match-fallback.service';
 import { MatchLiveModule } from 'src/app/match-live';
+import { ssrSafeRxStompServiceFactory } from 'src/app/ssr/server-rx-stomp.service';
 
 
 
@@ -191,7 +192,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     },
     {
       provide: RxStompService,
-      useFactory: rxStompServiceFactory,
+      useFactory: ssrSafeRxStompServiceFactory,
       deps: [InjectableRxStompConfig]
     },
     // 002-match-details-ux: Feature services
@@ -206,4 +207,3 @@ const myRxStompConfig: InjectableRxStompConfig = {
 })
 export class AdminLayoutsModule {
 }
-
