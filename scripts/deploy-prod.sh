@@ -183,8 +183,8 @@ elif $DRY_RUN; then
   echo "[DRY RUN] Would restart: docker compose -f $COMPOSE_FILE down && docker compose -f $COMPOSE_FILE up -d"
 else
   echo "🔄 Restarting stack..."
-  docker compose -f "$COMPOSE_FILE" down
-  docker compose -f "$COMPOSE_FILE" up -d
+  docker compose -f "$COMPOSE_FILE" down --remove-orphans
+  docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
 
   echo ""
   echo "⏳ Waiting 15s for containers to start..."
