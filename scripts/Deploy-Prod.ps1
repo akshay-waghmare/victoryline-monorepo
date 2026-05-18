@@ -7,7 +7,7 @@
     Docker images with a consistent tag, updates .env, and restarts the stack.
 
     Ensures all services (backend, frontend, scraper) are built
-    from the same git commit with the same tag — no more image mismatch.
+    from the same git commit with the same tag - no more image mismatch.
 
 .PARAMETER Tag
     Custom image tag. Default: deploy-<sha>-<timestamp>
@@ -75,7 +75,7 @@ try {
     # Check for uncommitted changes locally
     $localStatus = git status --porcelain
     if ($localStatus) {
-        Write-Host "⚠️  Local working tree has uncommitted changes:" -ForegroundColor Yellow
+        Write-Host "WARNING: Local working tree has uncommitted changes:" -ForegroundColor Yellow
         git status --short
         Write-Host ""
         $confirm = Read-Host "Continue? (y/N)"
@@ -87,7 +87,7 @@ try {
 
     # --- Step 1: Push to origin ---
     if (-not $SkipPush) {
-        Write-Host "📤 Pushing to origin/$gitBranch ..." -ForegroundColor Green
+        Write-Host "Pushing to origin/$gitBranch ..." -ForegroundColor Green
         if (-not $DryRun) {
             git push origin $gitBranch 2>&1 | Write-Host
         }
@@ -98,25 +98,25 @@ try {
     }
 
     # --- Step 2: Snapshot pre-deploy state ---
-    Write-Host "📸 Taking pre-deploy snapshot..." -ForegroundColor Green
+    Write-Host "Taking pre-deploy snapshot..." -ForegroundColor Green
     if (-not $DryRun) {
         try {
             & "$repoRoot\scripts\Track-ProdImageState.ps1" -OperatorLabel "pre-deploy-$gitSha"
         }
         catch {
-            Write-Host "  ⚠️  Snapshot failed (non-fatal): $_" -ForegroundColor Yellow
+            Write-Host "  Snapshot failed (non-fatal): $_" -ForegroundColor Yellow
         }
     }
     Write-Host ""
 
     # --- Step 3: Pull code on prod ---
-    Write-Host "📥 Pulling latest code on prod..." -ForegroundColor Green
+    Write-Host "Pulling latest code on prod..." -ForegroundColor Green
     if (-not $DryRun) {
-        $pullOutput = Invoke-Ssh "cd $RemoteRepoPath && git fetch origin && git reset --hard origin/$gitBranch"
+        $pullOutput = Invoke-Ssh "bash -lc 'set -e; cd $RemoteRepoPath; git fetch origin; git reset --hard origin/$gitBranch'"
         $pullOutput | ForEach-Object { Write-Host "  $_" }
     }
     else {
-        Write-Host "  [DRY RUN] git fetch origin && git reset --hard origin/$gitBranch"
+        Write-Host "  [DRY RUN] bash -lc 'set -e; cd $RemoteRepoPath; git fetch origin; git reset --hard origin/$gitBranch'"
     }
     Write-Host ""
 
@@ -126,9 +126,9 @@ try {
     if ($NoRestart) { $deployArgs += " --no-restart" }
     if ($DryRun) { $deployArgs += " --dry-run" }
 
-    Write-Host "🚀 Running deploy script on prod..." -ForegroundColor Green
+    Write-Host "Running deploy script on prod..." -ForegroundColor Green
     if (-not $DryRun) {
-        $deployOutput = Invoke-Ssh "cd $RemoteRepoPath && bash scripts/deploy-prod.sh$deployArgs"
+        $deployOutput = Invoke-Ssh "bash -lc 'set -e; cd $RemoteRepoPath; bash scripts/deploy-prod.sh$deployArgs'"
         $deployOutput | ForEach-Object { Write-Host "  $_" }
     }
     else {
@@ -137,19 +137,19 @@ try {
     Write-Host ""
 
     # --- Step 5: Snapshot post-deploy state ---
-    Write-Host "📸 Taking post-deploy snapshot..." -ForegroundColor Green
+    Write-Host "Taking post-deploy snapshot..." -ForegroundColor Green
     if (-not $DryRun) {
         try {
             & "$repoRoot\scripts\Track-ProdImageState.ps1" -OperatorLabel "post-deploy-$gitSha"
         }
         catch {
-            Write-Host "  ⚠️  Snapshot failed (non-fatal): $_" -ForegroundColor Yellow
+            Write-Host "  Snapshot failed (non-fatal): $_" -ForegroundColor Yellow
         }
     }
 
     Write-Host ""
     Write-Host "============================================" -ForegroundColor Green
-    Write-Host "  ✅ Deploy pipeline complete" -ForegroundColor Green
+    Write-Host "  Deploy pipeline complete" -ForegroundColor Green
     Write-Host "============================================" -ForegroundColor Green
 }
 finally {
