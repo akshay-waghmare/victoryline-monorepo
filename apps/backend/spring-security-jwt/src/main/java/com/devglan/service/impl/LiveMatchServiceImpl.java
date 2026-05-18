@@ -1,5 +1,7 @@
 package com.devglan.service.impl;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +35,7 @@ import com.devglan.websocket.service.CricketDataService;
 public class LiveMatchServiceImpl implements LiveMatchService {
 
 	private static final Logger logger = LoggerFactory.getLogger(LiveMatchServiceImpl.class);
+	private static final ZoneId MATCH_DISPLAY_ZONE = ZoneId.of("Asia/Kolkata");
 
 	private final LiveMatchRepository liveMatchRepository;
 	private final CricketDataService cricketDataService;
@@ -288,8 +291,13 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
     @Override
     public List<LiveMatch> findUpcomingMatches() {
-        return liveMatchRepository.findByStatusInAndIsDeletedFalseOrderByScheduledStartTimeAsc(
-                Arrays.asList(MatchLifecycleStatus.UPCOMING));
+        long startOfToday = LocalDate.now(MATCH_DISPLAY_ZONE)
+                .atStartOfDay(MATCH_DISPLAY_ZONE)
+                .toInstant()
+                .toEpochMilli();
+        return liveMatchRepository.findUpcomingMatchesStartingAtOrAfter(
+                Arrays.asList(MatchLifecycleStatus.UPCOMING),
+                startOfToday);
     }
 
     @Override

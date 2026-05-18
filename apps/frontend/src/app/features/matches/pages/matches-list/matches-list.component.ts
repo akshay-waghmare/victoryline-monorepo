@@ -130,7 +130,11 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     let matches = [...this.allMatches];
     
     // Apply status filter
-    matches = filterMatchesByStatus(matches, this.selectedStatus);
+    if (this.selectedStatus === MatchStatus.UPCOMING) {
+      matches = filterUpcomingMatches(matches);
+    } else {
+      matches = filterMatchesByStatus(matches, this.selectedStatus);
+    }
     
     // Apply search filter
     if (this.searchQuery.trim()) {

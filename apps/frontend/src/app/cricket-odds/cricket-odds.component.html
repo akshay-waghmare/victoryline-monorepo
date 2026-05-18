@@ -23,6 +23,11 @@
           [bowlerDataList]="bowlerDataList">
         </app-live-hero>
 
+        <section class="cricket-odds__announcement" *ngIf="matchAnnouncement">
+          <mat-icon>campaign</mat-icon>
+          <span>{{ matchAnnouncement }}</span>
+        </section>
+
         <section class="cricket-odds__summary-fallback" *ngIf="matchInfo && !showLiveHero && !heroFallbackView">
           <div class="cricket-odds__summary-status">{{ matchInfo.match_status || matchInfo.status }}</div>
           <h1 class="cricket-odds__summary-title">{{ matchInfo.match_name }}</h1>

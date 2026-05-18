@@ -21,5 +21,9 @@ public interface LiveMatchRepository extends JpaRepository<LiveMatch, Long> , Li
 	List<LiveMatch> findByDeletionAttemptsLessThanAndIsDeletedFalse(Integer attempts);
     List<LiveMatch> findByExternalMatchKeyOrderByIdDesc(String externalMatchKey);
     List<LiveMatch> findByStatusInAndIsDeletedFalseOrderByScheduledStartTimeAsc(List<MatchLifecycleStatus> statuses);
+    @Query("SELECT lm FROM LiveMatch lm WHERE lm.status IN :statuses AND lm.isDeleted = false AND lm.scheduledStartTime >= :cutoff ORDER BY lm.scheduledStartTime ASC")
+    List<LiveMatch> findUpcomingMatchesStartingAtOrAfter(
+            @Param("statuses") List<MatchLifecycleStatus> statuses,
+            @Param("cutoff") Long cutoff);
     List<LiveMatch> findByStatusInOrderByLastStateUpdatedAtDesc(List<MatchLifecycleStatus> statuses);
 }

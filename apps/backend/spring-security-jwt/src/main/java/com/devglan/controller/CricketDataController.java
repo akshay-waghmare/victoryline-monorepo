@@ -169,6 +169,10 @@ public class CricketDataController {
             nonNullFields.put("current_ball", data.getCurrentBall());
             existingData.setCurrentBall(data.getCurrentBall());
         }
+        if (data.getMatchAnnouncement() != null) {
+            nonNullFields.put("match_announcement", data.getMatchAnnouncement());
+            existingData.setMatchAnnouncement(data.getMatchAnnouncement());
+        }
         if (data.getRunsOnBall() != null) {
             nonNullFields.put("runs_on_ball", data.getRunsOnBall());
             existingData.setRunsOnBall(data.getRunsOnBall());

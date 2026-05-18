@@ -28,6 +28,8 @@ public class CricketDataDTO {
 	private String score;
 	@JsonProperty("current_ball")
 	private String currentBall;
+	@JsonProperty("match_announcement")
+	private String matchAnnouncement;
 	@JsonProperty("runs_on_ball")
 	private Integer runsOnBall;
 	@JsonProperty("fav_team")
@@ -235,6 +237,14 @@ public class CricketDataDTO {
 
 	public void setCurrentBall(String currentBall) {
 		this.currentBall = currentBall;
+	}
+
+	public String getMatchAnnouncement() {
+		return matchAnnouncement;
+	}
+
+	public void setMatchAnnouncement(String matchAnnouncement) {
+		this.matchAnnouncement = matchAnnouncement;
 	}
 
 	public Integer getRunsOnBall() {

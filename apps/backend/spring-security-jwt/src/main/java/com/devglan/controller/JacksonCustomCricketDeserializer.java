@@ -391,6 +391,12 @@ public class JacksonCustomCricketDeserializer extends StdDeserializer<CricketDat
         if (node.has("score_update")) {
             cricketData.setCurrentBall(node.get("score_update").asText());
         }
+        if (node.has("current_ball")) {
+            cricketData.setCurrentBall(node.get("current_ball").asText());
+        }
+        if (node.has("match_announcement")) {
+            cricketData.setMatchAnnouncement(node.get("match_announcement").asText());
+        }
         if (node.has("runs_on_ball"))
             cricketData.setRunsOnBall(node.get("runs_on_ball").asInt());
         if (node.has("fav_team"))

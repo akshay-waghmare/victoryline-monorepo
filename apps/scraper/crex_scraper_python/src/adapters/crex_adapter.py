@@ -25,7 +25,7 @@ from ..parsers.crex_parser import extract_match_stats_by_innings, parse_runs_and
 from ..config import get_settings
 from ..cricket_data_service import CricketDataService
 from ..cache import ScrapeCache
-from ..crex_url_utils import extract_crex_match_key, get_crex_details_url, get_crex_live_url, get_crex_scorecard_url
+from ..crex_url_utils import extract_crex_api_key, extract_crex_match_key, get_crex_details_url, get_crex_live_url, get_crex_scorecard_url
 from ..crex_stats_analysis import analyze_player_page_html, analyze_standings_html
 
 logger = logging.getLogger(__name__)
@@ -261,6 +261,22 @@ class CrexAdapter(SourceAdapter):
                 await asyncio.sleep(0.3)  # Reduced from 0.5/2.0
             except asyncio.TimeoutError:
                 logger.warning(f"Timeout waiting for sV3 response on {url}")
+
+            if not data_store.get("sC4_stats"):
+                fallback_key = data_store.get("sc4_key") or extract_crex_api_key(url)
+                if fallback_key:
+                    logger.info(f"Trying fallback sC4 fetch for {match_id} using page URL key")
+                    await self._trigger_sc4_call(
+                        f"https://api-v1.com/v10/sC4.php?key={fallback_key}",
+                        {
+                            "Accept": "application/json",
+                            "Origin": "https://crex.com",
+                            "Referer": get_crex_scorecard_url(url),
+                        },
+                        data_store,
+                        page,
+                        match_id,
+                    )
 
             # Extract localStorage
             current_ls = await self._wait_for_local_storage_ready(page, "live")
@@ -672,8 +688,9 @@ class CrexAdapter(SourceAdapter):
             parsed_url = urlparse(response.url)
             query_params = parse_qs(parsed_url.query)
             key = query_params.get('key', [None])[0]
-            
+             
             if key:
+                data_store["sc4_key"] = key
                 sc4_url = f"https://api-v1.com/v10/sC4.php?key={key}"
                 headers = await response.all_headers() # Use headers from original request
                 await self._trigger_sc4_call(sc4_url, headers, data_store, page, match_id)
@@ -694,26 +711,42 @@ class CrexAdapter(SourceAdapter):
         
         Feature 007: Added match_id for immediate push callbacks.
         """
-        try:
-            # Use page.request to make the call with browser context (cookies, etc)
-            response = await page.request.get(url, headers=headers)
-            if response.status == 200:
-                sc4_data = await response.json()
-                stats = extract_match_stats_by_innings(sc4_data)
-                data_store["sC4_stats"] = stats
-                logger.info(f"Successfully fetched sC4 stats for {url}")
-                
-                # Feature 007: Immediate push of sC4 data
-                if self._settings.enable_fast_updates and self.on_sc4_update and match_id:
-                    try:
-                        self.on_sc4_update(match_id, stats)
-                        logger.debug(f"[{match_id}] sC4 immediate push completed")
-                    except Exception as e:
-                        logger.error(f"[{match_id}] Error in sC4 callback: {e}")
-            else:
-                logger.warning(f"Failed to fetch sC4 stats: {response.status}")
-        except Exception as e:
-            logger.error(f"Error triggering sC4 call: {e}")
+        max_attempts = 3
+        retry_delay_seconds = 0.5
+
+        for attempt in range(1, max_attempts + 1):
+            try:
+                # Use page.request to make the call with browser context (cookies, etc).
+                response = await page.request.get(url, headers=headers)
+                if response.status == 200:
+                    sc4_data = await response.json()
+                    stats = extract_match_stats_by_innings(sc4_data)
+                    if stats.get("innings"):
+                        data_store["sC4_stats"] = stats
+                        logger.info(f"Successfully fetched sC4 stats for {url} on attempt {attempt}")
+
+                        # Feature 007: Immediate push of sC4 data
+                        if self._settings.enable_fast_updates and self.on_sc4_update and match_id:
+                            try:
+                                self.on_sc4_update(match_id, stats)
+                                logger.debug(f"[{match_id}] sC4 immediate push completed")
+                            except Exception as e:
+                                logger.error(f"[{match_id}] Error in sC4 callback: {e}")
+                        return True
+
+                    logger.warning(f"sC4 response had no innings on attempt {attempt} for {url}")
+                else:
+                    logger.warning(f"Failed to fetch sC4 stats on attempt {attempt}: status={response.status}")
+                    if 400 <= response.status < 500 and response.status != 429:
+                        return False
+            except Exception as e:
+                logger.warning(f"Error triggering sC4 call on attempt {attempt}: {e}")
+
+            if attempt < max_attempts:
+                await asyncio.sleep(retry_delay_seconds * attempt)
+
+        logger.error(f"Failed to fetch sC4 stats after {max_attempts} attempts for {url}")
+        return False
 
     async def _handle_ball_feed_response(
         self,
@@ -870,6 +903,14 @@ class CrexAdapter(SourceAdapter):
             )
         )
         return merged
+
+    def _clean_api_text(self, value: Any) -> str:
+        if value is None:
+            return ""
+
+        text = str(value).replace("&nbsp;", " ")
+        text = re.sub(r"<[^>]*>", " ", text)
+        return re.sub(r"\s+", " ", text).strip()
 
     def _map_commentary_entry(self, item: Any, local_storage: Dict[str, str]) -> Optional[Dict[str, Any]]:
         """
@@ -1094,6 +1135,11 @@ class CrexAdapter(SourceAdapter):
         Process raw API data (sV3) into structured fields for the backend.
         """
         try:
+            announcement = self._clean_api_text(api_data.get("C"))
+            final_data["match_announcement"] = announcement
+            if announcement:
+                logger.info(f"Extracted match announcement from C tag: {announcement}")
+
             # 1. Current Ball Info (Field B)
             if "B" in api_data:
                 raw_b = str(api_data["B"])

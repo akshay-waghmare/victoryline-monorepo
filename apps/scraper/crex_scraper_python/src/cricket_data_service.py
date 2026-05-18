@@ -289,6 +289,9 @@ class CricketDataService:
                     else:
                         payload["score_update"] = cb
 
+                if "match_announcement" in data:
+                    payload["match_announcement"] = data.get("match_announcement") or ""
+
                 # Map Batsman Data
                 if data.get("batsman_data"):
                     payload["batsman_data"] = data["batsman_data"]

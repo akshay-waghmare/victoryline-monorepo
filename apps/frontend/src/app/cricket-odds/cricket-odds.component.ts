@@ -111,6 +111,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   matchInfo: any;
   scorecardData: any;
   commentaryEntries: any[] = [];
+  matchAnnouncement: string = '';
 
   last6Balls: RecentBallView[] = []; // Initialize empty array, will be populated from API data
   cricetTopicSubscription: any;
@@ -507,6 +508,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
           this.commentaryEntries = upsertCommentaryEntries(this.commentaryEntries, newEntries).slice(0, 200);
           console.log('Commentary entries updated:', this.commentaryEntries.length);
         }
+      }
+
+      if (this.cricObj.match_announcement !== undefined && this.cricObj.match_announcement !== null) {
+        this.matchAnnouncement = String(this.cricObj.match_announcement).trim();
       }
 
       // Check and handle the "runs_on_ball" field

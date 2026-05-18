@@ -89,3 +89,29 @@ def test_merge_commentary_entries_prefers_richer_boundary_text_for_same_ball():
     assert merged_entries[0]["id"] == "live-ball-2002"
     assert merged_entries[0]["type"] == "BOUNDARY"
     assert "Driven crisply through cover" in merged_entries[0]["text"]
+
+
+def test_process_live_data_extracts_match_announcement_from_c_tag():
+    adapter = CrexAdapter()
+    final_data = {}
+
+    adapter._process_live_data(
+        final_data,
+        {
+            "C": "Match reduced to 38 overs and revised target 234 runs",
+            "B": "1",
+        },
+        {},
+    )
+
+    assert final_data["match_announcement"] == "Match reduced to 38 overs and revised target 234 runs"
+    assert final_data["current_ball"] == "1"
+
+
+def test_process_live_data_clears_missing_match_announcement():
+    adapter = CrexAdapter()
+    final_data = {}
+
+    adapter._process_live_data(final_data, {"B": "0"}, {})
+
+    assert final_data["match_announcement"] == ""
