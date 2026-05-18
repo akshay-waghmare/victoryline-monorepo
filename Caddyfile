@@ -30,7 +30,7 @@ http://localhost, http://localhost:80 {
   @websocket {
     path /api/ws/*
   }
-  reverse_proxy @websocket frontend:80 {
+  reverse_proxy @websocket frontend:4000 {
     header_up Host {host}
     header_up X-Real-IP {remote}
     header_up X-Forwarded-For {remote}
@@ -42,7 +42,7 @@ http://localhost, http://localhost:80 {
   }
   
   # Serve frontend Angular app proxied from internal container
-  reverse_proxy frontend:80 {
+  reverse_proxy frontend:4000 {
     header_up Host {host}
     header_up X-Real-IP {remote}
     header_up X-Forwarded-For {remote}

@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
-import { Title } from '@angular/platform-browser';
+import { Meta, Title } from '@angular/platform-browser';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { forkJoin, Subject } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
@@ -185,6 +185,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private eventListService:EventListService,
               private authService : AuthService,
               private titleService: Title,  // T043: Inject Angular Title service
+              private metaService: Meta,
               private activatedRoute: ActivatedRoute,private router: Router) { }
 
   ngOnDestroy() {
@@ -212,7 +213,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   }
   ngOnInit(): void {
     // Phase 7 (T036): Hide odds by default on mobile viewports
-    this.showOdds = window.innerWidth > 768;
+    this.showOdds = this.isBrowser() ? window.innerWidth > 768 : true;
 
     const routeMatchKey = this.activatedRoute.snapshot.params['path']
       || this.activatedRoute.snapshot.params['url']
@@ -256,7 +257,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     //watching live score for cricet data
     this.fetchCricketData();
 
-    if (legacyMatchUrl && routeMatchKey) {
+    if (this.isBrowser() && legacyMatchUrl && routeMatchKey) {
       this.stripLegacyMatchUrlParam(routeMatchKey);
     }
 
@@ -308,16 +309,18 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.parseCricObjData(data);
     });
     //watching live score for cricket data
-    this.cricetTopicSubscription = this.rxStompService.watch(`/topic/cricket.${match}.*`).subscribe((data) => {
-      this.parseCricObjData(data);
-      // Cache WebSocket updates for instant load on next visit
-      try {
-        const parsed = data && 'body' in data ? JSON.parse(data.body) : data;
-        if (parsed) {
-          this.cricketService.updateMatchDataCache(match, parsed);
-        }
-      } catch (_) { /* non-critical */ }
-    });
+    if (this.isBrowser()) {
+      this.cricetTopicSubscription = this.rxStompService.watch(`/topic/cricket.${match}.*`).subscribe((data) => {
+        this.parseCricObjData(data);
+        // Cache WebSocket updates for instant load on next visit
+        try {
+          const parsed = data && 'body' in data ? JSON.parse(data.body) : data;
+          if (parsed) {
+            this.cricketService.updateMatchDataCache(match, parsed);
+          }
+        } catch (_) { /* non-critical */ }
+      });
+    }
     
     // Fetch match info for hero component
     this.fetchMatchInfo(this.matchId || match);
@@ -1053,6 +1056,9 @@ private resolveRouteMatch(matchSlug: string): void {
 }
 
 private getNavigationMatchHint(routeMatchKey: string): any {
+  if (!this.isBrowser()) {
+    return null;
+  }
   var state = window && window.history ? window.history.state : null;
   var match = state && state.match ? state.match : null;
   if (!match || !this.routeSlugMatches(routeMatchKey, match)) {
@@ -1390,6 +1396,9 @@ openTeamStats(team: PlayerStatsTeamView, source: 'lineups' | 'scorecard' = 'line
 openSeriesStandings(source: 'lineups' | 'scorecard' = 'lineups'): void {
   var series = this.getPlayerStatsSeries();
   if ((!series || !series.externalId) && this.seriesPageUrlFallback) {
+    if (!this.isBrowser()) {
+      return;
+    }
     window.open(this.seriesPageUrlFallback, '_blank');
     return;
   }
@@ -2575,6 +2584,17 @@ private titleCaseSlug(value: string): string {
     }
     
     this.titleService.setTitle(fullTitle);
+    const description = isCompleted
+      ? `${teams} final score, full scorecard, match summary, and highlights on Crickzen.`
+      : `${teams} live score, ball by ball commentary, latest runs, wickets, overs, and match updates.`;
+    const safeDescription = description.length > 155 ? description.substring(0, 152) + '...' : description;
+    this.metaService.updateTag({ name: 'description', content: safeDescription });
+    this.metaService.updateTag({ property: 'og:title', content: fullTitle });
+    this.metaService.updateTag({ property: 'og:description', content: safeDescription });
+    this.metaService.updateTag({ property: 'og:site_name', content: 'Crickzen' });
+    this.metaService.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
+    this.metaService.updateTag({ name: 'twitter:title', content: fullTitle });
+    this.metaService.updateTag({ name: 'twitter:description', content: safeDescription });
   }
 
   /**
@@ -2582,6 +2602,10 @@ private titleCaseSlug(value: string): string {
    */
   private extractUrlSlug(url: string): string | null {
     return extractSlugFromUrl(url);
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && !(window as any).__SSR__;
   }
 
   setVenuePercentages() {

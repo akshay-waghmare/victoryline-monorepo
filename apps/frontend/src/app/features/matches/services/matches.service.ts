@@ -26,7 +26,7 @@ interface ScheduleResponse {
   providedIn: 'root'
 })
 export class MatchesService {
-  
+
   private readonly matchesRequestTimeoutMs = 15000;
   private readonly scorecardRequestTimeoutMs = 8000;
   private readonly noCacheHeaders = new HttpHeaders({
@@ -46,10 +46,12 @@ export class MatchesService {
   ) {
     // WebSocket-triggered refresh: backend pushes to /topic/live-matches on every scraper update.
     // Debounce to 3s so rapid scraper bursts don't hammer the backend with repeated fetches.
-    const wsRefresh$ = this.eventListService.subscribeToEventsTopic().pipe(
-      debounceTime(3000),
-      catchError(() => EMPTY)
-    );
+    const wsRefresh$ = this.isBrowser()
+      ? this.eventListService.subscribeToEventsTopic().pipe(
+          debounceTime(3000),
+          catchError(() => EMPTY)
+        )
+      : EMPTY;
 
     this.sharedMatches$ = merge(
       timer(0, 30000),
@@ -59,7 +61,7 @@ export class MatchesService {
       shareReplay(1)
     );
   }
-  
+
   /**
    * Get live matches with automatic refresh.
    * Returns a singleton observable shared by all subscribers — Home, MatchesList, etc.
@@ -68,12 +70,16 @@ export class MatchesService {
   getLiveMatchesWithAutoRefresh(): Observable<MatchCardViewModel[]> {
     return this.sharedMatches$;
   }
-  
+
   /**
    * Stop auto-refresh (retained for backwards compatibility — teardown is managed by subscriptions).
    */
   stopAutoRefresh(): void {}
-  
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && !(window as any).__SSR__;
+  }
+
   /**
    * Get live matches transformed to MatchCardViewModel
    * T042 - Data transformation logic (API response → MatchCardViewModel)
@@ -83,28 +89,28 @@ export class MatchesService {
       timeout(this.matchesRequestTimeoutMs),
       switchMap((response: any) => {
         console.log('Raw API Response:', response);
-        
+
         if (!Array.isArray(response)) {
           return of([]);
         }
-        
+
         // Trust backend-persisted lifecycle state for live feed filtering.
-        const activeMatches = response.filter((item: any) => 
+        const activeMatches = response.filter((item: any) =>
           this.isLiveFeedStatus(this.parseMatchStatus(item))
         );
-        
+
         console.log('Active matches count:', activeMatches.length);
-        
+
         // If no active matches, return empty array
         if (activeMatches.length === 0) {
           return of([]);
         }
-        
+
         // Fetch scorecard data for all active matches
-        const scorecardRequests = activeMatches.map((match: any) => 
+        const scorecardRequests = activeMatches.map((match: any) =>
           this.fetchScorecardData(match.url)
         );
-        
+
         // Wait for all scorecard requests to complete
         return forkJoin(scorecardRequests).pipe(
           map((scorecardDataArray: any[]) => {
@@ -122,7 +128,7 @@ export class MatchesService {
               }
               return transformed;
             });
-            
+
             return transformedMatches;
           })
         );
@@ -171,7 +177,7 @@ export class MatchesService {
       })
     );
   }
-  
+
   /**
    * Fetch scorecard data for a specific match URL
    */
@@ -180,11 +186,11 @@ export class MatchesService {
     // URL format: https://crex.com/scoreboard/.../pak-vs-sa-2nd-odi.../live
     // We need: pak-vs-sa-2nd-odi-south-africa-tour-of-pakistan-2025
     let matchIdentifier = extractSlugFromUrl(matchUrl) || matchUrl;
-    
+
     const url = `${this.scorecardApiUrl}?url=${encodeURIComponent(matchIdentifier)}`;
     console.log('Fetching scorecard from:', url);
     console.log('Match identifier:', matchIdentifier);
-    
+
     return this.http.get(url, {
       headers: this.noCacheHeaders,
       params: new HttpParams().set('_ts', Date.now().toString())
@@ -200,7 +206,7 @@ export class MatchesService {
       })
     );
   }
-  
+
   /**
    * Transform API response to MatchCardViewModel
    * Handles various API response formats
@@ -208,28 +214,28 @@ export class MatchesService {
   private transformToViewModel(apiMatch: any, scorecardData: any = null): MatchCardViewModel {
     // Extract match ID
     const matchId = apiMatch.id ? apiMatch.id.toString() : this.generateMatchId(apiMatch);
-    
+
     // Parse match data from URL (similar to old parseLiveMatchUrl logic)
     const urlData = this.parseUrlData(apiMatch.url);
-    
+
     // Parse match status
     const status = this.parseMatchStatus(apiMatch, scorecardData);
-    
+
     // Parse teams from URL and scorecard data
     const team1 = this.parseTeamInfo(apiMatch, 'team1', 0, urlData, scorecardData);
     const team2 = this.parseTeamInfo(apiMatch, 'team2', 1, urlData, scorecardData);
-    
+
     // Parse venue from scorecard or URL
     const venue = apiMatch.venue || (scorecardData && scorecardData.venue) || urlData.tournament || 'Venue TBD';
     const startTime = this.parseStartTime(apiMatch, scorecardData);
-    
+
     // Parse last updated timestamp
-    const lastUpdated = apiMatch.lastUpdated 
-      ? new Date(apiMatch.lastUpdated) 
+    const lastUpdated = apiMatch.lastUpdated
+      ? new Date(apiMatch.lastUpdated)
       : apiMatch.lastStateUpdatedAt
       ? new Date(apiMatch.lastStateUpdatedAt)
       : new Date();
-    
+
     // Compute display properties
     const displayStatus = getStatusDisplayText(status);
     const statusColor = this.getStatusColorForStatus(status);
@@ -237,7 +243,7 @@ export class MatchesService {
     const isLive = status === MatchStatus.LIVE || status === MatchStatus.INNINGS_BREAK;
     const canAnimate = isLive;
     const staleness = calculateStaleness(lastUpdated);
-    
+
     return {
       id: matchId,
       team1,
@@ -290,7 +296,7 @@ export class MatchesService {
 
     return [];
   }
-  
+
   /**
    * Parse match data from URL
    * URL format: https://crex.com/scoreboard/VKE/1UP/2nd-TEST/6S/IE/ind-a-vs-sa-a-2nd-test-south-africa-a-tour-of-india-2025/live
@@ -299,34 +305,34 @@ export class MatchesService {
     if (!url) {
       return { team1: 'Team 1', team2: 'Team 2', tournament: 'Tournament' };
     }
-    
+
     try {
       const matchPart = extractSlugFromUrl(url) || this.extractSlugCandidate(url);
       if (!matchPart) {
         return { team1: 'Team 1', team2: 'Team 2', tournament: 'Tournament' };
       }
-      
+
       // Find the "-vs-" separator
       const vsIndex = matchPart.indexOf('-vs-');
       if (vsIndex === -1) {
         return { team1: 'Team 1', team2: 'Team 2', tournament: matchPart };
       }
-      
+
       // Split at first occurrence of "-vs-"
       const beforeVs = matchPart.substring(0, vsIndex);
       const afterVs = matchPart.substring(vsIndex + 4);
-      
+
       // Team 1 is everything before "-vs-"
       const team1Name = this.formatTeamName(beforeVs);
-      
+
       // Team 2 and tournament: find where tournament starts
       // Look for match number pattern like "2nd-test", "1st-odi", etc.
       const matchTypePattern = /\d+(st|nd|rd|th)-(test|odi|t20|match)/i;
       const matchTypeMatch = afterVs.match(matchTypePattern);
-      
+
       let team2Name = 'Team 2';
       let tournament = 'Tournament';
-      
+
       if (matchTypeMatch) {
         const matchTypeIndex = afterVs.indexOf(matchTypeMatch[0]);
         team2Name = this.formatTeamName(afterVs.substring(0, matchTypeIndex - 1));
@@ -337,7 +343,7 @@ export class MatchesService {
         team2Name = this.formatTeamName(afterVsParts[0]);
         tournament = this.formatTournamentName(afterVs);
       }
-      
+
       return {
         team1: team1Name,
         team2: team2Name,
@@ -348,33 +354,33 @@ export class MatchesService {
       return { team1: 'Team 1', team2: 'Team 2', tournament: 'Tournament' };
     }
   }
-  
+
   /**
    * Format team name from URL slug
    */
   private formatTeamName(slug: string): string {
     if (!slug) return 'Unknown';
-    
+
     // Replace hyphens with spaces and title case
     return slug
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
-  
+
   /**
    * Format tournament name from URL slug
    */
   private formatTournamentName(slug: string): string {
     if (!slug) return 'Tournament';
-    
+
     // Replace hyphens with spaces and title case
     return slug
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
-  
+
   /**
    * Parse team information from API response
    */
@@ -388,7 +394,7 @@ export class MatchesService {
       const innings = scorecardData.match_stats_by_innings.innings;
       const inningsKey = index === 0 ? '1st_inning' : '2nd_inning';
       const inningsData = innings[inningsKey];
-      
+
       if (inningsData && inningsData.team_code) {
         scorecardTeamCode = this.normalizeTeamLabel(inningsData.team_code);
         console.log(`Team ${index} short code from scorecard:`, scorecardTeamCode);
@@ -407,10 +413,10 @@ export class MatchesService {
 
     const explicitShortName = this.normalizeTeamLabel(teamData.shortName || teamData.short_code || teamData.abbreviation);
     const shortName = explicitShortName || scorecardTeamCode || this.extractShortName(teamName);
-    
+
     // Parse score if available from scorecard data
     const score = this.parseScore(teamData, apiMatch, index, scorecardData);
-    
+
     return {
       id: teamData.id || (apiMatch.id ? apiMatch.id + '-' + teamKey : 'unknown-' + teamKey),
       name: teamName,
@@ -419,7 +425,7 @@ export class MatchesService {
       score
     };
   }
-  
+
   /**
    * Parse score information from scorecard data or team data
    */
@@ -429,33 +435,33 @@ export class MatchesService {
       teamData,
       hasScorecardScores: scorecardData && scorecardData.scores
     });
-    
+
     // First try to get score from scorecard data
     if (scorecardData && scorecardData.match_stats_by_innings && scorecardData.match_stats_by_innings.innings) {
       const innings = scorecardData.match_stats_by_innings.innings;
-      
+
       // Map team index to innings (0 -> 1st_inning, 1 -> 2nd_inning)
       const inningsKey = teamIndex === 0 ? '1st_inning' : '2nd_inning';
       const inningsData = innings[inningsKey];
-      
+
       console.log(`Looking for ${inningsKey}:`, inningsData);
-      
+
       if (inningsData && inningsData.team_score) {
         const scoreStr = inningsData.team_score;
         console.log(`Found team_score for team ${teamIndex}:`, scoreStr);
-        
+
         // Parse score string like "243/8(291" or "243/8(50.0)"
         return this.parseScoreString(scoreStr);
       }
     }
-    
+
     // Fallback: Check if scorecardData has direct score field
     if (scorecardData) {
       // scorecardData.score (string like "150/5")
       if (scorecardData.score && teamIndex === 0) {
         return this.parseScoreString(scorecardData.score, scorecardData.over);
       }
-      
+
       // scorecardData.scores array
       if (scorecardData.scores && Array.isArray(scorecardData.scores)) {
         const teamScore = scorecardData.scores[teamIndex];
@@ -465,18 +471,18 @@ export class MatchesService {
         }
       }
     }
-    
+
     // Fallback: Try various possible score data structures from old API
     const scoreData = teamData.score || (apiMatch.scores && apiMatch.scores[teamIndex]);
-    
+
     if (!scoreData) {
       console.log(`No score data found for team ${teamIndex}`);
       return null;
     }
-    
+
     return this.formatScoreInfo(scoreData);
   }
-  
+
   /**
    * Parse score from string format like "243/8(291" or "243/8(50.0)" or "150/5"
    */
@@ -484,19 +490,19 @@ export class MatchesService {
     if (!scoreStr) {
       return null;
     }
-    
+
     console.log('Parsing score string:', scoreStr);
-    
+
     // Handle formats like "243/8(291" or "243/8(50.0)" or "150/5"
     // Extract runs, wickets, and balls/overs using regex
   const scoreMatch = scoreStr.match(/(\d+)[\/-](\d+)/);
   const ballsOrOversMatch = scoreStr.match(/\(([^)]+)\)/);
-    
+
     if (scoreMatch) {
       const runs = parseInt(scoreMatch[1], 10) || 0;
       const wickets = parseInt(scoreMatch[2], 10) || 0;
       let overs = 0;
-      
+
       // Try to get balls/overs from the score string itself
       if (ballsOrOversMatch) {
         const raw = (ballsOrOversMatch[1] || '').toString();
@@ -506,15 +512,15 @@ export class MatchesService {
         const normalized = ballsToOvers(oversStr);
         overs = normalized ? parseFloat(normalized) : 0;
       }
-      
-      const displayText = overs > 0 
+
+      const displayText = overs > 0
         ? `${runs}/${wickets} (${overs} ov)`
         : `${runs}/${wickets}`;
-      
+
       const runRate = overs > 0 ? parseFloat((runs / overs).toFixed(2)) : 0;
-      
+
       console.log('Parsed score:', { runs, wickets, overs, runRate, displayText });
-      
+
       return {
         runs,
         wickets,
@@ -523,10 +529,10 @@ export class MatchesService {
         displayText
       };
     }
-    
+
     return null;
   }
-  
+
   /**
    * Format score data into ScoreInfo object
    */
@@ -534,16 +540,16 @@ export class MatchesService {
     if (!scoreData) {
       return null;
     }
-    
+
     // Handle different score formats
     const runs = scoreData.runs || scoreData.r || 0;
     const wickets = scoreData.wickets || scoreData.w || 0;
     const overs = scoreData.overs || scoreData.ov || 0;
     const runRate = scoreData.runRate || scoreData.rr || 0;
-    
+
     // Generate display text
     const displayText = `${runs}/${wickets} (${overs} ov)`;
-    
+
     return {
       runs,
       wickets,
@@ -645,7 +651,7 @@ export class MatchesService {
       }
     }
   }
-  
+
   /**
    * Parse match status from API response
    */
@@ -661,9 +667,9 @@ export class MatchesService {
         return MatchStatus.COMPLETED;
       }
     }
-    
+
     const statusStr = (apiMatch.status || apiMatch.matchStatus || '').toLowerCase();
-    
+
     if (statusStr.includes('live') || statusStr.includes('in progress')) {
       return MatchStatus.LIVE;
     } else if (statusStr.includes('innings break') || statusStr.includes('break')) {
@@ -682,16 +688,16 @@ export class MatchesService {
     if (apiMatch.finished === true) {
       return MatchStatus.COMPLETED;
     }
-    
+
     // Check deleted flag after explicit status handling
     if (apiMatch.deleted === true) {
       return apiMatch.resultSummary ? MatchStatus.COMPLETED : MatchStatus.ABANDONED;
     }
-    
+
     // Default to upcoming if status is unclear
     return MatchStatus.UPCOMING;
   }
-  
+
   /**
    * Parse start time from API response
    */
@@ -704,7 +710,7 @@ export class MatchesService {
     if (apiMatch.scheduledStartTime) {
       return new Date(apiMatch.scheduledStartTime);
     }
-    
+
     if (apiMatch.startTime) {
       return new Date(apiMatch.startTime);
     } else if (apiMatch.date) {
@@ -714,18 +720,18 @@ export class MatchesService {
     } else if (apiMatch.lastStateUpdatedAt) {
       return new Date(apiMatch.lastStateUpdatedAt);
     }
-    
+
     // Default to current time if not available
     return new Date();
   }
-  
+
   /**
    * Extract short name from full team name
    * Example: "India" -> "IND", "Australia" -> "AUS"
    */
   private extractShortName(fullName: string): string {
     if (!fullName) return 'TBD';
-    
+
     // Common cricket team abbreviations
     const abbreviations: { [key: string]: string } = {
       'india': 'IND',
@@ -741,12 +747,12 @@ export class MatchesService {
       'ireland': 'IRE',
       'zimbabwe': 'ZIM'
     };
-    
+
     const lowerName = fullName.toLowerCase();
     if (abbreviations[lowerName]) {
       return abbreviations[lowerName];
     }
-    
+
     // Fallback: Take first 3 letters and uppercase
     return fullName.substring(0, 3).toUpperCase();
   }
@@ -764,7 +770,7 @@ export class MatchesService {
     const compact = normalized.replace(/[\s.-]/g, '');
     return compact.length <= 4 || /^[A-Z0-9\s.-]+$/.test(normalized);
   }
-  
+
   /**
    * Get default logo URL for team
    */
@@ -772,7 +778,7 @@ export class MatchesService {
     // Placeholder logo URL - replace with actual logo service
     return `/assets/images/teams/${this.extractShortName(teamName).toLowerCase()}.png`;
   }
-  
+
   /**
    * Get status color CSS variable
    */
@@ -792,7 +798,7 @@ export class MatchesService {
         return 'var(--color-text-secondary)';
     }
   }
-  
+
   /**
    * Generate match ID from URL or other data
    */
@@ -805,7 +811,7 @@ export class MatchesService {
       const slug = extractSlugFromUrl(apiMatch.url);
       return slug || `match-${Date.now()}`;
     }
-    
+
     // Fallback to timestamp-based ID
     return `match-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }

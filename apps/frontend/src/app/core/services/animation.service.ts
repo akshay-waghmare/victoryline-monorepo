@@ -37,7 +37,7 @@ export class AnimationService {
     averageFPS: 60,
     reducedMotion: false,
     animationsEnabled: true,
-    lastFrameTime: performance.now(),
+    lastFrameTime: this.now(),
     frameCount: 0
   };
 
@@ -74,6 +74,10 @@ export class AnimationService {
    * Initialize animation service
    */
   private initialize(): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
     // Detect reduced motion preference
     this.animationState.reducedMotion = this.detectReducedMotion();
 
@@ -101,6 +105,10 @@ export class AnimationService {
    * @returns false if element is already animating or max concurrent reached
    */
   public startAnimation(elementId: string, duration: number = 300): boolean {
+    if (!this.isBrowser()) {
+      return false;
+    }
+
     // Check if already animating
     if (this.isAnimating(elementId)) {
       console.warn(`Element ${elementId} is already animating`);
@@ -125,7 +133,7 @@ export class AnimationService {
       name: elementId,
       element: document.getElementById(elementId) || document.body,
       state: 'animating',
-      startTime: performance.now(),
+      startTime: this.now(),
       duration: duration
     };
     
@@ -257,7 +265,7 @@ export class AnimationService {
    * Detect reduced motion preference
    */
   private detectReducedMotion(): boolean {
-    if (!window.matchMedia) {
+    if (!this.isBrowser() || !window.matchMedia) {
       return false;
     }
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -267,7 +275,7 @@ export class AnimationService {
    * Set up listener for reduced motion preference changes
    */
   private setupReducedMotionListener(): void {
-    if (!window.matchMedia) {
+    if (!this.isBrowser() || !window.matchMedia) {
       return;
     }
 
@@ -291,8 +299,12 @@ export class AnimationService {
    * Start FPS monitoring
    */
   private startFPSMonitoring(): void {
+    if (!this.isBrowser() || typeof requestAnimationFrame === 'undefined') {
+      return;
+    }
+
     const measureFPS = () => {
-      const now = performance.now();
+      const now = this.now();
       const delta = now - this.animationState.lastFrameTime;
       
       if (delta > 0) {
@@ -321,6 +333,14 @@ export class AnimationService {
     };
 
     requestAnimationFrame(measureFPS);
+  }
+
+  private now(): number {
+    return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as any).__SSR__;
   }
 
   /**

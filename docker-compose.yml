@@ -157,42 +157,21 @@ services:
     container_name: victoryline-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      - "${FRONTEND_PORT:-80}:4000"
     environment:
       API_URL: http://backend:8099
+      BACKEND_URL: http://backend:8099
+      SCRAPER_URL: http://scraper:5000
     depends_on:
       - backend
       - scraper
     networks:
       - victoryline-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:80 || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:4000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-    volumes:
-      - frontend_html:/usr/share/nginx/html
-
-  # Prerender Sidecar (periodic + webhook trigger)
-  prerender:
-    build:
-      context: ./apps/frontend
-      dockerfile: ./prerender-sidecar/Dockerfile
-    container_name: victoryline-prerender
-    restart: unless-stopped
-    environment:
-      BACKEND_URL: http://backend:8099
-      PRERENDER_INTERVAL_MINUTES: ${PRERENDER_INTERVAL_MINUTES:-3}
-      PRERENDER_OUT_DIR: /shared-html/prerender
-    depends_on:
-      - backend
-      - frontend
-    networks:
-      - victoryline-network
-    volumes:
-      - frontend_html:/shared-html
-    ports:
-      - "${PRERENDER_PORT:-9100}:9100"
 
   # Prometheus Metrics Server
   prometheus:
@@ -267,9 +246,6 @@ volumes:
   redis_data:
     driver: local
     name: victoryline-redis-data
-  frontend_html:
-    driver: local
-    name: victoryline-frontend-html
   prometheus_data:
     driver: local
     name: victoryline-prometheus-data

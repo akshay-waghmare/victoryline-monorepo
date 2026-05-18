@@ -187,6 +187,10 @@ export class LiveHeroStateService {
     this.currentConfig = undefined;
   }
   private subscribeToLegacyUpdates(matchId: string) {
+    if (!this.isBrowser()) {
+      return;
+    }
+
     if (this.wsSubscription) {
       this.wsSubscription.unsubscribe();
       this.wsSubscription = null;
@@ -205,6 +209,10 @@ export class LiveHeroStateService {
         console.error('[LiveHeroStateService] Legacy websocket stream error', error);
       }
     );
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && !(window as any).__SSR__;
   }
 
   private mergeLegacyData(payload: any, markFresh: boolean) {

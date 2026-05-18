@@ -59,7 +59,7 @@ crickzen.com, www.crickzen.com {
   # Serve frontend Angular app proxied from internal container
   # Nginx inside frontend container handles static asset and SPA routing.
   handle {
-    reverse_proxy frontend:80 {
+    reverse_proxy frontend:4000 {
       header_up Host {host}
       header_up X-Real-IP {remote}
     }

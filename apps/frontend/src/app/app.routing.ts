@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { BrowserModule } from '@angular/platform-browser';
 import { NgModule } from '@angular/core';
 
 import {AdminLayoutsComponent} from './layouts/admin-layouts/admin-layouts.component';
@@ -28,7 +27,6 @@ const routes: Routes = [
 @NgModule({
   imports: [
     CommonModule,
-    BrowserModule,
     RouterModule.forRoot(routes, {
       scrollPositionRestoration: 'enabled', // T085: Restore scroll position on navigation
       anchorScrolling: 'enabled',

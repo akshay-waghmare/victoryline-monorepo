@@ -181,6 +181,12 @@ export class ThemeService {
    * Initialize theme service (called by app initializer)
    */
   public initialize(): void {
+    if (!this.isBrowser()) {
+      this.currentThemeSubject.next('light');
+      this.themeConfigSubject.next(this.LIGHT_THEME);
+      return;
+    }
+
     // 1. Read saved preferences
     const savedTheme = this.readFromStorage();
     const useSystemTheme = this.readUseSystemTheme();
@@ -278,7 +284,9 @@ export class ThemeService {
    */
   public setUseSystemTheme(useSystem: boolean): void {
     this.useSystemTheme = useSystem;
-    localStorage.setItem(this.USE_SYSTEM_THEME_KEY, JSON.stringify(useSystem));
+    if (this.isBrowser()) {
+      localStorage.setItem(this.USE_SYSTEM_THEME_KEY, JSON.stringify(useSystem));
+    }
 
     if (useSystem) {
       // Apply current system theme
@@ -318,6 +326,10 @@ export class ThemeService {
    */
   public setAnimationsEnabled(enabled: boolean): void {
     this.animationsEnabledSubject.next(enabled);
+    if (!this.isBrowser()) {
+      return;
+    }
+
     localStorage.setItem(this.ANIMATIONS_ENABLED_KEY, JSON.stringify(enabled));
 
     // Apply to document for CSS selectors
@@ -332,7 +344,7 @@ export class ThemeService {
    * Check if reduced motion is preferred (from OS)
    */
   public prefersReducedMotion(): boolean {
-    if (!window.matchMedia) {
+    if (!this.isBrowser() || !window.matchMedia) {
       return false;
     }
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -346,6 +358,10 @@ export class ThemeService {
    * Apply theme to document
    */
   private applyTheme(mode: ThemeMode): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
     // Set data attribute on document root
     document.documentElement.setAttribute('data-theme', mode);
 
@@ -372,6 +388,10 @@ export class ThemeService {
    * Apply CSS custom properties to document root
    */
   private applyCSSVariables(config: ThemeConfig): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
     const root = document.documentElement;
 
     // Apply color variables
@@ -425,7 +445,7 @@ export class ThemeService {
    * Detect system theme preference
    */
   private detectSystemTheme(): ThemeMode {
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    if (this.isBrowser() && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
       return 'dark';
     }
     return 'light';
@@ -435,7 +455,7 @@ export class ThemeService {
    * Set up listener for system theme changes
    */
   private setupSystemThemeListener(): void {
-    if (!window.matchMedia) {
+    if (!this.isBrowser() || !window.matchMedia) {
       return;
     }
 
@@ -459,7 +479,7 @@ export class ThemeService {
    * Set up listener for reduced motion preference changes
    */
   private setupReducedMotionListener(): void {
-    if (!window.matchMedia) {
+    if (!this.isBrowser() || !window.matchMedia) {
       return;
     }
 
@@ -488,6 +508,10 @@ export class ThemeService {
    * Read theme from localStorage
    */
   private readFromStorage(): ThemeMode {
+    if (!this.isBrowser()) {
+      return 'light';
+    }
+
     try {
       const stored = localStorage.getItem(this.THEME_STORAGE_KEY);
       if (stored && isThemeMode(stored)) {
@@ -503,6 +527,10 @@ export class ThemeService {
    * Save theme to localStorage
    */
   private saveToStorage(mode: ThemeMode): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
     try {
       localStorage.setItem(this.THEME_STORAGE_KEY, mode);
     } catch (e) {
@@ -514,6 +542,10 @@ export class ThemeService {
    * Read useSystemTheme preference from localStorage
    */
   private readUseSystemTheme(): boolean {
+    if (!this.isBrowser()) {
+      return false;
+    }
+
     try {
       const stored = localStorage.getItem(this.USE_SYSTEM_THEME_KEY);
       if (stored !== null) {
@@ -529,6 +561,10 @@ export class ThemeService {
    * Read animations enabled preference from localStorage
    */
   private readAnimationsEnabled(): boolean {
+    if (!this.isBrowser()) {
+      return true;
+    }
+
     try {
       const stored = localStorage.getItem(this.ANIMATIONS_ENABLED_KEY);
       if (stored !== null) {
@@ -545,6 +581,10 @@ export class ThemeService {
    * Task: T054 - BroadcastChannel synchronization
    */
   private setupBroadcastChannel(): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
     // Check if BroadcastChannel is supported
     if (typeof BroadcastChannel === 'undefined') {
       console.warn('BroadcastChannel not supported in this browser');
@@ -589,5 +629,9 @@ export class ThemeService {
         console.warn('Failed to broadcast theme change:', e);
       }
     }
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as any).__SSR__;
   }
 }

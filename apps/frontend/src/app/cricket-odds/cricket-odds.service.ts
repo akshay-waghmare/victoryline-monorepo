@@ -148,8 +148,12 @@ export class CricketService {
   private setCache(cache: Map<string, CacheEntry>, storageKey: string, key: string, data: any): void {
     const entry: CacheEntry = { data: JSON.stringify(data), ts: Date.now() };
     cache.set(key, entry);
+    const storage = this.getSessionStorage();
+    if (!storage) {
+      return;
+    }
     try {
-      sessionStorage.setItem(this.CACHE_PREFIX + storageKey + '_' + key, JSON.stringify(entry));
+      storage.setItem(this.CACHE_PREFIX + storageKey + '_' + key, JSON.stringify(entry));
     } catch (_) { /* quota exceeded – non-critical */ }
   }
 
@@ -163,8 +167,13 @@ export class CricketService {
       return entry;
     }
 
+    const storage = this.getSessionStorage();
+    if (!storage) {
+      return null;
+    }
+
     try {
-      const raw = sessionStorage.getItem(this.CACHE_PREFIX + storageKey + '_' + key);
+      const raw = storage.getItem(this.CACHE_PREFIX + storageKey + '_' + key);
       if (raw) {
         const parsed: CacheEntry = JSON.parse(raw);
         cache.set(key, parsed);
@@ -192,11 +201,16 @@ export class CricketService {
 
   /** Restore in-memory maps from sessionStorage on service init */
   private restoreCachesFromStorage(): void {
+    const storage = this.getSessionStorage();
+    if (!storage) {
+      return;
+    }
+
     try {
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const fullKey = sessionStorage.key(i);
+      for (let i = 0; i < storage.length; i++) {
+        const fullKey = storage.key(i);
         if (fullKey && fullKey.startsWith(this.CACHE_PREFIX)) {
-          const raw = sessionStorage.getItem(fullKey);
+          const raw = storage.getItem(fullKey);
           if (!raw) continue;
           const entry: CacheEntry = JSON.parse(raw);
           const remainder = fullKey.substring(this.CACHE_PREFIX.length);
@@ -214,6 +228,13 @@ export class CricketService {
         }
       }
     } catch (_) { /* non-critical */ }
+  }
+
+  private getSessionStorage(): Storage | null {
+    if (typeof window === 'undefined' || (window as any).__SSR__ || !window.sessionStorage) {
+      return null;
+    }
+    return window.sessionStorage;
   }
 
   /**

@@ -13,23 +13,33 @@ export class TokenStorage {
   constructor() { }
 
   signOut() {
-    window.sessionStorage.removeItem(TOKEN_KEY);
-    window.sessionStorage.removeItem(USER_KEY);
-    window.sessionStorage.clear();
+    const storage = this.getStorage();
+    if (!storage) {
+      return;
+    }
+    storage.removeItem(TOKEN_KEY);
+    storage.removeItem(USER_KEY);
+    storage.clear();
   }
 
   public saveToken(user:string,token: string) {
-    window.sessionStorage.removeItem(TOKEN_KEY);
-    window.sessionStorage.removeItem(USER_KEY);
-    window.sessionStorage.setItem(TOKEN_KEY,  token);
-    window.sessionStorage.setItem(USER_KEY,  user);
+    const storage = this.getStorage();
+    if (!storage) {
+      return;
+    }
+    storage.removeItem(TOKEN_KEY);
+    storage.removeItem(USER_KEY);
+    storage.setItem(TOKEN_KEY,  token);
+    storage.setItem(USER_KEY,  user);
   }
 
   public getToken(): string {
-    return sessionStorage.getItem(TOKEN_KEY);
+    const storage = this.getStorage();
+    return storage ? storage.getItem(TOKEN_KEY) : null;
   }
   public getUser(): string {
-    return sessionStorage.getItem(USER_KEY);
+    const storage = this.getStorage();
+    return storage ? storage.getItem(USER_KEY) : null;
   }
 
   public isTokenExpired(token: string): boolean {
@@ -45,5 +55,12 @@ export class TokenStorage {
   public isLoggedIn(): boolean {
     const token = this.getToken();
     return token !== null && !this.isTokenExpired(token);
+  }
+
+  private getStorage(): Storage | null {
+    if (typeof window === 'undefined' || (window as any).__SSR__ || !window.sessionStorage) {
+      return null;
+    }
+    return window.sessionStorage;
   }
 }

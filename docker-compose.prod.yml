@@ -170,52 +170,26 @@ services:
       retries: 3
       start_period: 45s
 
-  prerender:
-    image: "${PRERENDER_IMAGE:-macubex/victoryline-prerender:v1.2.2}"
-    container_name: victoryline-prerender
-    restart: unless-stopped
-    ports:
-      - "${PRERENDER_PORT:-9100}:9100"
-    environment:
-      BACKEND_URL: "${BACKEND_URL:-http://backend:8099}"
-      PRERENDER_OUT_DIR: /shared-html/prerender
-    volumes:
-      - prerender_html:/shared-html
-    depends_on:
-      - backend
-    networks:
-      - victoryline-network
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - "wget -q --spider http://localhost:9100/health || exit 1"
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
-
   frontend:
     image: "${FRONTEND_IMAGE:-macubex/victoryline-frontend:v1.2.2}"
     container_name: victoryline-frontend
     restart: unless-stopped
     # No external port mapping - accessed via Caddy reverse proxy only
     expose:
-      - "80"
-    volumes:
-      - prerender_html:/shared-html
+      - "4000"
     environment:
       API_URL: "${API_URL:-http://backend:8099}"
-    entrypoint: ["/bin/sh", "-c", "rm -rf /usr/share/nginx/html/prerender && ln -sf /shared-html/prerender /usr/share/nginx/html/prerender && nginx -g 'daemon off;'"]
+      BACKEND_URL: "${BACKEND_URL:-http://backend:8099}"
+      SCRAPER_URL: "${SCRAPER_URL:-http://scraper:5000}"
     depends_on:
       - backend
-      - prerender
       - scraper
     networks:
       - victoryline-network
     healthcheck:
       test:
         - CMD-SHELL
-        - "curl -fsS http://localhost:80 || exit 1"
+        - "wget -q --spider http://localhost:4000/health || exit 1"
       interval: 30s
       timeout: 5s
       retries: 3
@@ -254,8 +228,6 @@ volumes:
   redis_data:
     driver: local
   scraper_data:
-    driver: local
-  prerender_html:
     driver: local
   caddy_data:
     driver: local

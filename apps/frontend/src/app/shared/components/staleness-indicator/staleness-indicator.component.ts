@@ -12,11 +12,16 @@ export class StalenessIndicatorComponent implements OnInit {
   StalenessLevel = StalenessLevel;
   currentLevel: StalenessLevel = StalenessLevel.LIVE;
   secondsSinceUpdate = 0;
+  private intervalId: any;
 
   ngOnInit(): void {
     this.updateStaleness();
+    if (typeof window === 'undefined' || (window as any).__SSR__) {
+      return;
+    }
+
     // Recompute every second
-    setInterval(() => this.updateStaleness(), 1000);
+    this.intervalId = setInterval(() => this.updateStaleness(), 1000);
   }
 
   private updateStaleness(): void {

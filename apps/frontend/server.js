@@ -1,0 +1,200 @@
+require('zone.js/dist/zone-node');
+
+const fs = require('fs');
+const path = require('path');
+const express = require('express');
+const helmet = require('helmet');
+const domino = require('domino');
+const { APP_BASE_HREF } = require('@angular/common');
+const { ngExpressEngine } = require('@nguniversal/express-engine');
+const { provideModuleMap } = require('@nguniversal/module-map-ngfactory-loader');
+const { REQUEST, RESPONSE } = require('@nguniversal/express-engine/tokens');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+const DIST_FOLDER = path.join(process.cwd(), 'dist', 'id-card-app');
+const SERVER_BUNDLE = path.join(process.cwd(), 'dist', 'id-card-app-server', 'main');
+const INDEX_HTML = path.join(DIST_FOLDER, 'index.html');
+const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
+const BACKEND_URL = (process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:8099').replace(/\/+$/, '');
+const SCRAPER_URL = (process.env.SCRAPER_URL || 'http://scraper:5000').replace(/\/+$/, '');
+const SSR_RENDER_TIMEOUT_MS = process.env.SSR_RENDER_TIMEOUT_MS ? Number(process.env.SSR_RENDER_TIMEOUT_MS) : 8000;
+
+function installDominoGlobals() {
+  const template = fs.existsSync(INDEX_HTML) ? fs.readFileSync(INDEX_HTML).toString() : '<html><head></head><body><app-root></app-root></body></html>';
+  const win = domino.createWindow(template);
+  const storage = {
+    getItem: () => null,
+    setItem: () => undefined,
+    removeItem: () => undefined,
+    clear: () => undefined,
+    key: () => null,
+    get length() { return 0; }
+  };
+
+  global.window = win;
+  global.__SSR__ = true;
+  global.document = win.document;
+  global.navigator = win.navigator;
+  global.HTMLElement = win.HTMLElement;
+  global.HTMLImageElement = win.HTMLImageElement;
+  global.HTMLIFrameElement = win.HTMLIFrameElement;
+  global.HTMLVideoElement = win.HTMLVideoElement;
+  global.Node = win.Node;
+  global.Event = win.Event;
+  global.KeyboardEvent = win.KeyboardEvent;
+  global.MouseEvent = win.MouseEvent;
+  global.getComputedStyle = win.getComputedStyle.bind(win);
+  global.localStorage = storage;
+  global.sessionStorage = storage;
+  global.requestAnimationFrame = (callback) => setTimeout(() => callback(Date.now()), 16);
+  global.cancelAnimationFrame = (id) => clearTimeout(id);
+  global.window.localStorage = storage;
+  global.window.sessionStorage = storage;
+  global.window.__SSR__ = true;
+  global.window.requestAnimationFrame = global.requestAnimationFrame;
+  global.window.cancelAnimationFrame = global.cancelAnimationFrame;
+  global.window.matchMedia = global.window.matchMedia || (() => ({
+    matches: false,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined
+  }));
+}
+
+function createApiProxy() {
+  return createProxyMiddleware({
+    target: BACKEND_URL,
+    changeOrigin: true,
+    ws: true,
+    logLevel: process.env.PROXY_LOG_LEVEL || 'warn',
+    pathRewrite: (proxyPath) => {
+      if (/^\/api\/(v1|poll)(\/|$)/.test(proxyPath)) {
+        return proxyPath;
+      }
+      return proxyPath.replace(/^\/api/, '') || '/';
+    }
+  });
+}
+
+function applyRouteCacheHeaders(req, res) {
+  if (/^\/cric-live\//.test(req.path)) {
+    res.setHeader('Cache-Control', 'public, max-age=5, stale-while-revalidate=55');
+    res.setHeader('CDN-Cache-Control', 'public, max-age=5, stale-while-revalidate=55');
+    res.setHeader('Surrogate-Control', 'public, max-age=5, stale-while-revalidate=55');
+    res.setHeader('X-SSR-Cache-State', 'live');
+    return;
+  }
+
+  if (req.path === '/' || req.path === '/Home' || req.path === '/matches') {
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    return;
+  }
+
+  res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+}
+
+installDominoGlobals();
+
+const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(SERVER_BUNDLE);
+const app = express();
+const apiProxy = createApiProxy();
+
+app.disable('x-powered-by');
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'frontend-ssr' });
+});
+
+app.use(['/robots.txt', '/sitemap.xml', '/sitemaps'], createProxyMiddleware({
+  target: BACKEND_URL,
+  changeOrigin: true,
+  logLevel: process.env.PROXY_LOG_LEVEL || 'warn'
+}));
+
+app.use('/token', createProxyMiddleware({
+  target: BACKEND_URL,
+  changeOrigin: true,
+  logLevel: process.env.PROXY_LOG_LEVEL || 'warn'
+}));
+
+app.use('/api', apiProxy);
+
+app.use('/scraper', createProxyMiddleware({
+  target: SCRAPER_URL,
+  changeOrigin: true,
+  logLevel: process.env.PROXY_LOG_LEVEL || 'warn',
+  pathRewrite: { '^/scraper': '' }
+}));
+
+app.engine('html', ngExpressEngine({
+  bootstrap: AppServerModuleNgFactory,
+  providers: [
+    provideModuleMap(LAZY_MODULE_MAP)
+  ]
+}));
+
+app.set('view engine', 'html');
+app.set('views', DIST_FOLDER);
+
+app.get('*.*', express.static(DIST_FOLDER, {
+  index: false,
+  maxAge: '1y'
+}));
+
+app.get('*', (req, res) => {
+  if (path.extname(req.path)) {
+    res.status(404).send('Not found');
+    return;
+  }
+
+  applyRouteCacheHeaders(req, res);
+
+  let completed = false;
+  const fallbackTimer = setTimeout(() => {
+    if (completed || res.headersSent) {
+      return;
+    }
+
+    completed = true;
+    console.error('[SSR] Render timed out', { url: req.originalUrl, timeoutMs: SSR_RENDER_TIMEOUT_MS });
+    res.status(200).sendFile(INDEX_HTML);
+  }, SSR_RENDER_TIMEOUT_MS);
+
+  res.render('index', {
+    req: req,
+    res: res,
+    providers: [
+      { provide: APP_BASE_HREF, useValue: req.baseUrl || '/' },
+      { provide: REQUEST, useValue: req },
+      { provide: RESPONSE, useValue: res }
+    ]
+  }, (err, html) => {
+    if (completed) {
+      return;
+    }
+
+    completed = true;
+    clearTimeout(fallbackTimer);
+
+    if (err) {
+      console.error('[SSR] Render failed', {
+        url: req.originalUrl,
+        error: err.message,
+        stack: err.stack
+      });
+      res.status(200).sendFile(INDEX_HTML);
+      return;
+    }
+    res.status(200).send(html);
+  });
+});
+
+const server = app.listen(PORT, () => {
+  console.log(`[frontend] Angular SSR listening on http://localhost:${PORT}`);
+});
+
+server.on('upgrade', apiProxy.upgrade);

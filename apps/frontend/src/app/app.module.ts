@@ -1,5 +1,5 @@
 import { RouteReuseStrategy, RouterModule } from '@angular/router';
-import { BrowserModule } from '@angular/platform-browser';
+import { BrowserModule, BrowserTransferStateModule } from '@angular/platform-browser';
 import { NgModule, APP_INITIALIZER } from '@angular/core';
 
 import { AppComponent } from './app.component';
@@ -67,7 +67,8 @@ const stompConfig: StompConfig = {
         
   ],
   imports: [
-    BrowserModule,
+    BrowserModule.withServerTransition({ appId: 'crickzen-app' }),
+    BrowserTransferStateModule,
     HttpClientModule,
     FormsModule,
     ReactiveFormsModule,

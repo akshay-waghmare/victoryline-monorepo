@@ -6,7 +6,7 @@
     Pushes latest code to origin, SSHs to prod server, pulls code, builds all
     Docker images with a consistent tag, updates .env, and restarts the stack.
 
-    Ensures all 4 services (backend, frontend, scraper, prerender) are built
+    Ensures all services (backend, frontend, scraper) are built
     from the same git commit with the same tag — no more image mismatch.
 
 .PARAMETER Tag

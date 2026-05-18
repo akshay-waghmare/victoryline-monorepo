@@ -1,8 +1,16 @@
+function getBrokerUrl(): string {
+  if (typeof window === 'undefined') {
+    return '/api/ws/websocket';
+  }
+
+  return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws/websocket`;
+}
+
 export const environment = {
   production: true,
   ws: {
     // WebSocket through Nginx proxy - uses relative path for portability
-    brokerURL: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws/websocket`,
+    brokerURL: getBrokerUrl(),
     login: 'guest',
     passcode: 'guest'
   },

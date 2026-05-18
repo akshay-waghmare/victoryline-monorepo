@@ -2,12 +2,20 @@
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
+function getBrokerUrl(): string {
+  if (typeof window === 'undefined') {
+    return '/api/ws/websocket';
+  }
+
+  return `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws/websocket`;
+}
+
 export const environment = {
   production: false,
   ws: {
     // WebSocket through Nginx proxy - works for Docker builds
     // For local dev with `ng serve`, you may need to configure proxy in angular.json
-    brokerURL: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/ws/websocket`,
+    brokerURL: getBrokerUrl(),
     login: 'guest',
     passcode: 'guest'
   },
