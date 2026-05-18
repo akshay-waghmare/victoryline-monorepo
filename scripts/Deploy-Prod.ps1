@@ -89,7 +89,12 @@ try {
     if (-not $SkipPush) {
         Write-Host "Pushing to origin/$gitBranch ..." -ForegroundColor Green
         if (-not $DryRun) {
-            git push origin $gitBranch 2>&1 | Write-Host
+            $pushOutput = & cmd.exe /c "git push origin $gitBranch 2>&1"
+            $pushExitCode = $LASTEXITCODE
+            $pushOutput | ForEach-Object { Write-Host "  $_" }
+            if ($pushExitCode -ne 0) {
+                throw "git push failed with exit code $pushExitCode"
+            }
         }
         else {
             Write-Host "  [DRY RUN] git push origin $gitBranch"
