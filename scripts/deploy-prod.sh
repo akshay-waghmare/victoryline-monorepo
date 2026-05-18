@@ -58,11 +58,12 @@ echo "  Dry run:   $(if $DRY_RUN; then echo 'YES'; else echo 'NO'; fi)"
 echo "============================================"
 echo ""
 
-# Warn if working tree is dirty
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "⚠️  WARNING: Working tree has uncommitted changes!"
-  echo "   Images will include uncommitted code."
-  git status --short
+# Warn if tracked files are dirty. Production keeps local backup files beside the repo,
+# so untracked files must not block repeatable deploys.
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+  echo "WARNING: Working tree has uncommitted tracked changes!"
+  echo "   Images will include uncommitted tracked code."
+  git status --short --untracked-files=no
   echo ""
   read -p "Continue anyway? [y/N] " -r
   if [[ ! "$REPLY" =~ ^[Yy]$ ]]; then
@@ -169,7 +170,7 @@ cat > "$MANIFEST_FILE" <<EOF
     "scraper": "${IMAGE_NAMES[scraper]}:${TAG}"
   },
   "env_backup": "$(basename "$BACKUP_FILE")",
-  "dirty_tree": $(if [[ -n "$(git status --porcelain)" ]]; then echo "true"; else echo "false"; fi)
+  "dirty_tree": $(if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then echo "true"; else echo "false"; fi)
 }
 EOF
 echo "📁 Deploy manifest saved: $MANIFEST_FILE"
