@@ -47,9 +47,10 @@ $sshExe = "C:\Program Files\Git\usr\bin\ssh.exe"
 
 function Invoke-Ssh {
     param([string]$Command)
-    $output = & $sshExe $SshTarget $Command 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "SSH command failed (exit $LASTEXITCODE): $Command`n$($output -join "`n")"
+    $output = & $sshExe $SshTarget $Command
+    $sshExitCode = $LASTEXITCODE
+    if ($sshExitCode -ne 0) {
+        Write-Error "SSH command failed (exit $sshExitCode): $Command`n$($output -join "`n")"
     }
     return $output
 }
