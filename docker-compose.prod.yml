@@ -147,6 +147,8 @@ services:
       PLAYER_STATS_WORKER_COUNT: "${PLAYER_STATS_WORKER_COUNT:-3}"
     volumes:
       - scraper_data:/app/storage
+      # IPL priority patch – override scraper core without a full image rebuild
+      - ./apps/scraper/crex_scraper_python/src/crex_scraper.py:/app/crex_scraper_python/src/crex_scraper.py:ro
     depends_on:
       - backend
       - redis

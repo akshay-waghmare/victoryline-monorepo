@@ -309,6 +309,14 @@ class CrexScraperService:
                 matches = await asyncio.to_thread(CricketDataService.get_live_matches, self._auth_token)
                 live_urls = []
 
+                # Sort priority leagues (IPL) first so they are never dropped by the cap
+                _PRIORITY = ('indian-premier-league',)
+                def _url_of(m):
+                    if isinstance(m, dict):
+                        return (m.get('url') or m.get('matchUrl') or '').lower()
+                    return m.lower() if isinstance(m, str) else ''
+                matches = sorted(matches, key=lambda m: 0 if any(p in _url_of(m) for p in _PRIORITY) else 1)
+
                 # Cap to top N matches to avoid PID exhaustion with many concurrent Chrome tabs
                 if self.settings.max_live_matches > 0:
                     matches = matches[:self.settings.max_live_matches]
