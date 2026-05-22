@@ -557,6 +557,68 @@ Older scraper code called `schedule_container_restart(..., delay_seconds=0)` dir
 2. Never rebuild production images from uncommitted code.
 3. Back up `.env` before changing image pins or scraper tuning.
 
+## Issue 10: High-Priority Match (IPL) Never Scraped Despite Being Discovered (2026-05-22)
+
+### Symptom
+
+- Live IPL match visible in discovery logs (`[DISCOVERY] Found 8 matches: [...rcb-vs-srh-119C...]`)
+- Match registered in backend (`id=1828`, status=live)
+- `lastKnownState: null` for IPL match in backend — no score data ever arrives
+- No `matches.push` log entries for the IPL match; only T20 Blast Women matches push data
+- Scraper health shows `active_matches: 5` while 8 live matches were discovered
+
+### Root Cause
+
+`MAX_LIVE_MATCHES=5` cap in `crex_scraper.py → _poll_loop()`. Before applying the cap, matches were sorted by the backend's `lastStateUpdatedAt DESC` order. IPL had `lastKnownState: null` (never scraped before) → its `lastStateUpdatedAt` was older than the 5 actively-scraped T20 Blast Women matches → IPL landed at position **[6]** → cut off by the cap.
+
+Self-reinforcing: the match is excluded because it's never been scraped, and it's never scraped because it's excluded.
+
+### Fix
+
+Added a priority sort in `crex_scraper.py` before the cap — any URL containing `indian-premier-league` is sorted to the front (key=0) before slicing:
+
+```python
+_PRIORITY = ('indian-premier-league',)
+def _url_of(m):
+    if isinstance(m, dict):
+        return (m.get('url') or m.get('matchUrl') or '').lower()
+    return m.lower() if isinstance(m, str) else ''
+matches = sorted(matches, key=lambda m: 0 if any(p in _url_of(m) for p in _PRIORITY) else 1)
+```
+
+A **volume mount override** in `docker-compose.prod.yml` injects the patched file into the running container without a Docker Hub image rebuild:
+
+```yaml
+volumes:
+  - scraper_data:/app/storage
+  - ./apps/scraper/crex_scraper_python/src/crex_scraper.py:/app/crex_scraper_python/src/crex_scraper.py:ro
+```
+
+To deploy on prod after a `git pull`:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --no-build scraper
+```
+
+### Diagnosis Query
+
+```bash
+curl -s http://localhost:8099/cricket-data/live-matches | python3 -c "
+import sys,json
+for i,m in enumerate(json.load(sys.stdin)):
+    url = str(m.get('url',''))
+    print(f'[{i}] id={m.get(\"id\")} {url[-60:]} state={m.get(\"lastKnownState\") is not None}')
+"
+# Any match beyond position [MAX_LIVE_MATCHES-1] will be ignored by the scraper
+```
+
+### Prevention
+
+- Add any tournament that must always be scraped to `_PRIORITY` in `crex_scraper.py`
+- When a new season starts and a new match key is registered, check its position in the live-matches list before assuming it's being scraped
+
+---
+
 ## .env Backup Policy
 
 **ALWAYS** back up `.env` before any deployment change:
