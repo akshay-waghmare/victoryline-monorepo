@@ -594,3 +594,80 @@ curl -fsS http://localhost:8099/api/v1/seo/indexing/status
 curl -fsS http://localhost:5000/health
 curl -I -fsS https://www.crickzen.com/
 ```
+
+---
+
+## Issue 9: prediction.crickzen.com Stuck — End-of-Season League Changeover (May 2026)
+
+**Date:** 2026-05-22
+**Severity:** Medium — No live predictions for 2 days; main crickzen.com unaffected
+**Status:** Resolved
+
+### Symptoms
+- `prediction.crickzen.com` showing stale data (last update May 20 ~19:17 UTC)
+- Signal runner (`ipl-signal-runner` PM2 process) scanning every 20s but finding "no new draft"
+- No new `data/dashboard_states/` files written since IPL Final (May 20)
+- Main crickzen.com live scores working normally
+
+### Root Cause
+`AUTO_LEAGUE_KEY=IPL` in `dashboard/.env`. The `auto_scheduler.py` only starts predictions for matches whose URL matches `AUTO_LEAGUE_KEY`. IPL 2026 ended May 20 (MI vs KKR final). After that, the only live matches were **T20 Blast Women** — which had no URL pattern in `LEAGUE_CONFIGS` and `_URL_LEAGUE_PATTERNS`, so every discovery cycle skipped all available matches.
+
+The scraper itself was running fine (5 active T20 Blast Women matches, scraping every 3-6s).
+
+### Fix Applied
+1. Added `T20 Blast Women` to `LEAGUE_CONFIGS` in `dashboard/app/config.py`:
+   ```python
+   "T20 Blast Women": {
+       "league": "t20i_female",
+       "model_dir": "models/t20_female_v4",
+       "feature_store_dir": "",  # No dedicated feature store; uses generic female T20 model
+   },
+   ```
+2. Added URL pattern to `_URL_LEAGUE_PATTERNS` (before generic `Women T20I`):
+   ```python
+   (r"t20-blast-women|t20-blast-w", "T20 Blast Women"),
+   ```
+3. Updated `dashboard/.env`: `AUTO_LEAGUE_KEY=T20 Blast Women`
+4. Rebuilt and restarted: `docker compose -f docker-compose.dashboard-prod.yml up -d --build`
+
+**Result:** Signal runner posted Telegram signal `phase=death_overs` within ~14 minutes of restart.
+
+### Playbook: Season Changeover
+Every time a cricket season/tournament ends, you must update `prediction.crickzen.com`:
+
+```bash
+# On prod server:
+cd /home/administrator/projects/machine_learning_bbl
+
+# 1. Identify what's currently live on the scraper:
+curl -s http://localhost:5000/health | python3 -c "import sys,json; print(json.load(sys.stdin)['data'])"
+# Or: curl http://localhost:8099/cricket-data/live-matches
+
+# 2. Update league key in .env
+nano dashboard/.env   # change AUTO_LEAGUE_KEY=<new league>
+
+# 3. If the new league is not in LEAGUE_CONFIGS, add it to dashboard/app/config.py
+#    (Requires Docker image rebuild - step 4)
+
+# 4. Rebuild and restart
+docker compose -f docker-compose.dashboard-prod.yml up -d --build
+
+# 5. Verify - new state files should appear within ~60s:
+watch -n 10 'ls -lt data/dashboard_states/ | head -5'
+
+# 6. Verify signal runner picks up:
+pm2 logs ipl-signal-runner --lines 10 --nostream
+```
+
+### Known League → Model Mapping
+| League | `AUTO_LEAGUE_KEY` | Model | Notes |
+|--------|-------------------|-------|-------|
+| IPL | `IPL` | `ipl_v6` | `ipl_feature_store_v3` required |
+| T20 Blast Women | `T20 Blast Women` | `t20_female_v4` | No feature store (generic) |
+| Women T20I (Intl) | `Women T20I` | `t20_female_v4` | `t20_female_feature_store_v4` required (may be missing) |
+| BBL | `BBL` | `bbl_v12` | `bbl_feature_store_v2` |
+| PSL | `PSL` | `t20_male_v2` | `psl_feature_store_v1` required |
+
+> **Note:** `dashboard/app/config.py` is baked into the Docker image — any `LEAGUE_CONFIGS` change requires `--build`.
+> **Note:** `dashboard/.env` changes take effect on next container restart (no rebuild needed).
+
