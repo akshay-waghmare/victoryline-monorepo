@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Dict, Any
 import logging
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 
 # Use standard logging for now to bypass structlog filtering if any
 logger = logging.getLogger("dom_match_extract")
@@ -45,6 +45,23 @@ REQUIRED_SELECTORS: List[str] = [
 ]
 
 
+def _get_team_name(el) -> str:
+    """Extract team name using only direct text nodes, ignoring child element text.
+
+    Crex.com sometimes injects badge elements (e.g. .pp-icon showing "PP" for
+    powerplay) inside the .team-name container.  A plain get_text(strip=True)
+    concatenates ALL descendant text without separators, producing mangled names
+    like "PBKSPP".  This helper takes only the NavigableString children of the
+    element (i.e. text that is a direct child, not inside a sub-element) so
+    decorative badges are excluded.
+
+    Falls back to get_text(strip=True) when no direct text is found (handles
+    cases where the name is wrapped in a single child <span>).
+    """
+    direct = " ".join(s.strip() for s in el.children if isinstance(s, NavigableString) and s.strip())
+    return direct or el.get_text(strip=True)
+
+
 def get_missing_selectors(html: str) -> List[str]:
     """Return selectors from REQUIRED_SELECTORS not found in HTML.
 
@@ -76,7 +93,7 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
     soup = BeautifulSoup(html, "html.parser")
 
     result_spans = [s.get_text(strip=True) for s in soup.select(".result-box span")]
-    final_result = next((s.get_text(strip=True) for s in soup.select(".final-result.m-none")), None)
+    final_result = next((s.get_text(separator=" ", strip=True) for s in soup.select(".final-result.m-none")), None)
     run_rate = next((s.get_text(strip=True) for s in soup.select(".team-run-rate .data")), None)
     venue = next((a.get_text(strip=True) for a in soup.select("a[href*='cricket-grounds']")), None)
 
@@ -87,7 +104,7 @@ def extract_match_dom_fields(html: str) -> Dict[str, Any]:
         runs_el = block.select_one(".runs span:nth-child(1)") or block.select_one(".runs span")
         overs_el = block.select_one(".runs span:nth-child(2)")
         teams.append({
-            "name": name_el.get_text(strip=True) if name_el else None,
+            "name": _get_team_name(name_el) if name_el else None,
             "runs": runs_el.get_text(strip=True) if runs_el else None,
             "overs": overs_el.get_text(strip=True) if overs_el else None,
         })

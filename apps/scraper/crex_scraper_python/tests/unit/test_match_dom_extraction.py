@@ -35,7 +35,7 @@ def sample_html() -> str:
       <div class='fav-odd'>
         <div class='d-flex'>
           <div class='team-name'><span>Team A</span></div>
-          <div class='odd'><div>1.45</div><div>1.60</div></div>
+          <div class='odd'><div class='dark-odds'>1.45</div><div class='dark-odds'>1.60</div></div>
         </div>
       </div>
       <span class='ds-text-title-xs ds-font-bold ds-capitalize'>Team A</span>
@@ -61,9 +61,45 @@ def test_extraction_structure(sample_html):
         assert t["name"], "Team name missing"
         assert t["runs"], "Team runs missing"
         assert t["overs"], "Team overs missing"
-    assert data["overs"], "Overs detail missing"
+    assert data["overs_data"], "Overs detail missing"
     assert data["odds"], "Odds block missing"
     assert data["venue"] == "Stadium Name"
+
+
+def test_team_name_ignores_pp_icon():
+    """Powerplay badge (.pp-icon > 'PP') must not be appended to the team name."""
+    html = """
+    <html><body>
+      <div class='team-content'>
+        <div class='team-name team-1'> PBKS
+          <span class='inning-f'> </span>
+          <div class='pp-icon'><span class='btn-text'>PP</span></div>
+        </div>
+        <div class='runs'><span>0-0</span><span>0.0</span></div>
+      </div>
+    </body></html>
+    """
+    data = extract_match_dom_fields(html)
+    assert data["teams"][0]["name"] == "PBKS", (
+        f"Expected 'PBKS', got '{data['teams'][0]['name']}' — pp-icon leaking into team name"
+    )
+
+
+def test_final_result_text_has_spaces():
+    """Words split across child spans in .final-result must be separated by spaces."""
+    html = """
+    <html><body>
+      <div class='final-result m-none'>PBKS need<span>197</span> runs<span>in</span><span>120</span> balls</div>
+      <div class='team-content'>
+        <div class='team-name'>X</div>
+        <div class='runs'><span>0</span><span>0</span></div>
+      </div>
+    </body></html>
+    """
+    data = extract_match_dom_fields(html)
+    result_text = data["result"]
+    assert " " in result_text, f"final_result_text has no spaces: '{result_text}'"
+    assert "197" in result_text and "120" in result_text
 
 
 def test_missing_selector_detection(sample_html):

@@ -149,6 +149,7 @@ services:
       - scraper_data:/app/storage
       # IPL priority patch – override scraper core without a full image rebuild
       - ./apps/scraper/crex_scraper_python/src/crex_scraper.py:/app/crex_scraper_python/src/crex_scraper.py:ro
+      - ./apps/scraper/crex_scraper_python/src/dom_match_extract.py:/app/crex_scraper_python/src/dom_match_extract.py:ro
     depends_on:
       - backend
       - redis
