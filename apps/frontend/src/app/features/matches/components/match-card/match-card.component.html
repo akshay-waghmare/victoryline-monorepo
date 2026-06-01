@@ -20,9 +20,7 @@
     <span class="match-card__series" *ngIf="hasSeriesLabel()">{{ getSeriesLabel() }}</span>
     <div class="match-card__header-meta">
       <span
-        class="match-card__status"
-        [style.background-color]="getStatusColor()"
-        [style.color]="getStatusTextColor()">
+        class="match-card__status">
         <span class="match-card__live-dot" *ngIf="isMatchLive()"></span>
         {{ getStatusDisplayText() }}
       </span>

@@ -96,6 +96,35 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
+.match-card[data-status="LIVE"] .match-card__status,
+.match-card[data-status="INNINGS_BREAK"] .match-card__status {
+  background: rgba(74, 222, 128, 0.24);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #14532d;
+}
+
+.match-card[data-status="UPCOMING"] .match-card__status {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.match-card[data-status="COMPLETED"] .match-card__status {
+  background: #334155;
+  border-color: #334155;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.match-card[data-status="ABANDONED"] .match-card__status,
+.match-card[data-status="RAIN_DELAY"] .match-card__status {
+  background: #b91c1c;
+  border-color: #b91c1c;
+  color: #ffffff;
+  box-shadow: none;
+}
+
 .match-card__substatus {
   font-size: 0.72rem;
   font-weight: 700;
