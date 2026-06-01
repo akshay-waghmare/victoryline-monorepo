@@ -91,9 +91,21 @@
  -->
 
 <div class="scorecard">
-  <h1>Scorecard</h1>
+  <header class="scorecard__header">
+    <div>
+      <span class="scorecard__eyebrow">Scorecard</span>
+      <h1>Scorecard</h1>
+      <p class="scorecard__subtitle" *ngIf="getSelectedInningTeamCode()">
+        {{ getSelectedInningTeamCode() }} innings, batting and bowling score detail.
+      </p>
+    </div>
+    <div class="scorecard__score-chip" *ngIf="getSelectedInningScore()">
+      <span>{{ getSelectedInningTeamCode() }}</span>
+      <strong>{{ getSelectedInningScore() }}</strong>
+    </div>
+  </header>
 
-  <mat-tab-group (selectedTabChange)="onTabChange($event)">
+  <mat-tab-group class="scorecard-tabs" (selectedTabChange)="onTabChange($event)">
     <mat-tab *ngFor="let inningKey of inningsKeys" [label]="getInningLabel(inningKey)">
 
       <!-- Innings team score header -->
@@ -104,87 +116,95 @@
         </div>
 
         <!-- ── BATTING ── -->
-        <div class="section-label">Batting</div>
-        <table class="sc-table">
-          <thead>
-            <tr>
-              <th class="col-player">Batter</th>
-              <th class="col-num">R</th>
-              <th class="col-num">B</th>
-              <th class="col-num">4s</th>
-              <th class="col-num">6s</th>
-              <th class="col-num">SR</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let batterKey of getBatsmenWhoPlayed(inningKey)"
-                [class.currently-batting]="isCurrentlyBatting(batterKey, inningKey)">
-              <td class="player-cell">
-                <button
-                  type="button"
-                  class="player-name player-name-button"
-                  [class.player-name-button--enabled]="canInspectPlayer(batterKey)"
-                  [disabled]="!canInspectPlayer(batterKey)"
-                  (click)="selectPlayer(batterKey)">
-                  <span>
-                    {{ batterKey }}
-                    <span *ngIf="isCurrentlyBatting(batterKey, inningKey)" class="not-out-marker" title="Currently batting">*</span>
-                  </span>
-                  <span class="player-name-button__hint" *ngIf="canInspectPlayer(batterKey)">Details</span>
-                </button>
-                <span class="dismissal-text" [class.batting-status]="isCurrentlyBatting(batterKey, inningKey)">
-                  {{ getDismissalText(batterKey, inningKey) }}
-                </span>
-              </td>
-              <td class="col-num bold-runs">{{ getBatsmanStats(batterKey, inningKey).runs }}</td>
-              <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).balls_faced }}</td>
-              <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).fours }}</td>
-              <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).sixes }}</td>
-              <td class="col-num">{{ calculateStrikeRate(getBatsmanStats(batterKey, inningKey).runs, getBatsmanStats(batterKey, inningKey).balls_faced) | number:'1.0-2' }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <section class="scorecard-section">
+          <div class="section-label">Batting</div>
+          <div class="sc-table-wrap">
+            <table class="sc-table">
+              <thead>
+                <tr>
+                  <th class="col-player">Batter</th>
+                  <th class="col-num">R</th>
+                  <th class="col-num">B</th>
+                  <th class="col-num">4s</th>
+                  <th class="col-num">6s</th>
+                  <th class="col-num">SR</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let batterKey of getBatsmenWhoPlayed(inningKey)"
+                    [class.currently-batting]="isCurrentlyBatting(batterKey, inningKey)">
+                  <td class="player-cell">
+                    <button
+                      type="button"
+                      class="player-name player-name-button"
+                      [class.player-name-button--enabled]="canInspectPlayer(getBatterDisplayName(batterKey, inningKey))"
+                      [disabled]="!canInspectPlayer(getBatterDisplayName(batterKey, inningKey))"
+                      (click)="selectPlayer(getBatterDisplayName(batterKey, inningKey))">
+                      <span>
+                        {{ getBatterDisplayName(batterKey, inningKey) }}
+                        <span *ngIf="isCurrentlyBatting(batterKey, inningKey)" class="not-out-marker" title="Currently batting">*</span>
+                      </span>
+                      <span class="player-name-button__hint" *ngIf="canInspectPlayer(getBatterDisplayName(batterKey, inningKey))">Details</span>
+                    </button>
+                    <span class="dismissal-text" [class.batting-status]="isCurrentlyBatting(batterKey, inningKey)">
+                      {{ getDismissalText(batterKey, inningKey) }}
+                    </span>
+                  </td>
+                  <td class="col-num bold-runs">{{ getBatsmanStats(batterKey, inningKey).runs }}</td>
+                  <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).balls_faced }}</td>
+                  <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).fours }}</td>
+                  <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).sixes }}</td>
+                  <td class="col-num">{{ calculateStrikeRate(getBatsmanStats(batterKey, inningKey).runs, getBatsmanStats(batterKey, inningKey).balls_faced) | number:'1.0-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <!-- Yet to bat -->
-        <div class="yet-to-bat-row" *ngIf="getYetToBatKeys(inningKey).length > 0">
+        <div class="yet-to-bat-row" *ngIf="getYetToBatDisplayNames(inningKey).length > 0">
           <span class="ytb-label">Yet to bat:</span>
-          <span class="ytb-names">{{ getYetToBatKeys(inningKey).join(', ') }}</span>
+          <span class="ytb-names">{{ getYetToBatDisplayNames(inningKey).join(', ') }}</span>
         </div>
 
         <!-- ── BOWLING ── -->
-        <div class="section-label">Bowling</div>
-        <table class="sc-table">
-          <thead>
-            <tr>
-              <th class="col-player">Bowler</th>
-              <th class="col-num">O</th>
-              <th class="col-num">M</th>
-              <th class="col-num">R</th>
-              <th class="col-num">W</th>
-              <th class="col-num">ECON</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let bowlerKey of getBowlerKeys(inningKey)">
-              <td class="player-cell">
-                <button
-                  type="button"
-                  class="player-name player-name-button"
-                  [class.player-name-button--enabled]="canInspectPlayer(bowlerKey)"
-                  [disabled]="!canInspectPlayer(bowlerKey)"
-                  (click)="selectPlayer(bowlerKey)">
-                  <span>{{ bowlerKey }}</span>
-                  <span class="player-name-button__hint" *ngIf="canInspectPlayer(bowlerKey)">Details</span>
-                </button>
-              </td>
-              <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).overs }}</td>
-              <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).maidens }}</td>
-              <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).runs }}</td>
-              <td class="col-num bold-wickets">{{ getBowlerStats(bowlerKey, inningKey).wickets }}</td>
-              <td class="col-num">{{ calculateEconomyRate(getBowlerStats(bowlerKey, inningKey).runs, getBowlerStats(bowlerKey, inningKey).overs) | number:'1.0-2' }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <section class="scorecard-section">
+          <div class="section-label">Bowling</div>
+          <div class="sc-table-wrap">
+            <table class="sc-table">
+              <thead>
+                <tr>
+                  <th class="col-player">Bowler</th>
+                  <th class="col-num">O</th>
+                  <th class="col-num">M</th>
+                  <th class="col-num">R</th>
+                  <th class="col-num">W</th>
+                  <th class="col-num">ECON</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let bowlerKey of getBowlerKeys(inningKey)">
+                  <td class="player-cell">
+                    <button
+                      type="button"
+                      class="player-name player-name-button"
+                      [class.player-name-button--enabled]="canInspectPlayer(getBowlerDisplayName(bowlerKey, inningKey))"
+                      [disabled]="!canInspectPlayer(getBowlerDisplayName(bowlerKey, inningKey))"
+                      (click)="selectPlayer(getBowlerDisplayName(bowlerKey, inningKey))">
+                      <span>{{ getBowlerDisplayName(bowlerKey, inningKey) }}</span>
+                      <span class="player-name-button__hint" *ngIf="canInspectPlayer(getBowlerDisplayName(bowlerKey, inningKey))">Details</span>
+                    </button>
+                  </td>
+                  <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).overs }}</td>
+                  <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).maidens }}</td>
+                  <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).runs }}</td>
+                  <td class="col-num bold-wickets">{{ getBowlerStats(bowlerKey, inningKey).wickets }}</td>
+                  <td class="col-num">{{ calculateEconomyRate(getBowlerStats(bowlerKey, inningKey).runs, getBowlerStats(bowlerKey, inningKey).overs) | number:'1.0-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
 
       </ng-container>
     </mat-tab>

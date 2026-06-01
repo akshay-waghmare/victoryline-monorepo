@@ -83,6 +83,7 @@ class LiveMatchDiscoverer:
         try:
             async with self.pool.get_context() as context:
                 page = None
+                urls = []
                 try:
                     page = await context.new_page()
                     # Use the specific live matches URL
@@ -93,70 +94,53 @@ class LiveMatchDiscoverer:
                     await page.goto(target_url, timeout=60000)
                     
                     # Wait for content to load - try multiple selectors
+                    live_cards_found = True
                     try:
                         # Try a broad selector for any match link or card
                         await page.wait_for_selector("li.live-card, div.live-card, a[href*='/scoreboard/'], a[href*='/cricket-live-score/']", timeout=20000)
                         print("[DISCOVERY] Found match elements.", flush=True)
                     except Exception:
-                        logger.warning("No live cards found on live-matches page (timeout).")
-                        print("[DISCOVERY] No live cards found (timeout).", flush=True)
-                        await page.close()
-                        return
+                        live_cards_found = False
+                        logger.warning("No live cards found on live-matches page (timeout); continuing with schedule discovery.")
+                        print("[DISCOVERY] No live cards found (timeout); continuing to schedule discovery.", flush=True)
 
-                    # Extract URLs using robust logic based on provided HTML
-                    urls = await page.evaluate("""() => {
-                        const urls = [];
+                    if (live_cards_found):
+                        # Extract URLs using robust logic based on provided HTML
+                        urls = await page.evaluate("""() => {
+                            const urls = [];
 
-                        // Helper to check if text indicates a finished match
-                        const isFinishedText = (text) => {
-                            const t = (text || "").toLowerCase();
-                            return t.includes("won by") || 
-                                   t.includes("match tied") || 
-                                   t.includes("no result") || 
-                                   t.includes("match abandoned");
-                        };
+                            // Helper to check if text indicates a finished match
+                            const isFinishedText = (text) => {
+                                const t = (text || "").toLowerCase();
+                                return t.includes("won by") || 
+                                       t.includes("match tied") || 
+                                       t.includes("no result") || 
+                                       t.includes("match abandoned");
+                            };
 
-                        // Helper: extract the match link from a card element.
-                        // Prefers a[href*="/cricket-live-score/"] or a[href*="/scoreboard/"]
-                        // over the first <a> (which may be the series/header link).
-                        const getMatchLink = (element) => {
-                            return element.querySelector(
-                                'a[href*="/cricket-live-score/"], a[href*="/scoreboard/"]'
-                            );
-                        };
+                            // Helper: extract the match link from a card element.
+                            // Prefers a[href*="/cricket-live-score/"] or a[href*="/scoreboard/"]
+                            // over the first <a> (which may be the series/header link).
+                            const getMatchLink = (element) => {
+                                return element.querySelector(
+                                    'a[href*="/cricket-live-score/"], a[href*="/scoreboard/"]'
+                                );
+                            };
 
-                        // Helper to check if card is actually live.
-                        // Uses tag-agnostic class selector (.live) so it works regardless
-                        // of whether the element is a div, span, or other tag.
-                        const isLive = (element) => {
-                            return element.querySelector('.live, .liveTag, [class*="live-indicator"]') !== null;
-                        };
+                            // Helper to check if card is actually live.
+                            // Uses tag-agnostic class selector (.live) so it works regardless
+                            // of whether the element is a div, span, or other tag.
+                            const isLive = (element) => {
+                                return element.querySelector('.live, .liveTag, [class*="live-indicator"]') !== null;
+                            };
 
-                        // Strategy 1: Look for li.live-card (current crex.com structure)
-                        const listItems = document.querySelectorAll('li.live-card');
-                        if (listItems.length > 0) {
-                            listItems.forEach(li => {
-                                if (!isFinishedText(li.innerText)) {
-                                    // Prefer a direct match link; fall back to first <a> if needed
-                                    const a = getMatchLink(li) || li.querySelector('a');
-                                    if (a) {
-                                        const href = a.getAttribute('href');
-                                        if (href && (href.includes('/scoreboard/') || href.includes('/cricket-live-score/'))) {
-                                            urls.push(href);
-                                        }
-                                    }
-                                }
-                            });
-                        }
-
-                        // Strategy 2: Look for div.live-card (alternative structure)
-                        if (urls.length === 0) {
-                            const divItems = document.querySelectorAll('div.live-card');
-                            if (divItems.length > 0) {
-                                divItems.forEach(div => {
-                                    if (isLive(div) && !isFinishedText(div.innerText)) {
-                                        // Use targeted link selector to avoid picking up the series link
-                                        const a = getMatchLink(div);
+                            // Strategy 1: Look for li.live-card (current crex.com structure)
+                            const listItems = document.querySelectorAll('li.live-card');
+                            if (listItems.length > 0) {
+                                listItems.forEach(li => {
+                                    if (!isFinishedText(li.innerText)) {
+                                        // Prefer a direct match link; fall back to first <a> if needed
+                                        const a = getMatchLink(li) || li.querySelector('a');
                                         if (a) {
                                             const href = a.getAttribute('href');
                                             if (href && (href.includes('/scoreboard/') || href.includes('/cricket-live-score/'))) {
@@ -166,31 +150,49 @@ class LiveMatchDiscoverer:
                                     }
                                 });
                             }
-                        }
 
-                        // Strategy 3: Fallback – any match link inside a live-indicator context
-                        if (urls.length === 0) {
-                            const links = document.querySelectorAll(
-                                'a[href*="/cricket-live-score/"], a[href*="/scoreboard/"]'
-                            );
-                            links.forEach(a => {
-                                const href = a.getAttribute('href');
-                                if (!href) return;
-                                const textToCheck = a.innerText + " " +
-                                    (a.parentElement ? a.parentElement.innerText : "");
-                                // Only include if nearest ancestor has a live indicator
-                                // and the match is not finished
-                                if (!isFinishedText(textToCheck)) {
-                                    const ancestor = a.closest('.live-card, .live-card-wrapper, li[class*="live"]');
-                                    if (ancestor && isLive(ancestor)) {
-                                        urls.push(href);
-                                    }
+                            // Strategy 2: Look for div.live-card (alternative structure)
+                            if (urls.length === 0) {
+                                const divItems = document.querySelectorAll('div.live-card');
+                                if (divItems.length > 0) {
+                                    divItems.forEach(div => {
+                                        if (isLive(div) && !isFinishedText(div.innerText)) {
+                                            // Use targeted link selector to avoid picking up the series link
+                                            const a = getMatchLink(div);
+                                            if (a) {
+                                                const href = a.getAttribute('href');
+                                                if (href && (href.includes('/scoreboard/') || href.includes('/cricket-live-score/'))) {
+                                                    urls.push(href);
+                                                }
+                                            }
+                                        }
+                                    });
                                 }
-                            });
-                        }
+                            }
 
-                        return [...new Set(urls)];
-                    }""")
+                            // Strategy 3: Fallback – any match link inside a live-indicator context
+                            if (urls.length === 0) {
+                                const links = document.querySelectorAll(
+                                    'a[href*="/cricket-live-score/"], a[href*="/scoreboard/"]'
+                                );
+                                links.forEach(a => {
+                                    const href = a.getAttribute('href');
+                                    if (!href) return;
+                                    const textToCheck = a.innerText + " " +
+                                        (a.parentElement ? a.parentElement.innerText : "");
+                                    // Only include if nearest ancestor has a live indicator
+                                    // and the match is not finished
+                                    if (!isFinishedText(textToCheck)) {
+                                        const ancestor = a.closest('.live-card, .live-card-wrapper, li[class*="live"]');
+                                        if (ancestor && isLive(ancestor)) {
+                                            urls.push(href);
+                                        }
+                                    }
+                                });
+                            }
+
+                            return [...new Set(urls)];
+                        }""")
                 finally:
                     if page:
                         try:

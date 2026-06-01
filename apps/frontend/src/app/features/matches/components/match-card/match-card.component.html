@@ -18,15 +18,21 @@
   <!-- Header: Series + Status pill -->
   <div class="match-card__header">
     <span class="match-card__series" *ngIf="hasSeriesLabel()">{{ getSeriesLabel() }}</span>
-    <span class="match-card__status" [style.background-color]="getStatusColor()">
-      <span class="match-card__live-dot" *ngIf="isMatchLive()"></span>
-      {{ getStatusDisplayText() }}
-    </span>
+    <div class="match-card__header-meta">
+      <span
+        class="match-card__status"
+        [style.background-color]="getStatusColor()"
+        [style.color]="getStatusTextColor()">
+        <span class="match-card__live-dot" *ngIf="isMatchLive()"></span>
+        {{ getStatusDisplayText() }}
+      </span>
+      <span class="match-card__substatus" *ngIf="getCompactStateLabel()">{{ getCompactStateLabel() }}</span>
+    </div>
   </div>
 
   <!-- Staleness (compact) -->
   <div class="match-card__staleness"
-       *ngIf="isMatchLive() && getStaleness() !== 'fresh'"
+       *ngIf="variant !== 'compact' && isMatchLive() && getStaleness() !== 'fresh'"
        [attr.data-staleness]="getStaleness()">
     {{ getStaleness() === 'warning' ? 'Delayed' : 'Stale data' }}
   </div>
@@ -69,14 +75,14 @@
   </div>
 
   <!-- Result summary — centered, clean -->
-  <div class="match-card__result" *ngIf="hasResultSummary()">
+  <div class="match-card__result" *ngIf="shouldShowResultSummary()">
     <span class="match-card__result-text">{{ getResultSummary() }}</span>
   </div>
 
   <!-- Info bar: venue + time -->
-  <div class="match-card__info">
-    <span class="match-card__venue">{{ match.venue }}</span>
-    <span class="match-card__time" *ngIf="!isUpcomingMatch()">{{ getTimeDisplay() }}</span>
+  <div class="match-card__info" [class.match-card__info--single]="!hasMeaningfulVenue() || !shouldShowCompactTime()">
+    <span class="match-card__time" *ngIf="shouldShowCompactTime()">{{ getTimeDisplay() }}</span>
+    <span class="match-card__venue" *ngIf="hasMeaningfulVenue()">{{ match.venue }}</span>
   </div>
 
   <!-- Accessibility -->

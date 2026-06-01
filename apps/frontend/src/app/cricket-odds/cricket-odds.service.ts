@@ -190,6 +190,23 @@ export class CricketService {
     return entry ? JSON.parse(entry.data) : null;
   }
 
+  private clearCache(cache: Map<string, CacheEntry>, storageKey: string, key: string): void {
+    if (!key) {
+      return;
+    }
+
+    cache.delete(key);
+
+    const storage = this.getSessionStorage();
+    if (!storage) {
+      return;
+    }
+
+    try {
+      storage.removeItem(this.CACHE_PREFIX + storageKey + '_' + key);
+    } catch (_) { /* non-critical */ }
+  }
+
   hasFreshPlayerStatsMatchCache(matchUrl?: string, externalMatchKey?: string): boolean {
     const cacheKey = externalMatchKey || matchUrl || '';
     const entry = this.getCacheEntry(this.playerStatsCache, 'playerstats', cacheKey);
@@ -266,6 +283,9 @@ export class CricketService {
         }
       }),
       catchError(err => {
+        if (err && err.status === 404) {
+          this.clearCache(this.matchDataCache, 'match', url);
+        }
         console.warn('SWR: HTTP error fetching match data, using cache if available', err.status);
         return EMPTY; // Don't propagate error if cache was already emitted
       })

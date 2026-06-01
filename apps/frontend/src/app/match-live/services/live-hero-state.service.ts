@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, Subscription, of } from 'rxjs';
+import { Injectable, NgZone } from '@angular/core';
+import { BehaviorSubject, Observable, Subscription, merge, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { CricketService } from '../../cricket-odds/cricket-odds.service';
+import { buildLegacyCricketTopicPaths } from '../../core/utils/cricket-websocket-topics';
 import {
   LegacyCricketData,
   LegacyMatchOdds,
@@ -21,7 +22,7 @@ import {
 } from './live-hero.models';
 import { LiveHeroDataAdapter } from './live-hero-data.adapter';
 
-@Injectable({ providedIn: 'root' })
+@Injectable()
 export class LiveHeroStateService {
   private readonly stateSubject = new BehaviorSubject<LiveHeroState>({ loading: true, view: null });
   private readonly viewSubject = new BehaviorSubject<LiveHeroViewModel | null>(null);
@@ -41,7 +42,8 @@ export class LiveHeroStateService {
   constructor(
     private readonly cricketService: CricketService,
     private readonly rxStomp: RxStompService,
-    private readonly adapter: LiveHeroDataAdapter
+    private readonly adapter: LiveHeroDataAdapter,
+    private readonly zone: NgZone
   ) {}
 
   init(matchId: string, config?: LiveHeroConfig) {
@@ -73,7 +75,12 @@ export class LiveHeroStateService {
     if (!this.currentMatchId) {
       return;
     }
+    if (this.wsSubscription) {
+      this.wsSubscription.unsubscribe();
+      this.wsSubscription = null;
+    }
     this.fetchInitialSnapshot(this.currentMatchId);
+    this.subscribeToLegacyUpdates(this.currentMatchId);
   }
 
   setPollingEnabled(enabled: boolean) {
@@ -196,19 +203,32 @@ export class LiveHeroStateService {
       this.wsSubscription = null;
     }
 
-    const topic = `/topic/cricket.${matchId}.*`;
-    // Legacy stream emits partial JSON patches per field (team_odds, batsman_data, etc.).
-    this.wsSubscription = this.rxStomp.watch(topic).subscribe(
-      message => {
-        const payload = this.safeParse(message.body);
-        if (payload) {
-          this.mergeLegacyData(payload, true);
+    const topics = buildLegacyCricketTopicPaths(matchId);
+    if (!topics.length) {
+      return;
+    }
+
+    this.zone.runOutsideAngular(() => {
+      const topicStreams = topics.map(topic => this.rxStomp.watch(topic));
+      this.wsSubscription = merge.apply(null, topicStreams).subscribe(
+        message => {
+          const payload = this.safeParse(message.body);
+          if (!payload) {
+            return;
+          }
+
+          this.zone.run(() => {
+            this.mergeLegacyData(payload, true);
+          });
+        },
+        error => {
+          this.zone.run(() => {
+            console.error('[LiveHeroStateService] Legacy websocket stream error', error);
+            this.pushError('LIVE_UPDATES_DISCONNECTED');
+          });
         }
-      },
-      error => {
-        console.error('[LiveHeroStateService] Legacy websocket stream error', error);
-      }
-    );
+      );
+    });
   }
 
   private isBrowser(): boolean {

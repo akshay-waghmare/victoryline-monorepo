@@ -254,7 +254,7 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   ];
 
   getTeamColor(team: TeamInfo): string {
-    const name = (team.shortName || team.name || '').toUpperCase();
+    const name = (this.getResolvedShortName(team) || team.name || '').toUpperCase();
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -263,31 +263,23 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   }
 
   getTeamInitials(team: TeamInfo): string {
-    if (team.shortName && team.shortName.length <= 4) {
-      return team.shortName;
-    }
-    return team.name
-      .split(/\s+/)
-      .map(w => w[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 3);
+    return this.getResolvedShortName(team);
   }
 
   getTeamDisplayName(team: TeamInfo): string {
     if (this.variant === 'compact' && this.isUpcomingMatch()) {
-      return team.name || team.shortName || '';
+      return team.name || this.getResolvedShortName(team) || '';
     }
 
     if (this.variant === 'compact') {
-      return team.shortName || team.name || '';
+      return this.getResolvedShortName(team) || team.name || '';
     }
 
     if (this.isUpcomingMatch()) {
-      return team.name || team.shortName || '';
+      return team.name || this.getResolvedShortName(team) || '';
     }
 
-    return team.shortName || team.name || '';
+    return this.getResolvedShortName(team) || team.name || '';
   }
   
   getStatusDisplayText(): string {
@@ -296,6 +288,20 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   
   getStatusColor(): string {
     return getStatusColor(this.match.status);
+  }
+
+  getStatusTextColor(): string {
+    switch (this.match.status) {
+      case MatchStatus.LIVE:
+      case MatchStatus.INNINGS_BREAK:
+        return '#0f172a';
+      case MatchStatus.UPCOMING:
+      case MatchStatus.COMPLETED:
+      case MatchStatus.RAIN_DELAY:
+      case MatchStatus.ABANDONED:
+      default:
+        return '#ffffff';
+    }
   }
   
   getStaleness(): 'fresh' | 'warning' | 'error' {
@@ -321,11 +327,20 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     return this.match.status === MatchStatus.UPCOMING;
   }
 
+  isCompletedMatch(): boolean {
+    return this.match.status === MatchStatus.COMPLETED || this.match.status === MatchStatus.ABANDONED;
+  }
+
   getSeriesLabel(): string {
-    if (this.isUpcomingMatch() && this.match.seriesName && /\b\d{1,2}:\d{2}\s*[AP]M\b/i.test(this.match.seriesName)) {
+    const cleanedSeries = this.cleanSeriesName(this.match.seriesName || '');
+
+    if (this.isUpcomingMatch() && cleanedSeries && /\b\d{1,2}:\d{2}\s*[AP]M\b/i.test(cleanedSeries)) {
       return '';
     }
-    const parts = [this.match.seriesName, this.match.matchFormat].filter(Boolean);
+
+    const format = this.match.matchFormat || '';
+    const shouldAppendFormat = !!format && cleanedSeries.toLowerCase().indexOf(format.toLowerCase()) === -1;
+    const parts = [cleanedSeries, shouldAppendFormat ? format : ''].filter(Boolean);
     return parts.join(' • ');
   }
 
@@ -339,6 +354,43 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
 
   hasResultSummary(): boolean {
     return this.getResultSummary().trim().length > 0;
+  }
+
+  shouldShowResultSummary(): boolean {
+    if (!this.hasResultSummary()) {
+      return false;
+    }
+
+    if (this.variant === 'compact' && !this.isCompletedMatch()) {
+      return false;
+    }
+
+    return true;
+  }
+
+  getCompactStateLabel(): string {
+    if (!this.isMatchLive() || this.getStaleness() === 'fresh') {
+      return '';
+    }
+
+    return this.getStaleness() === 'warning' ? 'Delayed' : 'Stale';
+  }
+
+  hasMeaningfulVenue(): boolean {
+    const venue = (this.match.venue || '').trim();
+    if (!venue || /venue tbd/i.test(venue)) {
+      return false;
+    }
+
+    const normalizedVenue = this.normalizeMetaValue(venue);
+    const normalizedSeries = this.normalizeMetaValue(this.getSeriesLabel());
+    const normalizedSeriesName = this.normalizeMetaValue(this.match.seriesName || '');
+
+    return normalizedVenue !== normalizedSeries && normalizedVenue !== normalizedSeriesName;
+  }
+
+  shouldShowCompactTime(): boolean {
+    return !this.isUpcomingMatch();
   }
 
   // ===== EVENT HANDLERS =====
@@ -498,5 +550,86 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
       newScore,
       timestamp: new Date()
     });
+  }
+
+  private cleanSeriesName(seriesName: string): string {
+    return seriesName
+      .replace(/\bmatch updates\b.*$/i, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  private getResolvedShortName(team: TeamInfo): string {
+    const derived = this.deriveTeamInitials(team.name || '');
+    const candidate = (team.shortName || '').trim().toUpperCase();
+
+    if (!candidate) {
+      return derived;
+    }
+
+    if (!derived) {
+      return candidate.slice(0, 4);
+    }
+
+    if (candidate === derived) {
+      return candidate;
+    }
+
+    const normalizedCandidate = candidate.replace(/[^A-Z0-9]/g, '');
+    const normalizedDerived = derived.replace(/[^A-Z0-9]/g, '');
+
+    if (normalizedCandidate.length < 2 || normalizedCandidate.length > 4) {
+      return derived;
+    }
+
+    if (this.isLikelyMismatchedShortName(normalizedCandidate, normalizedDerived)) {
+      return derived;
+    }
+
+    return candidate;
+  }
+
+  private deriveTeamInitials(teamName: string): string {
+    const parts = (teamName || '')
+      .split(/[\s/-]+/)
+      .map(part => part.replace(/[^A-Za-z0-9]/g, ''))
+      .filter(Boolean);
+
+    if (parts.length === 0) {
+      return 'TBD';
+    }
+
+    if (parts.length === 1) {
+      return parts[0].slice(0, 3).toUpperCase();
+    }
+
+    return parts
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 4);
+  }
+
+  private isLikelyMismatchedShortName(candidate: string, derived: string): boolean {
+    if (candidate === derived) {
+      return false;
+    }
+
+    if (derived.indexOf(candidate) === 0 && candidate.length >= derived.length - 1) {
+      return false;
+    }
+
+    if (candidate.indexOf(derived) === 0) {
+      return false;
+    }
+
+    return true;
+  }
+
+  private normalizeMetaValue(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
   }
 }

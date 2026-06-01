@@ -15,7 +15,7 @@
 
 /* Odds Toggle Button (Phase 7 T036) */
 .odds-toggle-btn {
-  transition: all 0.2s ease;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 160ms ease-out, background-color 160ms ease-out;
 }
 
 .odds-toggle-btn:hover {
@@ -36,6 +36,10 @@
 mat-card-content {
   padding-left: 2%;
   padding-right: 2%;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .cricket-odds__hero {
@@ -106,6 +110,149 @@ mat-card-content {
   font-weight: 600;
 }
 
+.match-page-shell {
+  margin-top: 48px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.match-page-card {
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.1) !important;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.match-page-content__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 8px;
+  padding-bottom: 24px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.match-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.match-tab-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 180px;
+  padding: 24px;
+  border: 1px dashed rgba(148, 163, 184, 0.32);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.9) 0%, rgba(255, 255, 255, 0.96) 100%);
+  color: #64748b;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.match-tab-state mat-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 28px;
+  color: #2563eb;
+}
+
+.match-tab-state p {
+  margin: 0;
+  max-width: 520px;
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.match-page-tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.match-page-tab-label mat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
+.match-page-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+:host ::ng-deep .match-page-tabs .mat-tab-header {
+  margin-bottom: 18px;
+  padding: 8px;
+  border-bottom: none;
+  border-radius: 18px;
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
+}
+
+:host ::ng-deep .match-page-tabs .mat-tab-labels {
+  gap: 8px;
+}
+
+:host ::ng-deep .match-page-tabs .mat-tab-label {
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 14px;
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 700;
+  opacity: 1;
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 160ms ease-out, color 160ms ease-out, box-shadow 160ms ease-out;
+}
+
+:host ::ng-deep .match-page-tabs .mat-tab-label:hover {
+  background: rgba(15, 23, 42, 0.04);
+  color: #0f172a;
+}
+
+:host ::ng-deep .match-page-tabs .mat-tab-label:active {
+  transform: scale(0.98);
+}
+
+:host ::ng-deep .match-page-tabs .mat-tab-label.mat-tab-label-active {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+}
+
+:host ::ng-deep .match-page-tabs .mat-ink-bar {
+  display: none;
+}
+
+:host ::ng-deep .match-page-tabs .mat-tab-body-content {
+  overflow: visible;
+}
+
 .hero-downstream {
   display: flex;
   flex-direction: column;
@@ -123,6 +270,28 @@ mat-card-content {
   mat-card-content {
     padding-left: 4%;
     padding-right: 4%;
+  }
+
+  .match-page-card {
+    border-radius: 16px !important;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-header {
+    padding: 6px;
+    border-radius: 16px;
+    overflow-x: auto;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 0.8rem;
+    min-width: auto;
+  }
+
+  .match-tab-state p {
+    max-width: 280px;
+    overflow-wrap: anywhere;
   }
 }
 

@@ -1,5 +1,5 @@
-<div class="courses-panel" style="margin-top: 48px;">
-  <mat-card>
+<div class="courses-panel match-page-shell">
+  <mat-card class="match-page-card">
     <!-- ARIA landmark: header region for snapshot (T009) -->
 
       <!-- 002-match-details-ux: Snapshot Header Component (T016-T020) -->
@@ -10,8 +10,8 @@
       </app-snapshot-header> -->
 
     <!-- Main content area (T009) -->
-    <main role="main" aria-label="Match details content">
-      <mat-card-content>
+    <main class="match-page-content" role="main" aria-label="Match details content">
+      <mat-card-content class="match-page-content__inner">
         <app-live-hero
           class="cricket-odds__hero"
           *ngIf="matchId && (showLiveHero || heroFallbackView)"
@@ -39,165 +39,195 @@
           <p class="cricket-odds__summary-result" *ngIf="getFallbackResultSummary()">{{ getFallbackResultSummary() }}</p>
         </section>
 
-      <mat-tab-group (selectedTabChange)="onTabChange($event)">
+      <mat-tab-group class="match-page-tabs" (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
-        <mat-tab label="Live Match">
-          <!-- Existing Live Match Content -->
-          <!-- Place your existing template content here -->
-          <!-- ... -->
-          <div *ngIf="isBetProcessing" class="loader-container">
-            <div class="loader"></div>
-          </div>
-          <div class="live-match-container">
-            <!-- Original Odds & Betting UI removed — now shown as Win Probability in sidebar -->
-          </div><!-- end .live-match-container -->
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="match-page-tab-label">
+              <mat-icon>radio_button_checked</mat-icon>
+              <span>Live Match</span>
+            </span>
+          </ng-template>
+          <section class="match-tab-panel">
+            <div *ngIf="isBetProcessing" class="loader-container">
+              <div class="loader"></div>
+            </div>
+            <div class="live-match-container">
+              <!-- Original Odds & Betting UI removed — now shown as Win Probability in sidebar -->
+            </div><!-- end .live-match-container -->
 
-          <!-- Commentary + Odds side-by-side layout -->
-          <div class="commentary-odds-layout">
-            <!-- Commentary Column (primary) -->
-            <div class="commentary-col" *ngIf="commentaryEntries.length > 0">
-              <div class="commentary-section">
-                <h3 class="commentary-title">
-                  <mat-icon>speaker_notes</mat-icon>
-                  Ball-by-Ball Commentary
-                </h3>
-                <div class="commentary-list">
-                  <div *ngFor="let entry of commentaryEntries; let i = index"
-                       class="commentary-entry"
-                       [ngClass]="getCommentaryClass(entry)">
-                    <!-- Over summary: full-width card, no over/runs badges -->
-                    <ng-container *ngIf="entry.type === 'OVER_SUMMARY'; else ballEntry">
-                      <div class="over-summary-card">
-                        <div class="over-summary-icon">⏱</div>
-                        <div class="over-summary-content">
-                          <span class="over-summary-text">{{ entry.text }}</span>
+            <div class="commentary-odds-layout">
+              <div class="commentary-col" *ngIf="commentaryEntries.length > 0; else noCommentaryState">
+                <div class="commentary-section">
+                  <h3 class="commentary-title">
+                    <mat-icon>speaker_notes</mat-icon>
+                    Ball-by-Ball Commentary
+                  </h3>
+                  <div class="commentary-list">
+                    <div *ngFor="let entry of commentaryEntries; let i = index"
+                         class="commentary-entry"
+                         [ngClass]="getCommentaryClass(entry)">
+                      <ng-container *ngIf="entry.type === 'OVER_SUMMARY'; else ballEntry">
+                        <div class="over-summary-card">
+                          <div class="over-summary-icon">⏱</div>
+                          <div class="over-summary-content">
+                            <span class="over-summary-text">{{ entry.text }}</span>
+                          </div>
+                        </div>
+                      </ng-container>
+                      <ng-template #ballEntry>
+                        <div class="commentary-over-badge" *ngIf="entry.overBall">
+                          {{ entry.overBall }}
+                        </div>
+                        <div class="commentary-runs-badge" *ngIf="getRunsBadge(entry)"
+                             [ngClass]="getRunsBadgeClass(entry)">
+                          {{ getRunsBadge(entry) }}
+                        </div>
+                        <div class="commentary-text">
+                          <span class="commentary-main-text">{{ entry.text }}</span>
+                        </div>
+                      </ng-template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="odds-sidebar-col" *ngIf="(!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || sessionOddsListDisplay.length > 0">
+                <div class="odds-sidebar-card">
+                  <h3 class="odds-sidebar-title">
+                    <mat-icon>pie_chart</mat-icon>
+                    Win Probability
+                  </h3>
+
+                  <div *ngIf="!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')"
+                       class="win-prob-block">
+                    <div class="win-prob-team-name">{{ favTeam }}</div>
+                    <div class="win-prob-bar-wrap">
+                      <div class="win-prob-bar-fill" [style.width]="getProbability(backOdds)">
+                        {{ getProbability(backOdds) }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div *ngIf="testMatchOdds && testMatchOdds.length > 0">
+                    <div *ngFor="let match of testMatchOdds" class="win-prob-block">
+                      <div class="win-prob-team-name">{{ match.teamName }}</div>
+                      <div class="win-prob-bar-wrap">
+                        <div class="win-prob-bar-fill" [style.width]="getProbability(match.odds.backOdds)">
+                          {{ getProbability(match.odds.backOdds) }}
                         </div>
                       </div>
-                    </ng-container>
-                    <ng-template #ballEntry>
-                      <div class="commentary-over-badge" *ngIf="entry.overBall">
-                        {{ entry.overBall }}
-                      </div>
-                      <div class="commentary-runs-badge" *ngIf="getRunsBadge(entry)"
-                           [ngClass]="getRunsBadgeClass(entry)">
-                        {{ getRunsBadge(entry) }}
-                      </div>
-                      <div class="commentary-text">
-                        <span class="commentary-main-text">{{ entry.text }}</span>
-                      </div>
-                    </ng-template>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Odds Sidebar Column — Win Percentage View -->
-            <div class="odds-sidebar-col" *ngIf="(!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')) || (testMatchOdds && testMatchOdds.length > 0) || sessionOddsListDisplay.length > 0">
-              <div class="odds-sidebar-card">
-                <h3 class="odds-sidebar-title">
-                  <mat-icon>pie_chart</mat-icon>
-                  Win Probability
-                </h3>
-
-                <!-- Single-team win % bar -->
-                <div *ngIf="!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')"
-                     class="win-prob-block">
-                  <div class="win-prob-team-name">{{ favTeam }}</div>
-                  <div class="win-prob-bar-wrap">
-                    <div class="win-prob-bar-fill" [style.width]="getProbability(backOdds)">
-                      {{ getProbability(backOdds) }}
                     </div>
                   </div>
-                </div>
 
-                <!-- Multi-team (test match) win % bars -->
-                <div *ngIf="testMatchOdds && testMatchOdds.length > 0">
-                  <div *ngFor="let match of testMatchOdds" class="win-prob-block">
-                    <div class="win-prob-team-name">{{ match.teamName }}</div>
-                    <div class="win-prob-bar-wrap">
-                      <div class="win-prob-bar-fill" [style.width]="getProbability(match.odds.backOdds)">
-                        {{ getProbability(match.odds.backOdds) }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Session Odds as compact list -->
-                <div *ngIf="sessionOddsListDisplay.length > 0" class="win-prob-sessions">
-                  <div class="win-prob-sessions-title">Session Odds</div>
-                  <div *ngFor="let s of sessionOddsListDisplay">
-                    <div *ngIf="s.session !== '-'" class="odds-sidebar-session">
-                      <div class="odds-session-name">{{ s.session }}</div>
-                      <div class="odds-team-values">
-                        <span class="odds-back">NO {{ s.backOdds }}</span>
-                        <span class="odds-lay">YES {{ s.layOdds }}</span>
+                  <div *ngIf="sessionOddsListDisplay.length > 0" class="win-prob-sessions">
+                    <div class="win-prob-sessions-title">Session Odds</div>
+                    <div *ngFor="let s of sessionOddsListDisplay">
+                      <div *ngIf="s.session !== '-'" class="odds-sidebar-session">
+                        <div class="odds-session-name">{{ s.session }}</div>
+                        <div class="odds-team-values">
+                          <span class="odds-back">NO {{ s.backOdds }}</span>
+                          <span class="odds-lay">YES {{ s.layOdds }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-          <!-- End Commentary + Odds layout -->
+
+            <ng-template #noCommentaryState>
+              <div class="match-tab-state">
+                <mat-icon>timeline</mat-icon>
+                <p>Ball-by-ball commentary has not arrived for this match yet.</p>
+              </div>
+            </ng-template>
+          </section>
 
         </mat-tab>
 
         <!-- Second Tab: Match Info -->
-        <mat-tab label="Match Info">
-          <app-match-details-info 
-            *ngIf="matchInfo"
-            [matchInfo]="matchInfo">
-          </app-match-details-info>
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="match-page-tab-label">
+              <mat-icon>info</mat-icon>
+              <span>Match Info</span>
+            </span>
+          </ng-template>
+          <section class="match-tab-panel">
+            <app-match-details-info 
+              *ngIf="matchInfo"
+              [matchInfo]="matchInfo">
+            </app-match-details-info>
 
-          <!-- Loading Indicator -->
-          <div class="loading-indicator" *ngIf="!matchInfo">
-            <mat-spinner></mat-spinner>
-            <p>Loading match info...</p>
-          </div>
+            <div class="loading-indicator match-tab-state" *ngIf="!matchInfo">
+              <mat-spinner></mat-spinner>
+              <p>Loading match info...</p>
+            </div>
+          </section>
         </mat-tab>
 
         <!-- Third Tab: Scorecard -->
-        <mat-tab label="Scorecard">
-          <!-- Use existing scorecard component (already working) -->
-          <div *ngIf="scorecardData">
-            <app-scorecard
-              [scorecardInfo]="scorecardData"
-              [playerStatsMatch]="playerStatsMatch"
-              (playerSelected)="openPlayerStatsFromScorecard($event)">
-            </app-scorecard>
-          </div>
-          
-          <!-- Loading state -->
-          <div *ngIf="!scorecardData && showLiveHero">
-            <p>Loading scorecard...</p>
-          </div>
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="match-page-tab-label">
+              <mat-icon>table_chart</mat-icon>
+              <span>Scorecard</span>
+              <span class="match-page-tab-badge" *ngIf="scorecardData?.innings?.length">{{ scorecardData.innings.length }}</span>
+            </span>
+          </ng-template>
+          <section class="match-tab-panel">
+            <div *ngIf="scorecardData">
+              <app-scorecard
+                [scorecardInfo]="scorecardData"
+                [playerStatsMatch]="playerStatsMatch"
+                (playerSelected)="openPlayerStatsFromScorecard($event)">
+              </app-scorecard>
+            </div>
+            
+            <div class="match-tab-state" *ngIf="!scorecardData && showLiveHero">
+              <mat-icon>scoreboard</mat-icon>
+              <p>Loading scorecard...</p>
+            </div>
 
-          <div *ngIf="!scorecardData && !showLiveHero">
-            <p>Detailed scorecard is not available for this match yet.</p>
-          </div>
+            <div class="match-tab-state" *ngIf="!scorecardData && !showLiveHero">
+              <mat-icon>sports_cricket</mat-icon>
+              <p>Detailed scorecard is not available for this match yet.</p>
+            </div>
 
-          <ng-container *ngTemplateOutlet="statsExplorerTemplate"></ng-container>
+            <ng-container *ngTemplateOutlet="statsExplorerTemplate"></ng-container>
+          </section>
         </mat-tab>
         
         <!-- Fourth Tab: Lineups (NEW - T032-T035) -->
-        <mat-tab label="Lineups">
-          <app-lineups
-            *ngIf="matchInfo && matchInfo.playing_xi"
-            [playingXIData]="matchInfo"
-            [playerStatsMatch]="playerStatsMatch"
-            (playerSelected)="openPlayerStatsFromLineups($event)"
-            (teamSelected)="openTeamStatsFromSelection($event)">
-          </app-lineups>
-          
-          <div *ngIf="(!matchInfo || !matchInfo.playing_xi) && showLiveHero">
-            <p>Loading lineups...</p>
-          </div>
+        <mat-tab>
+          <ng-template mat-tab-label>
+            <span class="match-page-tab-label">
+              <mat-icon>groups</mat-icon>
+              <span>Lineups</span>
+            </span>
+          </ng-template>
+          <section class="match-tab-panel">
+            <app-lineups
+              *ngIf="matchInfo && matchInfo.playing_xi"
+              [playingXIData]="matchInfo"
+              [playerStatsMatch]="playerStatsMatch"
+              (playerSelected)="openPlayerStatsFromLineups($event)"
+              (teamSelected)="openTeamStatsFromSelection($event)">
+            </app-lineups>
+            
+            <div class="match-tab-state" *ngIf="(!matchInfo || !matchInfo.playing_xi) && showLiveHero">
+              <mat-icon>groups</mat-icon>
+              <p>Loading lineups...</p>
+            </div>
 
-          <div *ngIf="(!matchInfo || !matchInfo.playing_xi) && !showLiveHero">
-            <p>Lineups are not available for this match.</p>
-          </div>
+            <div class="match-tab-state" *ngIf="(!matchInfo || !matchInfo.playing_xi) && !showLiveHero">
+              <mat-icon>group_off</mat-icon>
+              <p>Lineups are not available for this match.</p>
+            </div>
 
-          <ng-container *ngTemplateOutlet="statsExplorerTemplate"></ng-container>
+            <ng-container *ngTemplateOutlet="statsExplorerTemplate"></ng-container>
+          </section>
         </mat-tab>
       </mat-tab-group>
 

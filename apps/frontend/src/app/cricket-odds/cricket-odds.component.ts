@@ -1,8 +1,8 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { Meta, Title } from '@angular/platform-browser';
 import { RxStompService } from '@stomp/ng2-stompjs';
-import { forkJoin, Subject } from 'rxjs';
+import { forkJoin, merge, Subject } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
 import {
   CricketService,
@@ -20,6 +20,7 @@ import { EventListService } from '../component/event-list.service';
 import { AuthService } from '../auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabChangeEvent } from '@angular/material/tabs';
+import { buildLegacyCricketTopicPaths } from '../core/utils/cricket-websocket-topics';
 import { extractSlugFromUrl, getRecentBallDisplay, RecentBallKind } from '../core/utils/match-utils';
 import { upsertCommentaryEntries } from './commentary.utils';
 import { LiveHeroViewModel } from '../match-live/services/live-hero.models';
@@ -187,7 +188,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private authService : AuthService,
               private titleService: Title,  // T043: Inject Angular Title service
               private metaService: Meta,
-              private activatedRoute: ActivatedRoute,private router: Router) { }
+              private activatedRoute: ActivatedRoute,
+              private router: Router,
+              private ngZone: NgZone) { }
 
   ngOnDestroy() {
     this.tossWonCountrySubject.complete();
@@ -313,16 +316,25 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     });
     //watching live score for cricket data
     if (this.isBrowser()) {
-      this.cricetTopicSubscription = this.rxStompService.watch(`/topic/cricket.${match}.*`).subscribe((data) => {
-        this.parseCricObjData(data);
-        // Cache WebSocket updates for instant load on next visit
-        try {
-          const parsed = data && 'body' in data ? JSON.parse(data.body) : data;
-          if (parsed) {
-            this.cricketService.updateMatchDataCache(match, parsed);
-          }
-        } catch (_) { /* non-critical */ }
-      });
+      if (this.cricetTopicSubscription) {
+        this.cricetTopicSubscription.unsubscribe();
+      }
+
+      const topics = buildLegacyCricketTopicPaths(match);
+      if (topics.length > 0) {
+        this.cricetTopicSubscription = merge.apply(null, topics.map(topic => this.rxStompService.watch(topic))).subscribe((data) => {
+          this.ngZone.run(() => {
+            this.parseCricObjData(data);
+            // Cache WebSocket updates for instant load on next visit
+            try {
+              const parsed = data && 'body' in data ? JSON.parse(data.body) : data;
+              if (parsed) {
+                this.cricketService.updateMatchDataCache(match, parsed);
+              }
+            } catch (_) { /* non-critical */ }
+          });
+        });
+      }
     }
     
     // Fetch match info for hero component
@@ -2464,6 +2476,60 @@ getFallbackResultSummary(): string | null {
   }
 
   return this.currentMatch.resultSummary || this.currentMatch.lastKnownState || null;
+}
+
+getMatchShellTitle(): string {
+  if (this.matchInfo && this.matchInfo.match_name) {
+    return this.matchInfo.match_name;
+  }
+
+  if (this.currentMatch && this.currentMatch.team1 && this.currentMatch.team2) {
+    return this.currentMatch.team1.name + ' vs ' + this.currentMatch.team2.name;
+  }
+
+  return this.buildFallbackMatchTitle(this.currentMatch);
+}
+
+getMatchShellStatus(): string {
+  var rawStatus = (this.matchInfo && (this.matchInfo.match_status || this.matchInfo.status))
+    || (this.currentMatch && (this.currentMatch.displayStatus || this.currentMatch.status))
+    || 'Match Centre';
+
+  return this.formatStatusLabel(rawStatus);
+}
+
+getMatchShellSeries(): string | null {
+  return (this.matchInfo && this.matchInfo.series_name)
+    || (this.currentMatch && this.currentMatch.seriesName)
+    || null;
+}
+
+getMatchShellVenue(): string | null {
+  return (this.matchInfo && this.matchInfo.venue)
+    || (this.currentMatch && this.currentMatch.venue)
+    || null;
+}
+
+getMatchShellContextNote(): string | null {
+  return (this.matchInfo && (this.matchInfo.toss_info || this.matchInfo.lastKnownState))
+    || this.getFallbackResultSummary()
+    || null;
+}
+
+private formatStatusLabel(value: string): string {
+  if (!value) {
+    return 'Match Centre';
+  }
+
+  if (value.toUpperCase() === value) {
+    return value
+      .toLowerCase()
+      .split('_')
+      .map(part => part ? part.charAt(0).toUpperCase() + part.slice(1) : '')
+      .join(' ');
+  }
+
+  return value;
 }
 
 private buildFallbackMatchTitle(match: any): string {

@@ -16,18 +16,34 @@
 }
 
 .innings-tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   white-space: nowrap;
-  padding: 12px 24px;
+  padding: 12px 18px;
   background: linear-gradient(to bottom right, #f8fafc, #f1f5f9);
   border: 1px solid #e2e8f0;
   border-bottom: none;
-  border-radius: 12px 12px 0 0;
+  border-radius: 14px 14px 0 0;
   font-weight: 600;
   color: #64748b;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 160ms ease-out, color 160ms ease-out, box-shadow 160ms ease-out, border-color 160ms ease-out;
   position: relative;
   box-shadow: 0 -2px 4px rgba(0,0,0,0.02);
+}
+
+.innings-tab__title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: inherit;
+}
+
+.innings-tab__meta {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 .innings-tab::after {
@@ -46,7 +62,7 @@
 .innings-tab:hover {
   color: var(--color-primary, #1976d2);
   background: #ffffff;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .innings-tab.active {
@@ -58,6 +74,10 @@
 
 .innings-tab.active::after {
   background: linear-gradient(90deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
+}
+
+.innings-tab.active .innings-tab__meta {
+  color: #475569;
 }
 
 .innings-panel {
@@ -73,6 +93,10 @@
 }
 
 .innings-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
   background: linear-gradient(135deg, var(--color-primary, #1976d2) 0%, var(--color-info, #29b6f6) 100%);
   padding: 20px 28px;
   border-radius: 16px;
@@ -90,12 +114,54 @@
   pointer-events: none;
 }
 
+.innings-summary__eyebrow {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .innings-summary h3 {
   font-size: 1.75rem;
   font-weight: 800;
   margin: 0;
   letter-spacing: -0.5px;
   text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.innings-summary__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: min(360px, 100%);
+}
+
+.innings-summary__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+}
+
+.innings-summary__metric span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.88;
+}
+
+.innings-summary__metric strong {
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .batting-section,
@@ -248,8 +314,15 @@
   .scorecard-container { padding: 12px; border-radius: 12px; }
   .scorecard-table { font-size: 0.8125rem; }
   .scorecard-table th, .scorecard-table td { padding: 10px 8px; }
-  .innings-tab { padding: 10px 16px; font-size: 0.875rem; }
+  .innings-tab { padding: 10px 14px; font-size: 0.875rem; }
   .batting-section, .bowling-section { padding: 16px; }
+  .innings-summary {
+    flex-direction: column;
+    padding: 18px;
+  }
+  .innings-summary__metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,13 +1,40 @@
-<!-- Matches List Page — compact list layout -->
 <div class="matches-list">
 
-  <!-- Page Header -->
-  <div class="matches-list__header">
-    <h1 class="matches-list__title">Cricket Matches</h1>
-    <p class="matches-list__subtitle">Live scores, fixtures & results</p>
-  </div>
+  <header class="matches-list__header">
+    <div class="matches-list__header-copy">
+      <span class="matches-list__eyebrow">Match Centre</span>
+      <h1 class="matches-list__title">Cricket Matches</h1>
+      <p class="matches-list__subtitle">{{ getStatusDescription() }}</p>
+    </div>
 
-  <!-- Controls row: tabs + search + refresh -->
+    <div class="matches-list__summary" aria-label="Match summary">
+      <button
+        type="button"
+        class="matches-list__summary-card matches-list__summary-card--live"
+        [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.LIVE"
+        (click)="onStatusFilterChange(MatchStatus.LIVE)">
+        <span class="matches-list__summary-label">Live</span>
+        <strong class="matches-list__summary-value">{{ liveMatchesCount }}</strong>
+      </button>
+      <button
+        type="button"
+        class="matches-list__summary-card"
+        [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.UPCOMING"
+        (click)="onStatusFilterChange(MatchStatus.UPCOMING)">
+        <span class="matches-list__summary-label">Upcoming</span>
+        <strong class="matches-list__summary-value">{{ upcomingMatchesCount }}</strong>
+      </button>
+      <button
+        type="button"
+        class="matches-list__summary-card"
+        [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.COMPLETED"
+        (click)="onStatusFilterChange(MatchStatus.COMPLETED)">
+        <span class="matches-list__summary-label">Results</span>
+        <strong class="matches-list__summary-value">{{ completedMatchesCount }}</strong>
+      </button>
+    </div>
+  </header>
+
   <div class="matches-list__controls">
     <app-tab-nav
       [tabs]="filterTabs"
@@ -66,12 +93,18 @@
       (touchstart)="onResultsTouchStart($event)"
       (touchend)="onResultsTouchEnd($event)"
   >
-    <p class="matches-list__swipe-hint" *ngIf="visibleMatches.length > 1">
-      Swipe across the matches area to switch between categories.
-    </p>
+    <div class="matches-list__result-strip" *ngIf="filteredMatches.length > 0">
+      <div>
+        <span class="matches-list__result-label">{{ getSelectedStatusTitle() }}</span>
+        <p class="matches-list__result-copy">{{ getResultSummaryCopy() }}</p>
+      </div>
+      <span class="matches-list__swipe-hint" *ngIf="visibleMatches.length > 1">
+        Swipe to switch tabs
+      </span>
+    </div>
 
-    <!-- Empty state -->
     <div class="matches-list__empty" *ngIf="filteredMatches.length === 0">
+      <span class="matches-list__empty-icon material-icons">sports_cricket</span>
       <p class="matches-list__empty-message">{{ getEmptyStateMessage() }}</p>
       <p class="matches-list__empty-hint">{{ getEmptyStateHint() }}</p>
     </div>

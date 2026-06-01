@@ -152,6 +152,8 @@ html {
   -moz-osx-font-smoothing: grayscale;
   font-size: 100%;
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 @media (max-width: 480px) {
@@ -168,6 +170,8 @@ body {
   background-color: var(--color-background);
   margin: 0;
   padding: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   transition: background-color $duration-slow $ease-in-out,
               color $duration-slow $ease-in-out;
   

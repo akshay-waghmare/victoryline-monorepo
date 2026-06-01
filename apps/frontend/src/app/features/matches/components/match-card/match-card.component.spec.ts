@@ -74,6 +74,64 @@ describe('MatchCardComponent', () => {
     expect(teamNames).toEqual(['Mumbai Indians', 'Chennai Super Kings']);
   });
 
+  it('removes noisy match update suffixes from the series label', () => {
+    component.variant = 'compact';
+    component.match = buildMatch(MatchStatus.LIVE, {
+      seriesName: '4th Match Ireland Womens T20i Tri Series 2026 Match Updates 11BW'
+    });
+
+    fixture.detectChanges();
+
+    const series = fixture.debugElement.query(By.css('.match-card__series')).nativeElement.textContent.trim();
+
+    expect(series).toBe('4th Match Ireland Womens T20i Tri Series 2026 • T20');
+  });
+
+  it('hides the repetitive result summary for compact live cards', () => {
+    component.variant = 'compact';
+    component.match = buildMatch(MatchStatus.LIVE, {
+      resultSummary: 'MI 180 for 4 versus CSK 92 for 3'
+    });
+
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.match-card__result'))).toBeNull();
+  });
+
+  it('derives team initials from the visible team name when short codes are mismatched', () => {
+    component.variant = 'compact';
+    component.match = buildMatch(MatchStatus.LIVE, {
+      team1: {
+        id: 'team-1',
+        name: 'West Indies Women',
+        shortName: 'IW',
+        logoUrl: '',
+        score: null
+      },
+      team2: {
+        id: 'team-2',
+        name: 'Ireland Women',
+        shortName: 'WIW',
+        logoUrl: '',
+        score: null
+      }
+    });
+
+    fixture.detectChanges();
+
+    const avatars = fixture.debugElement
+      .queryAll(By.css('.match-card__avatar'))
+      .map((element) => element.nativeElement.textContent.trim());
+
+    expect(avatars).toEqual(['WIW', 'IW']);
+  });
+
+  it('uses a dark foreground color for live status pills', () => {
+    component.match = buildMatch(MatchStatus.LIVE);
+
+    expect(component.getStatusTextColor()).toBe('#0f172a');
+  });
+
   it('emits swipe events and suppresses click after a horizontal drag', () => {
     component.enableSwipeGesture = true;
     component.match = buildMatch(MatchStatus.LIVE);
@@ -92,7 +150,7 @@ describe('MatchCardComponent', () => {
   });
 });
 
-function buildMatch(status: MatchStatus): MatchCardViewModel {
+function buildMatch(status: MatchStatus, overrides: Partial<MatchCardViewModel> = {}): MatchCardViewModel {
   return {
     id: 'match-1',
     team1: {
@@ -122,7 +180,8 @@ function buildMatch(status: MatchStatus): MatchCardViewModel {
     isHovered: false,
     isSelected: false,
     lastUpdated: new Date('2026-03-12T10:30:00Z'),
-    staleness: 'fresh'
+    staleness: 'fresh',
+    ...overrides
   };
 }
 

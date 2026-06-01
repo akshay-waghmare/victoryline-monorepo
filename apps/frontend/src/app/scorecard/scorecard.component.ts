@@ -313,6 +313,10 @@ export class ScorecardComponent implements OnInit, OnChanges {
     });
   }
 
+  getYetToBatDisplayNames(inningKey?: string): string[] {
+    return this.getYetToBatKeys(inningKey).map((batterKey: string) => this.getBatterDisplayName(batterKey, inningKey));
+  }
+
   getBowlerKeys(inningKey?: string): string[] {
     const stats = this.getInningStats(inningKey);
     return (stats && stats.bowlers_stats) ? Object.keys(stats.bowlers_stats) : [];
@@ -332,6 +336,16 @@ export class ScorecardComponent implements OnInit, OnChanges {
       : this.emptyBowlerStats;
   }
 
+  getBatterDisplayName(batterKey: string, inningKey?: string): string {
+    const stats = this.getBatsmanStats(batterKey, inningKey);
+    return this.getResolvedPlayerName(batterKey, stats);
+  }
+
+  getBowlerDisplayName(bowlerKey: string, inningKey?: string): string {
+    const stats = this.getBowlerStats(bowlerKey, inningKey);
+    return this.getResolvedPlayerName(bowlerKey, stats);
+  }
+
   getInningLabel(inningKey: string): string {
     const inn = this.scorecardInfo &&
                 this.scorecardInfo.match_stats_by_innings &&
@@ -340,6 +354,16 @@ export class ScorecardComponent implements OnInit, OnChanges {
     const team = (stats && stats.team_code) ? stats.team_code : '';
     const label = inningKey.replace(/_/g, ' ').replace(/\binning\b/i, 'Inning');
     return team ? `${team} - ${label}` : label;
+  }
+
+  getSelectedInningTeamCode(): string {
+    const stats = this.getInningStats(this.selectedInning);
+    return stats && stats.team_code ? stats.team_code : '';
+  }
+
+  getSelectedInningScore(): string {
+    const stats = this.getInningStats(this.selectedInning);
+    return stats && stats.team_score ? this.formatTeamScore(stats.team_score) : '';
   }
 
   isCurrentlyBatting(batterKey: string, inningKey?: string): boolean {
@@ -429,5 +453,13 @@ export class ScorecardComponent implements OnInit, OnChanges {
       .toLowerCase()
       .replace(/\(c\)|\(wk\)|†/g, '')
       .replace(/[^a-z0-9]/g, '');
+  }
+
+  private getResolvedPlayerName(playerKey: string, stats: any): string {
+    if (stats && typeof stats.player_name === 'string' && stats.player_name.trim()) {
+      return stats.player_name.trim();
+    }
+
+    return playerKey;
   }
 }

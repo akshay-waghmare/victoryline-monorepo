@@ -347,6 +347,52 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     }
   }
 
+  getSelectedStatusTitle(): string {
+    switch (this.selectedStatus) {
+      case MatchStatus.UPCOMING:
+        return 'Upcoming fixtures';
+      case MatchStatus.COMPLETED:
+        return 'Recent results';
+      case MatchStatus.LIVE:
+        return 'Live matches';
+      default:
+        return 'Matches';
+    }
+  }
+
+  getStatusDescription(): string {
+    switch (this.selectedStatus) {
+      case MatchStatus.UPCOMING:
+        return 'Fixture timing, venue context, and quick entry into each match centre.';
+      case MatchStatus.COMPLETED:
+        return 'Finished matches with scorelines and the full scorecard path kept close.';
+      case MatchStatus.LIVE:
+        return 'Live scorecards, commentary, lineups, and match detail tabs in one place.';
+      default:
+        return 'Live scores, fixtures, and results.';
+    }
+  }
+
+  getResultSummaryCopy(): string {
+    const shownCount = this.visibleMatches.length;
+    const totalCount = this.filteredMatches.length;
+
+    if (this.searchQuery.trim()) {
+      return `${shownCount} of ${totalCount} matches shown for "${this.searchQuery.trim()}".`;
+    }
+
+    switch (this.selectedStatus) {
+      case MatchStatus.UPCOMING:
+        return `${shownCount} of ${totalCount} fixtures visible, grouped by match day.`;
+      case MatchStatus.COMPLETED:
+        return `${shownCount} of ${totalCount} results visible, newest first.`;
+      case MatchStatus.LIVE:
+        return `${shownCount} of ${totalCount} live matches visible.`;
+      default:
+        return `${shownCount} of ${totalCount} matches visible.`;
+    }
+  }
+
   isUpcomingGroupedView(): boolean {
     return this.selectedStatus === MatchStatus.UPCOMING && this.upcomingMatchGroups.length > 0;
   }

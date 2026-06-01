@@ -1,74 +1,124 @@
 <div class="match-info-container" role="region" aria-label="Match information">
   <div *ngIf="hasData" class="match-info-shell">
-    <header class="match-info-header">
-      <div class="match-info-header__eyebrow">Match info</div>
-      <h2 class="match-info-header__title">{{ matchTitle }}</h2>
-      <p class="match-info-header__subtitle" *ngIf="seriesName && seriesName !== matchTitle">{{ seriesName }}</p>
-    </header>
-
-    <section class="facts-grid" aria-label="Key match facts">
-      <article class="fact-card" *ngFor="let fact of keyFacts" [attr.data-tone]="fact.tone || 'default'">
-        <div class="fact-card__icon">
-          <mat-icon>{{ fact.icon }}</mat-icon>
+    <header class="match-info-hero">
+      <div class="match-info-hero__eyebrow">{{ summaryEyebrow }}</div>
+      <div class="match-info-hero__headline">
+        <div class="match-info-hero__copy">
+          <h2 class="match-info-hero__title">{{ matchTitle }}</h2>
+          <p class="match-info-hero__subtitle" *ngIf="summaryNarrative">{{ summaryNarrative }}</p>
         </div>
-        <div class="fact-card__content">
-          <div class="fact-card__label">{{ fact.label }}</div>
-          <div class="fact-card__value">{{ fact.value }}</div>
-        </div>
-      </article>
-    </section>
 
-    <section class="insights-section" *ngIf="smartInsights.length > 0" aria-label="Quick match takeaways">
-      <div class="section-heading">
-        <h3 class="section-title">Quick take</h3>
-        <span class="section-kicker">Most useful context first</span>
+        <div class="match-info-hero__pills">
+          <span class="hero-pill" [attr.data-tone]="statusTone">{{ matchStatus }}</span>
+          <span class="hero-pill" data-tone="default">{{ matchFormat }}</span>
+        </div>
       </div>
 
-      <div class="insights-grid">
-        <article class="insight-card" *ngFor="let insight of smartInsights" [attr.data-tone]="insight.tone">
-          <div class="insight-card__title-row">
-            <mat-icon>{{ insight.icon }}</mat-icon>
-            <h4>{{ insight.title }}</h4>
+      <section class="summary-grid" aria-label="Essential match context">
+        <article class="summary-card" *ngFor="let card of summaryCards" [attr.data-tone]="card.tone || 'default'">
+          <div class="summary-card__icon">
+            <mat-icon>{{ card.icon }}</mat-icon>
           </div>
-          <p>{{ insight.text }}</p>
+          <div class="summary-card__content">
+            <div class="summary-card__label">{{ card.label }}</div>
+            <div class="summary-card__value">{{ card.value }}</div>
+          </div>
         </article>
+      </section>
+    </header>
+
+    <section class="compact-section" *ngIf="formSections.length > 0" aria-label="Recent team form">
+      <div class="section-heading">
+        <h3 class="section-title">Recent form</h3>
+        <span class="section-kicker">Last few outings at a glance</span>
+      </div>
+
+      <div class="form-grid">
+        <article class="form-card" *ngFor="let team of formSections">
+          <button
+            type="button"
+            class="form-card__toggle"
+            (click)="toggleFormSection(team.name)"
+            [attr.aria-expanded]="isFormExpanded(team.name)">
+            <div class="form-card__header">
+              <div class="form-card__header-main">
+                <div class="form-card__title-row">
+                  <h4>{{ team.name }}</h4>
+                  <span class="form-insight-pill" [attr.data-tone]="team.insightTone">{{ team.insight }}</span>
+                </div>
+                <p>{{ team.summary }}</p>
+              </div>
+
+              <div class="form-card__header-meta">
+                <div class="form-streak" aria-label="Recent results">
+                  <span
+                    class="result-pill"
+                    *ngFor="let pill of team.streak"
+                    [attr.data-tone]="pill.tone"
+                    [attr.title]="pill.title">
+                    {{ pill.label }}
+                  </span>
+                </div>
+
+                <span class="form-card__chevron" [class.form-card__chevron--expanded]="isFormExpanded(team.name)">
+                  <span>{{ isFormExpanded(team.name) ? 'Hide details' : 'See details' }}</span>
+                  <mat-icon>expand_more</mat-icon>
+                </span>
+              </div>
+            </div>
+          </button>
+
+          <div class="form-match-list" *ngIf="isFormExpanded(team.name)">
+            <article class="form-match" *ngFor="let match of team.matches">
+              <div class="form-match__topline">
+                <div class="form-match__title-group">
+                  <h5>{{ match.title }}</h5>
+                  <p>{{ match.subtitle }}</p>
+                </div>
+              </div>
+
+              <div class="form-match__scoreline">{{ match.scoreline }}</div>
+              <div class="form-match__result">{{ match.result }}</div>
+            </article>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="compact-section" *ngIf="showComparisonSection" aria-label="Team comparison">
+      <div class="section-heading">
+        <h3 class="section-title">Team comparison</h3>
+        <span class="section-kicker">Side-by-side baseline</span>
+      </div>
+
+      <div class="comparison-card">
+        <div class="comparison-card__header">
+          <div class="comparison-card__team">{{ comparisonTeams[0] }}</div>
+          <div class="comparison-card__label">Metric</div>
+          <div class="comparison-card__team comparison-card__team--right">{{ comparisonTeams[1] }}</div>
+        </div>
+
+        <div class="comparison-row" *ngFor="let row of comparisonRows" [attr.data-winner]="row.winner">
+          <div class="comparison-row__value">{{ row.firstValue }}</div>
+          <div class="comparison-row__metric">{{ row.label }}</div>
+          <div class="comparison-row__value comparison-row__value--right">{{ row.secondValue }}</div>
+        </div>
       </div>
     </section>
 
     <section class="compact-section" *ngIf="showVenueSection" aria-label="Venue trends">
       <div class="section-heading">
-        <h3 class="section-title">Venue trends</h3>
+        <h3 class="section-title">Venue snapshot</h3>
         <span class="section-kicker">{{ venueName }}</span>
       </div>
 
+      <p class="section-copy" *ngIf="venueHeadline">{{ venueHeadline }}</p>
+
       <div class="mini-stats-grid">
-        <article class="mini-stat-card" *ngFor="let stat of venueMiniStats">
+        <article class="mini-stat-card" *ngFor="let stat of venueStats">
           <div class="mini-stat-card__label">{{ stat.label }}</div>
           <div class="mini-stat-card__value">{{ stat.value }}</div>
           <div class="mini-stat-card__hint" *ngIf="stat.hint">{{ stat.hint }}</div>
-        </article>
-      </div>
-    </section>
-
-    <section class="compact-section" *ngIf="showTeamSection" aria-label="Team comparison">
-      <div class="section-heading">
-        <h3 class="section-title">Team snapshot</h3>
-        <span class="section-kicker">Condensed comparison</span>
-      </div>
-
-      <div class="team-cards">
-        <article class="team-card" *ngFor="let team of teamCards">
-          <div class="team-card__header">
-            <h4>{{ team.name }}</h4>
-            <p *ngIf="team.highlight">{{ team.highlight }}</p>
-          </div>
-
-          <div class="team-card__metrics">
-            <div class="team-card__metric" *ngFor="let metric of team.metrics">
-              <span class="team-card__metric-label">{{ metric.label }}</span>
-              <strong class="team-card__metric-value">{{ metric.value }}</strong>
-            </div>
-          </div>
         </article>
       </div>
     </section>

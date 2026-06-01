@@ -1,153 +1,197 @@
 <div class="container">
-
-  <!-- ===== PAGE HEADER ===== -->
-  <header class="home__header">
-    <h1 class="home__title">Live Cricket Scores</h1>
-    <p class="home__subtitle">Real-time scores, fixtures & results</p>
+  <header class="home__hero">
+    <h1 class="home__title">Match centre</h1>
   </header>
 
-  <!-- ===== MATCHES SECTION — Unified tabbed carousel ===== -->
-  <section class="home__matches" *ngIf="!isLoadingMatches && (liveMatches.length > 0 || upcomingMatches.length > 0 || recentMatches.length > 0)">
-
-    <!-- Tab header -->
-    <div class="home__tab-bar">
+  <section
+    id="home-matches-section"
+    class="home__matches"
+    *ngIf="!isLoadingMatches && (liveMatches.length > 0 || upcomingMatches.length > 0 || recentMatches.length > 0)">
+    <div class="home__tab-bar" role="tablist" aria-label="Match categories">
       <div class="home__tabs">
-        <button class="home__tab"
+        <button
+          type="button"
+          class="home__tab"
+          role="tab"
           [class.home__tab--active]="activeTab === 'live'"
+          [attr.aria-selected]="activeTab === 'live'"
           (click)="setActiveTab('live')"
           *ngIf="liveMatches.length > 0">
-          <span class="home__tab-dot home__tab-dot--live"></span>
-          Live
+          <span class="home__tab-main">
+            <span class="home__tab-dot home__tab-dot--live"></span>
+            Live now
+          </span>
           <span class="home__tab-count home__tab-count--live">{{ liveMatches.length }}</span>
         </button>
-        <button class="home__tab"
+
+        <button
+          type="button"
+          class="home__tab"
+          role="tab"
           [class.home__tab--active]="activeTab === 'upcoming'"
+          [attr.aria-selected]="activeTab === 'upcoming'"
           (click)="setActiveTab('upcoming')"
           *ngIf="upcomingMatches.length > 0">
-          Upcoming
+          <span class="home__tab-main">Up next</span>
           <span class="home__tab-count">{{ upcomingMatches.length }}</span>
         </button>
-        <button class="home__tab"
+
+        <button
+          type="button"
+          class="home__tab"
+          role="tab"
           [class.home__tab--active]="activeTab === 'results'"
+          [attr.aria-selected]="activeTab === 'results'"
           (click)="setActiveTab('results')"
           *ngIf="recentMatches.length > 0">
-          Results
+          <span class="home__tab-main">Recent results</span>
           <span class="home__tab-count">{{ recentMatches.length }}</span>
         </button>
       </div>
+
       <a routerLink="/matches" class="home__view-all">
-        All Matches
+        Full schedule
         <i class="material-icons">chevron_right</i>
       </a>
     </div>
 
-    <!-- Carousel: scrollable match cards -->
     <div class="home__carousel-wrapper">
-      <button class="home__carousel-btn home__carousel-btn--left"
-        (click)="scrollLeft('home-matches-carousel')"
-        [disabled]="!canScrollLeft('home-matches-carousel')"
-        aria-label="Scroll left">
+      <button
+        type="button"
+        class="home__carousel-btn home__carousel-btn--left"
+        (click)="scrollLeft()"
+        [disabled]="!canScrollLeft"
+        aria-label="Scroll left through matches">
         <i class="material-icons">chevron_left</i>
       </button>
 
-      <div class="home__carousel" id="home-matches-carousel">
+      <div class="home__carousel" id="home-matches-carousel" #matchesCarouselRef>
         <app-match-card
           *ngFor="let match of activeMatches; trackBy: trackByMatchId"
           [match]="match"
           variant="compact"
           [enableAnimations]="activeTab === 'live'"
           (cardClick)="onMatchClick(match)"
-          (detailsClick)="onDetailsClick(match)"
-        ></app-match-card>
+          (detailsClick)="onDetailsClick(match)">
+        </app-match-card>
       </div>
 
-      <button class="home__carousel-btn home__carousel-btn--right"
-        (click)="scrollRight('home-matches-carousel')"
-        [disabled]="!canScrollRight('home-matches-carousel')"
-        aria-label="Scroll right">
+      <button
+        type="button"
+        class="home__carousel-btn home__carousel-btn--right"
+        (click)="scrollRight()"
+        [disabled]="!canScrollRight"
+        aria-label="Scroll right through matches">
         <i class="material-icons">chevron_right</i>
       </button>
     </div>
 
-    <p class="home__carousel-hint" *ngIf="activeMatches.length > 1">Swipe to browse more matches</p>
+    <p class="home__carousel-hint" *ngIf="activeMatches.length > 1">
+      Swipe the rail to move quickly across matches.
+    </p>
   </section>
 
-  <!-- ===== LOADING STATE ===== -->
-  <section class="home__matches" *ngIf="isLoadingMatches">
-    <div class="home__tab-bar">
-      <div class="home__tabs">
-        <span class="home__tab home__tab--active">Loading...</span>
+  <section class="home__state home__state--loading" *ngIf="isLoadingMatches">
+    <div class="home__state-shell">
+      <span class="home__state-eyebrow">Updating match lanes</span>
+      <h2 class="home__state-title">The scoreboard is settling into place</h2>
+      <p class="home__state-copy">Live scores, next starts, and recent results will appear here as soon as the feed responds.</p>
+      <div class="home__state-skeletons">
+        <span class="home__state-skeleton"></span>
+        <span class="home__state-skeleton"></span>
+        <span class="home__state-skeleton"></span>
       </div>
     </div>
-    <div class="home__carousel">
-      <app-skeleton-card [count]="4"></app-skeleton-card>
+  </section>
+
+  <section class="home__state home__state--error" *ngIf="hasMatchError && !isLoadingMatches">
+    <div class="home__state-shell">
+      <span class="home__state-eyebrow">Match feed issue</span>
+      <h2 class="home__state-title">Unable to load matches right now</h2>
+      <p class="home__state-copy">Try again to refresh the scoreboard and bring the match lanes back.</p>
+      <button type="button" class="home__primary-action" (click)="loadMatches()">Retry match feed</button>
     </div>
   </section>
 
-  <!-- ===== ERROR STATE ===== -->
-  <section class="home__error" *ngIf="hasMatchError && !isLoadingMatches">
-    <h3>Unable to Load Matches</h3>
-    <p>There was an error loading cricket matches.</p>
-    <button class="home__retry-btn" (click)="loadMatches()">Retry</button>
+  <section
+    class="home__state home__state--empty"
+    *ngIf="!isLoadingMatches && !hasMatchError && liveMatches.length === 0 && upcomingMatches.length === 0 && recentMatches.length === 0">
+    <div class="home__state-shell">
+      <span class="home__state-eyebrow">Quiet scoreboard</span>
+      <h2 class="home__state-title">No tracked cricket matches are available right now</h2>
+      <p class="home__state-copy">Check back a little later or browse the full schedule for upcoming fixtures.</p>
+      <a routerLink="/matches" class="home__hero-link">
+        Open full schedule
+        <i class="material-icons">north_east</i>
+      </a>
+    </div>
   </section>
 
-  <!-- ===== NO MATCHES STATE ===== -->
-  <section class="home__empty" *ngIf="!isLoadingMatches && !hasMatchError && liveMatches.length === 0 && upcomingMatches.length === 0 && recentMatches.length === 0">
-    <h3>No Live Matches</h3>
-    <p>There are currently no live cricket matches available. Check back later.</p>
-  </section>
-
-  <!-- ===== NEWS SECTION (Cricbuzz-style) ===== -->
   <section class="home__news" *ngIf="!isLoadingNews && newsItems.length > 0">
     <div class="home__news-header">
-      <h2 class="home__news-title">Cricket News</h2>
+      <div>
+        <p class="home__section-kicker">Newsroom</p>
+        <h2 class="home__news-title">The stories behind the score</h2>
+        <p class="home__news-copy">One featured story first, then the headlines worth opening when you want context beyond the scoreboard.</p>
+      </div>
     </div>
 
-    <!-- Featured story (first item) -->
-    <article class="news-card news-card--featured" *ngIf="newsItems.length > 0" (click)="openNewsItem(newsItems[0])">
-      <div class="news-card__image-wrap">
-        <img [src]="newsItems[0].mediaUrl" [alt]="newsItems[0].title" class="news-card__image" loading="lazy" />
-      </div>
-      <div class="news-card__body">
-        <h3 class="news-card__title">{{ newsItems[0].title }}</h3>
-        <p class="news-card__desc">{{ newsItems[0].body | slice:0:200 }}</p>
-        <div class="news-card__meta">
-          <span class="news-card__credit">{{ newsItems[0].credit }}</span>
-          <span class="news-card__time">{{ getTimeAgo(newsItems[0].createdTimestamp) }}</span>
+    <div class="home__news-grid">
+      <article class="news-card news-card--featured" (click)="openNewsItem(newsItems[0])">
+        <div class="news-card__image-wrap">
+          <img [src]="newsItems[0].mediaUrl" [alt]="newsItems[0].title" class="news-card__image" loading="lazy" />
         </div>
-      </div>
-    </article>
-
-    <!-- Rest of the news in compact list -->
-    <div class="news-list">
-      <article class="news-row" *ngFor="let item of newsItems | slice:1:10; trackBy: trackByNewsId" (click)="openNewsItem(item)">
-        <img [src]="item.mediaUrl" [alt]="item.title" class="news-row__thumb" loading="lazy" />
-        <div class="news-row__body">
-          <h4 class="news-row__title">{{ item.title }}</h4>
-          <p class="news-row__desc">{{ item.body | slice:0:120 }}</p>
-          <div class="news-row__meta">
-            <span class="news-row__credit">{{ item.credit }}</span>
-            <span class="news-row__time">{{ getTimeAgo(item.createdTimestamp) }}</span>
+        <div class="news-card__body">
+          <span class="news-card__eyebrow">Featured story</span>
+          <h3 class="news-card__title">{{ newsItems[0].title }}</h3>
+          <p class="news-card__desc">{{ newsItems[0].body | slice:0:220 }}</p>
+          <div class="news-card__meta">
+            <span class="news-card__credit">{{ newsItems[0].credit }}</span>
+            <span class="news-card__time">{{ getTimeAgo(newsItems[0].createdTimestamp) }}</span>
           </div>
         </div>
       </article>
-    </div>
-  </section>
 
-  <!-- ===== LEGACY BLOG SECTION (fallback if no API news) ===== -->
-  <section class="home__news" *ngIf="!isLoadingNews && newsItems.length === 0 && blogPosts?.length > 0">
-    <div class="home__news-header">
-      <h2 class="home__news-title">Latest Articles</h2>
-    </div>
-    <div class="news-list">
-      <article class="news-row" *ngFor="let blogPost of blogPosts" (click)="openNews(blogPost.link)">
-        <img [src]="blogPost.imgUrl" [alt]="blogPost.title" class="news-row__thumb" loading="lazy" />
-        <div class="news-row__body">
-          <h4 class="news-row__title">{{ blogPost.title }}</h4>
-          <p class="news-row__desc">{{ blogPost.description | slice:0:120 }}...</p>
+      <div class="news-list-panel">
+        <div class="news-list-panel__head">
+          <span class="news-list-panel__kicker">Latest headlines</span>
         </div>
-      </article>
+
+        <div class="news-list">
+          <article class="news-row" *ngFor="let item of newsItems | slice:1:10; trackBy: trackByNewsId" (click)="openNewsItem(item)">
+            <img [src]="item.mediaUrl" [alt]="item.title" class="news-row__thumb" loading="lazy" />
+            <div class="news-row__body">
+              <h4 class="news-row__title">{{ item.title }}</h4>
+              <p class="news-row__desc">{{ item.body | slice:0:120 }}</p>
+              <div class="news-row__meta">
+                <span class="news-row__credit">{{ item.credit }}</span>
+                <span class="news-row__time">{{ getTimeAgo(item.createdTimestamp) }}</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
     </div>
   </section>
 
+  <section class="home__news" *ngIf="!isLoadingNews && newsItems.length === 0 && blogPosts.length > 0">
+    <div class="home__news-header">
+      <div>
+        <p class="home__section-kicker">Latest reading</p>
+        <h2 class="home__news-title">Editorial picks from the archive</h2>
+      </div>
+    </div>
+
+    <div class="news-list-panel news-list-panel--fallback">
+      <div class="news-list">
+        <article class="news-row" *ngFor="let blogPost of blogPosts" (click)="openNews(blogPost.link)">
+          <img [src]="blogPost.imgUrl" [alt]="blogPost.title" class="news-row__thumb" loading="lazy" />
+          <div class="news-row__body">
+            <h4 class="news-row__title">{{ blogPost.title }}</h4>
+            <p class="news-row__desc">{{ blogPost.description | slice:0:140 }}...</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
 </div>

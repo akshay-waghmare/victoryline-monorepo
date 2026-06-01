@@ -60,6 +60,26 @@ export class ScorecardComponent implements OnInit {
     return this.innings[this.selectedInningsIndex] || null;
   }
 
+  getInningsLabel(inning: Innings): string {
+    return `Innings ${inning.number}`;
+  }
+
+  getInningsMeta(inning: Innings): string {
+    return `${inning.runs}/${inning.wickets} · ${this.formatOvers(inning.overs)} ov`;
+  }
+
+  getRunRate(inning: Innings): string {
+    if (!inning || !inning.overs) {
+      return '0.00';
+    }
+
+    return (inning.runs / inning.overs).toFixed(2);
+  }
+
+  getExtrasTotal(inning: Innings): number {
+    return inning && inning.extras ? inning.extras.total : 0;
+  }
+
   calculateStrikeRate(runs: number, balls: number): string {
     if (balls === 0) return '0.00';
     return ((runs / balls) * 100).toFixed(2);

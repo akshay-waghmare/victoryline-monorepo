@@ -5,6 +5,7 @@ import {
   getLiveHeroResultSummary,
   getLiveHeroStatusKey,
   getLiveHeroStatusLabel,
+  isLiveHeroCompleted,
   shouldShowLiveHeroChase
 } from '../../services/live-hero-display.utils';
 import { LiveHeroStateService } from '../../services/live-hero-state.service';
@@ -65,7 +66,39 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
   }
 
   getActiveView(view: LiveHeroViewModel | null): LiveHeroViewModel | null {
+    if (this.shouldPreferFallback(view)) {
+      return this.fallbackView || null;
+    }
+
     return view || this.fallbackView || null;
+  }
+
+  shouldPreferFallback(view: LiveHeroViewModel | null): boolean {
+    if (!this.fallbackView) {
+      return false;
+    }
+
+    if (!this.isCompletedView(this.fallbackView)) {
+      return false;
+    }
+
+    if (!view) {
+      return true;
+    }
+
+    return !this.isCompletedView(view);
+  }
+
+  isCompletedView(view: LiveHeroViewModel | null): boolean {
+    if (!view) {
+      return false;
+    }
+
+    return !!view.completedScores || isLiveHeroCompleted(view, this.matchInfo);
+  }
+
+  shouldShowLiveOnlySections(view: LiveHeroViewModel | null): boolean {
+    return !this.isCompletedView(view);
   }
 
   stalenessBadge(view: LiveHeroViewModel | null): string | null {

@@ -3,13 +3,16 @@
   <div class="innings-tabs" role="tablist" *ngIf="innings.length > 0">
     <button 
       *ngFor="let inning of innings; let i = index"
+      type="button"
+      [attr.id]="'innings-tab-' + i"
       role="tab"
       [attr.aria-selected]="i === selectedInningsIndex"
       [attr.aria-controls]="'innings-panel-' + i"
       [class.active]="i === selectedInningsIndex"
       (click)="selectInnings(i)"
       class="innings-tab">
-      Innings {{ inning.number }}
+      <span class="innings-tab__title">{{ getInningsLabel(inning) }}</span>
+      <span class="innings-tab__meta">{{ getInningsMeta(inning) }}</span>
     </button>
   </div>
 
@@ -23,7 +26,24 @@
     
     <!-- Innings summary -->
     <div class="innings-summary">
-      <h3>{{ selectedInnings.runs }}/{{ selectedInnings.wickets }} ({{ formatOvers(selectedInnings.overs) }} Ov)</h3>
+      <div>
+        <span class="innings-summary__eyebrow">{{ getInningsLabel(selectedInnings) }}</span>
+        <h3>{{ selectedInnings.runs }}/{{ selectedInnings.wickets }} ({{ formatOvers(selectedInnings.overs) }} Ov)</h3>
+      </div>
+      <div class="innings-summary__metrics">
+        <div class="innings-summary__metric">
+          <span>Run rate</span>
+          <strong>{{ getRunRate(selectedInnings) }}</strong>
+        </div>
+        <div class="innings-summary__metric">
+          <span>Extras</span>
+          <strong>{{ getExtrasTotal(selectedInnings) }}</strong>
+        </div>
+        <div class="innings-summary__metric">
+          <span>Wickets</span>
+          <strong>{{ selectedInnings.wickets }}</strong>
+        </div>
+      </div>
     </div>
 
     <!-- Batting table -->

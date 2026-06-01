@@ -1,3 +1,4 @@
+import { NO_ERRORS_SCHEMA } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ScorecardComponent } from './scorecard.component';
@@ -8,7 +9,8 @@ describe('ScorecardComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ ScorecardComponent ]
+      declarations: [ ScorecardComponent ],
+      schemas: [NO_ERRORS_SCHEMA]
     })
     .compileComponents();
   }));
@@ -42,5 +44,49 @@ describe('ScorecardComponent', () => {
     };
 
     expect(component.getDismissalText('batter_1', 'inning_1')).toBe('c & b Shami');
+  });
+
+  it('should prefer player_name for bowler detail identity and display', () => {
+    component.scorecardInfo = {
+      match_stats_by_innings: {
+        innings: {
+          inning_1: {
+            bowlers_stats: {
+              W4: {
+                overs: 3,
+                runs: 9,
+                wickets: 1,
+                player_name: 'Linsey Smith'
+              }
+            }
+          }
+        }
+      }
+    };
+
+    expect(component.getBowlerDisplayName('W4', 'inning_1')).toBe('Linsey Smith');
+  });
+
+  it('should prefer player_name for yet-to-bat names', () => {
+    component.scorecardInfo = {
+      match_stats_by_innings: {
+        innings: {
+          inning_1: {
+            batsman_stats: {
+              '7YV': {
+                status: 'yet_to_bat',
+                player_name: 'Sophia Dunkley'
+              },
+              '6EH': {
+                status: 'currently_batting',
+                player_name: 'Maddy Green'
+              }
+            }
+          }
+        }
+      }
+    };
+
+    expect(component.getYetToBatDisplayNames('inning_1')).toEqual(['Sophia Dunkley']);
   });
 });

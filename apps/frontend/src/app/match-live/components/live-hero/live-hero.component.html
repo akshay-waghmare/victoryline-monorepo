@@ -94,7 +94,7 @@
       </ng-template>
 
       <!-- COLUMN 2: Recent Activity Area -->
-      <div class="live-hero__recent-area">
+      <div class="live-hero__recent-area" *ngIf="shouldShowLiveOnlySections(view)">
         <div class="current-ball"
              *ngIf="view.score.currentBall"
              [attr.title]="getCurrentBallLabel(view.score.currentBall)"
@@ -121,7 +121,7 @@
       </div>
 
       <!-- COLUMN 3: Batsman / Bowler Stats Area -->
-      <div class="live-hero__stats-area" *ngIf="(batsmanDataList && batsmanDataList.length > 0) || (bowlerDataList && bowlerDataList.length > 0)">
+      <div class="live-hero__stats-area" *ngIf="shouldShowLiveOnlySections(view) && ((batsmanDataList && batsmanDataList.length > 0) || (bowlerDataList && bowlerDataList.length > 0))">
         <!-- Batsmen -->
         <div class="stats-group" *ngIf="batsmanDataList && batsmanDataList.length > 0">
           <div class="stats-grid stats-grid--header">

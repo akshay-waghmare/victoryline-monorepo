@@ -33,4 +33,29 @@ describe('LiveHeroComponent current ball display', () => {
     expect(component.getCurrentBallDisplay('4')).toBe('4');
     expect(component.getCurrentBallKind('4')).toBe('four');
   });
+
+  it('prefers a completed fallback view over a stale live view', () => {
+    const staleLiveView: any = {
+      status: 'LIVE',
+      completedScores: null,
+      score: { resultSummary: null }
+    };
+    const completedFallback: any = {
+      status: 'COMPLETED',
+      completedScores: {
+        team1: { teamName: 'Ireland Women', runs: 99, wickets: 5, overs: '14.1' },
+        team2: { teamName: 'West Indies Women', runs: 141, wickets: 8, overs: '20.0' },
+        resultText: 'Ireland Women won by 1 run (DLS METHOD)'
+      },
+      score: {
+        resultSummary: 'Ireland Women won by 1 run (DLS METHOD)'
+      }
+    };
+
+    component.fallbackView = completedFallback;
+
+    expect(component.shouldPreferFallback(staleLiveView)).toBe(true);
+    expect(component.getActiveView(staleLiveView)).toBe(completedFallback);
+    expect(component.shouldShowLiveOnlySections(completedFallback)).toBe(false);
+  });
 });

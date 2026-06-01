@@ -1,186 +1,204 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
-import { EventListService } from '../component/event-list.service';
-import { Router } from '@angular/router';
+import { isPlatformBrowser } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  Inject,
+  OnDestroy,
+  OnInit,
+  PLATFORM_ID,
+  ViewChild
+} from '@angular/core';
 import { Meta, Title } from '@angular/platform-browser';
-import { BlogListService, BlogPost } from '../component/blog-list.service';
-import { NewsService, NewsItem } from '../component/news.service';
-import { MatchesService } from '../features/matches/services/matches.service';
-import { MatchCardViewModel, MatchStatus } from '../features/matches/models/match-card.models';
-import { extractSlugFromUrl, filterLiveMatches, filterUpcomingMatches, filterCompletedMatches } from '../core/utils/match-utils';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
+import { BlogListService, BlogPost } from '../component/blog-list.service';
+import { NewsItem, NewsService } from '../component/news.service';
+import { extractSlugFromUrl, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches } from '../core/utils/match-utils';
+import { MatchCardViewModel } from '../features/matches/models/match-card.models';
+import { MatchesService } from '../features/matches/services/matches.service';
+
+type HomeTab = 'live' | 'upcoming' | 'results';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css']
+  styleUrls: ['./home.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  private readonly matchesCarouselId = 'home-matches-carousel';
+  private carouselElement: HTMLDivElement | null = null;
+  private readonly carouselScrollListener = () => this.updateCarouselControls();
 
-  @ViewChild('scrollContainer', { read: ElementRef }) scrollContainer!: ElementRef;
-  
-  // Match data
+  @ViewChild('matchesCarouselRef', { read: ElementRef })
+  set matchesCarouselRef(ref: ElementRef<HTMLDivElement> | undefined) {
+    this.bindCarousel(ref ? ref.nativeElement : null);
+  }
+
   liveMatches: MatchCardViewModel[] = [];
   upcomingMatches: MatchCardViewModel[] = [];
   recentMatches: MatchCardViewModel[] = [];
+  activeMatches: MatchCardViewModel[] = [];
+
   isLoadingMatches = true;
   hasMatchError = false;
-  
-  // Tabbed carousel state
-  activeTab: 'live' | 'upcoming' | 'results' = 'live';
-  activeMatches: MatchCardViewModel[] = [];
-  
-  private matchSubscription?: Subscription;
-  
-  // News
+  activeTab: HomeTab = 'live';
+  totalTrackedMatches = 0;
+  canScrollLeft = false;
+  canScrollRight = false;
+
   newsItems: NewsItem[] = [];
   isLoadingNews = true;
-  
-  // Legacy blog posts (kept for backward compat)
-  blogPosts: BlogPost[];
+  blogPosts: BlogPost[] = [];
+
+  private matchSubscription?: Subscription;
+  readonly isBrowser: boolean;
 
   constructor(
-    private eventListService: EventListService,
     private matchesService: MatchesService,
     private router: Router,
     private metaService: Meta,
     private titleService: Title,
     private blogListService: BlogListService,
     private newsService: NewsService,
-    ) { }
+    private changeDetectorRef: ChangeDetectorRef,
+    @Inject(PLATFORM_ID) platformId: object
+  ) {
+    this.isBrowser = isPlatformBrowser(platformId);
+  }
 
   ngOnInit(): void {
-    // Load news from RapidAPI (primary)
-    this.newsService.getNews().subscribe((items) => {
-      this.newsItems = items;
-      this.isLoadingNews = false;
-    });
-
-    // Legacy blog posts (fallback if no news)
-    this.blogListService.getBlogPosts().subscribe((data) => {
-      this.blogPosts = data;
-    });
-
-    // Load matches
-    this.loadMatches();
-  }
-  
-  /**
-   * Load matches and categorize them with auto-refresh every 30 seconds
-   * T041 - Integration with new MatchCardComponent
-   */
-  loadMatches(): void {
-    this.isLoadingMatches = true;
-    this.hasMatchError = false;
-    
-    // Subscribe to auto-refreshing matches (updates every 30 seconds)
-    this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
-      (matches) => {
-        // Categorize matches into sections
-        this.liveMatches = filterLiveMatches(matches);
-        this.upcomingMatches = filterUpcomingMatches(matches).slice(0, 6);
-        this.recentMatches = filterCompletedMatches(matches).slice(0, 6);
-        
-        // Auto-select best tab on first load
-        if (this.isLoadingMatches) {
-          if (this.liveMatches.length > 0) {
-            this.activeTab = 'live';
-          } else if (this.upcomingMatches.length > 0) {
-            this.activeTab = 'upcoming';
-          } else {
-            this.activeTab = 'results';
-          }
-        }
-        this.syncActiveMatches();
-        
-        this.isLoadingMatches = false;
+    this.newsService.getNews().subscribe(
+      (items) => {
+        this.newsItems = items;
+        this.isLoadingNews = false;
+        this.changeDetectorRef.markForCheck();
       },
-      (error) => {
-        console.error('Error loading matches:', error);
-        this.hasMatchError = true;
-        this.isLoadingMatches = false;
+      () => {
+        this.newsItems = [];
+        this.isLoadingNews = false;
+        this.changeDetectorRef.markForCheck();
       }
     );
+
+    this.blogListService.getBlogPosts().subscribe(
+      (data) => {
+        this.blogPosts = data || [];
+        this.changeDetectorRef.markForCheck();
+      },
+      () => {
+        this.blogPosts = [];
+        this.changeDetectorRef.markForCheck();
+      }
+    );
+
+    this.loadMatches();
   }
-  
-  /**
-   * Cleanup on component destroy
-   */
+
   ngOnDestroy(): void {
-    // Unsubscribe from match updates
     if (this.matchSubscription) {
       this.matchSubscription.unsubscribe();
     }
-    
-    // Stop auto-refresh timer
+
     this.matchesService.stopAutoRefresh();
+    this.bindCarousel(null);
   }
-  
-  /**
-   * Handle match card click
-   */
-  onMatchClick(match: MatchCardViewModel): void {
-    // Update meta tags
-    this.updateMetaTagsForMatch(match);
-    
-    // Navigate to match details using the original URL structure
-    if (match.matchUrl) {
-      const matchUrlPath = extractSlugFromUrl(match.matchUrl);
-      if (!matchUrlPath) {
-        console.warn('Could not extract match slug from URL', match.matchUrl);
-        return;
-      }
-      
-      // Navigate to cric-live route (existing route in the app)
-      this.router.navigate(['cric-live', matchUrlPath]);
-    } else {
-      console.warn('No match URL available for navigation');
+
+  loadMatches(): void {
+    this.isLoadingMatches = true;
+    this.hasMatchError = false;
+
+    if (this.matchSubscription) {
+      this.matchSubscription.unsubscribe();
     }
+
+    this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
+      (matches) => {
+        this.liveMatches = filterLiveMatches(matches);
+        this.upcomingMatches = filterUpcomingMatches(matches).slice(0, 6);
+        this.recentMatches = filterCompletedMatches(matches).slice(0, 6);
+
+        if (this.isLoadingMatches) {
+          this.activeTab = this.getBestAvailableTab();
+        }
+
+        this.isLoadingMatches = false;
+        this.hasMatchError = false;
+        this.refreshHomeState();
+      },
+      (error) => {
+        console.error('Error loading matches:', error);
+        this.liveMatches = [];
+        this.upcomingMatches = [];
+        this.recentMatches = [];
+        this.activeMatches = [];
+        this.totalTrackedMatches = 0;
+        this.hasMatchError = true;
+        this.isLoadingMatches = false;
+        this.updateCarouselControls();
+        this.changeDetectorRef.markForCheck();
+      }
+    );
   }
-  
-  /**
-   * Handle details button click
-   */
+
+  onMatchClick(match: MatchCardViewModel): void {
+    this.updateMetaTagsForMatch(match);
+
+    if (!match.matchUrl) {
+      console.warn('No match URL available for navigation');
+      return;
+    }
+
+    const matchUrlPath = extractSlugFromUrl(match.matchUrl);
+    if (!matchUrlPath) {
+      console.warn('Could not extract match slug from URL', match.matchUrl);
+      return;
+    }
+
+    this.router.navigate(['cric-live', matchUrlPath]);
+  }
+
   onDetailsClick(match: MatchCardViewModel): void {
     this.onMatchClick(match);
   }
-  
-  /**
-   * Switch the active tab and update displayed matches
-   */
-  setActiveTab(tab: 'live' | 'upcoming' | 'results'): void {
+
+  setActiveTab(tab: HomeTab): void {
+    if (this.activeTab === tab) {
+      return;
+    }
+
     this.activeTab = tab;
     this.syncActiveMatches();
     this.resetMatchesCarouselPosition();
+    this.changeDetectorRef.markForCheck();
   }
-  
-  private syncActiveMatches(): void {
-    switch (this.activeTab) {
-      case 'live': this.activeMatches = this.liveMatches; break;
-      case 'upcoming': this.activeMatches = this.upcomingMatches; break;
-      case 'results': this.activeMatches = this.recentMatches; break;
+
+  scrollLeft(): void {
+    if (!this.carouselElement) {
+      return;
     }
+
+    const scrollAmount = this.carouselElement.offsetWidth * 0.84;
+    this.carouselElement.scrollBy({
+      left: -scrollAmount,
+      behavior: 'smooth'
+    });
   }
-  
-  /**
-   * Update meta tags for match
-   */
-  updateMetaTagsForMatch(match: MatchCardViewModel): void {
-    const title = `${match.team1.name} vs ${match.team2.name} - ${match.displayStatus}`;
-    const description = `Live cricket score: ${match.team1.name} vs ${match.team2.name} at ${match.venue}`;
-    const keywords = `${match.team1.name}, ${match.team2.name}, cricket match, live score, ${match.venue}`;
-    
-    this.titleService.setTitle(title);
-    this.metaService.updateTag({ name: 'description', content: description });
-    this.metaService.updateTag({ name: 'keywords', content: keywords });
-    this.metaService.updateTag({ property: 'og:title', content: title });
-    this.metaService.updateTag({ property: 'og:description', content: description });
+
+  scrollRight(): void {
+    if (!this.carouselElement) {
+      return;
+    }
+
+    const scrollAmount = this.carouselElement.offsetWidth * 0.84;
+    this.carouselElement.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth'
+    });
   }
-  
-  /**
-   * TrackBy function for ngFor optimization
-   */
+
   trackByMatchId(index: number, match: MatchCardViewModel): string {
     return match.id;
   }
@@ -189,213 +207,195 @@ export class HomeComponent implements OnInit, OnDestroy {
     return item.newsId;
   }
 
-  // ===== OLD CODE BELOW - KEPT FOR BACKWARD COMPATIBILITY =====
-  // Can be removed after migration is complete
+  updateMetaTagsForMatch(match: MatchCardViewModel): void {
+    const title = match.team1.name + ' vs ' + match.team2.name + ' - ' + match.displayStatus;
+    const description = 'Live cricket score: ' + match.team1.name + ' vs ' + match.team2.name + ' at ' + match.venue;
+    const keywords = match.team1.name + ', ' + match.team2.name + ', cricket match, live score, ' + match.venue;
+
+    this.titleService.setTitle(title);
+    this.metaService.updateTag({ name: 'description', content: description });
+    this.metaService.updateTag({ name: 'keywords', content: keywords });
+    this.metaService.updateTag({ property: 'og:title', content: title });
+    this.metaService.updateTag({ property: 'og:description', content: description });
+  }
+
+  openNews(url: string): void {
+    if (this.isBrowser && url) {
+      window.open(url, '_blank');
+    }
+  }
+
+  openNewsItem(item: NewsItem): void {
+    if (item.newsUrl) {
+      this.openNews(item.newsUrl);
+    }
+  }
+
+  getTimeAgo(timestamp: number): string {
+    return this.newsService.getTimeAgo(timestamp);
+  }
 
   parseLiveMatchUrl(url: string) {
     const result1 = this.extractTeamAndTournament(url);
-    console.log(`URL1 -> Team: ${result1.teamName}, Tournament: ${result1.tournamentName}`);
-    const parts = url.split('/').slice(2); // Ignore the first empty part and 'scoreboard'
+    console.log('URL1 -> Team: ' + result1.teamName + ', Tournament: ' + result1.tournamentName);
+    const parts = url.split('/').slice(2);
 
-    //const date = '27 July'; // Assuming we have the date already or can derive it
     const title = result1.tournamentName;
-    const description = `${parts[2].replace(/-/g, ' ')}`; // Create a description
+    const description = parts[2].replace(/-/g, ' ');
     const teams = result1.teamName;
 
-    const team1 = this.extractTeams(teams).team1;
-    const team2 = this.extractTeams(teams).team2;
+    const extractedTeams = teams ? this.extractTeams(teams) : null;
+    const team1 = extractedTeams ? extractedTeams.team1 : '';
+    const team2 = extractedTeams ? extractedTeams.team2 : '';
 
-    const matchUrl =parts[5];
-    //const startTime = '06:00 PM'; // Assuming we have the start time already or can derive it
+    const matchUrl = parts[5];
 
     return {
-      //date,
-      title,
-      description,
-      team1,
-      team2,
-      matchUrl,
-      //startTime
+      title: title,
+      description: description,
+      team1: team1,
+      team2: team2,
+      matchUrl: matchUrl
     };
   }
 
-  // ===== OLD CODE BELOW - KEPT FOR REFERENCE ONLY =====
-  // These methods are no longer used but kept for backward compatibility
-  // Can be removed after full migration is verified
-
-  // navigateToMatch(match: any): void {
-  //   this.updateMetaTags(match);
-  //   this.router.navigate(['cric-live', match.matchUrl]);
-  // }
-
-  // updateMetaTags(match: any): void {
-  //   this.titleService.setTitle(match.title);
-  //   this.metaService.updateTag({ name: 'description', content: match.description });
-  //   this.metaService.updateTag({ name: 'keywords', content: `${match.team1}, ${match.team2}, cricket match, live score, ${match.title}` });
-  //   this.metaService.updateTag({ property: 'og:title', content: match.title });
-  //   this.metaService.updateTag({ property: 'og:description', content: match.description });
-  // }
-  
-
-  private formatTeamName(team: string): string {
-    return team.toUpperCase();
+  private refreshHomeState(): void {
+    this.totalTrackedMatches = this.liveMatches.length + this.upcomingMatches.length + this.recentMatches.length;
+    this.syncActiveMatches();
+    this.updateCarouselControlsSoon();
+    this.changeDetectorRef.markForCheck();
   }
 
-  /**
-   * Scroll carousel left by section ID
-   */
-  scrollLeft(containerId: string): void {
-    const container = document.getElementById(containerId);
-    if (container) {
-      const scrollAmount = container.offsetWidth * 0.8; // Scroll 80% of container width
-      container.scrollBy({
-        left: -scrollAmount,
-        behavior: 'smooth'
-      });
+  private syncActiveMatches(): void {
+    switch (this.activeTab) {
+      case 'live':
+        this.activeMatches = this.liveMatches;
+        break;
+      case 'upcoming':
+        this.activeMatches = this.upcomingMatches;
+        break;
+      default:
+        this.activeMatches = this.recentMatches;
+        break;
     }
   }
 
-  /**
-   * Scroll carousel right by section ID
-   */
-  scrollRight(containerId: string): void {
-    const container = document.getElementById(containerId);
-    if (container) {
-      const scrollAmount = container.offsetWidth * 0.8; // Scroll 80% of container width
-      container.scrollBy({
-        left: scrollAmount,
-        behavior: 'smooth'
-      });
+  private getBestAvailableTab(): HomeTab {
+    if (this.liveMatches.length > 0) {
+      return 'live';
     }
+
+    if (this.upcomingMatches.length > 0) {
+      return 'upcoming';
+    }
+
+    return 'results';
   }
 
-  /**
-   * Check if we can scroll left
-   */
-  canScrollLeft(containerId: string): boolean {
-    const container = document.getElementById(containerId);
-    return container ? container.scrollLeft > 0 : false;
+  private bindCarousel(element: HTMLDivElement | null): void {
+    if (this.carouselElement) {
+      this.carouselElement.removeEventListener('scroll', this.carouselScrollListener);
+    }
+
+    this.carouselElement = element;
+
+    if (this.carouselElement && this.isBrowser) {
+      this.carouselElement.addEventListener('scroll', this.carouselScrollListener, { passive: true });
+    }
+
+    this.updateCarouselControls();
   }
 
-  /**
-   * Check if we can scroll right
-   */
-  canScrollRight(containerId: string): boolean {
-    const container = document.getElementById(containerId);
-    if (!container) return false;
-    return container.scrollLeft < (container.scrollWidth - container.clientWidth - 1);
-  }
-
-  private resetMatchesCarouselPosition(): void {
-    if (typeof document === 'undefined') {
+  private updateCarouselControlsSoon(): void {
+    if (!this.isBrowser) {
+      this.updateCarouselControls();
       return;
     }
 
-    setTimeout(() => {
-      const container = document.getElementById(this.matchesCarouselId);
-      if (container) {
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-      }
-    });
+    setTimeout(() => this.updateCarouselControls(), 0);
   }
 
+  private updateCarouselControls(): void {
+    if (!this.carouselElement) {
+      this.canScrollLeft = false;
+      this.canScrollRight = false;
+      this.changeDetectorRef.markForCheck();
+      return;
+    }
 
- extractTeamAndTournament(url: string): { teamName: string | null, tournamentName: string | null } {
-    // Regular expression to capture the part of the URL with team names and tournament name
+    this.canScrollLeft = this.carouselElement.scrollLeft > 4;
+    this.canScrollRight = this.carouselElement.scrollLeft < (this.carouselElement.scrollWidth - this.carouselElement.clientWidth - 4);
+    this.changeDetectorRef.markForCheck();
+  }
+
+  private resetMatchesCarouselPosition(): void {
+    if (!this.carouselElement) {
+      return;
+    }
+
+    this.carouselElement.scrollTo({ left: 0, behavior: 'smooth' });
+    this.updateCarouselControlsSoon();
+  }
+
+  extractTeamAndTournament(url: string): { teamName: string | null, tournamentName: string | null } {
     const pattern = /\/([a-z0-9\-]+)\/(live|scorecard)$/i;
-
-    // Search for the pattern in the URL
     const match = url.match(pattern);
 
     if (match) {
-        // The full match for the team names and tournament name
-        const fullMatch = match[1];
-        
-        // Split on hyphens to separate the match details
-        const parts = fullMatch.split('-');
+      const fullMatch = match[1];
+      const parts = fullMatch.split('-');
 
-        // Handle cases with team names and tournament name
-        if (parts.length >= 5) {
-            // Extract team names (everything before the first 'match')
-            const teamPart = parts.slice(0, parts.indexOf('match') - 1).join('-');
+      if (parts.length >= 5) {
+        const matchIndex = parts.indexOf('match');
+        const teamPart = parts.slice(0, matchIndex - 1).join('-');
+        const tournamentName = parts.slice(matchIndex + 1).join('-');
 
-            // Extract tournament name (everything after the 'match')
-            const matchIndex = parts.indexOf('match');
-            const tournamentName = parts.slice(matchIndex + 1).join('-');
-
-            return { teamName: teamPart, tournamentName: tournamentName };
-        }
+        return { teamName: teamPart, tournamentName: tournamentName };
+      }
     }
 
     return { teamName: null, tournamentName: null };
-}
-
-extractTeams(matchString: string): { team1: string, team2: string } | null {
-  // Check if the match string contains the "-vs-" separator
-  if (matchString.includes("-vs-")) {
-      // Split the string at "-vs-" to get the two teams
-      const teams = matchString.split("-vs-");
-
-      // Ensure we have exactly two teams
-      if (teams.length === 2) {
-          return {
-              team1: teams[0], // First team
-              team2: teams[1]  // Second team
-          };
-      }else if(teams.length > 2)
-      {
-        const firstVsIndex = matchString.indexOf("-vs-");
-
-    // If "-vs-" is found
-    if (firstVsIndex !== -1) {
-        // Extract the substring before and after the first "-vs-"
-        const team1Part = matchString.substring(0, firstVsIndex);
-        const team2Part = matchString.substring(firstVsIndex + 4); // Skip over "-vs-"
-
-        // Split team2Part by "-" to get the first word after "vs", which would be the second team
-        const team2Array = team2Part.split("-");
-        const team2 = team2Array[0];
-
-        return {
-            team1: team1Part, // The first team is the part before "-vs-"
-            team2: team2 // The second team is the first segment after "-vs-"
-        };
-    }
-      }
   }
-  // Return null if the format is incorrect
-  return null;
-}
 
- extractTournamentName(matchString: string): string | null {
-    // Define the pattern to match the 'match' part (e.g., 1st-match, 4th-match, etc.)
+  extractTeams(matchString: string): { team1: string, team2: string } | null {
+    if (matchString.includes('-vs-')) {
+      const teams = matchString.split('-vs-');
+
+      if (teams.length === 2) {
+        return {
+          team1: teams[0],
+          team2: teams[1]
+        };
+      } else if (teams.length > 2) {
+        const firstVsIndex = matchString.indexOf('-vs-');
+
+        if (firstVsIndex !== -1) {
+          const team1Part = matchString.substring(0, firstVsIndex);
+          const team2Part = matchString.substring(firstVsIndex + 4);
+          const team2Array = team2Part.split('-');
+          const team2 = team2Array[0];
+
+          return {
+            team1: team1Part,
+            team2: team2
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  extractTournamentName(matchString: string): string | null {
     const matchPattern = /\d{1,2}(st|nd|rd|th)-match/i;
-
-    // Search for the matchPattern in the matchString
     const match = matchString.match(matchPattern);
 
     if (match) {
-        // Extract everything after the matched "1st-match" or "4th-match" part
-        const startIndex = match.index! + match[0].length; // Start after the match part
-        const tournamentName = matchString.substring(startIndex + 1); // Extract the tournament name
-        return tournamentName.trim(); // Return trimmed tournament name
+      const startIndex = match.index! + match[0].length;
+      const tournamentName = matchString.substring(startIndex + 1);
+      return tournamentName.trim();
     }
 
-    // Return null if the pattern is not found
     return null;
-}
-openNews(url: string): void {
-  window.open(url, '_blank');
-}
-
-openNewsItem(item: NewsItem): void {
-  if (item.newsUrl) {
-    window.open(item.newsUrl, '_blank');
   }
-}
-
-getTimeAgo(timestamp: number): string {
-  return this.newsService.getTimeAgo(timestamp);
-}
-
 }
