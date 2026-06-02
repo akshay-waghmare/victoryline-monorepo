@@ -87,6 +87,92 @@ describe('MatchCardComponent', () => {
     expect(series).toBe('4th Match Ireland Womens T20i Tri Series 2026 • T20');
   });
 
+  it('separates scraped live fixture text into headline and match meta', () => {
+    component.variant = 'compact';
+    component.match = buildMatch(MatchStatus.LIVE, {
+      team1: {
+        id: 'team-1',
+        name: 'North Mumbai Panthers',
+        shortName: 'NMP',
+        logoUrl: '',
+        score: { runs: 16, wickets: 0, overs: 0, runRate: 0, displayText: '16/0 (0 ov)' }
+      },
+      team2: {
+        id: 'team-2',
+        name: 'Triumph Knights Mumbai North East',
+        shortName: 'TKMN',
+        logoUrl: '',
+        score: null
+      },
+      seriesName: 'North Mumbai Panthers 8:30 AM 3rdT20, Mumbai T20 2026 Triumph Knights Mumbai North East',
+      venue: '3rd Match Mumbai T20 League 2026 Match Updates 125V',
+      matchFormat: 'T20'
+    });
+
+    fixture.detectChanges();
+
+    const headline = fixture.debugElement.query(By.css('.match-card__headline')).nativeElement.textContent.trim();
+    const series = fixture.debugElement.query(By.css('.match-card__series')).nativeElement.textContent.trim();
+    const teamNames = fixture.debugElement
+      .queryAll(By.css('.match-card__team-name'))
+      .map((element) => element.nativeElement.textContent.trim());
+
+    expect(headline).toBe('North Mumbai Panthers vs Triumph Knights Mumbai North East');
+    expect(series).toBe('3rd T20, Mumbai T20 2026');
+    expect(fixture.debugElement.query(By.css('.match-card__venue'))).toBeNull();
+    expect(fixture.debugElement.query(By.css('.match-card__time'))).toBeNull();
+    expect(teamNames).toEqual(['North Mumbai Panthers', 'Triumph Knights Mumbai North East']);
+  });
+
+  it('removes scheduled time from live fixture text with multi-word formats', () => {
+    component.variant = 'compact';
+    component.match = buildMatch(MatchStatus.LIVE, {
+      team1: {
+        id: 'team-1',
+        name: 'Marylebone Cricket Club',
+        shortName: 'MAR',
+        logoUrl: '',
+        score: { runs: 104, wickets: 2, overs: 19.2, runRate: 5.38, displayText: '104/2 (19.2 ov)' }
+      },
+      team2: {
+        id: 'team-2',
+        name: 'Speen Ghar Region',
+        shortName: 'SGR',
+        logoUrl: '',
+        score: null
+      },
+      seriesName: 'Marylebone Cricket Club 3:00 AM 15thOne Day, Afghanistan One Day Cup 2026 Speen Ghar Region',
+      venue: '15th Match Afghanistan One Day Cup 2026 Match Updates 126W',
+      matchFormat: 'ODI'
+    });
+
+    fixture.detectChanges();
+
+    const headline = fixture.debugElement.query(By.css('.match-card__headline')).nativeElement.textContent.trim();
+    const series = fixture.debugElement.query(By.css('.match-card__series')).nativeElement.textContent.trim();
+
+    expect(headline).toBe('Marylebone Cricket Club vs Speen Ghar Region');
+    expect(series).toBe('15th One Day, Afghanistan One Day Cup 2026');
+    expect(fixture.debugElement.query(By.css('.match-card__time'))).toBeNull();
+  });
+
+  it('strips raw scheduled time from live labels even when fixture text is unparsable', () => {
+    component.variant = 'compact';
+    component.match = buildMatch(MatchStatus.LIVE, {
+      seriesName: 'Some Team 8:30 AM noisy live text without a fixture delimiter',
+      venue: '',
+      matchFormat: 'T20'
+    });
+
+    fixture.detectChanges();
+
+    const series = fixture.debugElement.query(By.css('.match-card__series')).nativeElement.textContent.trim();
+
+    expect(series).toBe('Some Team noisy live text without a fixture delimiter • T20');
+    expect(series).not.toContain('8:30 AM');
+    expect(fixture.debugElement.query(By.css('.match-card__time'))).toBeNull();
+  });
+
   it('hides the repetitive result summary for compact live cards', () => {
     component.variant = 'compact';
     component.match = buildMatch(MatchStatus.LIVE, {

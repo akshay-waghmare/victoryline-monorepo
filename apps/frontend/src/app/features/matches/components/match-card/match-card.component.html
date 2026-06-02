@@ -17,7 +17,10 @@
 
   <!-- Header: Series + Status pill -->
   <div class="match-card__header">
-    <span class="match-card__series" *ngIf="hasSeriesLabel()">{{ getSeriesLabel() }}</span>
+    <div class="match-card__context" *ngIf="hasCardHeadline() || hasSeriesLabel()">
+      <span class="match-card__headline" *ngIf="hasCardHeadline()">{{ getCardHeadline() }}</span>
+      <span class="match-card__series" *ngIf="hasSeriesLabel()">{{ getSeriesLabel() }}</span>
+    </div>
     <div class="match-card__header-meta">
       <span
         class="match-card__status">
@@ -80,7 +83,7 @@
   <!-- Info bar: venue + time -->
   <div class="match-card__info" [class.match-card__info--single]="!hasMeaningfulVenue() || !shouldShowCompactTime()">
     <span class="match-card__time" *ngIf="shouldShowCompactTime()">{{ getTimeDisplay() }}</span>
-    <span class="match-card__venue" *ngIf="hasMeaningfulVenue()">{{ match.venue }}</span>
+    <span class="match-card__venue" *ngIf="hasMeaningfulVenue()">{{ getVenueLabel() }}</span>
   </div>
 
   <!-- Accessibility -->

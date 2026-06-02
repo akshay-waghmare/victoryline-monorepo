@@ -271,6 +271,10 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
       return team.name || this.getResolvedShortName(team) || '';
     }
 
+    if (this.variant === 'compact' && this.isMatchLive()) {
+      return team.name || this.getResolvedShortName(team) || '';
+    }
+
     if (this.variant === 'compact') {
       return this.getResolvedShortName(team) || team.name || '';
     }
@@ -332,7 +336,7 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   }
 
   getSeriesLabel(): string {
-    const cleanedSeries = this.cleanSeriesName(this.match.seriesName || '');
+    const cleanedSeries = this.getCleanSeriesLabel();
 
     if (this.isUpcomingMatch() && cleanedSeries && /\b\d{1,2}:\d{2}\s*[AP]M\b/i.test(cleanedSeries)) {
       return '';
@@ -346,6 +350,25 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
 
   hasSeriesLabel(): boolean {
     return this.getSeriesLabel().trim().length > 0;
+  }
+
+  getCardHeadline(): string {
+    const parsed = this.parseFixtureSeries(this.match.seriesName || '');
+    if (parsed) {
+      return [this.shouldShowFixtureStartTime() ? parsed.time : '', parsed.fixtureLabel].filter(Boolean).join(' ');
+    }
+
+    if (this.shouldShowFixtureStartTime() && this.match.startTime) {
+      const teamLabel = this.getFullFixtureLabel();
+      const timeLabel = this.getScheduledStartTimeLabel();
+      return [timeLabel, teamLabel].filter(Boolean).join(' ');
+    }
+
+    return '';
+  }
+
+  hasCardHeadline(): boolean {
+    return this.getCardHeadline().trim().length > 0;
   }
 
   getResultSummary(): string {
@@ -377,8 +400,12 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   }
 
   hasMeaningfulVenue(): boolean {
-    const venue = (this.match.venue || '').trim();
+    const venue = this.getVenueLabel();
     if (!venue || /venue tbd/i.test(venue)) {
+      return false;
+    }
+
+    if (this.isLikelyMatchMeta(venue)) {
       return false;
     }
 
@@ -389,8 +416,12 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     return normalizedVenue !== normalizedSeries && normalizedVenue !== normalizedSeriesName;
   }
 
+  getVenueLabel(): string {
+    return this.cleanSeriesName(this.match.venue || '');
+  }
+
   shouldShowCompactTime(): boolean {
-    return !this.isUpcomingMatch();
+    return !this.isUpcomingMatch() && !this.isMatchLive();
   }
 
   // ===== EVENT HANDLERS =====
@@ -553,10 +584,104 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   }
 
   private cleanSeriesName(seriesName: string): string {
+    const parsed = this.parseFixtureSeries(seriesName);
+    if (parsed) {
+      return parsed.meta;
+    }
+
     return seriesName
       .replace(/\bmatch updates\b.*$/i, '')
+      .replace(/\s+\b[A-Z0-9]{3,5}\b$/i, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
+  }
+
+  private getCleanSeriesLabel(): string {
+    const parsed = this.parseFixtureSeries(this.match.seriesName || '');
+    if (parsed) {
+      return parsed.meta;
+    }
+
+    const series = this.cleanSeriesName(this.match.seriesName || '');
+    const venue = this.getVenueLabel();
+
+    const fallback = venue && this.isLikelyMatchMeta(venue) ? venue : series;
+    return this.isMatchLive() ? this.stripScheduledTime(fallback) : fallback;
+  }
+
+  private getFullFixtureLabel(): string {
+    const team1 = this.match.team1 && this.match.team1.name ? this.match.team1.name : this.getResolvedShortName(this.match.team1);
+    const team2 = this.match.team2 && this.match.team2.name ? this.match.team2.name : this.getResolvedShortName(this.match.team2);
+    return [team1, team2].filter(Boolean).join(' vs ');
+  }
+
+  private getScheduledStartTimeLabel(): string {
+    if (!this.match.startTime) {
+      return '';
+    }
+
+    const value = formatAbsoluteTime(this.match.startTime);
+    return /^\d{1,2}:\d{2}\s*[AP]M$/i.test(value) ? value : '';
+  }
+
+  private shouldShowFixtureStartTime(): boolean {
+    return !this.isMatchLive();
+  }
+
+  private parseFixtureSeries(seriesName: string): { time: string; matchOrdinal: string; format: string; league: string; meta: string; fixtureLabel: string } | null {
+    const raw = (seriesName || '').replace(/\s+/g, ' ').trim();
+    if (!raw) {
+      return null;
+    }
+
+    const pattern = /^(.+?)\s+(\d{1,2}:\d{2}\s*[AP]M)\s+(\d+(?:st|nd|rd|th))\s*([A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?),\s*(.+?)\s+(.+)$/i;
+    const match = raw.match(pattern);
+    if (!match) {
+      return null;
+    }
+
+    const leadingTeam = match[1].trim();
+    const trailingTeam = match[6].trim();
+    const matchOrdinal = match[3].trim();
+    const format = this.formatMatchType(match[4]);
+    const league = match[5].trim();
+
+    return {
+      time: match[2].trim().toUpperCase(),
+      matchOrdinal,
+      format,
+      league,
+      meta: matchOrdinal + ' ' + format + ', ' + league,
+      fixtureLabel: leadingTeam + ' vs ' + trailingTeam
+    };
+  }
+
+  private isLikelyMatchMeta(value: string): boolean {
+    return /^\d+(st|nd|rd|th)\s+/i.test(value) || /\b(t20|odi|test|one day)\b/i.test(value);
+  }
+
+  private stripScheduledTime(value: string): string {
+    return (value || '')
+      .replace(/\b\d{1,2}:\d{2}\s*[AP]M\b/ig, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  private formatMatchType(value: string): string {
+    const cleaned = (value || '').replace(/\s+/g, ' ').trim();
+    if (/^t20i$/i.test(cleaned)) {
+      return 'T20I';
+    }
+    if (/^t20$/i.test(cleaned)) {
+      return 'T20';
+    }
+    if (/^odi$/i.test(cleaned)) {
+      return 'ODI';
+    }
+    return cleaned
+      .split(' ')
+      .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
   }
 
   private getResolvedShortName(team: TeamInfo): string {
