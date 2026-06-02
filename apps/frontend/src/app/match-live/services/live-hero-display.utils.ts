@@ -65,7 +65,15 @@ export function isLiveHeroCompleted(view: LiveHeroViewModel | null, matchInfo?: 
     return true;
   }
 
-  if (getLiveHeroResultSummary(view, matchInfo)) {
+  if (isCompletedResult(view.score && view.score.resultSummary)) {
+    return true;
+  }
+
+  if (isCompletedResult(matchInfo && matchInfo.final_result_text)) {
+    return true;
+  }
+
+  if (isCompletedResult(matchInfo && matchInfo.lastKnownState)) {
     return true;
   }
 

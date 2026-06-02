@@ -2,6 +2,7 @@ import { LiveHeroViewModel } from './live-hero.models';
 import {
   getLiveHeroResultSummary,
   getLiveHeroStatusLabel,
+  isLiveHeroCompleted,
   shouldShowLiveHeroChase
 } from './live-hero-display.utils';
 
@@ -79,5 +80,30 @@ describe('live hero display utils', () => {
     expect(getLiveHeroStatusLabel(view, {
       final_result_text: 'Karachi Region Blues won by 40 runs'
     })).toBe('Completed');
+  });
+
+  it('does not treat a live fallback score line as a completed result', () => {
+    const view = buildView({
+      score: {
+        teamCode: 'ABH',
+        teamName: 'Abahani',
+        runs: 315,
+        wickets: 5,
+        overs: '50.0',
+        runRateLabel: 'CRR 6.30',
+        status: 'LIVE',
+        resultSummary: 'Abahani 315/5 (50.0)',
+        currentBall: null
+      }
+    });
+
+    expect(isLiveHeroCompleted(view, {
+      match_status: 'LIVE',
+      status: 'LIVE'
+    })).toBe(false);
+    expect(getLiveHeroStatusLabel(view, {
+      match_status: 'LIVE',
+      status: 'LIVE'
+    })).toBe('Live');
   });
 });
