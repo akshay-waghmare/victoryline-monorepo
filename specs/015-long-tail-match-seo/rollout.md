@@ -17,6 +17,16 @@
 - `scripts/Audit-MatchSeo.ps1` passed against local SSR on sample GSC URLs.
 - Local audit output saved to `specs/015-long-tail-match-seo/local-audit.md`.
 
+## Production Deployment
+
+- Commit: `34fe317`
+- Backend image: `victoryline-backend:seo-34fe317-20260602-1512`
+- Frontend image: `victoryline-frontend:seo-34fe317-20260602-1512`
+- Env backup: `.env.bak.seo-seo-34fe317-20260602-1512-20260602_151938`
+- Production audit output saved to `specs/015-long-tail-match-seo/prod-audit.md`.
+- Public `/api/ws/info` and `/api/cricket-data/live-matches` returned HTTP 200 after restart.
+- Sitemap partition check confirmed `/cric-live/445` is excluded and canonical `-vs-` match URLs remain included.
+
 ## GSC Validation Rule
 
 Submit Search Console validation only after production audit shows:
