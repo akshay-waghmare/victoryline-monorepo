@@ -54,10 +54,10 @@ public class SitemapRepositoryBackedTest {
     @Before
     public void setup() {
         // Seed a few visible matches with different statuses and dates
-        seedMatch("TeamA", "TeamB", daysAgo(1), "live", true, "https://ext.example.com/matches/slug-one/live");
-        seedMatch("TeamC", "TeamD", daysAgo(3), "upcoming", true, "https://ext.example.com/matches/slug-two/live");
-        seedMatch("TeamE", "TeamF", daysAgo(10), "finished", true, "https://ext.example.com/matches/slug-three/scorecard");
-        seedMatch("Hidden", "TeamX", daysAgo(2), "live", false, "https://ext.example.com/matches/hidden-slug/live"); // invisible
+        seedMatch("TeamA", "TeamB", daysAgo(1), "live", true, "https://crex.com/cricket-live-score/teama-vs-teamb-1st-match-test-league-2026-match-updates-111A");
+        seedMatch("TeamC", "TeamD", daysAgo(3), "upcoming", true, "https://crex.com/cricket-live-score/teamc-vs-teamd-2nd-match-test-league-2026-match-updates-111B");
+        seedMatch("TeamE", "TeamF", daysAgo(10), "finished", true, "https://crex.com/cricket-live-score/teame-vs-teamf-3rd-match-test-league-2026-match-updates-111C/scorecard");
+        seedMatch("Hidden", "TeamX", daysAgo(2), "live", false, "https://crex.com/cricket-live-score/hidden-vs-teamx-4th-match-test-league-2026-match-updates-111D"); // invisible
 
         SeoCache cache = new SeoCache();
         com.devglan.service.seo.LiveMatchesService liveMatchesService = new com.devglan.service.seo.LiveMatchesService();
@@ -79,10 +79,10 @@ public class SitemapRepositoryBackedTest {
 
     String xml = result.getResponse().getContentAsString();
         // Assert derived slug paths present (visibility true only)
-        assertThat(xml).contains("/cric-live/slug-one");
-        assertThat(xml).contains("/cric-live/slug-two");
-        assertThat(xml).contains("/cric-live/slug-three");
-        assertThat(xml).doesNotContain("hidden-slug"); // invisible match excluded
+        assertThat(xml).contains("/cric-live/teama-vs-teamb-1st-match-test-league-2026-match-updates-111A");
+        assertThat(xml).contains("/cric-live/teamc-vs-teamd-2nd-match-test-league-2026-match-updates-111B");
+        assertThat(xml).contains("/cric-live/teame-vs-teamf-3rd-match-test-league-2026-match-updates-111C");
+        assertThat(xml).doesNotContain("hidden-vs-teamx"); // invisible match excluded
         // Basic lastmod presence (ISO date strings)
         assertThat(xml).contains("<lastmod>");
         // Assert changefreq/priority mapping by status
@@ -103,7 +103,7 @@ public class SitemapRepositoryBackedTest {
             .andReturn();
 
         String xml = result.getResponse().getContentAsString();
-        assertThat(xml).contains("/cric-live/slug-one");
+        assertThat(xml).contains("/cric-live/teama-vs-teamb-1st-match-test-league-2026-match-updates-111A");
         // Sanity on metadata fields too
         assertThat(xml).contains("<lastmod>");
         assertThat(xml).contains("<changefreq>");

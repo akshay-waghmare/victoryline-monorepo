@@ -76,6 +76,7 @@ public class LiveMatchesService {
             for (JsonNode node : jsonArray) {
                 LiveMatchEntry entry = new LiveMatchEntry();
                 entry.setUrl(node.has("url") ? node.get("url").asText() : null);
+                entry.setExternalMatchKey(node.has("externalMatchKey") ? node.get("externalMatchKey").asText() : null);
                 entry.setLastKnownState(node.has("lastKnownState") ? node.get("lastKnownState").asText() : null);
                 entry.setId(node.has("id") ? node.get("id").asLong() : null);
                 // Parse startDate from various possible field names (Google GSC requires startDate for SportsEvent)
@@ -117,6 +118,7 @@ public class LiveMatchesService {
             for (JsonNode node : jsonArray) {
                 LiveMatchEntry entry = new LiveMatchEntry();
                 entry.setUrl(node.has("url") ? node.get("url").asText() : null);
+                entry.setExternalMatchKey(node.has("externalMatchKey") ? node.get("externalMatchKey").asText() : null);
                 entry.setLastKnownState(node.has("lastKnownState") ? node.get("lastKnownState").asText() : null);
                 entry.setId(node.has("id") ? node.get("id").asLong() : null);
                 // Parse startDate from various possible field names (Google GSC requires startDate for SportsEvent)
@@ -141,12 +143,16 @@ public class LiveMatchesService {
     
     public static class LiveMatchEntry {
         private String url;
+        private String externalMatchKey;
         private String lastKnownState;
         private Long id;
         private String startDate;
         
         public String getUrl() { return url; }
         public void setUrl(String url) { this.url = url; }
+
+        public String getExternalMatchKey() { return externalMatchKey; }
+        public void setExternalMatchKey(String externalMatchKey) { this.externalMatchKey = externalMatchKey; }
         
         public String getLastKnownState() { return lastKnownState; }
         public void setLastKnownState(String lastKnownState) { this.lastKnownState = lastKnownState; }

@@ -143,9 +143,8 @@ public class SitemapService {
         List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
         if (liveMatches != null && !liveMatches.isEmpty()) {
             for (LiveMatchesService.LiveMatchEntry match : liveMatches) {
-                String slug = liveMatchesService.extractSlugFromUrl(match.getUrl());
-                if (slug != null && !slug.isEmpty()) {
-                    String path = "/cric-live/" + slug;
+                String path = deriveCanonicalMatchPath(match);
+                if (path != null) {
                     String changefreq = match.isLive() ? "hourly" : "daily";
                     double priority = match.isLive() ? 0.9 : 0.8;
                     allUrls.add(writer.url(path, changefreq, priority));
@@ -170,6 +169,9 @@ public class SitemapService {
                 
                 for (Matches m : allVisible) {
                     String path = deriveMatchPath(m);
+                    if (path == null) {
+                        continue;
+                    }
                     String changefreq = deriveChangeFreq(m);
                     double priority = derivePriority(m);
                     String lastmod = writer.isoFromDate(m.getMatchDate());
@@ -200,12 +202,12 @@ public class SitemapService {
             // Count live matches from API
             List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
             if (liveMatches != null && !liveMatches.isEmpty()) {
-                total += liveMatches.size();
+                total += countCanonicalLiveMatches(liveMatches);
             } else if (matchRepository != null) {
                 // Fallback: count database matches if no live matches
                 List<Matches> allVisible = safeGetVisibleMatches();
                 if (allVisible != null) {
-                    total += allVisible.size();
+                    total += countCanonicalRepositoryMatches(allVisible);
                 }
             }
             
@@ -237,12 +239,58 @@ public class SitemapService {
         String link = m.getMatchLink();
         if (link != null) {
             String slug = extractSlugFromUrl(link);
-            if (slug != null && !slug.isEmpty()) {
+            if (isCanonicalMatchSlug(slug)) {
                 return "/cric-live/" + slug;
             }
         }
-        Long id = m.getMatchId();
-        return "/cric-live/" + (id != null ? String.valueOf(id) : "match");
+
+        return null;
+    }
+
+    private String deriveCanonicalMatchPath(LiveMatchesService.LiveMatchEntry match) {
+        if (match == null) {
+            return null;
+        }
+
+        String slug = liveMatchesService.extractSlugFromUrl(match.getUrl());
+        if (!isCanonicalMatchSlug(slug)) {
+            slug = match.getExternalMatchKey();
+        }
+
+        return isCanonicalMatchSlug(slug) ? "/cric-live/" + slug : null;
+    }
+
+    private boolean isCanonicalMatchSlug(String slug) {
+        if (slug == null) {
+            return false;
+        }
+
+        String clean = slug.trim();
+        if (clean.isEmpty() || clean.matches("\\d+") || "match".equalsIgnoreCase(clean)) {
+            return false;
+        }
+
+        return clean.toLowerCase().contains("-vs-");
+    }
+
+    private int countCanonicalLiveMatches(List<LiveMatchesService.LiveMatchEntry> matches) {
+        int count = 0;
+        for (LiveMatchesService.LiveMatchEntry match : matches) {
+            if (deriveCanonicalMatchPath(match) != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int countCanonicalRepositoryMatches(List<Matches> matches) {
+        int count = 0;
+        for (Matches match : matches) {
+            if (deriveMatchPath(match) != null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private String extractSlugFromUrl(String url) {

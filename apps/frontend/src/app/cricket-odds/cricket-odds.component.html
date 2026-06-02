@@ -12,6 +12,19 @@
     <!-- Main content area (T009) -->
     <main class="match-page-content" role="main" aria-label="Match details content">
       <mat-card-content class="match-page-content__inner">
+        <section class="cricket-odds__seo-summary" *ngIf="matchSeo">
+          <div class="cricket-odds__seo-copy">
+            <p class="cricket-odds__seo-eyebrow">{{ matchSeo.statusLabel }}</p>
+            <h1 class="cricket-odds__seo-title">{{ matchSeo.h1 }}</h1>
+            <p class="cricket-odds__seo-description">{{ matchSeo.summary }}</p>
+            <p class="cricket-odds__seo-series" *ngIf="matchSeo.series">{{ matchSeo.series }}</p>
+          </div>
+          <nav class="cricket-odds__seo-links" aria-label="Related cricket pages">
+            <a routerLink="/matches">All cricket matches</a>
+            <a routerLink="/live-cricket-score">Live cricket scores</a>
+          </nav>
+        </section>
+
         <app-live-hero
           class="cricket-odds__hero"
           *ngIf="matchId && (showLiveHero || heroFallbackView)"
@@ -30,7 +43,7 @@
 
         <section class="cricket-odds__summary-fallback" *ngIf="matchInfo && !showLiveHero && !heroFallbackView">
           <div class="cricket-odds__summary-status">{{ matchInfo.match_status || matchInfo.status }}</div>
-          <h1 class="cricket-odds__summary-title">{{ matchInfo.match_name }}</h1>
+          <h2 class="cricket-odds__summary-title">{{ matchInfo.match_name }}</h2>
           <p class="cricket-odds__summary-subtitle" *ngIf="matchInfo.series_name">{{ matchInfo.series_name }}</p>
           <p class="cricket-odds__summary-meta" *ngIf="matchInfo.match_date">
             {{ matchInfo.match_date | date: 'fullDate' }}, {{ matchInfo.match_date | date: 'shortTime' }}

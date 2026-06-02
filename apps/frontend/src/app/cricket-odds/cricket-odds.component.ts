@@ -1,6 +1,5 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
-import { Meta, Title } from '@angular/platform-browser';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { forkJoin, merge, Subject } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
@@ -24,6 +23,9 @@ import { buildLegacyCricketTopicPaths } from '../core/utils/cricket-websocket-to
 import { extractSlugFromUrl, getRecentBallDisplay, RecentBallKind } from '../core/utils/match-utils';
 import { upsertCommentaryEntries } from './commentary.utils';
 import { LiveHeroViewModel } from '../match-live/services/live-hero.models';
+import { MatchSeoViewModel } from '../seo/match-seo.models';
+import { MatchSeoService } from '../seo/match-seo.service';
+import { MetaTagsService } from '../seo/meta-tags.service';
 
 interface FormattedExposure {
   win: number;
@@ -161,6 +163,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   showLiveHero: boolean = true;
   heroFallbackView: LiveHeroViewModel | null = null;
   private isFallbackMatchInfo: boolean = false;
+  matchSeo: MatchSeoViewModel | null = null;
 
   // Toggle to hide/show odds sections
   showOdds: boolean = true;
@@ -186,8 +189,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private snackBar: MatSnackBar,
               private eventListService:EventListService,
               private authService : AuthService,
-              private titleService: Title,  // T043: Inject Angular Title service
-              private metaService: Meta,
+              private metaTagsService: MetaTagsService,
+              private matchSeoService: MatchSeoService,
               private activatedRoute: ActivatedRoute,
               private router: Router,
               private ngZone: NgZone) { }
@@ -2587,95 +2590,29 @@ private titleCaseSlug(value: string): string {
    * CRITICAL: Must match prerender.js generateMatchPageTitle() exactly to avoid ranking risk
    */
   private updatePageTitle(): void {
-    if (!this.matchInfo) {
-      return;
-    }
+    this.matchSeo = this.matchSeoService.build({
+      routeSlug: this.currentUrl || this.matchId || '',
+      matchUrl: this.matchUrl,
+      matchInfo: this.matchInfo,
+      currentMatch: this.currentMatch,
+      isFallback: this.isFallbackMatchInfo
+    });
 
-    // Extract team names - same order as prerender.js
-    let team1: string | null = null;
-    let team2: string | null = null;
-
-    // Try to get team names from direct properties (matches prerender.js)
-    if (this.matchInfo.team1_name) team1 = this.matchInfo.team1_name;
-    if (this.matchInfo.team2_name) team2 = this.matchInfo.team2_name;
-
-    // Fallback: parse from match_name like "India vs Australia, 1st Test"
-    if ((!team1 || !team2) && this.matchInfo.match_name) {
-      const vsMatch = this.matchInfo.match_name.match(/^([^,]+)\s+vs\s+([^,]+)/i);
-      if (vsMatch) {
-        team1 = team1 || vsMatch[1].trim();
-        team2 = team2 || vsMatch[2].trim();
+    this.metaTagsService.setPageMeta(this.matchSeo.canonicalPath, {
+      title: this.matchSeo.title,
+      description: this.matchSeo.description,
+      canonicalUrl: this.matchSeo.canonicalUrl,
+      robots: this.matchSeo.robots,
+      og: {
+        title: this.matchSeo.title,
+        description: this.matchSeo.description,
+        url: this.matchSeo.canonicalUrl
+      },
+      twitter: {
+        card: 'summary_large_image',
+        site: '@crickzen'
       }
-    }
-
-    // Fallback: parse from URL slug (matches prerender.js extractUrlSlug + formatTeam)
-    if ((!team1 || !team2) && this.matchUrl) {
-      const urlSlug = this.extractUrlSlug(this.matchUrl);
-      if (urlSlug) {
-        // Pattern for simple 3-letter codes: ind-vs-aus-...
-        const vsMatch = urlSlug.match(/^([a-z]{3})-vs-([a-z]{3})-/i);
-        if (vsMatch) {
-          team1 = team1 || vsMatch[1].toUpperCase();
-          team2 = team2 || vsMatch[2].toUpperCase();
-        } else {
-          // Pattern for complex names: afg-u19-vs-ire-u19-... 
-          // Convert slug to readable title and extract teams
-          const readableTitle = urlSlug
-            .replace(/-/g, ' ')
-            .replace(/\d{4}$/, '')
-            .trim()
-            .split(' ')
-            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ');
-          const titleVsMatch = readableTitle.match(/^([^-]+)\s+vs\s+([^-]+)/i);
-          if (titleVsMatch) {
-            team1 = team1 || titleVsMatch[1].trim();
-            team2 = team2 || titleVsMatch[2].trim();
-          }
-        }
-      }
-    }
-
-    // Final fallback - MUST match prerender.js fallback ("Team A"/"Team B")
-    if (!team1) team1 = 'Team A';
-    if (!team2) team2 = 'Team B';
-    
-    const teams = `${team1} vs ${team2}`;
-    const status = (this.matchInfo.match_status || this.matchInfo.status || 'live').toLowerCase();
-    
-    // Determine suffix based on status - must match prerender.js isCompleted logic
-    const isCompleted = status === 'completed' || status === 'finished' || status === 'result' ||
-      (this.matchInfo.lastKnownState && /won by|match drawn|match tied/i.test(this.matchInfo.lastKnownState));
-    
-    let suffix: string;
-    if (isCompleted) {
-      suffix = ' Final Score | Full Scorecard';
-    } else {
-      suffix = ' Live Score Ball by Ball';
-    }
-    
-    let fullTitle = teams + suffix;
-    
-    // Truncate if >60 chars - same algorithm as prerender.js
-    if (fullTitle.length > 60) {
-      const maxTeamsLength = 60 - suffix.length - 3;
-      const truncated = teams.substring(0, maxTeamsLength);
-      const lastSpace = truncated.lastIndexOf(' ');
-      fullTitle = (lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated) + '...' + suffix;
-    }
-    
-    this.titleService.setTitle(fullTitle);
-    const description = isCompleted
-      ? `${teams} final score, full scorecard, match summary, and highlights on Crickzen.`
-      : `${teams} live score, ball by ball commentary, latest runs, wickets, overs, and match updates.`;
-    const safeDescription = description.length > 155 ? description.substring(0, 152) + '...' : description;
-    this.metaService.updateTag({ name: 'description', content: safeDescription });
-    this.metaService.updateTag({ property: 'og:title', content: fullTitle });
-    this.metaService.updateTag({ property: 'og:description', content: safeDescription });
-    this.metaService.updateTag({ property: 'og:site_name', content: 'Crickzen' });
-    this.metaService.updateTag({ name: 'twitter:card', content: 'summary_large_image' });
-    this.metaService.updateTag({ name: 'twitter:title', content: fullTitle });
-    this.metaService.updateTag({ name: 'twitter:description', content: safeDescription });
+    });
   }
 
   /**

@@ -48,6 +48,82 @@ mat-card-content {
   width: 100%;
 }
 
+.cricket-odds__seo-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0 0 8px 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  color: #0f172a;
+  text-align: left;
+}
+
+.cricket-odds__seo-copy {
+  min-width: 0;
+}
+
+.cricket-odds__seo-eyebrow {
+  margin: 0 0 6px 0;
+  color: #2563eb;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cricket-odds__seo-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  font-weight: 850;
+  line-height: 1.16;
+}
+
+.cricket-odds__seo-description {
+  margin: 8px 0 0 0;
+  max-width: 860px;
+  color: #475569;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.cricket-odds__seo-series {
+  margin: 8px 0 0 0;
+  color: #334155;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.cricket-odds__seo-links {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.cricket-odds__seo-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1d4ed8;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.cricket-odds__seo-links a:hover {
+  border-color: rgba(37, 99, 235, 0.4);
+  background: #eff6ff;
+  color: #1e40af;
+}
+
 .cricket-odds__announcement {
   display: flex;
   align-items: center;
@@ -270,6 +346,15 @@ mat-card-content {
   mat-card-content {
     padding-left: 4%;
     padding-right: 4%;
+  }
+
+  .cricket-odds__seo-summary {
+    flex-direction: column;
+    padding: 14px;
+  }
+
+  .cricket-odds__seo-links {
+    flex-wrap: wrap;
   }
 
   .match-page-card {

@@ -1,4 +1,6 @@
-import { Injectable } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Inject, Injectable } from '@angular/core';
+import { Meta, Title } from '@angular/platform-browser';
 
 export interface CanonicalMeta {
   title: string;
@@ -20,6 +22,12 @@ export interface CanonicalMeta {
 @Injectable({ providedIn: 'root' })
 export class MetaTagsService {
   private canonicalHost = 'https://www.crickzen.com';
+
+  constructor(
+    private titleService: Title,
+    private metaService: Meta,
+    @Inject(DOCUMENT) private document: any
+  ) {}
 
   // Ensures canonical URL uses the configured host consistently
   ensureCanonicalHost(url: string): string {
@@ -89,8 +97,48 @@ export class MetaTagsService {
     return `/match/${slugify(tournament)}/${slugify(season)}/${slugify(homeTeam)}-vs-${slugify(awayTeam)}/${slugify(format)}/${date}`;
   }
 
-  // Placeholder: Wire to Angular Meta/Title services in a follow-up task.
-  setPageMeta(_path: string, _meta: CanonicalMeta) {
-    // Intentionally left as a stub for MVP wiring.
+  setPageMeta(_path: string, meta: CanonicalMeta) {
+    this.titleService.setTitle(meta.title);
+    this.metaService.updateTag({ name: 'description', content: meta.description });
+    this.metaService.updateTag({ name: 'robots', content: meta.robots || 'index,follow' });
+    this.setCanonical(meta.canonicalUrl);
+
+    this.metaService.updateTag({ property: 'og:title', content: meta.og && meta.og.title ? meta.og.title : meta.title });
+    this.metaService.updateTag({ property: 'og:description', content: meta.og && meta.og.description ? meta.og.description : meta.description });
+    this.metaService.updateTag({ property: 'og:url', content: meta.og && meta.og.url ? meta.og.url : meta.canonicalUrl });
+    this.metaService.updateTag({ property: 'og:site_name', content: 'Crickzen' });
+    this.metaService.updateTag({ property: 'og:type', content: 'website' });
+    if (meta.og && meta.og.image) {
+      this.metaService.updateTag({ property: 'og:image', content: meta.og.image });
+    }
+
+    this.metaService.updateTag({ name: 'twitter:card', content: (meta.twitter && meta.twitter.card) || 'summary_large_image' });
+    this.metaService.updateTag({ name: 'twitter:title', content: meta.og && meta.og.title ? meta.og.title : meta.title });
+    this.metaService.updateTag({ name: 'twitter:description', content: meta.og && meta.og.description ? meta.og.description : meta.description });
+    this.metaService.updateTag({ name: 'twitter:site', content: (meta.twitter && meta.twitter.site) || '@crickzen' });
+  }
+
+  private setCanonical(url: string): void {
+    if (!this.document || !this.document.head) {
+      return;
+    }
+
+    const canonicalUrl = this.ensureCanonicalHost(url);
+    const existing = Array.from(this.document.head.querySelectorAll('link[rel="canonical"]')) as any[];
+    let canonical = existing.shift();
+
+    existing.forEach((node) => {
+      if (node && node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    });
+
+    if (!canonical) {
+      canonical = this.document.createElement('link');
+      canonical.setAttribute('rel', 'canonical');
+      this.document.head.appendChild(canonical);
+    }
+
+    canonical.setAttribute('href', canonicalUrl);
   }
 }

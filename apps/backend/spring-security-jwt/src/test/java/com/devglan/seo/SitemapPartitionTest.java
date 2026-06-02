@@ -1,6 +1,5 @@
 package com.devglan.seo;
 
-import com.devglan.dao.MatchRepository;
 import com.devglan.model.Matches;
 import com.devglan.service.seo.SeoCache;
 import com.devglan.service.seo.SeoConstants;
@@ -8,14 +7,12 @@ import com.devglan.service.seo.LiveMatchesService;
 import com.devglan.service.seo.SitemapService;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 /**
  * Tests for sitemap partitioning logic to ensure proper URL distribution
@@ -24,18 +21,14 @@ import static org.mockito.Mockito.when;
 public class SitemapPartitionTest {
 
     private SitemapService service;
-    private MatchRepository mockRepo;
     private SeoCache cache;
+    private StubLiveMatchesService liveMatchesService;
 
     @Before
     public void setUp() {
         cache = new SeoCache();
-        LiveMatchesService liveMatchesService = new LiveMatchesService();
+        liveMatchesService = new StubLiveMatchesService();
         service = new SitemapService(cache, liveMatchesService);
-        
-        // Mock repository for database fallback scenario
-        mockRepo = Mockito.mock(MatchRepository.class);
-        service.setMatchRepository(mockRepo);
     }
 
     @Test
@@ -45,13 +38,13 @@ public class SitemapPartitionTest {
         for (int i = 1; i <= 250; i++) {
             Matches m = new Matches();
             m.setMatchId((long) i);
-            m.setMatchLink("https://example.com/match-" + i);
+            m.setMatchLink(validMatchLink(i));
             m.setMatchDate(new Date());
             m.setMatchStatus("Completed");
             m.setVisibility(true);
             largeMatchSet.add(m);
         }
-        when(mockRepo.findByVisibilityTrue()).thenReturn(largeMatchSet);
+        liveMatchesService.setMatches(toLiveEntries(largeMatchSet));
         
         // When: Get sitemap index
         String indexXml = service.getSitemapIndexXml();
@@ -70,13 +63,13 @@ public class SitemapPartitionTest {
         for (int i = 1; i <= 150; i++) {
             Matches m = new Matches();
             m.setMatchId((long) i);
-            m.setMatchLink("https://example.com/match-" + i);
+            m.setMatchLink(validMatchLink(i));
             m.setMatchDate(new Date());
             m.setMatchStatus("Completed");
             m.setVisibility(true);
             matches.add(m);
         }
-        when(mockRepo.findByVisibilityTrue()).thenReturn(matches);
+        liveMatchesService.setMatches(toLiveEntries(matches));
         
         // When: Get partition 1
         String partition1Xml = service.getPartitionXml(1);
@@ -92,7 +85,7 @@ public class SitemapPartitionTest {
     public void partition_urls_have_canonical_host() {
         // Given: Mock repo returns some matches
         List<Matches> matches = createMatchList(10);
-        when(mockRepo.findByVisibilityTrue()).thenReturn(matches);
+        liveMatchesService.setMatches(toLiveEntries(matches));
         
         // When: Get any partition
         String partitionXml = service.getPartitionXml(1);
@@ -107,7 +100,7 @@ public class SitemapPartitionTest {
     public void partition_urls_have_iso_lastmod() {
         // Given: Mock repo returns matches
         List<Matches> matches = createMatchList(5);
-        when(mockRepo.findByVisibilityTrue()).thenReturn(matches);
+        liveMatchesService.setMatches(toLiveEntries(matches));
         
         // When: Get partition
         String partitionXml = service.getPartitionXml(1);
@@ -121,7 +114,7 @@ public class SitemapPartitionTest {
     public void empty_partition_returns_valid_xml() {
         // Given: Mock repo returns only 50 matches (less than 2 partitions worth)
         List<Matches> matches = createMatchList(50);
-        when(mockRepo.findByVisibilityTrue()).thenReturn(matches);
+        liveMatchesService.setMatches(toLiveEntries(matches));
         
         // When: Request partition 5 (beyond available data)
         String partition5Xml = service.getPartitionXml(5);
@@ -135,7 +128,7 @@ public class SitemapPartitionTest {
     public void partition_respects_max_urls_per_partition_constant() {
         // Given: Mock repo returns exactly 100 + 3 static URLs worth of matches
         List<Matches> matches = createMatchList(100);
-        when(mockRepo.findByVisibilityTrue()).thenReturn(matches);
+        liveMatchesService.setMatches(toLiveEntries(matches));
         
         // When: Get partition 1 and count URLs
         String partition1Xml = service.getPartitionXml(1);
@@ -145,6 +138,43 @@ public class SitemapPartitionTest {
         assertThat(urlCount).isLessThanOrEqualTo(SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
     }
 
+    @Test
+    public void sitemap_excludes_numeric_and_non_canonical_match_paths() {
+        List<Matches> matches = new ArrayList<>();
+
+        Matches numeric = new Matches();
+        numeric.setMatchId(445L);
+        numeric.setMatchLink("https://example.com/cric-live/445");
+        numeric.setMatchDate(new Date());
+        numeric.setMatchStatus("Completed");
+        numeric.setVisibility(true);
+        matches.add(numeric);
+
+        Matches generic = new Matches();
+        generic.setMatchId(446L);
+        generic.setMatchLink("https://example.com/matches/scorecard");
+        generic.setMatchDate(new Date());
+        generic.setMatchStatus("Completed");
+        generic.setVisibility(true);
+        matches.add(generic);
+
+        Matches canonical = new Matches();
+        canonical.setMatchId(447L);
+        canonical.setMatchLink("https://crex.com/cricket-live-score/br-vs-sgr-8th-match-afghanistan-one-day-cup-2026-match-updates-126P");
+        canonical.setMatchDate(new Date());
+        canonical.setMatchStatus("Completed");
+        canonical.setVisibility(true);
+        matches.add(canonical);
+
+        liveMatchesService.setMatches(toLiveEntries(matches));
+
+        String partitionXml = service.getPartitionXml(1);
+
+        assertThat(partitionXml).contains("/cric-live/br-vs-sgr-8th-match-afghanistan-one-day-cup-2026-match-updates-126P");
+        assertThat(partitionXml).doesNotContain("/cric-live/445");
+        assertThat(partitionXml).doesNotContain("/cric-live/scorecard");
+    }
+
     // Helper methods
     
     private List<Matches> createMatchList(int count) {
@@ -152,13 +182,42 @@ public class SitemapPartitionTest {
         for (int i = 1; i <= count; i++) {
             Matches m = new Matches();
             m.setMatchId((long) i);
-            m.setMatchLink("https://example.com/cricket/match-" + i + "/live");
+            m.setMatchLink(validMatchLink(i));
             m.setMatchDate(new Date());
             m.setMatchStatus("Live");
             m.setVisibility(true);
             matches.add(m);
         }
         return matches;
+    }
+
+    private String validMatchLink(int index) {
+        return "https://crex.com/cricket-live-score/team" + index + "-vs-side" + index
+                + "-1st-match-test-league-2026-match-updates-" + index;
+    }
+
+    private List<LiveMatchesService.LiveMatchEntry> toLiveEntries(List<Matches> matches) {
+        List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
+        for (Matches match : matches) {
+            LiveMatchesService.LiveMatchEntry entry = new LiveMatchesService.LiveMatchEntry();
+            entry.setUrl(match.getMatchLink());
+            entry.setLastKnownState(match.getMatchStatus());
+            entries.add(entry);
+        }
+        return entries;
+    }
+
+    private static class StubLiveMatchesService extends LiveMatchesService {
+        private List<LiveMatchEntry> matches = new ArrayList<>();
+
+        void setMatches(List<LiveMatchEntry> matches) {
+            this.matches = matches;
+        }
+
+        @Override
+        public List<LiveMatchEntry> getLiveMatches() {
+            return matches;
+        }
     }
 
     private int countOccurrences(String text, String pattern) {
