@@ -1,6 +1,6 @@
 import { AddCustomerComponent } from './../../add-customer/add-customer.component';
 import { Component } from '@angular/core';
-import { Routes } from '@angular/router';
+import { Routes, UrlMatchResult, UrlSegment } from '@angular/router';
 import { HomeComponent } from 'src/app/home/home.component';
 import {DashboardComponent} from '../../dashboard/dashboard.component';
 import {AddServiceComponent} from '../../add-service/add-service.component';
@@ -30,9 +30,37 @@ import { TeamsPageComponent } from 'src/app/features/stats/teams-page/teams-page
 import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-page.component';
 import { Error404Component } from 'src/app/shared/components/error-404/error-404.component';
 
+export function cricLiveMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  if (segments.length < 2 || segments[0].path !== 'cric-live') {
+    return null;
+  }
+
+  var joinedPath = segments
+    .slice(1)
+    .map(function(segment: UrlSegment) { return segment.path; })
+    .join('/');
+
+  var decodedPath = joinedPath;
+  try {
+    decodedPath = decodeURIComponent(joinedPath);
+  } catch (error) {
+    decodedPath = joinedPath;
+  }
+
+  var parts = decodedPath.split('/').filter(Boolean).reverse();
+  var slug = parts.find(function(part: string) { return part.indexOf('-vs-') !== -1; }) || segments[1].path;
+
+  return {
+    consumed: segments,
+    posParams: {
+      path: new UrlSegment(slug, {})
+    }
+  };
+}
 
 export const AdminLayoutsRoute: Routes = [
   { path: 'Home', component: HomeComponent },
+  { path: 'login', component: LoginComponent },
   { path: 'live-cricket-score', component: HomeComponent },
   { path: 'matches', component: MatchesListComponent },
   { path: 'dashboard', component: DashboardComponent },
@@ -40,6 +68,7 @@ export const AdminLayoutsRoute: Routes = [
   { path: 'football', component: ServiceListComponent },
   { path: 'add-customer', component: AddCustomerComponent },
   { path: 'customer-list', component: CustomerListComponent },
+  { matcher: cricLiveMatcher, component: CricketOddsComponent },
   { path: 'cric-live/:path', component: CricketOddsComponent },
   { path: 'add-fuller', component: AddFullerComponent },
   { path: 'fuller-list', component: FullerListComponent },

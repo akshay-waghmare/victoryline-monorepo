@@ -21,6 +21,7 @@ const SSR_RENDER_TIMEOUT_MS = process.env.SSR_RENDER_TIMEOUT_MS ? Number(process
 const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/$/,
   /^\/Home\/?$/,
+  /^\/login\/?$/,
   /^\/live-cricket-score\/?$/,
   /^\/matches\/?$/,
   /^\/players\/?$/,
@@ -45,7 +46,7 @@ const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/logout\/?$/,
   /^\/scorecard\/?$/,
   /^\/banner\/?$/,
-  /^\/cric-live\/[^/]+\/?$/
+  /^\/cric-live\/.+\/?$/
 ];
 
 function installDominoGlobals() {
@@ -182,12 +183,13 @@ app.get('*.*', express.static(DIST_FOLDER, {
 }));
 
 app.get('*', (req, res) => {
-  if (path.extname(req.path)) {
+  const routeStatus = isKnownFrontendRoute(req.path) ? 200 : 404;
+
+  if (path.extname(req.path) && routeStatus !== 200) {
     res.status(404).send('Not found');
     return;
   }
 
-  const routeStatus = isKnownFrontendRoute(req.path) ? 200 : 404;
   if (routeStatus === 200) {
     applyRouteCacheHeaders(req, res);
   } else {

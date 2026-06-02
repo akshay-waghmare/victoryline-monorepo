@@ -224,9 +224,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     // Phase 7 (T036): Hide odds by default on mobile viewports
     this.showOdds = this.isBrowser() ? window.innerWidth > 768 : true;
 
-    const routeMatchKey = this.activatedRoute.snapshot.params['path']
+    const routeMatchKey = this.normalizeRouteMatchKey(this.activatedRoute.snapshot.params['path']
       || this.activatedRoute.snapshot.params['url']
-      || '';
+      || '');
     const legacyMatchUrl = this.activatedRoute.snapshot.queryParamMap.get('url');
     this.currentUrl = routeMatchKey;
     this.routeMatchHint = this.getNavigationMatchHint(routeMatchKey);
@@ -287,7 +287,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   private fetchCricketData() {
     const params = this.activatedRoute.snapshot.params;
-    const match = params['path']; // Use 'path' instead of 'match'
+    const match = this.normalizeRouteMatchKey(params['path']); // Use 'path' instead of 'match'
     const isSameRouteMatch = !!(match && this.lastResolvedRouteSlug && this.lastResolvedRouteSlug === match);
 
     this.currentUrl = match || '';
@@ -2871,6 +2871,25 @@ placeSessionBet() {
     }
     
     return null;
+  }
+
+  private normalizeRouteMatchKey(routeMatchKey: string): string {
+    if (!routeMatchKey) {
+      return '';
+    }
+
+    const extractedFromParam = extractSlugFromUrl(routeMatchKey);
+    if (extractedFromParam) {
+      return extractedFromParam;
+    }
+
+    const currentRouteUrl = this.router && this.router.url ? this.router.url : '';
+    const extractedFromCurrentUrl = extractSlugFromUrl(currentRouteUrl);
+    if (extractedFromCurrentUrl) {
+      return extractedFromCurrentUrl;
+    }
+
+    return routeMatchKey;
   }
 
 
