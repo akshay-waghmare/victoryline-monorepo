@@ -634,17 +634,18 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
       return null;
     }
 
-    const pattern = /^(.+?)\s+(\d{1,2}:\d{2}\s*[AP]M)\s+(\d+(?:st|nd|rd|th))\s*([A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?),\s*(.+?)\s+(.+)$/i;
+    const pattern = /^(.+?)\s+(\d{1,2}:\d{2}\s*[AP]M)\s+(\d+(?:st|nd|rd|th))\s*([A-Za-z0-9]+(?:\s+[A-Za-z0-9]+)?),\s*(.+)$/i;
     const match = raw.match(pattern);
     if (!match) {
       return null;
     }
 
     const leadingTeam = match[1].trim();
-    const trailingTeam = match[6].trim();
+    const tail = this.splitFixtureTail(match[5]);
+    const trailingTeam = tail.trailingTeam;
     const matchOrdinal = match[3].trim();
     const format = this.formatMatchType(match[4]);
-    const league = match[5].trim();
+    const league = tail.league;
 
     return {
       time: match[2].trim().toUpperCase(),
@@ -656,8 +657,41 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     };
   }
 
+  private splitFixtureTail(value: string): { league: string; trailingTeam: string } {
+    const tail = (value || '').replace(/\s+/g, ' ').trim();
+    const team2Name = this.match && this.match.team2 ? this.match.team2.name : '';
+    const team2ShortName = this.match && this.match.team2 ? this.getResolvedShortName(this.match.team2) : '';
+    const candidates = [team2Name, team2ShortName]
+      .map(candidate => (candidate || '').replace(/\s+/g, ' ').trim())
+      .filter(candidate => candidate.length > 1);
+
+    for (const candidate of candidates) {
+      const suffixPattern = new RegExp('\\s+' + this.escapeRegExp(candidate) + '$', 'i');
+      if (suffixPattern.test(tail)) {
+        const league = tail.replace(suffixPattern, '').trim();
+        if (league) {
+          return { league, trailingTeam: candidate };
+        }
+      }
+    }
+
+    const parts = tail.split(' ');
+    if (parts.length >= 3) {
+      return {
+        league: parts.slice(0, -2).join(' '),
+        trailingTeam: parts.slice(-2).join(' ')
+      };
+    }
+
+    return { league: tail, trailingTeam: team2Name || team2ShortName || tail };
+  }
+
   private isLikelyMatchMeta(value: string): boolean {
     return /^\d+(st|nd|rd|th)\s+/i.test(value) || /\b(t20|odi|test|one day)\b/i.test(value);
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private stripScheduledTime(value: string): string {
