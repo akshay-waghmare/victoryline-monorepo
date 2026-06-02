@@ -1,42 +1,54 @@
-import { Injectable } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { Inject, Injectable } from '@angular/core';
 
 export type JsonLd = Record<string, any>;
 
 @Injectable({ providedIn: 'root' })
 export class StructuredDataService {
+  constructor(@Inject(DOCUMENT) private document: any) {}
+
   sportsEvent(input: {
     name: string;
-    startDate: string; // ISO 8601
+    url: string;
     homeTeam: string;
     awayTeam: string;
+    startDate?: string; // ISO 8601
+    description?: string;
     location?: string;
     status?: 'Scheduled' | 'LiveEvent' | 'EventCompleted';
     offersUrl?: string;
   }): JsonLd {
-    return {
+    return this.cleanObject({
       '@context': 'https://schema.org',
       '@type': 'SportsEvent',
       name: input.name,
+      url: input.url,
+      description: input.description,
+      sport: 'Cricket',
       startDate: input.startDate,
-      eventStatus: input.status || 'Scheduled',
+      eventStatus: this.toEventStatusUrl(input.status || 'Scheduled'),
       location: input.location ? { '@type': 'Place', name: input.location } : undefined,
       offers: input.offersUrl ? { '@type': 'Offer', url: input.offersUrl } : undefined,
       homeTeam: { '@type': 'SportsTeam', name: input.homeTeam },
       awayTeam: { '@type': 'SportsTeam', name: input.awayTeam },
-    };
+      competitor: [
+        { '@type': 'SportsTeam', name: input.homeTeam },
+        { '@type': 'SportsTeam', name: input.awayTeam }
+      ]
+    });
   }
 
   team(input: { name: string; logoUrl?: string }): JsonLd {
-    return {
+    return this.cleanObject({
       '@context': 'https://schema.org',
       '@type': 'SportsTeam',
       name: input.name,
       logo: input.logoUrl,
-    };
+    });
   }
 
   person(input: { name: string; affiliation?: string; image?: string }): JsonLd {
-    return {
+    return this.cleanObject({
       '@context': 'https://schema.org',
       '@type': 'Person',
       name: input.name,
@@ -44,11 +56,11 @@ export class StructuredDataService {
         ? { '@type': 'Organization', name: input.affiliation }
         : undefined,
       image: input.image,
-    };
+    });
   }
 
   breadcrumbs(items: Array<{ name: string; url: string }>): JsonLd {
-    return {
+    return this.cleanObject({
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: items.map((it, idx) => ({
@@ -57,6 +69,71 @@ export class StructuredDataService {
         name: it.name,
         item: it.url,
       })),
-    };
+    });
+  }
+
+  setPageSchemas(items: JsonLd[]): void {
+    if (!this.document || !this.document.head) {
+      return;
+    }
+
+    this.clearPageSchemas();
+
+    items.forEach((item) => {
+      const script = this.document.createElement('script');
+      script.setAttribute('type', 'application/ld+json');
+      script.setAttribute('data-schema', 'crickzen-jsonld');
+      script.text = JSON.stringify(item);
+      this.document.head.appendChild(script);
+    });
+  }
+
+  clearPageSchemas(): void {
+    if (!this.document || !this.document.head) {
+      return;
+    }
+
+    const nodes = this.document.head.querySelectorAll('script[data-schema="crickzen-jsonld"]');
+    Array.prototype.forEach.call(nodes, (node) => {
+      if (node && node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    });
+  }
+
+  private toEventStatusUrl(status: 'Scheduled' | 'LiveEvent' | 'EventCompleted'): string {
+    switch (status) {
+      case 'LiveEvent':
+        return 'https://schema.org/EventScheduled';
+      case 'EventCompleted':
+        return 'https://schema.org/EventCompleted';
+      default:
+        return 'https://schema.org/EventScheduled';
+    }
+  }
+
+  private cleanObject(value: any): any {
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => this.cleanObject(item))
+        .filter((item) => item !== undefined && item !== null && item !== '');
+    }
+
+    if (value && typeof value === 'object') {
+      const cleaned: any = {};
+      Object.keys(value).forEach((key) => {
+        const nextValue = this.cleanObject(value[key]);
+        if (nextValue === undefined || nextValue === null || nextValue === '') {
+          return;
+        }
+        if (Array.isArray(nextValue) && nextValue.length === 0) {
+          return;
+        }
+        cleaned[key] = nextValue;
+      });
+      return cleaned;
+    }
+
+    return value;
   }
 }

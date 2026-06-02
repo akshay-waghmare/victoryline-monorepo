@@ -104,6 +104,10 @@ foreach ($url in $urls) {
   $jsonLdCount = Count-Matches $html "application/ld\+json"
   $ogCount = Count-Matches $html "<meta[^>]+property=[`"']og:"
   $twitterCount = Count-Matches $html "<meta[^>]+name=[`"']twitter:"
+  $ogImage = Get-FirstMatch $html "<meta[^>]+property=[`"']og:image[`"'][^>]+content=[`"']([^`"']*)[`"'][^>]*>"
+  if (-not $ogImage) {
+    $ogImage = Get-FirstMatch $html "<meta[^>]+content=[`"']([^`"']*)[`"'][^>]+property=[`"']og:image[`"'][^>]*>"
+  }
   $wordCount = Get-VisibleWordCount $html
   $validSlug = Test-ValidMatchSlug $url
   $expectedCanonical = Get-ExpectedCanonical $url
@@ -115,6 +119,7 @@ foreach ($url in $urls) {
   if ($h1Count -ne 1) { $flags += "H1_COUNT_$h1Count" }
   if ($title -match "Team A|Team B") { $flags += "PLACEHOLDER_TITLE" }
   if ($canonical -match "/cric-live/\d+$" -and $robots -notmatch "noindex") { $flags += "NUMERIC_INDEXABLE" }
+  if ($validSlug -and -not $ogImage) { $flags += "OG_IMAGE_MISSING" }
 
   $results += [pscustomobject]@{
     Url = $url
@@ -126,6 +131,7 @@ foreach ($url in $urls) {
     DescriptionLength = $description.Length
     WordCount = $wordCount
     OgTags = $ogCount
+    OgImage = $ogImage
     TwitterTags = $twitterCount
     JsonLd = $jsonLdCount
     Flags = ($flags -join ",")

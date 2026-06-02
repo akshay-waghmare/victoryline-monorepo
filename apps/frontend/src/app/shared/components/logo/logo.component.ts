@@ -10,7 +10,9 @@ import { Component, Input } from '@angular/core';
         [ngClass]="imageClass"
         class="logo-image"
         (error)="onImageError($event)"
-        loading="lazy"
+        [attr.loading]="resolvedLoading"
+        [attr.fetchpriority]="resolvedFetchPriority"
+        decoding="async"
       />
       <span *ngIf="showText && variant !== 'text'" class="logo-text" [ngClass]="textClass">
         {{ logoText }}
@@ -213,6 +215,24 @@ export class LogoComponent {
   @Input() imageClass: string = '';
   @Input() textClass: string = '';
   @Input() altText: string = 'Crickzen Live Cricket';
+  @Input() loading: 'lazy' | 'eager' | 'auto' = 'auto';
+  @Input() fetchPriority: 'high' | 'low' | 'auto' = 'auto';
+
+  get resolvedLoading(): string {
+    if (this.loading !== 'auto') {
+      return this.loading;
+    }
+
+    return this.size === 'navbar' ? 'eager' : 'lazy';
+  }
+
+  get resolvedFetchPriority(): string | null {
+    if (this.fetchPriority !== 'auto') {
+      return this.fetchPriority;
+    }
+
+    return this.size === 'navbar' ? 'high' : null;
+  }
 
   get logoSrc(): string {
     switch (this.variant) {

@@ -28,6 +28,7 @@ import { MatchesListComponent } from 'src/app/features/matches/pages/matches-lis
 import { PlayersPageComponent } from 'src/app/features/stats/players-page/players-page.component';
 import { TeamsPageComponent } from 'src/app/features/stats/teams-page/teams-page.component';
 import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-page.component';
+import { Error404Component } from 'src/app/shared/components/error-404/error-404.component';
 
 
 export const AdminLayoutsRoute: Routes = [
@@ -57,6 +58,7 @@ export const AdminLayoutsRoute: Routes = [
   { path: 'players', component: PlayersPageComponent },
   { path: 'teams', component: TeamsPageComponent },
   { path: 'series', component: SeriesPageComponent },
+  { path: '**', component: Error404Component },
 ];
 
 

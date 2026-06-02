@@ -26,6 +26,7 @@ import { LiveHeroViewModel } from '../match-live/services/live-hero.models';
 import { MatchSeoViewModel } from '../seo/match-seo.models';
 import { MatchSeoService } from '../seo/match-seo.service';
 import { MetaTagsService } from '../seo/meta-tags.service';
+import { StructuredDataService } from '../seo/structured-data.service';
 
 interface FormattedExposure {
   win: number;
@@ -191,6 +192,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private authService : AuthService,
               private metaTagsService: MetaTagsService,
               private matchSeoService: MatchSeoService,
+              private structuredDataService: StructuredDataService,
               private activatedRoute: ActivatedRoute,
               private router: Router,
               private ngZone: NgZone) { }
@@ -2606,13 +2608,19 @@ private titleCaseSlug(value: string): string {
       og: {
         title: this.matchSeo.title,
         description: this.matchSeo.description,
+        image: this.matchSeo.ogImageUrl,
+        imageWidth: 1200,
+        imageHeight: 630,
         url: this.matchSeo.canonicalUrl
       },
       twitter: {
         card: 'summary_large_image',
-        site: '@crickzen'
+        site: '@crickzen',
+        image: this.matchSeo.ogImageUrl
       }
     });
+
+    this.updateStructuredData();
   }
 
   /**
@@ -2624,6 +2632,77 @@ private titleCaseSlug(value: string): string {
 
   private isBrowser(): boolean {
     return typeof window !== 'undefined' && !(window as any).__SSR__;
+  }
+
+  private updateStructuredData(): void {
+    var items = this.buildStructuredDataItems();
+    if (items && items.length > 0) {
+      this.structuredDataService.setPageSchemas(items);
+      return;
+    }
+
+    this.structuredDataService.clearPageSchemas();
+  }
+
+  private buildStructuredDataItems(): any[] | null {
+    if (!this.matchSeo || !this.matchSeo.isIndexable) {
+      return null;
+    }
+
+    if (!this.matchSeo.team1 || !this.matchSeo.team2 || this.matchSeo.team1 === 'Team A' || this.matchSeo.team2 === 'Team B') {
+      return null;
+    }
+
+    var startDate = this.toIsoDate(this.matchInfo && this.matchInfo.match_date);
+    var venue = this.matchInfo && this.matchInfo.venue && this.matchInfo.venue !== 'Venue TBD'
+      ? this.matchInfo.venue
+      : undefined;
+    var sportsEvent = this.structuredDataService.sportsEvent({
+      name: this.matchSeo.h1,
+      url: this.matchSeo.canonicalUrl,
+      description: this.matchSeo.summary,
+      homeTeam: this.matchSeo.team1,
+      awayTeam: this.matchSeo.team2,
+      startDate: startDate || undefined,
+      location: venue,
+      status: this.getStructuredDataStatus()
+    });
+    var breadcrumbs = this.structuredDataService.breadcrumbs([
+      { name: 'Home', url: 'https://www.crickzen.com/' },
+      { name: 'Matches', url: 'https://www.crickzen.com/matches' },
+      { name: this.matchSeo.teams, url: this.matchSeo.canonicalUrl }
+    ]);
+
+    return [sportsEvent, breadcrumbs];
+  }
+
+  private getStructuredDataStatus(): 'Scheduled' | 'LiveEvent' | 'EventCompleted' {
+    var status = String((this.matchInfo && (this.matchInfo.match_status || this.matchInfo.status))
+      || (this.currentMatch && this.currentMatch.status)
+      || '').toLowerCase();
+
+    if (/complete|finished|result|won by|draw|tied/.test(status)) {
+      return 'EventCompleted';
+    }
+
+    if (/live|in progress|delayed|stumps/.test(status)) {
+      return 'LiveEvent';
+    }
+
+    return 'Scheduled';
+  }
+
+  private toIsoDate(value: any): string | null {
+    if (!value) {
+      return null;
+    }
+
+    var parsed = new Date(value);
+    if (isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    return parsed.toISOString();
   }
 
   setVenuePercentages() {

@@ -68,6 +68,7 @@ import { MatchCardComponent } from 'src/app/features/matches/components/match-ca
 import { SkeletonCardComponent } from 'src/app/shared/components/skeleton-card/skeleton-card.component';
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
 import { TabNavComponent } from 'src/app/shared/components/tab-nav/tab-nav.component';
+import { Error404Component } from 'src/app/shared/components/error-404/error-404.component';
 
 // Stats browse pages
 import { PlayersPageComponent } from 'src/app/features/stats/players-page/players-page.component';
@@ -169,6 +170,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     SkeletonCardComponent,
     MatchesListComponent,
     TabNavComponent,
+    Error404Component,
     // 002-match-details-ux: Shared components
     StalenessIndicatorComponent,
     // 002-match-details-ux: Cricket odds feature components

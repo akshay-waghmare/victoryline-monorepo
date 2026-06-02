@@ -3,6 +3,7 @@ export interface MatchSeoViewModel {
   canonicalUrl: string;
   title: string;
   description: string;
+  ogImageUrl: string;
   h1: string;
   robots: 'index,follow' | 'noindex,follow';
   teams: string;

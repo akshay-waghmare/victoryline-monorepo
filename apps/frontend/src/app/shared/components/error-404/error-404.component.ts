@@ -62,9 +62,9 @@ import { Router } from '@angular/router';
               <i class="material-icons">history</i>
               <span>Recent Results</span>
             </a>
-            <a href="#" class="suggestion-card">
+            <a href="/teams" class="suggestion-card">
               <i class="material-icons">search</i>
-              <span>Search Teams</span>
+              <span>Browse Teams</span>
             </a>
           </div>
         </div>

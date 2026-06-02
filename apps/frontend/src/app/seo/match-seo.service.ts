@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { extractSlugFromUrl } from '../core/utils/match-utils';
 import { MatchSeoViewModel } from './match-seo.models';
+import { getOgImageForMatch } from './og-images';
 
 interface SlugParts {
   team1: string;
@@ -35,8 +36,9 @@ export class MatchSeoService {
     const suffix = isCompleted ? ' Final Score | Full Scorecard' : ' Live Score Ball by Ball';
     const title = isIndexable ? this.truncateTitle(teams, suffix) : 'Cricket Match Not Available | Crickzen';
     const series = this.cleanSeries(matchInfo.series_name || (input.currentMatch && input.currentMatch.seriesName) || (parsed && parsed.series) || '');
+    const ogImageUrl = this.host + getOgImageForMatch(sourceSlug || routeSlug || 'match');
     const description = isIndexable
-      ? this.truncateDescription(`${teams} ${isCompleted ? 'final score, full scorecard, match summary, and result' : 'live score, ball by ball commentary, latest runs, wickets, overs, and match updates'}${series ? ` from ${series}` : ''} on Crickzen.`)
+      ? this.truncateDescription(`${teams} ${isCompleted ? 'final score, result, scorecard, and key match updates' : 'live score, wickets, overs, and ball-by-ball updates'}${series ? ` in ${series}` : ''}.`)
       : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
     const canonicalPath = isIndexable ? `/cric-live/${sourceSlug}` : (routeSlug ? `/cric-live/${routeSlug}` : '/matches');
     const canonicalUrl = this.host + canonicalPath;
@@ -50,6 +52,7 @@ export class MatchSeoService {
       canonicalUrl,
       title,
       description,
+      ogImageUrl,
       h1,
       robots: isIndexable ? 'index,follow' : 'noindex,follow',
       teams,

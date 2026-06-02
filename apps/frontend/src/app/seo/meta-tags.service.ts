@@ -11,11 +11,14 @@ export interface CanonicalMeta {
     title?: string;
     description?: string;
     image?: string;
+    imageWidth?: number;
+    imageHeight?: number;
     url?: string;
   };
   twitter?: {
     card?: 'summary_large_image' | 'summary';
     site?: string;
+    image?: string;
   };
 }
 
@@ -110,12 +113,25 @@ export class MetaTagsService {
     this.metaService.updateTag({ property: 'og:type', content: 'website' });
     if (meta.og && meta.og.image) {
       this.metaService.updateTag({ property: 'og:image', content: meta.og.image });
+      this.metaService.updateTag({ property: 'og:image:width', content: String(meta.og.imageWidth || 1200) });
+      this.metaService.updateTag({ property: 'og:image:height', content: String(meta.og.imageHeight || 630) });
+    } else {
+      this.metaService.removeTag("property='og:image'");
+      this.metaService.removeTag("property='og:image:width'");
+      this.metaService.removeTag("property='og:image:height'");
     }
 
     this.metaService.updateTag({ name: 'twitter:card', content: (meta.twitter && meta.twitter.card) || 'summary_large_image' });
     this.metaService.updateTag({ name: 'twitter:title', content: meta.og && meta.og.title ? meta.og.title : meta.title });
     this.metaService.updateTag({ name: 'twitter:description', content: meta.og && meta.og.description ? meta.og.description : meta.description });
     this.metaService.updateTag({ name: 'twitter:site', content: (meta.twitter && meta.twitter.site) || '@crickzen' });
+    if (meta.twitter && meta.twitter.image) {
+      this.metaService.updateTag({ name: 'twitter:image', content: meta.twitter.image });
+    } else if (meta.og && meta.og.image) {
+      this.metaService.updateTag({ name: 'twitter:image', content: meta.og.image });
+    } else {
+      this.metaService.removeTag("name='twitter:image'");
+    }
   }
 
   private setCanonical(url: string): void {

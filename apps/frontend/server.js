@@ -18,6 +18,35 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 const BACKEND_URL = (process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:8099').replace(/\/+$/, '');
 const SCRAPER_URL = (process.env.SCRAPER_URL || 'http://scraper:5000').replace(/\/+$/, '');
 const SSR_RENDER_TIMEOUT_MS = process.env.SSR_RENDER_TIMEOUT_MS ? Number(process.env.SSR_RENDER_TIMEOUT_MS) : 8000;
+const KNOWN_FRONTEND_ROUTE_PATTERNS = [
+  /^\/$/,
+  /^\/Home\/?$/,
+  /^\/live-cricket-score\/?$/,
+  /^\/matches\/?$/,
+  /^\/players\/?$/,
+  /^\/teams\/?$/,
+  /^\/series\/?$/,
+  /^\/privacy-policy\/?$/,
+  /^\/terms-of-service\/?$/,
+  /^\/dashboard\/?$/,
+  /^\/add-service\/?$/,
+  /^\/football\/?$/,
+  /^\/add-customer\/?$/,
+  /^\/customer-list\/?$/,
+  /^\/add-fuller\/?$/,
+  /^\/fuller-list\/?$/,
+  /^\/bet-market\/[^/]+\/?$/,
+  /^\/tennis\/?$/,
+  /^\/tennis\/atp\/ranking\/?$/,
+  /^\/tennis\/wta\/ranking\/?$/,
+  /^\/account\/bet-history\/?$/,
+  /^\/account\/profit-loss\/?$/,
+  /^\/scraping\/?$/,
+  /^\/logout\/?$/,
+  /^\/scorecard\/?$/,
+  /^\/banner\/?$/,
+  /^\/cric-live\/[^/]+\/?$/
+];
 
 function installDominoGlobals() {
   const template = fs.existsSync(INDEX_HTML) ? fs.readFileSync(INDEX_HTML).toString() : '<html><head></head><body><app-root></app-root></body></html>';
@@ -94,6 +123,10 @@ function applyRouteCacheHeaders(req, res) {
   res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
 }
 
+function isKnownFrontendRoute(pathname) {
+  return KNOWN_FRONTEND_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
+}
+
 installDominoGlobals();
 
 const { AppServerModuleNgFactory, LAZY_MODULE_MAP } = require(SERVER_BUNDLE);
@@ -102,7 +135,10 @@ const apiProxy = createApiProxy();
 
 app.disable('x-powered-by');
 app.use(helmet({
-  contentSecurityPolicy: false
+  contentSecurityPolicy: false,
+  frameguard: false,
+  noSniff: false,
+  referrerPolicy: false
 }));
 
 app.get('/health', (_req, res) => {
@@ -151,7 +187,12 @@ app.get('*', (req, res) => {
     return;
   }
 
-  applyRouteCacheHeaders(req, res);
+  const routeStatus = isKnownFrontendRoute(req.path) ? 200 : 404;
+  if (routeStatus === 200) {
+    applyRouteCacheHeaders(req, res);
+  } else {
+    res.setHeader('Cache-Control', 'no-store');
+  }
 
   let completed = false;
   const fallbackTimer = setTimeout(() => {
@@ -161,7 +202,7 @@ app.get('*', (req, res) => {
 
     completed = true;
     console.error('[SSR] Render timed out', { url: req.originalUrl, timeoutMs: SSR_RENDER_TIMEOUT_MS });
-    res.status(200).sendFile(INDEX_HTML);
+    res.status(routeStatus).sendFile(INDEX_HTML);
   }, SSR_RENDER_TIMEOUT_MS);
 
   res.render('index', {
@@ -186,10 +227,10 @@ app.get('*', (req, res) => {
         error: err.message,
         stack: err.stack
       });
-      res.status(200).sendFile(INDEX_HTML);
+      res.status(routeStatus).sendFile(INDEX_HTML);
       return;
     }
-    res.status(200).send(html);
+    res.status(routeStatus).send(html);
   });
 });
 
