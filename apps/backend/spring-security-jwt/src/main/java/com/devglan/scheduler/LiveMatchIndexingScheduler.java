@@ -65,7 +65,7 @@ public class LiveMatchIndexingScheduler {
      * Cron alternative: @Scheduled(cron = "0 0/15 * * * *")
      * Using fixedRate for simplicity and immediate start after deployment.
      */
-    @Scheduled(fixedRate = 900000) // 15 minutes = 900,000 ms
+    @Scheduled(fixedRateString = "${gsc.live-match-indexing.interval-ms:900000}") // 15 minutes by default
     public void indexNewLiveMatches() {
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
         
