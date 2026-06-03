@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -45,6 +46,9 @@ public class LiveMatchIndexingScheduler {
     
     @Value("${gsc.live-match-indexing.max-per-run:10}")
     private int maxIndexingPerRun;
+
+    @Value("${gsc.live-match-indexing.daily-budget:180}")
+    private int dailyIndexingBudget;
     
     public LiveMatchIndexingScheduler(
             GoogleSearchConsoleService googleSearchConsoleService,
@@ -83,27 +87,38 @@ public class LiveMatchIndexingScheduler {
         logger.info("[LiveMatchIndexer] Starting live match indexing at {}", timestamp);
         
         try {
-            List<LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
+            List<LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatchesOnly();
             
             if (liveMatches == null || liveMatches.isEmpty()) {
                 logger.info("[LiveMatchIndexer] No live matches found");
                 return;
             }
+
+            liveMatches.sort(Comparator.comparingLong(this::prioritySortValue));
             
             int indexed = 0;
             int skipped = 0;
             int failed = 0;
+            long indexedToday = seoCache.getIndexedSlugCount();
             
             for (LiveMatchEntry match : liveMatches) {
+                if (indexedToday >= dailyIndexingBudget) {
+                    logger.warn("[LiveMatchIndexer] Reached daily indexing budget ({}), stopping to protect quota", dailyIndexingBudget);
+                    break;
+                }
+
                 // Respect max per run to stay within quota
                 if (indexed >= maxIndexingPerRun) {
                     logger.info("[LiveMatchIndexer] Reached max indexing limit ({}) for this run", maxIndexingPerRun);
                     break;
                 }
-                
+
                 String slug = extractSlugFromUrl(match.getUrl());
-                
                 if (slug == null || slug.isEmpty()) {
+                    slug = match.getExternalMatchKey();
+                }
+
+                if (!isCanonicalMatchSlug(slug)) {
                     logger.warn("[LiveMatchIndexer] Could not extract slug from URL: {}", match.getUrl());
                     continue;
                 }
@@ -120,6 +135,7 @@ public class LiveMatchIndexingScheduler {
                 if (success) {
                     seoCache.markSlugIndexed(slug);
                     indexed++;
+                    indexedToday++;
                     logger.info("[LiveMatchIndexer] Indexed match: {}", slug);
                 } else {
                     failed++;
@@ -155,6 +171,25 @@ public class LiveMatchIndexingScheduler {
     public String extractSlugFromUrl(String url) {
         return CrexMatchUrlHelper.extractMatchKey(url);
     }
+
+    private boolean isCanonicalMatchSlug(String slug) {
+        return slug != null
+                && !slug.trim().isEmpty()
+                && !slug.trim().matches("\\d+")
+                && slug.toLowerCase().contains("-vs-");
+    }
+
+    private long prioritySortValue(LiveMatchEntry match) {
+        String status = match.getStatus() == null ? "" : match.getStatus().toUpperCase();
+        long start = match.getScheduledStartTime() == null ? Long.MAX_VALUE / 2 : match.getScheduledStartTime();
+        if ("LIVE".equals(status) || "INNINGS_BREAK".equals(status) || "RAIN_DELAY".equals(status)) {
+            return start;
+        }
+        if ("UPCOMING".equals(status)) {
+            return Long.MAX_VALUE / 4 + start;
+        }
+        return Long.MAX_VALUE / 2 + start;
+    }
     
     /**
      * Manual trigger for testing
@@ -174,6 +209,7 @@ public class LiveMatchIndexingScheduler {
         status.append("  Live Match Indexing Enabled: ").append(liveMatchIndexingEnabled).append("\n");
         status.append("  Indexing API Initialized: ").append(googleSearchConsoleService.isIndexingInitialized()).append("\n");
         status.append("  Max Per Run: ").append(maxIndexingPerRun).append("\n");
+        status.append("  Daily Budget: ").append(dailyIndexingBudget).append("\n");
         status.append("  Already Indexed (today): ").append(seoCache.getIndexedSlugCount()).append("\n");
         status.append("  Persistence: Redis (25h TTL) with in-memory fallback\n");
         status.append("  Schedule: Every 15 minutes\n");

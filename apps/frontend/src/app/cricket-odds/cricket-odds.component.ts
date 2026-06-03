@@ -197,6 +197,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private router: Router,
               private ngZone: NgZone) { }
 
+  trackByCommentaryId(index: number, entry: any): string {
+    return (entry && entry.id) || (entry && entry.overBall) || String(index);
+  }
+
   ngOnDestroy() {
     this.tossWonCountrySubject.complete();
     this.batOrBallSelectedSubject.complete();
@@ -523,7 +527,6 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         const newEntries: any[] = this.cricObj.commentary;
         if (newEntries.length > 0) {
           this.commentaryEntries = upsertCommentaryEntries(this.commentaryEntries, newEntries).slice(0, 200);
-          console.log('Commentary entries updated:', this.commentaryEntries.length);
         }
       }
 
@@ -955,7 +958,13 @@ onTabChange(event: MatTabChangeEvent) {
 
 fetchScorecardInfo(matchUrl:string){
 
-  this.cricketService.getScorecardInfo(matchUrl).subscribe(
+  var scorecardRequest = this.cricketService.getScorecardInfo(matchUrl);
+  if (!this.isBrowser()) {
+    // Do not let a slow missing scorecard force SSR to fall back to the bare Angular shell.
+    scorecardRequest = scorecardRequest.pipe(timeout(2500));
+  }
+
+  scorecardRequest.pipe(takeUntil(this.destroy$)).subscribe(
     data => {
       this.scorecardData = data;
       console.log('Match Scorecard:', this.scorecardData);
@@ -3011,7 +3020,8 @@ placeSessionBet() {
     const text = (entry.text || '').toUpperCase();
     if (text.includes('WIDE BALL') || text.includes('WIDE!')) return 'wd';
     if (text.includes('NO BALL') || text.includes('NO-BALL')) return 'nb';
-    if (entry.runs !== undefined && entry.runs !== null) return String(entry.runs);
+    const runs = this.getCommentaryRunsValue(entry);
+    if (runs !== null) return String(runs);
     return '';
   }
 
@@ -3021,10 +3031,170 @@ placeSessionBet() {
     const text = (entry.text || '').toUpperCase();
     if (text.includes('WIDE BALL') || text.includes('WIDE!')) return 'runs-badge--wide';
     if (text.includes('NO BALL') || text.includes('NO-BALL')) return 'runs-badge--noball';
-    const r = Number(entry.runs);
+    const runs = this.getCommentaryRunsValue(entry);
+    const r = runs === null ? Number.NaN : Number(runs);
     if (r === 4) return 'runs-badge--four';
     if (r === 6) return 'runs-badge--six';
     if (r === 0) return 'runs-badge--dot';
     return 'runs-badge--run';
+  }
+
+  isCommentaryLive(): boolean {
+    var status = String((this.matchInfo && (this.matchInfo.match_status || this.matchInfo.status))
+      || (this.currentMatch && (this.currentMatch.displayStatus || this.currentMatch.status))
+      || (this.cricObj && this.cricObj.matchType)
+      || '').toLowerCase();
+
+    if (!status) {
+      return this.cricObj ? this.cricObj.matchType !== 'COMPLETED' : true;
+    }
+
+    return !/complete|finished|result|won by|draw|tied/.test(status);
+  }
+
+  getCommentaryStatusLabel(): string {
+    return this.isCommentaryLive() ? 'Live' : 'Completed';
+  }
+
+  getCommentaryHeaderNote(): string {
+    if (this.isCommentaryLive()) {
+      return 'Latest updates first, with over breaks kept compact so big moments are easier to spot.';
+    }
+
+    return 'Recent commentary first, with over breaks separating the flow of the innings.';
+  }
+
+  getCommentaryEventLabel(entry: any): string {
+    if (!entry) {
+      return '';
+    }
+
+    if (entry.type === 'WICKET') {
+      return 'Wicket';
+    }
+
+    var text = String(entry.text || '').toUpperCase();
+    if (text.includes('WIDE BALL') || text.includes('WIDE!')) {
+      return 'Wide';
+    }
+    if (text.includes('NO BALL') || text.includes('NO-BALL')) {
+      return 'No ball';
+    }
+
+    if (entry.type === 'BOUNDARY') {
+      if (entry.runs === 6 || (Array.isArray(entry.highlights) && entry.highlights.includes('SIX'))) {
+        return 'Six';
+      }
+      if (entry.runs === 4) {
+        return 'Four';
+      }
+      return 'Boundary';
+    }
+
+    return '';
+  }
+
+  getOverSummaryLabel(entry: any): string {
+    var overNumber = entry && entry.overNumber !== undefined && entry.overNumber !== null
+      ? String(entry.overNumber)
+      : '';
+
+    if (!overNumber) {
+      return 'Over break';
+    }
+
+    return 'Over ' + overNumber;
+  }
+
+  getOverSummaryScore(entry: any): string {
+    return entry && entry.totalScore ? String(entry.totalScore) : '';
+  }
+
+  getOverSummaryText(entry: any): string {
+    var text = String((entry && entry.text) || '').trim();
+    if (!text) {
+      return '';
+    }
+
+    text = text.replace(/^End of over\s+\d+(?:\.\d+)?\s*:\s*/i, '');
+    text = text.replace(/\s+\|\s+/g, ' • ');
+    return text;
+  }
+
+  getCommentaryPrimaryText(entry: any): string {
+    var text = String((entry && entry.text) || '').trim();
+    if (!text) {
+      return '';
+    }
+
+    var structuredParts = this.splitCommentaryText(text);
+    return structuredParts.primary;
+  }
+
+  getCommentarySecondaryText(entry: any): string {
+    var text = String((entry && entry.text) || '').trim();
+    if (!text) {
+      return '';
+    }
+
+    var structuredParts = this.splitCommentaryText(text);
+    return structuredParts.secondary;
+  }
+
+  private getCommentaryRunsValue(entry: any): number | null {
+    if (!entry) {
+      return null;
+    }
+
+    if (entry.runs !== undefined && entry.runs !== null && entry.runs !== '') {
+      var directRuns = Number(entry.runs);
+      if (!Number.isNaN(directRuns)) {
+        return directRuns;
+      }
+    }
+
+    var text = String(entry.text || '').trim().toUpperCase();
+    if (!text) {
+      return null;
+    }
+
+    if (text.includes('NO RUN')) {
+      return 0;
+    }
+
+    var runMatch = text.match(/\b([1-6])\s+(RUN|RUNS|BYE|BYES|LEG BYE|LEG BYES)\b/);
+    if (runMatch) {
+      return Number(runMatch[1]);
+    }
+
+    if (text.startsWith('FOUR') || text.includes(' FOUR,')) {
+      return 4;
+    }
+
+    if (text.startsWith('SIX') || text.includes(' SIX,')) {
+      return 6;
+    }
+
+    return null;
+  }
+
+  private splitCommentaryText(text: string): { primary: string; secondary: string } {
+    var cleanText = String(text || '').trim().replace(/\s+/g, ' ');
+    if (!cleanText) {
+      return { primary: '', secondary: '' };
+    }
+
+    var firstCommaIndex = cleanText.indexOf(',');
+    if (firstCommaIndex === -1) {
+      return { primary: cleanText, secondary: '' };
+    }
+
+    var primary = cleanText.slice(0, firstCommaIndex).trim();
+    var secondary = cleanText.slice(firstCommaIndex + 1).trim();
+
+    return {
+      primary: primary || cleanText,
+      secondary
+    };
   }
 }

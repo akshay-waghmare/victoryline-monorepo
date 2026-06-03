@@ -18,6 +18,7 @@ package com.devglan.websocket.service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -50,6 +51,7 @@ import com.devglan.dao.SessionOverData;
 import com.devglan.model.Bets;
 import com.devglan.model.CricketDataEntity;
 import com.devglan.model.PlayingXI;
+import com.devglan.model.TeamComparison;
 import com.devglan.model.TeamSessionData;
 import com.devglan.repository.CricketDataRepository;
 import com.devglan.repository.MatchInfoRepository;
@@ -436,12 +438,17 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
         }
         
 
-    	if (entity != null) {
-    		Hibernate.initialize(entity.getMatchOdds());
+        if (entity != null) {
+            Hibernate.initialize(entity.getMatchOdds());
             Hibernate.initialize(entity.getTeamWiseSessionData()); // Explicitly initialize
         }
-    	CricketDataDTO data = convertEntityToDto(entity);
-    	if (matchInfoEntity != null) {
+        if (matchInfoEntity != null) {
+            Hibernate.initialize(matchInfoEntity.getTeamComparison());
+            Hibernate.initialize(matchInfoEntity.getTeamForm());
+            Hibernate.initialize(matchInfoEntity.getPlayingXI());
+        }
+        CricketDataDTO data = convertEntityToDto(entity);
+        if (matchInfoEntity != null) {
             data = mergeMatchInfoToCricketDataDTO(matchInfoEntity, data);
         }
         
@@ -479,7 +486,7 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
             data.setVenue(matchInfoEntity.getVenue());
             data.setMatchName(matchInfoEntity.getMatchName());
             data.setTossInfo(matchInfoEntity.getTossInfo());
-            data.setTeamComparison(matchInfoEntity.getTeamComparison());
+            data.setTeamComparison(copyTeamComparisonMap(matchInfoEntity.getTeamComparison()));
             data.setTeamForm(matchInfoEntity.getTeamForm());
             data.setVenueStats(matchInfoEntity.getVenueStats());
          // Transform List<PlayingXIEntity> to Map<String, List<PlayingXI>>
@@ -567,7 +574,7 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
 				dto.setTossInfo(entity.getTossInfo());
 			}
 			if (entity.getTeamComparison() != null) {
-				dto.setTeamComparison(entity.getTeamComparison());
+				dto.setTeamComparison(copyTeamComparisonMap(entity.getTeamComparison()));
 			}
 			if (entity.getTeamForm() != null) {
 				dto.setTeamForm(entity.getTeamForm());
@@ -592,6 +599,32 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
 
 		return dto;
 	}
+
+    private Map<String, TeamComparison> copyTeamComparisonMap(Map<String, TeamComparison> source) {
+        if (source == null || source.isEmpty()) {
+            return new LinkedHashMap<>();
+        }
+
+        Map<String, TeamComparison> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, TeamComparison> entry : source.entrySet()) {
+            copy.put(entry.getKey(), copyTeamComparison(entry.getValue()));
+        }
+        return copy;
+    }
+
+    private TeamComparison copyTeamComparison(TeamComparison source) {
+        if (source == null) {
+            return null;
+        }
+
+        TeamComparison copy = new TeamComparison();
+        copy.setMatchesPlayed(source.getMatchesPlayed());
+        copy.setWinPercentage(source.getWinPercentage());
+        copy.setAvgScore(source.getAvgScore());
+        copy.setHighestScore(source.getHighestScore());
+        copy.setLowestScore(source.getLowestScore());
+        return copy;
+    }
     
     private boolean dataContainsMatchInfo(CricketDataDTO data) {
         // Check if the DTO contains match info data that needs to be saved

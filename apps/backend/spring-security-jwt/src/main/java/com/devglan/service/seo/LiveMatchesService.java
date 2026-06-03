@@ -78,6 +78,10 @@ public class LiveMatchesService {
                 entry.setUrl(node.has("url") ? node.get("url").asText() : null);
                 entry.setExternalMatchKey(node.has("externalMatchKey") ? node.get("externalMatchKey").asText() : null);
                 entry.setLastKnownState(node.has("lastKnownState") ? node.get("lastKnownState").asText() : null);
+                entry.setStatus(node.has("status") ? node.get("status").asText() : null);
+                entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
+                entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
+                entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
                 entry.setId(node.has("id") ? node.get("id").asLong() : null);
                 // Parse startDate from various possible field names (Google GSC requires startDate for SportsEvent)
                 String startDate = null;
@@ -120,6 +124,10 @@ public class LiveMatchesService {
                 entry.setUrl(node.has("url") ? node.get("url").asText() : null);
                 entry.setExternalMatchKey(node.has("externalMatchKey") ? node.get("externalMatchKey").asText() : null);
                 entry.setLastKnownState(node.has("lastKnownState") ? node.get("lastKnownState").asText() : null);
+                entry.setStatus(node.has("status") ? node.get("status").asText() : null);
+                entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
+                entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
+                entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
                 entry.setId(node.has("id") ? node.get("id").asLong() : null);
                 // Parse startDate from various possible field names (Google GSC requires startDate for SportsEvent)
                 String startDate = null;
@@ -145,6 +153,10 @@ public class LiveMatchesService {
         private String url;
         private String externalMatchKey;
         private String lastKnownState;
+        private String status;
+        private String resultSummary;
+        private boolean finished;
+        private Long scheduledStartTime;
         private Long id;
         private String startDate;
         
@@ -156,6 +168,18 @@ public class LiveMatchesService {
         
         public String getLastKnownState() { return lastKnownState; }
         public void setLastKnownState(String lastKnownState) { this.lastKnownState = lastKnownState; }
+
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+
+        public String getResultSummary() { return resultSummary; }
+        public void setResultSummary(String resultSummary) { this.resultSummary = resultSummary; }
+
+        public boolean isFinished() { return finished; }
+        public void setFinished(boolean finished) { this.finished = finished; }
+
+        public Long getScheduledStartTime() { return scheduledStartTime; }
+        public void setScheduledStartTime(Long scheduledStartTime) { this.scheduledStartTime = scheduledStartTime; }
         
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
@@ -164,7 +188,8 @@ public class LiveMatchesService {
         public void setStartDate(String startDate) { this.startDate = startDate; }
         
         public boolean isLive() {
-            return lastKnownState != null && lastKnownState.toLowerCase().contains("live");
+            return (status != null && status.equalsIgnoreCase("LIVE"))
+                    || (lastKnownState != null && lastKnownState.toLowerCase().contains("live"));
         }
     }
 }

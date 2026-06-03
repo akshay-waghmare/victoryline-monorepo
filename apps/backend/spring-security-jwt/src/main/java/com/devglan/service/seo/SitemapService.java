@@ -252,12 +252,50 @@ public class SitemapService {
             return null;
         }
 
+        if (isCompletedWithoutIndexableResult(match)) {
+            return null;
+        }
+
         String slug = liveMatchesService.extractSlugFromUrl(match.getUrl());
         if (!isCanonicalMatchSlug(slug)) {
             slug = match.getExternalMatchKey();
         }
 
         return isCanonicalMatchSlug(slug) ? "/cric-live/" + slug : null;
+    }
+
+    private boolean isCompletedWithoutIndexableResult(LiveMatchesService.LiveMatchEntry match) {
+        String status = normalize(match.getStatus());
+        boolean completed = match.isFinished()
+                || status.contains("completed")
+                || status.contains("finished");
+        if (!completed) {
+            return false;
+        }
+
+        String signals = normalize(match.getResultSummary()) + " " + normalize(match.getLastKnownState());
+        if (signals.trim().isEmpty() || "null null".equals(signals.trim())) {
+            return true;
+        }
+
+        return !hasResultSignal(signals);
+    }
+
+    private boolean hasResultSignal(String value) {
+        return value.matches(".*\\bwon\\b.*")
+                || value.matches(".*\\bdrawn?\\b.*")
+                || value.matches(".*\\btied?\\b.*")
+                || value.matches(".*\\babandoned\\b.*")
+                || value.matches(".*\\bno\\s+result\\b.*")
+                || value.matches(".*\\b\\d+[/\\-]\\d+\\b.*");
+    }
+
+    private String normalize(String value) {
+        if (value == null || "null".equalsIgnoreCase(value.trim())) {
+            return "";
+        }
+
+        return value.trim().toLowerCase();
     }
 
     private boolean isCanonicalMatchSlug(String slug) {

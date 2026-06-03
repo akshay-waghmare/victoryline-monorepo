@@ -3057,6 +3057,43 @@ p {
 
 /* ─── Ball-by-Ball Commentary ─────────────────────────────────── */
 
+/* ── Custom easing curves (Emil: stock easings lack punch) ── */
+/* strong ease-out for entering elements */
+/* strong ease-in-out for on-screen movement */
+
+/* ── Animations ── */
+/* GPU-only: transform + opacity. box-shadow replaced with border-color pulse. */
+@keyframes fadeInUp {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes boundaryAccent {
+  0%, 100% { border-left-color: #22c55e; }
+  50%      { border-left-color: #16a34a; }
+}
+
+@keyframes sixAccent {
+  0%, 100% { border-left-color: #f97316; }
+  50%      { border-left-color: #ea580c; }
+}
+
+@keyframes wicketPulse {
+  0%   { opacity: 0.85; transform: scale(1); }
+  40%  { opacity: 1;    transform: scale(1.04); }
+  100% { opacity: 1;    transform: scale(1); }
+}
+
+@keyframes pulseBadge {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1;          transform: scale(1); }
+  50%      { opacity: 0.35;       transform: scale(0.6); }
+}
+
 /* Commentary + Odds side-by-side layout */
 .commentary-odds-layout {
   display: grid;
@@ -3090,7 +3127,7 @@ p {
 
 @media (max-width: 767px) {
   .odds-sidebar-col {
-    order: -1;  /* Show odds above commentary on mobile */
+    order: -1;
   }
 }
 
@@ -3261,237 +3298,634 @@ p {
   margin-bottom: 8px;
 }
 
-/* Commentary Section (within grid) */
+/* ─── Commentary Section ─────── */
 .commentary-section {
   margin-top: 0;
   padding: 0;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.commentary-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 16px 18px 14px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98) 0%, rgba(255, 255, 255, 0.96) 100%);
+  border-bottom: 1px solid #e8ecf1;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.commentary-title-copy {
+  min-width: 0;
+}
+
+.commentary-kicker {
+  margin: 0 0 4px;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #64748b;
 }
 
 .commentary-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a2233;
-  margin: 0 0 12px 0;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e8ecf1;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: 0.15px;
 }
 
 .commentary-title mat-icon {
-  font-size: 20px;
-  color: #1976d2;
+  font-size: 19px;
+  width: 19px;
+  height: 19px;
+  color: #2563eb;
 }
 
+.commentary-subtitle {
+  margin: 7px 0 0;
+  max-width: 56ch;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.commentary-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid #dbe3ee;
+  background: #ffffff;
+  color: #475569;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.commentary-status--live {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff5f5;
+}
+
+.commentary-status .live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+}
+
+/* ── Commentary List ── */
 .commentary-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10px;
+  padding: 14px;
+  max-height: 66vh;
+  overflow-y: auto;
 }
 
+.commentary-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.commentary-list::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+}
+
+.commentary-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Commentary Entry (base) ── */
 .commentary-entry {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background: #fafbfc;
-  border-left: 3px solid transparent;
-  transition: background 0.15s;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-left: 2px solid transparent;
+  opacity: 0;
+  animation: fadeInUp 140ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 
-.commentary-entry:hover {
-  background: #f0f4f8;
+@media (hover: hover) and (pointer: fine) {
+  .commentary-entry:hover {
+    background: #f8fafc;
+    border-color: #d7dee8;
+  }
 }
 
-.commentary-ball {
-  border-left-color: #e0e4e8;
-}
-
-.commentary-wicket {
-  background: #fff0f0;
-  border-left-color: #e53935;
-}
-
-.commentary-wicket:hover {
-  background: #ffe5e5;
-}
-
-.commentary-over-summary {
-  background: linear-gradient(135deg, #f3f0ff 0%, #ede7ff 100%);
-  border-left-color: #7c4dff;
-  font-weight: 500;
-  padding: 0;
-  border-radius: 8px;
-  border-left-width: 4px;
-  margin: 6px 0;
-}
-
-.commentary-over-summary:hover {
-  background: linear-gradient(135deg, #ede7ff 0%, #e8e0ff 100%);
-}
-
-/* Over Summary Card Layout */
-.over-summary-card {
+.commentary-entry-main {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 12px 14px;
 }
 
-.over-summary-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+/* ── Default ball ── */
+.commentary-ball {
+  border-left-color: #cbd5e1;
+}
+
+/* ── Wicket ── */
+.commentary-wicket {
+  background: #fff8f8;
+  border-left-color: #ef4444;
+  border-left-width: 3px;
+  animation: fadeInUp 140ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .commentary-wicket:hover {
+    background: #fff1f2;
+  }
+}
+
+/* ── Over Summary ── */
+.commentary-over-summary {
+  background: linear-gradient(135deg, #fcfbff 0%, #f7f3ff 100%);
+  border: 1px solid #ddd6fe;
+  border-left-color: #7c3aed;
+  border-left-width: 4px;
+  padding: 0;
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .commentary-over-summary:hover {
+    background: #faf5ff;
+  }
+}
+
+/* ── Four (Boundary) ── */
+.commentary-boundary {
+  background: #f7fff8;
+  border-left-color: #22c55e;
+  border-left-width: 3px;
+  animation: fadeInUp 140ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .commentary-boundary:hover {
+    background: #eefcf1;
+  }
+}
+
+/* ── Six ── */
+.commentary-six {
+  background: #fffaf3;
+  border-left-color: #f97316;
+  border-left-width: 3px;
+  animation: fadeInUp 140ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .commentary-six:hover {
+    background: #fff3e6;
+  }
+}
+
+/* ── Over Summary Card ── */
+.over-summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+}
+
+.over-summary-kicker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.over-summary-topline {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: rgba(124, 77, 255, 0.12);
-  border-radius: 50%;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
 }
 
-.over-summary-content {
-  flex: 1;
-  min-width: 0;
+.over-summary-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5b21b6;
+  background: rgba(139, 92, 246, 0.14);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+  border-radius: 999px;
+}
+
+.over-summary-score {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #4c1d95;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(124, 58, 237, 0.16);
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .over-summary-text {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
-  color: #4a148c;
-  line-height: 1.5;
+  color: #4c1d95;
+  line-height: 1.6;
 }
 
-.commentary-boundary {
-  background: #f0faf4;
-  border-left-color: #43a047;
-}
-
-.commentary-boundary:hover {
-  background: #e0f5e8;
-}
-
-.commentary-six {
-  background: #fff8e1;
-  border-left-color: #f97316;
-}
-
-.commentary-six:hover {
-  background: #fff3cd;
+/* ── Over Number Badge ── */
+.commentary-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .commentary-over-badge {
-  min-width: 40px;
-  text-align: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: #5f6b7a;
-  background: #e8ecf1;
-  padding: 3px 6px;
-  border-radius: 4px;
-  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
 }
 
+.commentary-event-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.commentary-wicket .commentary-event-label {
+  color: #b91c1c;
+}
+
+.commentary-boundary .commentary-event-label {
+  color: #15803d;
+}
+
+.commentary-six .commentary-event-label {
+  color: #c2410c;
+}
+
+/* ── Runs Badge ── */
 .commentary-runs-badge {
-  min-width: 28px;
-  height: 28px;
+  min-width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  font-size: 13px;
-  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 800;
   flex-shrink: 0;
+  margin-top: 1px;
+  margin-left: auto;
+  box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.04);
+  font-variant-numeric: tabular-nums;
 }
 
 .runs-badge--dot {
-  background: #e0e4e8;
-  color: #5f6b7a;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #64748b;
 }
 
 .runs-badge--run {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1d4ed8;
 }
 
 .runs-badge--four {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: #ecfdf5;
+  border-color: #bbf7d0;
+  color: #15803d;
+  font-size: 18px;
 }
 
 .runs-badge--six {
-  background: #fff3e0;
-  color: #e65100;
+  background: #fff7ed;
+  border-color: #fed7aa;
+  color: #c2410c;
+  font-size: 19px;
 }
 
 .runs-badge--wicket {
-  background: #ffebee;
-  color: #c62828;
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+  font-size: 15px;
 }
 
 .runs-badge--wide {
-  background: #fff8e1;
-  color: #f57f17;
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #a16207;
   font-size: 11px;
   text-transform: uppercase;
+  font-weight: 800;
+  border-radius: 999px;
+  min-width: 42px;
+  height: 30px;
 }
 
 .runs-badge--noball {
-  background: #fce4ec;
-  color: #ad1457;
+  background: #fdf2f8;
+  border-color: #fbcfe8;
+  color: #be185d;
   font-size: 11px;
   text-transform: uppercase;
+  font-weight: 800;
+  border-radius: 999px;
+  min-width: 42px;
+  height: 30px;
 }
 
+/* ── Commentary Text ── */
 .commentary-text {
   flex: 1;
   min-width: 0;
 }
 
 .commentary-main-text {
-  font-size: 14px;
-  color: #1a2233;
-  line-height: 1.4;
-}
-
-.commentary-detail {
   display: block;
-  font-size: 12px;
-  color: #5f6b7a;
-  margin-top: 2px;
+  font-size: 15.5px;
+  color: #1e293b;
+  line-height: 1.45;
+  font-weight: 700;
 }
 
+.commentary-detail-text {
+  display: block;
+  margin-top: 5px;
+  font-size: 14.25px;
+  color: #526277;
+  line-height: 1.62;
+  font-weight: 500;
+}
+
+.commentary-wicket .commentary-main-text {
+  color: #7f1d1d;
+}
+
+.commentary-boundary .commentary-main-text {
+  color: #14532d;
+}
+
+.commentary-six .commentary-main-text {
+  color: #9a3412;
+}
+
+.commentary-wicket .commentary-detail-text {
+  color: #991b1b;
+}
+
+.commentary-boundary .commentary-detail-text {
+  color: #166534;
+}
+
+.commentary-six .commentary-detail-text {
+  color: #b45309;
+}
+
+/* ── No Commentary State ── */
+.no-commentary-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #64748b;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px dashed #dbe3ee;
+  border-radius: 14px;
+}
+
+.no-commentary-state mat-icon {
+  font-size: 40px;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-commentary-state p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ── Accessibility: reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .commentary-entry,
+  .commentary-wicket,
+  .commentary-boundary,
+  .commentary-six {
+    animation: none;
+    opacity: 1;
+  }
+
+  .commentary-list {
+    scroll-behavior: auto;
+  }
+}
+
+/* ── Responsive ── */
 @media (max-width: 600px) {
+  .commentary-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 13px 14px 11px;
+  }
+
+  .commentary-subtitle {
+    font-size: 12.5px;
+  }
+
+  .commentary-list {
+    padding: 8px;
+    gap: 8px;
+    max-height: 60vh;
+  }
+
   .commentary-entry {
-    padding: 8px 8px;
-    gap: 6px;
+    padding: 11px 12px;
   }
+
+  .commentary-entry-main {
+    gap: 10px;
+  }
+
   .commentary-over-badge {
-    min-width: 32px;
-    font-size: 11px;
+    font-size: 10.5px;
+    padding: 3px 7px;
   }
+
+  .commentary-event-label {
+    font-size: 10.5px;
+  }
+
   .commentary-runs-badge {
-    min-width: 24px;
-    height: 24px;
-    font-size: 11px;
-  }
-  .commentary-main-text {
+    min-width: 34px;
+    height: 34px;
     font-size: 13px;
   }
+
+  .commentary-main-text {
+    font-size: 14px;
+  }
+
+  .commentary-detail-text {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
   .over-summary-card {
-    padding: 10px 10px;
-    gap: 8px;
+    padding: 12px 12px;
   }
-  .over-summary-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
+
+  .over-summary-kicker {
+    font-size: 10px;
   }
+
+  .over-summary-label {
+    font-size: 11px;
+  }
+
   .over-summary-text {
-    font-size: 12px;
+    font-size: 13.5px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .match-page-shell {
+    margin-top: 40px;
+  }
+
+  .match-page-content__inner {
+    gap: 16px;
+    padding-top: 4px;
+    padding-bottom: 20px;
+  }
+
+  .cricket-odds__seo-summary {
+    gap: 16px;
+    padding: 14px 16px;
+  }
+
+  .cricket-odds__seo-title {
+    font-size: clamp(1.22rem, 1.75vw, 1.82rem);
+  }
+
+  .cricket-odds__seo-description {
+    font-size: 0.9rem;
+    line-height: 1.48;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-header {
+    margin-bottom: 14px;
+    padding: 7px;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label {
+    min-height: 44px;
+    padding: 0 13px;
+    font-size: 0.84rem;
+  }
+
+  .match-tab-panel {
+    gap: 16px;
+  }
+
+  .commentary-header {
+    padding: 15px 16px 13px;
+  }
+
+  .commentary-title {
+    font-size: 16.5px;
+  }
+
+  .commentary-subtitle {
+    font-size: 13px;
+  }
+
+  .commentary-list {
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .commentary-entry {
+    padding: 12px 13px;
+  }
+
+  .commentary-main-text {
+    font-size: 15px;
+  }
+
+  .commentary-detail-text {
+    font-size: 13.75px;
+  }
+
+  .commentary-runs-badge {
+    min-width: 36px;
+    height: 36px;
   }
 }
 .stats-explorer {

@@ -175,6 +175,35 @@ public class SitemapPartitionTest {
         assertThat(partitionXml).doesNotContain("/cric-live/scorecard");
     }
 
+    @Test
+    public void sitemap_excludes_completed_matches_without_score_or_result_signal() {
+        List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
+
+        LiveMatchesService.LiveMatchEntry delayed = new LiveMatchesService.LiveMatchEntry();
+        delayed.setUrl("https://crex.com/cricket-live-score/gg-vs-lh-13th-match-uttar-pradesh-t10-league-2026-match-updates-1293");
+        delayed.setExternalMatchKey("gg-vs-lh-13th-match-uttar-pradesh-t10-league-2026-match-updates-1293");
+        delayed.setStatus("COMPLETED");
+        delayed.setFinished(true);
+        delayed.setLastKnownState("Toss delayed due to wet outfield");
+        delayed.setResultSummary("null");
+        entries.add(delayed);
+
+        LiveMatchesService.LiveMatchEntry result = new LiveMatchesService.LiveMatchEntry();
+        result.setUrl("https://crex.com/cricket-live-score/br-vs-sgr-8th-match-afghanistan-one-day-cup-2026-match-updates-126P");
+        result.setExternalMatchKey("br-vs-sgr-8th-match-afghanistan-one-day-cup-2026-match-updates-126P");
+        result.setStatus("COMPLETED");
+        result.setFinished(true);
+        result.setLastKnownState("Speen Ghar Region won by 6 wickets");
+        entries.add(result);
+
+        liveMatchesService.setMatches(entries);
+
+        String partitionXml = service.getPartitionXml(1);
+
+        assertThat(partitionXml).doesNotContain("/cric-live/gg-vs-lh-13th-match-uttar-pradesh-t10-league-2026-match-updates-1293");
+        assertThat(partitionXml).contains("/cric-live/br-vs-sgr-8th-match-afghanistan-one-day-cup-2026-match-updates-126P");
+    }
+
     // Helper methods
     
     private List<Matches> createMatchList(int count) {

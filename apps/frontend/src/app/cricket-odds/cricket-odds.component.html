@@ -72,32 +72,56 @@
             <div class="commentary-odds-layout">
               <div class="commentary-col" *ngIf="commentaryEntries.length > 0; else noCommentaryState">
                 <div class="commentary-section">
-                  <h3 class="commentary-title">
-                    <mat-icon>speaker_notes</mat-icon>
-                    Ball-by-Ball Commentary
-                  </h3>
+                  <div class="commentary-header">
+                    <div class="commentary-title-copy">
+                      <p class="commentary-kicker">Commentary feed</p>
+                      <h3 class="commentary-title">
+                        <mat-icon>speaker_notes</mat-icon>
+                        <span>Ball-by-ball commentary</span>
+                      </h3>
+                      <p class="commentary-subtitle">{{ getCommentaryHeaderNote() }}</p>
+                    </div>
+                    <div class="commentary-status" [ngClass]="{ 'commentary-status--live': isCommentaryLive() }">
+                      <span class="live-dot" *ngIf="isCommentaryLive()"></span>
+                      <span>{{ getCommentaryStatusLabel() }}</span>
+                    </div>
+                  </div>
                   <div class="commentary-list">
-                    <div *ngFor="let entry of commentaryEntries; let i = index"
+                    <div *ngFor="let entry of commentaryEntries; let i = index; trackBy: trackByCommentaryId"
                          class="commentary-entry"
                          [ngClass]="getCommentaryClass(entry)">
                       <ng-container *ngIf="entry.type === 'OVER_SUMMARY'; else ballEntry">
                         <div class="over-summary-card">
-                          <div class="over-summary-icon">⏱</div>
-                          <div class="over-summary-content">
-                            <span class="over-summary-text">{{ entry.text }}</span>
+                          <span class="over-summary-kicker">End of over</span>
+                          <div class="over-summary-topline">
+                            <span class="over-summary-label">{{ getOverSummaryLabel(entry) }}</span>
+                            <span class="over-summary-score" *ngIf="getOverSummaryScore(entry)">
+                              {{ getOverSummaryScore(entry) }}
+                            </span>
                           </div>
+                          <span class="over-summary-text">{{ getOverSummaryText(entry) }}</span>
                         </div>
                       </ng-container>
                       <ng-template #ballEntry>
-                        <div class="commentary-over-badge" *ngIf="entry.overBall">
-                          {{ entry.overBall }}
-                        </div>
-                        <div class="commentary-runs-badge" *ngIf="getRunsBadge(entry)"
-                             [ngClass]="getRunsBadgeClass(entry)">
-                          {{ getRunsBadge(entry) }}
-                        </div>
-                        <div class="commentary-text">
-                          <span class="commentary-main-text">{{ entry.text }}</span>
+                        <div class="commentary-entry-main">
+                          <div class="commentary-text">
+                            <div class="commentary-meta" *ngIf="entry.overBall || getCommentaryEventLabel(entry)">
+                              <span class="commentary-over-badge" *ngIf="entry.overBall">
+                                {{ entry.overBall }}
+                              </span>
+                              <span class="commentary-event-label" *ngIf="getCommentaryEventLabel(entry)">
+                                {{ getCommentaryEventLabel(entry) }}
+                              </span>
+                            </div>
+                            <span class="commentary-main-text">{{ getCommentaryPrimaryText(entry) }}</span>
+                            <span class="commentary-detail-text" *ngIf="getCommentarySecondaryText(entry)">
+                              {{ getCommentarySecondaryText(entry) }}
+                            </span>
+                          </div>
+                          <div class="commentary-runs-badge" *ngIf="getRunsBadge(entry)"
+                               [ngClass]="getRunsBadgeClass(entry)">
+                            {{ getRunsBadge(entry) }}
+                          </div>
                         </div>
                       </ng-template>
                     </div>
