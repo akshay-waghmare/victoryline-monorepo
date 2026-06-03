@@ -30,6 +30,28 @@ function Count-Matches {
   return ([regex]::Matches($Html, $Pattern, "IgnoreCase")).Count
 }
 
+function Get-JsonLdItems {
+  param([string]$Html)
+
+  $items = @()
+  $matches = [regex]::Matches($Html, "<script[^>]+type=[`"']application/ld\+json[`"'][^>]*>([\s\S]*?)</script>", "IgnoreCase")
+  foreach ($match in $matches) {
+    try {
+      $json = [System.Net.WebUtility]::HtmlDecode($match.Groups[1].Value)
+      $parsed = $json | ConvertFrom-Json
+      if ($parsed.'@graph') {
+        $items += @($parsed.'@graph')
+      } else {
+        $items += @($parsed)
+      }
+    } catch {
+      $items += [pscustomobject]@{ invalidJsonLd = $true }
+    }
+  }
+
+  return $items
+}
+
 function Get-VisibleWordCount {
   param([string]$Html)
 
@@ -102,6 +124,10 @@ foreach ($url in $urls) {
 
   $h1Count = Count-Matches $html "<h1\b"
   $jsonLdCount = Count-Matches $html "application/ld\+json"
+  $jsonLdItems = Get-JsonLdItems $html
+  $sportsEvents = @($jsonLdItems | Where-Object { $_.'@type' -eq "SportsEvent" })
+  $sportsEventsMissingLocation = @($sportsEvents | Where-Object { -not $_.location }).Count
+  $invalidJsonLdCount = @($jsonLdItems | Where-Object { $_.invalidJsonLd }).Count
   $ogCount = Count-Matches $html "<meta[^>]+property=[`"']og:"
   $twitterCount = Count-Matches $html "<meta[^>]+name=[`"']twitter:"
   $ogImage = Get-FirstMatch $html "<meta[^>]+property=[`"']og:image[`"'][^>]+content=[`"']([^`"']*)[`"'][^>]*>"
@@ -120,6 +146,8 @@ foreach ($url in $urls) {
   if ($title -match "Team A|Team B") { $flags += "PLACEHOLDER_TITLE" }
   if ($canonical -match "/cric-live/\d+$" -and $robots -notmatch "noindex") { $flags += "NUMERIC_INDEXABLE" }
   if ($validSlug -and -not $ogImage) { $flags += "OG_IMAGE_MISSING" }
+  if ($invalidJsonLdCount -gt 0) { $flags += "JSONLD_PARSE_ERROR" }
+  if ($sportsEventsMissingLocation -gt 0) { $flags += "SPORTSEVENT_LOCATION_MISSING" }
 
   $results += [pscustomobject]@{
     Url = $url
@@ -134,12 +162,13 @@ foreach ($url in $urls) {
     OgImage = $ogImage
     TwitterTags = $twitterCount
     JsonLd = $jsonLdCount
+    SportsEvents = $sportsEvents.Count
     Flags = ($flags -join ",")
   }
 }
 
 $table = $results |
-  Select-Object Url, Status, Canonical, Robots, H1Count, WordCount, JsonLd, Flags |
+  Select-Object Url, Status, Canonical, Robots, H1Count, WordCount, JsonLd, SportsEvents, Flags |
   Format-Table -AutoSize |
   Out-String -Width 320
 if ($OutputPath) {

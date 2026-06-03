@@ -26,7 +26,7 @@ import { LiveHeroViewModel } from '../match-live/services/live-hero.models';
 import { MatchSeoViewModel } from '../seo/match-seo.models';
 import { MatchSeoService } from '../seo/match-seo.service';
 import { MetaTagsService } from '../seo/meta-tags.service';
-import { StructuredDataService } from '../seo/structured-data.service';
+import { StructuredDataLocationInput, StructuredDataService } from '../seo/structured-data.service';
 
 interface FormattedExposure {
   win: number;
@@ -2653,27 +2653,92 @@ private titleCaseSlug(value: string): string {
       return null;
     }
 
-    var startDate = this.toIsoDate(this.matchInfo && this.matchInfo.match_date);
-    var venue = this.matchInfo && this.matchInfo.venue && this.matchInfo.venue !== 'Venue TBD'
-      ? this.matchInfo.venue
-      : undefined;
-    var sportsEvent = this.structuredDataService.sportsEvent({
-      name: this.matchSeo.h1,
-      url: this.matchSeo.canonicalUrl,
-      description: this.matchSeo.summary,
-      homeTeam: this.matchSeo.team1,
-      awayTeam: this.matchSeo.team2,
-      startDate: startDate || undefined,
-      location: venue,
-      status: this.getStructuredDataStatus()
-    });
     var breadcrumbs = this.structuredDataService.breadcrumbs([
       { name: 'Home', url: 'https://www.crickzen.com/' },
       { name: 'Matches', url: 'https://www.crickzen.com/matches' },
       { name: this.matchSeo.teams, url: this.matchSeo.canonicalUrl }
     ]);
+    var items: any[] = [breadcrumbs];
+    var startDate = this.toIsoDate(this.matchInfo && this.matchInfo.match_date);
+    var location = this.getStructuredDataLocation();
 
-    return [sportsEvent, breadcrumbs];
+    if (location) {
+      items.unshift(this.structuredDataService.sportsEvent({
+        name: this.matchSeo.h1,
+        url: this.matchSeo.canonicalUrl,
+        description: this.matchSeo.summary,
+        homeTeam: this.matchSeo.team1,
+        awayTeam: this.matchSeo.team2,
+        startDate: startDate || undefined,
+        location: location,
+        status: this.getStructuredDataStatus()
+      }));
+    }
+
+    return items;
+  }
+
+  private getStructuredDataLocation(): StructuredDataLocationInput | null {
+    var venue = this.matchInfo && this.matchInfo.venue ? this.matchInfo.venue : null;
+    var location = this.buildStructuredDataLocationFromVenue(venue);
+    if (location) {
+      return location;
+    }
+
+    var fallbackVenue = this.currentMatch && this.currentMatch.venue ? this.currentMatch.venue : null;
+    return this.buildStructuredDataLocationFromVenue(fallbackVenue);
+  }
+
+  private buildStructuredDataLocationFromVenue(venue: any): StructuredDataLocationInput | null {
+    if (!venue) {
+      return null;
+    }
+
+    if (typeof venue === 'string') {
+      var venueName = this.cleanStructuredDataVenueName(venue);
+      return venueName ? { name: venueName } : null;
+    }
+
+    var name = this.cleanStructuredDataVenueName(venue.name || venue.venue || venue.ground || venue.stadium || '');
+    if (!name) {
+      return null;
+    }
+
+    var address: any = {};
+    if (venue.address && typeof venue.address === 'string') {
+      address.streetAddress = venue.address;
+    }
+    if (venue.city) {
+      address.addressLocality = venue.city;
+    }
+    if (venue.state || venue.region) {
+      address.addressRegion = venue.state || venue.region;
+    }
+    if (venue.country) {
+      address.addressCountry = venue.country;
+    }
+
+    return {
+      name: name,
+      address: Object.keys(address).length > 0 ? address : undefined
+    };
+  }
+
+  private cleanStructuredDataVenueName(value: string): string | null {
+    var cleaned = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!cleaned) {
+      return null;
+    }
+
+    if (/^(venue tbd|venue not available|tbd|n\/a|na)$/i.test(cleaned)) {
+      return null;
+    }
+
+    if (/match updates|^\d+(st|nd|rd|th)\s+match\b/i.test(cleaned)) {
+      return null;
+    }
+
+    return cleaned;
   }
 
   private getStructuredDataStatus(): 'Scheduled' | 'LiveEvent' | 'EventCompleted' {

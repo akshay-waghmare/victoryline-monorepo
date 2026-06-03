@@ -3,6 +3,17 @@ import { Inject, Injectable } from '@angular/core';
 
 export type JsonLd = Record<string, any>;
 
+export interface StructuredDataLocationInput {
+  name: string;
+  address?: string | {
+    streetAddress?: string;
+    addressLocality?: string;
+    addressRegion?: string;
+    postalCode?: string;
+    addressCountry?: string;
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class StructuredDataService {
   constructor(@Inject(DOCUMENT) private document: any) {}
@@ -14,7 +25,7 @@ export class StructuredDataService {
     awayTeam: string;
     startDate?: string; // ISO 8601
     description?: string;
-    location?: string;
+    location?: string | StructuredDataLocationInput;
     status?: 'Scheduled' | 'LiveEvent' | 'EventCompleted';
     offersUrl?: string;
   }): JsonLd {
@@ -27,7 +38,7 @@ export class StructuredDataService {
       sport: 'Cricket',
       startDate: input.startDate,
       eventStatus: this.toEventStatusUrl(input.status || 'Scheduled'),
-      location: input.location ? { '@type': 'Place', name: input.location } : undefined,
+      location: this.buildLocation(input.location),
       offers: input.offersUrl ? { '@type': 'Offer', url: input.offersUrl } : undefined,
       homeTeam: { '@type': 'SportsTeam', name: input.homeTeam },
       awayTeam: { '@type': 'SportsTeam', name: input.awayTeam },
@@ -110,6 +121,31 @@ export class StructuredDataService {
       default:
         return 'https://schema.org/EventScheduled';
     }
+  }
+
+  private buildLocation(location?: string | StructuredDataLocationInput): any {
+    if (!location) {
+      return undefined;
+    }
+
+    if (typeof location === 'string') {
+      return this.cleanObject({
+        '@type': 'Place',
+        name: location
+      });
+    }
+
+    if (!location.name) {
+      return undefined;
+    }
+
+    return this.cleanObject({
+      '@type': 'Place',
+      name: location.name,
+      address: location.address && typeof location.address === 'object'
+        ? Object.assign({ '@type': 'PostalAddress' }, location.address)
+        : location.address
+    });
   }
 
   private cleanObject(value: any): any {
