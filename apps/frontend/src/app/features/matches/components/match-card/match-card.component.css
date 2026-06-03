@@ -22,6 +22,8 @@
   overflow: hidden;
   touch-action: pan-y pinch-zoom;
   -webkit-tap-highlight-color: transparent;
+  color: inherit;
+  text-decoration: none;
 }
 
 .match-card.match-card--compact {

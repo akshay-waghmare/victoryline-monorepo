@@ -10,7 +10,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { MatchCardViewModel, MatchStatus, ScoreInfo, TeamInfo } from '../../models/match-card.models';
 import { getStatusDisplayText, getStatusColor, isLiveMatch, calculateStaleness, formatTimeDisplay, formatAbsoluteTime, formatCalendarDate } from '../../models/match-status';
 import { AnimationService } from '../../../../core/services/animation.service';
-import { getMatchResultSummary } from '../../../../core/utils/match-utils';
+import { extractSlugFromUrl, getMatchResultSummary } from '../../../../core/utils/match-utils';
 
 /**
  * Score update event data
@@ -426,10 +426,28 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
 
   // ===== EVENT HANDLERS =====
   
-  onCardClick(): void {
+  getMatchHref(): string {
+    const slug = extractSlugFromUrl(this.match && this.match.matchUrl)
+      || (this.match && this.match.externalMatchKey)
+      || (this.match && this.match.id);
+
+    return slug ? '/cric-live/' + slug : '/matches';
+  }
+
+  onCardClick(event?: MouseEvent): void {
     if (this.suppressNextClick) {
       this.suppressNextClick = false;
+      if (event) {
+        event.preventDefault();
+      }
       return;
+    }
+
+    if (event) {
+      const isModifiedClick = event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0;
+      if (!isModifiedClick) {
+        event.preventDefault();
+      }
     }
 
     this.cardClick.emit(this.match.id);

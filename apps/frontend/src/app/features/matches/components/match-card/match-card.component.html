@@ -1,6 +1,7 @@
 <!-- Match Card — CREX-inspired compact horizontal layout -->
-<div class="match-card"
+<a class="match-card"
      #cardElement
+     [attr.href]="getMatchHref()"
      [attr.data-status]="match.status"
      [class.is-live]="isMatchLive()"
      [class.is-upcoming]="isUpcomingMatch()"
@@ -8,10 +9,7 @@
      [class.match-card--compact-upcoming]="variant === 'compact' && isUpcomingMatch()"
      [class.match-card--detailed]="variant === 'detailed'"
      [class.is-hovered]="isHovered"
-     tabindex="0"
-     role="button"
-     (click)="onCardClick()"
-     (keydown.enter)="onCardClick()"
+     (click)="onCardClick($event)"
       (mouseenter)="onMouseEnter()"
       (mouseleave)="onMouseLeave()">
 
@@ -92,4 +90,4 @@
     versus
     {{ match.team2.name }} {{ match.team2.score?.runs }} for {{ match.team2.score?.wickets }}
   </div>
-</div>
+</a>
