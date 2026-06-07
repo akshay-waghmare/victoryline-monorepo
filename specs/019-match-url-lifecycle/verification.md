@@ -90,4 +90,44 @@ Confirmed script behavior:
 
 - Local Phase 2 code now has shared canonical-policy coverage and requested-path-aware route handling.
 - The upgraded audit flow can now express expected route-policy outcomes directly.
-- Current production still shows an unresolved unknown-child-route canonical bug on `/custom-view`, which is consistent with the fact that the Phase 2 local changes have not been deployed yet.
+- Current production baseline before rollout showed an unresolved unknown-child-route canonical bug on `/custom-view`, which matched the pre-rollout state.
+
+## Production Rollout Verification
+
+### Deployed slice
+
+- Date: `2026-06-08`
+- Branch: `008-match-title-seo`
+- Deployed code commit: `a6a44d2`
+- Frontend image: `victoryline-frontend:phase2-canonical-a6a44d2-20260608-030916`
+
+### Server checks
+
+- `FRONTEND_IMAGE=victoryline-frontend:phase2-canonical-a6a44d2-20260608-030916`
+- `docker inspect victoryline-frontend` reported the same image and `health=healthy`
+- `docker compose -f docker-compose.prod.yml ps frontend` showed the frontend service healthy after recreate
+
+### Post-rollout route results
+
+Observed live HTML results after the rollout:
+
+| Requested URL | Status | Canonical | Robots | Interpretation |
+|---|---:|---|---|---|
+| base match URL | `200` | base match URL | `index,follow` | correct self-canonical |
+| `/live` child URL | `200` | base match URL | `index,follow` | correct fold-back |
+| `/match-scorecard` child URL | `200` | base match URL | `index,follow` | correct fold-back |
+| `/custom-view` unknown child URL | `200` | base match URL | `noindex,follow` | correct safe fallback after Phase 2 rollout |
+
+### Post-rollout audit outcome
+
+The upgraded route summary reported:
+
+- base route outcome: `SELF`
+- `/live` route outcome: `FOLDS_TO_BASE`
+- `/match-scorecard` route outcome: `FOLDS_TO_BASE`
+- `/custom-view` route outcome: `FOLDS_TO_BASE`
+
+### Final outcome
+
+- The production unknown-child-route canonical bug is fixed.
+- Production now matches the intended Phase 2 policy for the sampled base, legacy, and unknown child match routes.
