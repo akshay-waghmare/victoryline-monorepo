@@ -437,6 +437,33 @@ export function extractSlugFromUrl(url: string): string | null {
   return last;
 }
 
+export function extractMatchRouteSuffix(urlOrPath: string): string | null {
+  if (!urlOrPath) {
+    return null;
+  }
+
+  var parts = getNormalizedPathSegments(urlOrPath);
+  if (parts.length < 2) {
+    return null;
+  }
+
+  var last = parts[parts.length - 1];
+  var prev = parts[parts.length - 2];
+  var lastLower = last.toLowerCase();
+  var slug = parts.slice().reverse().find(function(part) { return part.indexOf('-vs-') !== -1; }) || null;
+
+  if (!slug || prev !== slug) {
+    return null;
+  }
+
+  return lastLower === slug.toLowerCase() ? null : lastLower;
+}
+
+export function normalizeMatchRoutePath(urlOrPath: string): string | null {
+  var slug = extractMatchSlugFromPath(urlOrPath);
+  return slug ? '/cric-live/' + slug : null;
+}
+
 export function buildCanonicalMatchPath(match: Pick<MatchCardViewModel, 'matchUrl' | 'externalMatchKey' | 'id'>): string | null {
   var slug = extractSlugFromUrl(match && match.matchUrl ? match.matchUrl : '');
   if (!slug && match && match.externalMatchKey) {
@@ -483,4 +510,21 @@ function getPreferredTeamLabel(team: MatchCardViewModel['team1'] | null | undefi
   }
 
   return team.shortName ? team.shortName.trim() : '';
+}
+
+function extractMatchSlugFromPath(urlOrPath: string): string | null {
+  var parts = getNormalizedPathSegments(urlOrPath);
+  if (!parts.length) {
+    return null;
+  }
+
+  var slug = parts.slice().reverse().find(function(part) { return part.indexOf('-vs-') !== -1; }) || null;
+  return slug || null;
+}
+
+function getNormalizedPathSegments(urlOrPath: string): string[] {
+  var normalized = String(urlOrPath || '').trim().split('#')[0].split('?')[0];
+  normalized = normalized.replace(/^[a-z]+:\/\/[^\/]+/i, '');
+  normalized = normalized.replace(/^\/+|\/+$/g, '');
+  return normalized ? normalized.split('/').filter(function(part) { return !!part; }) : [];
 }

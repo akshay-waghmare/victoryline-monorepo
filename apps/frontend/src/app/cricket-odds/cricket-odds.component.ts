@@ -20,7 +20,7 @@ import { AuthService } from '../auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabChangeEvent } from '@angular/material/tabs';
 import { buildLegacyCricketTopicPaths } from '../core/utils/cricket-websocket-topics';
-import { extractSlugFromUrl, getRecentBallDisplay, RecentBallKind } from '../core/utils/match-utils';
+import { extractSlugFromUrl, getRecentBallDisplay, normalizeMatchRoutePath, RecentBallKind } from '../core/utils/match-utils';
 import { upsertCommentaryEntries } from './commentary.utils';
 import { LiveHeroViewModel } from '../match-live/services/live-hero.models';
 import { MatchSeoViewModel } from '../seo/match-seo.models';
@@ -141,6 +141,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   // Property to hold the match URL
   currentUrl: string;
+  currentRequestedPath: string = '';
   playerStatsMatch: PlayerStatsMatchView | null = null;
   isLoadingPlayerStats: boolean = false;
   playerStatsError: boolean = false;
@@ -233,6 +234,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       || '');
     const legacyMatchUrl = this.activatedRoute.snapshot.queryParamMap.get('url');
     this.currentUrl = routeMatchKey;
+    this.currentRequestedPath = this.getRequestedMatchPath();
     this.routeMatchHint = this.getNavigationMatchHint(routeMatchKey);
     if (this.routeMatchHint) {
       this.applyRouteMatchHint(this.routeMatchHint);
@@ -295,6 +297,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     const isSameRouteMatch = !!(match && this.lastResolvedRouteSlug && this.lastResolvedRouteSlug === match);
 
     this.currentUrl = match || '';
+    this.currentRequestedPath = this.getRequestedMatchPath(match);
     this.matchUrl = this.currentMatch && this.currentMatch.url ? this.currentMatch.url : (match || '');
     this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId')
                   || params['matchId']
@@ -2603,6 +2606,7 @@ private titleCaseSlug(value: string): string {
   private updatePageTitle(): void {
     this.matchSeo = this.matchSeoService.build({
       routeSlug: this.currentUrl || this.matchId || '',
+      requestedPath: this.currentRequestedPath,
       matchUrl: this.matchUrl,
       matchInfo: this.matchInfo,
       currentMatch: this.currentMatch,
@@ -2952,18 +2956,43 @@ placeSessionBet() {
       return '';
     }
 
+    const normalizedFromParam = normalizeMatchRoutePath(routeMatchKey);
+    if (normalizedFromParam) {
+      return normalizedFromParam.replace(/^\/cric-live\//, '');
+    }
+
     const extractedFromParam = extractSlugFromUrl(routeMatchKey);
     if (extractedFromParam) {
       return extractedFromParam;
     }
 
     const currentRouteUrl = this.router && this.router.url ? this.router.url : '';
+    const normalizedFromCurrentUrl = normalizeMatchRoutePath(currentRouteUrl);
+    if (normalizedFromCurrentUrl) {
+      return normalizedFromCurrentUrl.replace(/^\/cric-live\//, '');
+    }
+
     const extractedFromCurrentUrl = extractSlugFromUrl(currentRouteUrl);
     if (extractedFromCurrentUrl) {
       return extractedFromCurrentUrl;
     }
 
     return routeMatchKey;
+  }
+
+  private getRequestedMatchPath(routeSlug?: string): string {
+    const currentRouteUrl = this.router && this.router.url ? this.router.url : '';
+    const cleanRouteUrl = currentRouteUrl ? currentRouteUrl.split('?')[0].split('#')[0] : '';
+    if (cleanRouteUrl && cleanRouteUrl.indexOf('/cric-live/') === 0) {
+      return cleanRouteUrl;
+    }
+
+    const normalized = normalizeMatchRoutePath(cleanRouteUrl || routeSlug || '');
+    if (normalized) {
+      return normalized;
+    }
+
+    return routeSlug ? '/cric-live/' + routeSlug : '/matches';
   }
 
 

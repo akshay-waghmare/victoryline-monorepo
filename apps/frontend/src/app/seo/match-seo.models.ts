@@ -1,3 +1,5 @@
+import { MatchCanonicalPolicyDecision, MatchRouteIntent } from './match-canonical-policy';
+
 export interface MatchSeoViewModel {
   canonicalPath: string;
   canonicalUrl: string;
@@ -13,4 +15,6 @@ export interface MatchSeoViewModel {
   statusLabel: string;
   summary: string;
   isIndexable: boolean;
+  routeIntent: MatchRouteIntent;
+  canonicalDecision: MatchCanonicalPolicyDecision;
 }

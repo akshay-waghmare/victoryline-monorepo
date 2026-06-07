@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { extractSlugFromUrl } from '../core/utils/match-utils';
+import { extractMatchRouteSuffix, extractSlugFromUrl, normalizeMatchRoutePath } from '../core/utils/match-utils';
+import { buildBaseMatchCanonicalPath, createMatchRouteIntent, deriveMatchLifecycleState, evaluateMatchCanonicalPolicy, MatchRouteSurface } from './match-canonical-policy';
 import { MatchSeoViewModel } from './match-seo.models';
 import { getOgImageForMatch } from './og-images';
 
@@ -15,6 +16,7 @@ export class MatchSeoService {
 
   build(input: {
     routeSlug: string;
+    requestedPath?: string;
     matchUrl?: string;
     matchInfo?: any;
     currentMatch?: any;
@@ -29,10 +31,26 @@ export class MatchSeoService {
     const hasTeams = !!(team1 && team2);
     const isNumericRoute = /^\d+$/.test(routeSlug);
     const isValidSlug = !!(sourceSlug && sourceSlug.indexOf('-vs-') !== -1 && parsed && hasTeams);
-    const isIndexable = isValidSlug && !(input.isFallback && isNumericRoute);
     const teams = hasTeams ? `${team1} vs ${team2}` : 'Cricket match';
     const statusLabel = this.getStatusLabel(matchInfo, input.currentMatch);
     const isCompleted = /completed|finished|result/i.test(statusLabel) || /won by|match drawn|match tied/i.test(matchInfo.lastKnownState || matchInfo.resultSummary || '');
+    const lifecycle = deriveMatchLifecycleState(statusLabel, matchInfo.lastKnownState || matchInfo.resultSummary || '');
+    const requestedPath = this.getRequestedPath(input.requestedPath, routeSlug, sourceSlug);
+    const normalizedRoutePath = normalizeMatchRoutePath(requestedPath || input.matchUrl || '');
+    const routeSuffix = extractMatchRouteSuffix(requestedPath || input.matchUrl || '');
+    const routeIntent = createMatchRouteIntent({
+      requestedPath: requestedPath,
+      routeSlug: routeSlug,
+      normalizedSlug: sourceSlug,
+      surface: this.getRouteSurface(routeSuffix, requestedPath, normalizedRoutePath),
+      lifecycle: lifecycle,
+      suffix: routeSuffix,
+      isLegacyAlias: this.isLegacyAlias(routeSuffix),
+      isResolvable: isValidSlug && !(input.isFallback && isNumericRoute)
+    });
+    const canonicalDecision = evaluateMatchCanonicalPolicy(routeIntent);
+    const canonicalPath = canonicalDecision.canonicalPath || normalizedRoutePath || requestedPath || '/matches';
+    const isIndexable = isValidSlug && canonicalDecision.robots === 'index,follow' && !(input.isFallback && isNumericRoute);
     const suffix = isCompleted ? ' Final Score | Full Scorecard' : ' Live Score Ball by Ball';
     const title = isIndexable ? this.truncateTitle(teams, suffix) : 'Cricket Match Not Available | Crickzen';
     const series = this.cleanSeries(matchInfo.series_name || (input.currentMatch && input.currentMatch.seriesName) || (parsed && parsed.series) || '');
@@ -40,7 +58,6 @@ export class MatchSeoService {
     const description = isIndexable
       ? this.truncateDescription(`${teams} ${isCompleted ? 'final score, result, scorecard, and key match updates' : 'live score, wickets, overs, and ball-by-ball updates'}${series ? ` in ${series}` : ''}.`)
       : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
-    const canonicalPath = isIndexable ? `/cric-live/${sourceSlug}` : (routeSlug ? `/cric-live/${routeSlug}` : '/matches');
     const canonicalUrl = this.host + canonicalPath;
     const h1 = isIndexable ? `${teams}${isCompleted ? ' Final Score' : ' Live Score Ball by Ball'}` : 'Cricket match not available';
     const summary = isIndexable
@@ -61,8 +78,51 @@ export class MatchSeoService {
       series,
       statusLabel,
       summary,
-      isIndexable
+      isIndexable,
+      routeIntent,
+      canonicalDecision
     };
+  }
+
+  private getRequestedPath(requestedPath: string | undefined, routeSlug: string, sourceSlug: string): string {
+    var fromInput = (requestedPath || '').trim();
+    if (fromInput) {
+      return fromInput;
+    }
+
+    return buildBaseMatchCanonicalPath(sourceSlug || routeSlug) || (routeSlug ? '/cric-live/' + routeSlug : '');
+  }
+
+  private getRouteSurface(routeSuffix: string | null, requestedPath: string, normalizedRoutePath: string | null): MatchRouteSurface {
+    if (!routeSuffix) {
+      return 'base';
+    }
+
+    switch (routeSuffix) {
+      case 'live':
+        return 'live';
+      case 'commentary':
+        return 'commentary';
+      case 'scorecard':
+      case 'match-scorecard':
+        return 'scorecard';
+      case 'report':
+      case 'match-report':
+        return 'report';
+      case 'info':
+      case 'match-details':
+        return 'legacy';
+      default:
+        return normalizedRoutePath && requestedPath !== normalizedRoutePath ? 'unknown' : 'base';
+    }
+  }
+
+  private isLegacyAlias(routeSuffix: string | null): boolean {
+    return routeSuffix === 'live'
+      || routeSuffix === 'scorecard'
+      || routeSuffix === 'info'
+      || routeSuffix === 'match-scorecard'
+      || routeSuffix === 'match-details';
   }
 
   private getCanonicalSlug(routeSlug: string, matchUrl?: string, currentMatch?: any): string {

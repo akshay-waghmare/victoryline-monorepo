@@ -29,6 +29,7 @@ import { PlayersPageComponent } from 'src/app/features/stats/players-page/player
 import { TeamsPageComponent } from 'src/app/features/stats/teams-page/teams-page.component';
 import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-page.component';
 import { Error404Component } from 'src/app/shared/components/error-404/error-404.component';
+import { normalizeMatchRoutePath } from 'src/app/core/utils/match-utils';
 
 export function cricLiveMatcher(segments: UrlSegment[]): UrlMatchResult | null {
   if (segments.length < 2 || segments[0].path !== 'cric-live') {
@@ -47,8 +48,10 @@ export function cricLiveMatcher(segments: UrlSegment[]): UrlMatchResult | null {
     decodedPath = joinedPath;
   }
 
-  var parts = decodedPath.split('/').filter(Boolean).reverse();
-  var slug = parts.find(function(part: string) { return part.indexOf('-vs-') !== -1; }) || segments[1].path;
+  var normalizedPath = normalizeMatchRoutePath('/cric-live/' + decodedPath);
+  var slug = normalizedPath
+    ? normalizedPath.replace(/^\/cric-live\//, '')
+    : (decodedPath.split('/').filter(Boolean).reverse().find(function(part: string) { return part.indexOf('-vs-') !== -1; }) || segments[1].path);
 
   return {
     consumed: segments,

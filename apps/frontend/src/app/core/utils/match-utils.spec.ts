@@ -1,5 +1,5 @@
 import { MatchStatus } from '../../features/matches/models/match-card.models';
-import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractSlugFromUrl, getRecentBallDisplay } from './match-utils';
+import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractMatchRouteSuffix, extractSlugFromUrl, getRecentBallDisplay, normalizeMatchRoutePath } from './match-utils';
 
 describe('match-utils recent ball helpers', () => {
   it('formats wicket and boundary events for compact display', () => {
@@ -55,6 +55,20 @@ describe('match-utils recent ball helpers', () => {
     expect(extractSlugFromUrl('https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC')).toBe('abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
     expect(extractSlugFromUrl('https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/match-scorecard')).toBe('abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
     expect(extractSlugFromUrl('https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/match-details')).toBe('abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
+  });
+
+  it('extracts route suffixes from canonical and legacy match paths', () => {
+    expect(extractMatchRouteSuffix('/cric-live/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/live')).toBe('live');
+    expect(extractMatchRouteSuffix('/cric-live/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/scorecard')).toBe('scorecard');
+    expect(extractMatchRouteSuffix('https://www.crickzen.com/cric-live/series/finals/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/match-scorecard?tab=batting')).toBe('match-scorecard');
+    expect(extractMatchRouteSuffix('/cric-live/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC')).toBeNull();
+  });
+
+  it('normalizes legacy and nested match paths back to the base canonical route', () => {
+    expect(normalizeMatchRoutePath('/cric-live/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/live')).toBe('/cric-live/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
+    expect(normalizeMatchRoutePath('/cric-live/series/finals/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/scorecard')).toBe('/cric-live/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
+    expect(normalizeMatchRoutePath('/cric-live/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/custom-view')).toBe('/cric-live/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC');
+    expect(normalizeMatchRoutePath('/cric-live/445')).toBeNull();
   });
 
   it('builds canonical match paths from url, external key, or slug-like id', () => {
