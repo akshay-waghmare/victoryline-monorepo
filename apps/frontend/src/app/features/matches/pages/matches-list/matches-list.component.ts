@@ -12,7 +12,7 @@ import { takeUntil } from 'rxjs/operators';
 
 import { MatchCardViewModel, MatchStatus } from '../../models/match-card.models';
 import { MatchesService } from '../../services/matches.service';
-import { extractSlugFromUrl } from '../../../../core/utils/match-utils';
+import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractSlugFromUrl } from '../../../../core/utils/match-utils';
 import { formatCalendarDate } from '../../models/match-status';
 import { 
   sortMatchesByPriority, 
@@ -52,6 +52,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   filteredMatches: MatchCardViewModel[] = [];
   visibleMatches: MatchCardViewModel[] = [];
   upcomingMatchGroups: { label: string; matches: MatchCardViewModel[] }[] = [];
+  crawlableMatches: MatchCardViewModel[] = [];
   
   // Loading states
   isLoading = true;
@@ -146,6 +147,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     this.upcomingMatchGroups = this.selectedStatus === MatchStatus.UPCOMING
       ? this.buildUpcomingGroups(this.visibleMatches)
       : [];
+    this.crawlableMatches = this.visibleMatches.filter(match => !!buildCanonicalMatchPath(match)).slice(0, 12);
   }
   
   /**
@@ -260,15 +262,13 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    * Expects a crex.com URL ending with '/<slug>/live'. Falls back to match.id if it's already a slug.
    */
   private getMatchSlug(match: MatchCardViewModel): string | null {
-    // Prefer explicit matchUrl if present
-    const url = match.matchUrl;
-    var slug = url ? extractSlugFromUrl(url) : null;
-    if (slug) return slug;
-    // Fallback: if id looks like a slug (contains dashes), use it
-    if (match.id && match.id.indexOf('-') !== -1) {
-      return match.id;
+    var path = buildCanonicalMatchPath(match);
+    if (path) {
+      return path.replace(/^\/cric-live\//, '');
     }
-    return null;
+
+    const url = match.matchUrl;
+    return url ? extractSlugFromUrl(url) : null;
   }
   
   /**
@@ -311,6 +311,14 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    */
   trackByMatchId(index: number, match: MatchCardViewModel): string {
     return match.id;
+  }
+
+  getMatchHref(match: MatchCardViewModel): string {
+    return buildCanonicalMatchPath(match) || '/matches';
+  }
+
+  getMatchLinkLabel(match: MatchCardViewModel): string {
+    return buildCanonicalMatchLinkLabel(match);
   }
 
   getEmptyStateMessage(): string {

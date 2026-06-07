@@ -103,6 +103,18 @@
       </span>
     </div>
 
+    <nav class="matches-list__crawl-links" *ngIf="crawlableMatches.length > 0" aria-label="Direct match links">
+      <span class="matches-list__crawl-links-label">Direct match links</span>
+      <div class="matches-list__crawl-links-list">
+        <a
+          *ngFor="let match of crawlableMatches; trackBy: trackByMatchId"
+          class="matches-list__crawl-link"
+          [attr.href]="getMatchHref(match)">
+          {{ getMatchLinkLabel(match) }}
+        </a>
+      </div>
+    </nav>
+
     <div class="matches-list__empty" *ngIf="filteredMatches.length === 0">
       <span class="matches-list__empty-icon material-icons">sports_cricket</span>
       <p class="matches-list__empty-message">{{ getEmptyStateMessage() }}</p>

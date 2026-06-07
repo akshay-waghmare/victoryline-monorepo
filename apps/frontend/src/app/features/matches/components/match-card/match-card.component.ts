@@ -10,7 +10,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { MatchCardViewModel, MatchStatus, ScoreInfo, TeamInfo } from '../../models/match-card.models';
 import { getStatusDisplayText, getStatusColor, isLiveMatch, calculateStaleness, formatTimeDisplay, formatAbsoluteTime, formatCalendarDate } from '../../models/match-status';
 import { AnimationService } from '../../../../core/services/animation.service';
-import { extractSlugFromUrl, getMatchResultSummary } from '../../../../core/utils/match-utils';
+import { buildCanonicalMatchPath, getMatchResultSummary } from '../../../../core/utils/match-utils';
 
 /**
  * Score update event data
@@ -427,11 +427,7 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
   // ===== EVENT HANDLERS =====
   
   getMatchHref(): string {
-    const slug = extractSlugFromUrl(this.match && this.match.matchUrl)
-      || (this.match && this.match.externalMatchKey)
-      || (this.match && this.match.id);
-
-    return slug ? '/cric-live/' + slug : '/matches';
+    return buildCanonicalMatchPath(this.match) || '/matches';
   }
 
   onCardClick(event?: MouseEvent): void {

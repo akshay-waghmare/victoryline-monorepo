@@ -89,6 +89,18 @@
     <p class="home__carousel-hint" *ngIf="activeMatches.length > 1">
       Swipe the rail to move quickly across matches.
     </p>
+
+    <nav class="home__match-links" *ngIf="discoveryMatches.length > 0" aria-label="Direct match links">
+      <span class="home__match-links-label">Quick match links</span>
+      <div class="home__match-links-list">
+        <a
+          *ngFor="let match of discoveryMatches; trackBy: trackByMatchId"
+          class="home__match-link"
+          [attr.href]="getMatchHref(match)">
+          {{ getMatchLinkLabel(match) }}
+        </a>
+      </div>
+    </nav>
   </section>
 
   <section class="home__state home__state--loading" *ngIf="isLoadingMatches">

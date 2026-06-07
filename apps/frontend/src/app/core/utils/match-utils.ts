@@ -436,3 +436,51 @@ export function extractSlugFromUrl(url: string): string | null {
 
   return last;
 }
+
+export function buildCanonicalMatchPath(match: Pick<MatchCardViewModel, 'matchUrl' | 'externalMatchKey' | 'id'>): string | null {
+  var slug = extractSlugFromUrl(match && match.matchUrl ? match.matchUrl : '');
+  if (!slug && match && match.externalMatchKey) {
+    slug = match.externalMatchKey;
+  }
+  if (!slug && match && match.id && match.id.indexOf('-') !== -1) {
+    slug = match.id;
+  }
+
+  if (!slug || slug.indexOf('-vs-') === -1) {
+    return null;
+  }
+
+  return '/cric-live/' + slug;
+}
+
+export function buildCanonicalMatchLinkLabel(match: Pick<MatchCardViewModel, 'team1' | 'team2' | 'status'>): string {
+  var team1 = getPreferredTeamLabel(match && match.team1);
+  var team2 = getPreferredTeamLabel(match && match.team2);
+  var base = (team1 || 'Team 1') + ' vs ' + (team2 || 'Team 2');
+
+  switch (match && match.status) {
+    case MatchStatus.UPCOMING:
+      return base + ' match preview';
+    case MatchStatus.COMPLETED:
+    case MatchStatus.ABANDONED:
+      return base + ' result';
+    case MatchStatus.RAIN_DELAY:
+    case MatchStatus.INNINGS_BREAK:
+    case MatchStatus.LIVE:
+    default:
+      return base + ' live score';
+  }
+}
+
+function getPreferredTeamLabel(team: MatchCardViewModel['team1'] | null | undefined): string {
+  if (!team) {
+    return '';
+  }
+
+  var name = team.name ? team.name.trim() : '';
+  if (name) {
+    return name;
+  }
+
+  return team.shortName ? team.shortName.trim() : '';
+}

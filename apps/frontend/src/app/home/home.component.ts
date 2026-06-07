@@ -16,7 +16,7 @@ import { Subscription } from 'rxjs';
 
 import { BlogListService, BlogPost } from '../component/blog-list.service';
 import { NewsItem, NewsService } from '../component/news.service';
-import { extractSlugFromUrl, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches } from '../core/utils/match-utils';
+import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractSlugFromUrl, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches } from '../core/utils/match-utils';
 import { MatchCardViewModel } from '../features/matches/models/match-card.models';
 import { MatchesService } from '../features/matches/services/matches.service';
 
@@ -41,6 +41,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   upcomingMatches: MatchCardViewModel[] = [];
   recentMatches: MatchCardViewModel[] = [];
   activeMatches: MatchCardViewModel[] = [];
+  discoveryMatches: MatchCardViewModel[] = [];
 
   isLoadingMatches = true;
   hasMatchError = false;
@@ -207,6 +208,14 @@ export class HomeComponent implements OnInit, OnDestroy {
     return item.newsId;
   }
 
+  getMatchHref(match: MatchCardViewModel): string {
+    return buildCanonicalMatchPath(match) || '/matches';
+  }
+
+  getMatchLinkLabel(match: MatchCardViewModel): string {
+    return buildCanonicalMatchLinkLabel(match);
+  }
+
   updateMetaTagsForMatch(match: MatchCardViewModel): void {
     const title = match.team1.name + ' vs ' + match.team2.name + ' - ' + match.displayStatus;
     const description = 'Live cricket score: ' + match.team1.name + ' vs ' + match.team2.name + ' at ' + match.venue;
@@ -262,6 +271,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private refreshHomeState(): void {
     this.totalTrackedMatches = this.liveMatches.length + this.upcomingMatches.length + this.recentMatches.length;
     this.syncActiveMatches();
+    this.discoveryMatches = this.buildDiscoveryMatches();
     this.updateCarouselControlsSoon();
     this.changeDetectorRef.markForCheck();
   }
@@ -290,6 +300,24 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     return 'results';
+  }
+
+  private buildDiscoveryMatches(): MatchCardViewModel[] {
+    var candidates = ([] as MatchCardViewModel[])
+      .concat(this.liveMatches.slice(0, 4))
+      .concat(this.upcomingMatches.slice(0, 3))
+      .concat(this.recentMatches.slice(0, 3));
+    var seen: { [key: string]: boolean } = {};
+
+    return candidates.filter(match => {
+      var href = buildCanonicalMatchPath(match);
+      if (!href || seen[href]) {
+        return false;
+      }
+
+      seen[href] = true;
+      return true;
+    }).slice(0, 8);
   }
 
   private bindCarousel(element: HTMLDivElement | null): void {
