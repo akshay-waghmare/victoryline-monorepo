@@ -107,6 +107,13 @@ export class MatchesService {
           return of([]);
         }
 
+        // Listing-page SSR must finish before Express falls back to the bare app shell.
+        // The live feed already has enough metadata for crawlable match cards; browsers
+        // can continue enriching those cards with per-match scorecard requests.
+        if (!this.isBrowser()) {
+          return of(this.transformActiveMatches(activeMatches, activeMatches.map(() => null)));
+        }
+
         // Fetch scorecard data for all active matches
         const scorecardRequests = activeMatches.map((match: any) =>
           this.fetchScorecardData(match.url)
@@ -114,24 +121,7 @@ export class MatchesService {
 
         // Wait for all scorecard requests to complete
         return forkJoin(scorecardRequests).pipe(
-          map((scorecardDataArray: any[]) => {
-            // Combine match metadata with scorecard data
-            const transformedMatches = activeMatches.map((match, index) => {
-              const scorecardData = scorecardDataArray[index];
-              const transformed = this.transformToViewModel(match, scorecardData);
-              // Force LIVE status for matches from the live feed — scorecard
-              // status strings like "Day 1 completed" must not override source.
-              if (transformed.status === MatchStatus.COMPLETED || transformed.status === MatchStatus.UPCOMING) {
-                transformed.status = MatchStatus.LIVE;
-                transformed.displayStatus = getStatusDisplayText(MatchStatus.LIVE);
-                transformed.isLive = true;
-                transformed.canAnimate = true;
-              }
-              return transformed;
-            });
-
-            return transformedMatches;
-          })
+          map((scorecardDataArray: any[]) => this.transformActiveMatches(activeMatches, scorecardDataArray))
         );
       }),
       catchError((error) => {
@@ -139,6 +129,20 @@ export class MatchesService {
         return of([]);
       })
     );
+  }
+
+  private transformActiveMatches(activeMatches: any[], scorecardDataArray: any[]): MatchCardViewModel[] {
+    return activeMatches.map((match, index) => {
+      const transformed = this.transformToViewModel(match, scorecardDataArray[index]);
+      // Scorecard status strings like "Day 1 completed" must not override the live feed.
+      if (transformed.status === MatchStatus.COMPLETED || transformed.status === MatchStatus.UPCOMING) {
+        transformed.status = MatchStatus.LIVE;
+        transformed.displayStatus = getStatusDisplayText(MatchStatus.LIVE);
+        transformed.isLive = true;
+        transformed.canAnimate = true;
+      }
+      return transformed;
+    });
   }
 
   getAllMatches(): Observable<MatchCardViewModel[]> {
