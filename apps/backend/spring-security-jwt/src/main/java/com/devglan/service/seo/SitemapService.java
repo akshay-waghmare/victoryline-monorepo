@@ -10,13 +10,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class SitemapService {
@@ -136,7 +145,6 @@ public class SitemapService {
         if (part == 1) {
             allUrls.add(writer.url("/", "hourly", 1.0));
             allUrls.add(writer.url("/matches", "hourly", 0.9));
-            allUrls.add(writer.url("/blog", "daily", 0.7));
         }
         
         // Try to get live matches from the API
@@ -147,7 +155,7 @@ public class SitemapService {
                 if (path != null) {
                     String changefreq = match.isLive() ? "hourly" : "daily";
                     double priority = match.isLive() ? 0.9 : 0.8;
-                    allUrls.add(writer.url(path, changefreq, priority));
+                    allUrls.add(writer.urlWithLastMod(path, deriveLiveMatchLastMod(match, writer), changefreq, priority));
                 }
             }
         }
@@ -179,6 +187,8 @@ public class SitemapService {
                 }
             }
         }
+
+        allUrls = deduplicateUrls(allUrls);
         
         // Apply partition slicing
         int urlsPerPart = Math.max(1, SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
@@ -197,17 +207,17 @@ public class SitemapService {
 
     private int determinePartitionCount() {
         try {
-            int total = 3; // home, matches, blog (static pages)
+            int total = 2; // home and matches
             
             // Count live matches from API
             List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
             if (liveMatches != null && !liveMatches.isEmpty()) {
-                total += countCanonicalLiveMatches(liveMatches);
+                total += countDistinctCanonicalLiveMatches(liveMatches);
             } else if (matchRepository != null) {
                 // Fallback: count database matches if no live matches
                 List<Matches> allVisible = safeGetVisibleMatches();
                 if (allVisible != null) {
-                    total += countCanonicalRepositoryMatches(allVisible);
+                    total += countDistinctCanonicalRepositoryMatches(allVisible);
                 }
             }
             
@@ -264,6 +274,52 @@ public class SitemapService {
         return isCanonicalMatchSlug(slug) ? "/cric-live/" + slug : null;
     }
 
+    private String deriveLiveMatchLastMod(LiveMatchesService.LiveMatchEntry match, SitemapWriter writer) {
+        if (match == null) {
+            return writer.isoFromEpochMillis(null);
+        }
+
+        if (match.getLastStateUpdatedAt() != null && match.getLastStateUpdatedAt() > 0) {
+            return writer.isoFromEpochMillis(match.getLastStateUpdatedAt());
+        }
+
+        if (match.getScheduledStartTime() != null && match.getScheduledStartTime() > 0) {
+            return writer.isoFromEpochMillis(match.getScheduledStartTime());
+        }
+
+        String parsedStartDate = parseLiveMatchStartDate(match.getStartDate());
+        if (parsedStartDate != null) {
+            return parsedStartDate;
+        }
+
+        return writer.isoFromEpochMillis(null);
+    }
+
+    private String parseLiveMatchStartDate(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+
+        String raw = value.trim();
+        try {
+            return OffsetDateTime.parse(raw).toInstant().atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        } catch (DateTimeParseException ignored) {
+            // fall through
+        }
+
+        try {
+            return LocalDateTime.parse(raw).toInstant(ZoneOffset.UTC).atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        } catch (DateTimeParseException ignored) {
+            // fall through
+        }
+
+        try {
+            return LocalDate.parse(raw).atStartOfDay().toInstant(ZoneOffset.UTC).atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        } catch (DateTimeParseException ignored) {
+            return null;
+        }
+    }
+
     private boolean isCompletedWithoutIndexableResult(LiveMatchesService.LiveMatchEntry match) {
         String status = normalize(match.getStatus());
         boolean completed = match.isFinished()
@@ -311,24 +367,36 @@ public class SitemapService {
         return clean.toLowerCase().contains("-vs-");
     }
 
-    private int countCanonicalLiveMatches(List<LiveMatchesService.LiveMatchEntry> matches) {
-        int count = 0;
-        for (LiveMatchesService.LiveMatchEntry match : matches) {
-            if (deriveCanonicalMatchPath(match) != null) {
-                count++;
+    private ArrayList<SitemapWriter.SitemapUrl> deduplicateUrls(List<SitemapWriter.SitemapUrl> urls) {
+        Map<String, SitemapWriter.SitemapUrl> uniqueByLocation = new LinkedHashMap<>();
+        for (SitemapWriter.SitemapUrl url : urls) {
+            if (url != null && url.loc != null) {
+                uniqueByLocation.putIfAbsent(url.loc, url);
             }
         }
-        return count;
+        return new ArrayList<>(uniqueByLocation.values());
     }
 
-    private int countCanonicalRepositoryMatches(List<Matches> matches) {
-        int count = 0;
-        for (Matches match : matches) {
-            if (deriveMatchPath(match) != null) {
-                count++;
+    private int countDistinctCanonicalLiveMatches(List<LiveMatchesService.LiveMatchEntry> matches) {
+        Set<String> paths = new LinkedHashSet<>();
+        for (LiveMatchesService.LiveMatchEntry match : matches) {
+            String path = deriveCanonicalMatchPath(match);
+            if (path != null) {
+                paths.add(path);
             }
         }
-        return count;
+        return paths.size();
+    }
+
+    private int countDistinctCanonicalRepositoryMatches(List<Matches> matches) {
+        Set<String> paths = new LinkedHashSet<>();
+        for (Matches match : matches) {
+            String path = deriveMatchPath(match);
+            if (path != null) {
+                paths.add(path);
+            }
+        }
+        return paths.size();
     }
 
     private String extractSlugFromUrl(String url) {

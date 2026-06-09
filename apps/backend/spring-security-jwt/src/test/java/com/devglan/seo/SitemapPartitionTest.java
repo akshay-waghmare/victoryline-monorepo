@@ -49,7 +49,7 @@ public class SitemapPartitionTest {
         // When: Get sitemap index
         String indexXml = service.getSitemapIndexXml();
         
-        // Then: Should have 3 partitions (3 static + 250 matches = 253 total, /100 = 3 partitions)
+        // Then: Should have 3 partitions (2 static + 250 matches = 252 total, /100 = 3 partitions)
         assertThat(indexXml).contains("<sitemapindex");
         assertThat(indexXml).contains("sitemap-matches-0001.xml");
         assertThat(indexXml).contains("sitemap-matches-0002.xml");
@@ -74,11 +74,11 @@ public class SitemapPartitionTest {
         // When: Get partition 1
         String partition1Xml = service.getPartitionXml(1);
         
-        // Then: Should contain static pages (home, matches, blog)
+        // Then: Should contain the routed static pages only
         assertThat(partition1Xml).contains("<urlset");
         assertThat(partition1Xml).contains("https://www.crickzen.com/</loc>");
         assertThat(partition1Xml).contains("https://www.crickzen.com/matches</loc>");
-        assertThat(partition1Xml).contains("https://www.crickzen.com/blog</loc>");
+        assertThat(partition1Xml).doesNotContain("https://www.crickzen.com/blog</loc>");
     }
 
     @Test
@@ -204,6 +204,46 @@ public class SitemapPartitionTest {
         assertThat(partitionXml).contains("/cric-live/br-vs-sgr-8th-match-afghanistan-one-day-cup-2026-match-updates-126P");
     }
 
+    @Test
+    public void sitemap_uses_live_match_last_state_updated_at_for_lastmod() {
+        LiveMatchesService.LiveMatchEntry live = new LiveMatchesService.LiveMatchEntry();
+        live.setUrl("https://crex.com/cricket-live-score/ind-vs-aus-2nd-test-2026-match-updates-222B");
+        live.setExternalMatchKey("ind-vs-aus-2nd-test-2026-match-updates-222B");
+        live.setStatus("LIVE");
+        live.setLastKnownState("India 118/2 after 32.4 overs");
+        live.setLastStateUpdatedAt(1760000000000L);
+
+        liveMatchesService.setMatches(java.util.Collections.singletonList(live));
+
+        String partitionXml = service.getPartitionXml(1);
+
+        assertThat(partitionXml).contains("/cric-live/ind-vs-aus-2nd-test-2026-match-updates-222B");
+        assertThat(partitionXml).contains("<lastmod>2025-10-09T08:53:20Z</lastmod>");
+    }
+
+    @Test
+    public void sitemap_deduplicates_repeated_canonical_match_paths() {
+        List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
+        LiveMatchesService.LiveMatchEntry first = new LiveMatchesService.LiveMatchEntry();
+        first.setUrl("https://crex.com/cricket-live-score/ind-vs-aus-2nd-test-2026-match-updates-222B");
+        entries.add(first);
+
+        LiveMatchesService.LiveMatchEntry duplicate = new LiveMatchesService.LiveMatchEntry();
+        duplicate.setExternalMatchKey("ind-vs-aus-2nd-test-2026-match-updates-222B");
+        entries.add(duplicate);
+
+        liveMatchesService.setMatches(entries);
+
+        String indexXml = service.getSitemapIndexXml();
+        String partitionXml = service.getPartitionXml(1);
+
+        assertThat(indexXml).contains("sitemap-matches-0001.xml");
+        assertThat(indexXml).doesNotContain("sitemap-matches-0002.xml");
+        assertThat(countOccurrences(partitionXml,
+                "https://www.crickzen.com/cric-live/ind-vs-aus-2nd-test-2026-match-updates-222B</loc>"))
+                .isEqualTo(1);
+    }
+
     // Helper methods
     
     private List<Matches> createMatchList(int count) {
@@ -231,6 +271,7 @@ public class SitemapPartitionTest {
             LiveMatchesService.LiveMatchEntry entry = new LiveMatchesService.LiveMatchEntry();
             entry.setUrl(match.getMatchLink());
             entry.setLastKnownState(match.getMatchStatus());
+            entry.setLastStateUpdatedAt(match.getMatchDate() != null ? match.getMatchDate().getTime() : null);
             entries.add(entry);
         }
         return entries;

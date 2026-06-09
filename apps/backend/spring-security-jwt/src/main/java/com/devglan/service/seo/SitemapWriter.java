@@ -71,6 +71,11 @@ public class SitemapWriter {
         return date.toInstant().atOffset(ZoneOffset.UTC).format(ISO_FMT);
     }
 
+    public String isoFromEpochMillis(Long epochMillis) {
+        if (epochMillis == null || epochMillis <= 0) return isoNow();
+        return java.time.Instant.ofEpochMilli(epochMillis).atOffset(ZoneOffset.UTC).format(ISO_FMT);
+    }
+
     private String ensureLeadingSlash(String path) {
         if (path == null || path.isEmpty()) {
             return "/";

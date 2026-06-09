@@ -82,6 +82,7 @@ public class LiveMatchesService {
                 entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
                 entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
                 entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
+                entry.setLastStateUpdatedAt(readLong(node, "lastStateUpdatedAt", "last_state_updated_at"));
                 entry.setId(node.has("id") ? node.get("id").asLong() : null);
                 // Parse startDate from various possible field names (Google GSC requires startDate for SportsEvent)
                 String startDate = null;
@@ -128,6 +129,7 @@ public class LiveMatchesService {
                 entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
                 entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
                 entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
+                entry.setLastStateUpdatedAt(readLong(node, "lastStateUpdatedAt", "last_state_updated_at"));
                 entry.setId(node.has("id") ? node.get("id").asLong() : null);
                 // Parse startDate from various possible field names (Google GSC requires startDate for SportsEvent)
                 String startDate = null;
@@ -148,6 +150,28 @@ public class LiveMatchesService {
         }
         return matches;
     }
+
+    private Long readLong(JsonNode node, String... fieldNames) {
+        for (String fieldName : fieldNames) {
+            if (node.has(fieldName) && !node.get(fieldName).isNull()) {
+                JsonNode value = node.get(fieldName);
+                if (value.isNumber()) {
+                    return value.asLong();
+                }
+
+                String text = value.asText();
+                if (text != null && !text.trim().isEmpty()) {
+                    try {
+                        return Long.parseLong(text.trim());
+                    } catch (NumberFormatException ignored) {
+                        // try next field
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
     
     public static class LiveMatchEntry {
         private String url;
@@ -157,6 +181,7 @@ public class LiveMatchesService {
         private String resultSummary;
         private boolean finished;
         private Long scheduledStartTime;
+        private Long lastStateUpdatedAt;
         private Long id;
         private String startDate;
         
@@ -180,6 +205,9 @@ public class LiveMatchesService {
 
         public Long getScheduledStartTime() { return scheduledStartTime; }
         public void setScheduledStartTime(Long scheduledStartTime) { this.scheduledStartTime = scheduledStartTime; }
+
+        public Long getLastStateUpdatedAt() { return lastStateUpdatedAt; }
+        public void setLastStateUpdatedAt(Long lastStateUpdatedAt) { this.lastStateUpdatedAt = lastStateUpdatedAt; }
         
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
