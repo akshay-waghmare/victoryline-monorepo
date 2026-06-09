@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crickzen SEO Health Audit"
+  short_description: "Audit Crickzen SEO health and detect recurring failure patterns"
+  default_prompt: "Audit Crickzen production SEO health, detect recurring patterns, and report prioritized evidence without changing production."
