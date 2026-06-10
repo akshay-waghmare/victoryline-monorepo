@@ -12,7 +12,7 @@ public final class SeoConstants {
     // Sitemap generation knobs (defaults; may be overridden by real data logic)
     public static final int SITEMAP_PARTITIONS = 1; // Fallback partition count when data unavailable
     public static final int SITEMAP_SAMPLE_URLS_PER_PARTITION = 1; // Back-compat for tests
-    public static final int SITEMAP_MAX_URLS_PER_PARTITION = 100; // Real data partition sizing
+    public static final int SITEMAP_MAX_URLS_PER_PARTITION = 1000; // Keep time-sensitive matches in early crawl batches
     public static final int SITEMAP_MAX_URLS_TOTAL = 10000; // Cap total URLs to avoid huge payloads
 
     // OG image utilities

@@ -65,6 +65,7 @@ The June SEO work did not start the decline. It exposed and partially corrected 
 - Redirect `/Home` and `/live-cricket-score` aliases to `/`.
 - Add explicit self-canonicals and unique metadata to `/` and `/matches`.
 - Prioritize live, upcoming, and recent matches into the earliest sitemap partitions.
+- Increase sitemap partition size from 100 to 1,000 URLs so all current live/upcoming matches stay in the first crawl batch.
 - Add a reusable Search Console analytics and URL-inspection utility to the SEO health audit workflow.
 
 ## Verification And Monitoring

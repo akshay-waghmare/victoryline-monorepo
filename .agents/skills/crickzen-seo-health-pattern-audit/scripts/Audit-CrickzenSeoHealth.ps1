@@ -20,6 +20,7 @@ function Get-PageAudit {
     $stopwatch.Stop()
     return [pscustomobject]@{
       url = $Url
+      finalUrl = [string]$response.BaseResponse.ResponseUri.AbsoluteUri
       status = [int]$response.StatusCode
       elapsedMs = $stopwatch.ElapsedMilliseconds
       bytes = $html.Length
@@ -50,6 +51,7 @@ function Get-PageAudit {
     }
     return [pscustomobject]@{
       url = $Url
+      finalUrl = $Url
       status = $status
       elapsedMs = $stopwatch.ElapsedMilliseconds
       bytes = $html.Length
@@ -158,11 +160,15 @@ if (@($discoveryAudits | Where-Object { $_.elapsedMs -ge 7000 }).Count -gt 0) {
 if (@($discoveryAudits | Where-Object { $_.canonicalCount -eq 0 }).Count -gt 0) {
   $patterns += "DISCOVERY_CANONICAL_GAP: at least one discovery surface rendered without a canonical tag."
 }
-$discoveryTitleGroups = @($discoveryAudits | Where-Object { $_.title } | Group-Object title | Where-Object Count -gt $RepeatedRouteAttempts)
+$discoveryTitleGroups = @($discoveryAudits | Where-Object { $_.title } | Group-Object title | Where-Object {
+  @($_.Group | Select-Object -ExpandProperty finalUrl -Unique).Count -gt 1
+})
 if ($discoveryTitleGroups.Count -gt 0) {
   $patterns += "DISCOVERY_DUPLICATE_TITLE: multiple discovery routes share the same title."
 }
-$discoveryDescriptionGroups = @($discoveryAudits | Where-Object { $_.description } | Group-Object description | Where-Object Count -gt $RepeatedRouteAttempts)
+$discoveryDescriptionGroups = @($discoveryAudits | Where-Object { $_.description } | Group-Object description | Where-Object {
+  @($_.Group | Select-Object -ExpandProperty finalUrl -Unique).Count -gt 1
+})
 if ($discoveryDescriptionGroups.Count -gt 0) {
   $patterns += "DISCOVERY_DUPLICATE_DESCRIPTION: multiple discovery routes share the same meta description."
 }

@@ -33,9 +33,10 @@ public class SitemapPartitionTest {
 
     @Test
     public void index_lists_correct_number_of_partitions_for_large_dataset() {
-        // Given: Mock repo returns 250 visible matches (exceeds 100/partition cap)
+        // Given: Mock repo exceeds two full sitemap partitions
         List<Matches> largeMatchSet = new ArrayList<>();
-        for (int i = 1; i <= 250; i++) {
+        int matchCount = (SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION * 2) + 50;
+        for (int i = 1; i <= matchCount; i++) {
             Matches m = new Matches();
             m.setMatchId((long) i);
             m.setMatchLink(validMatchLink(i));
@@ -49,7 +50,7 @@ public class SitemapPartitionTest {
         // When: Get sitemap index
         String indexXml = service.getSitemapIndexXml();
         
-        // Then: Should have 3 partitions (2 static + 250 matches = 252 total, /100 = 3 partitions)
+        // Then: Should have 3 partitions after static URLs are included
         assertThat(indexXml).contains("<sitemapindex");
         assertThat(indexXml).contains("sitemap-matches-0001.xml");
         assertThat(indexXml).contains("sitemap-matches-0002.xml");
@@ -126,8 +127,8 @@ public class SitemapPartitionTest {
 
     @Test
     public void partition_respects_max_urls_per_partition_constant() {
-        // Given: Mock repo returns exactly 100 + 3 static URLs worth of matches
-        List<Matches> matches = createMatchList(100);
+        // Given: Mock repo returns one partition worth of matches
+        List<Matches> matches = createMatchList(SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
         liveMatchesService.setMatches(toLiveEntries(matches));
         
         // When: Get partition 1 and count URLs
