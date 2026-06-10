@@ -19,6 +19,7 @@ import { NewsItem, NewsService } from '../component/news.service';
 import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractSlugFromUrl, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches } from '../core/utils/match-utils';
 import { MatchCardViewModel } from '../features/matches/models/match-card.models';
 import { MatchesService } from '../features/matches/services/matches.service';
+import { MetaTagsService } from '../seo/meta-tags.service';
 
 type HomeTab = 'live' | 'upcoming' | 'results';
 
@@ -62,6 +63,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     private router: Router,
     private metaService: Meta,
     private titleService: Title,
+    private metaTagsService: MetaTagsService,
     private blogListService: BlogListService,
     private newsService: NewsService,
     private changeDetectorRef: ChangeDetectorRef,
@@ -71,6 +73,13 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.metaTagsService.setPageMeta('/', {
+      title: 'Crickzen | Live Cricket Scores & Real-time Updates | International & Domestic Matches',
+      description: 'Stay updated with live cricket scores and real-time updates from international and domestic matches on Crickzen. Get ball-by-ball commentary, match analysis, and comprehensive cricket coverage.',
+      canonicalUrl: 'https://www.crickzen.com/',
+      robots: 'index,follow'
+    });
+
     this.newsService.getNews().subscribe(
       (items) => {
         this.newsItems = items;

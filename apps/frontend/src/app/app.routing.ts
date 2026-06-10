@@ -17,11 +17,6 @@ const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'Home', // Redirect to Home component on load
-        pathMatch: 'full',
-      },
-      {
-        path: '',
         loadChildren: './layouts/admin-layouts/admin-layouts.module#AdminLayoutsModule'
       }
     ]

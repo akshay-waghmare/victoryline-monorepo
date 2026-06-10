@@ -222,6 +222,33 @@ public class SitemapPartitionTest {
     }
 
     @Test
+    public void sitemap_prioritizes_live_matches_into_first_partition() {
+        List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
+        for (int i = 1; i <= 120; i++) {
+            LiveMatchesService.LiveMatchEntry completed = new LiveMatchesService.LiveMatchEntry();
+            completed.setUrl(validMatchLink(i));
+            completed.setStatus("COMPLETED");
+            completed.setLastKnownState("Team won by 5 wickets");
+            completed.setLastStateUpdatedAt(1700000000000L + i);
+            entries.add(completed);
+        }
+
+        LiveMatchesService.LiveMatchEntry live = new LiveMatchesService.LiveMatchEntry();
+        live.setUrl("https://crex.com/cricket-live-score/priority-vs-live-current-match-2026-match-updates-LIVE1");
+        live.setStatus("LIVE");
+        live.setScheduledStartTime(1781000000000L);
+        live.setLastKnownState("Priority 42/1");
+        entries.add(live);
+        liveMatchesService.setMatches(entries);
+
+        String firstPartition = service.getPartitionXml(1);
+        String secondPartition = service.getPartitionXml(2);
+
+        assertThat(firstPartition).contains("/cric-live/priority-vs-live-current-match-2026-match-updates-LIVE1");
+        assertThat(secondPartition).doesNotContain("/cric-live/priority-vs-live-current-match-2026-match-updates-LIVE1");
+    }
+
+    @Test
     public void sitemap_deduplicates_repeated_canonical_match_paths() {
         List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
         LiveMatchesService.LiveMatchEntry first = new LiveMatchesService.LiveMatchEntry();

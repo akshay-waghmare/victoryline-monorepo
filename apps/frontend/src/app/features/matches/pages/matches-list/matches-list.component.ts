@@ -6,7 +6,6 @@
 
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { Title } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -23,6 +22,7 @@ import {
   filterCompletedMatches 
 } from '../../../../core/utils/match-utils';
 import { Tab } from '../../../../shared/components/tab-nav/tab-nav.component';
+import { MetaTagsService } from '../../../../seo/meta-tags.service';
 
 @Component({
   selector: 'app-matches-list',
@@ -77,14 +77,18 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   
   constructor(
-    private matchesService: MatchesService, 
+    private matchesService: MatchesService,
     private router: Router,
-    private titleService: Title  // T044: Inject Angular Title service
+    private metaTagsService: MetaTagsService
   ) {}
-  
+
   ngOnInit(): void {
-    // T044: Set page title for matches list page
-    this.titleService.setTitle('Cricket Matches | Live, Upcoming & Completed | Crickzen');
+    this.metaTagsService.setPageMeta('/matches', {
+      title: 'Cricket Matches | Live, Upcoming & Completed | Crickzen',
+      description: 'Browse live, upcoming, and recently completed cricket matches with direct links to scores, commentary, scorecards, and match updates.',
+      canonicalUrl: 'https://www.crickzen.com/matches',
+      robots: 'index,follow'
+    });
     this.loadMatches();
   }
   

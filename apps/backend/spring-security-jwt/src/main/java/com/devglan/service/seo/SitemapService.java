@@ -150,7 +150,9 @@ public class SitemapService {
         // Try to get live matches from the API
         List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
         if (liveMatches != null && !liveMatches.isEmpty()) {
-            for (LiveMatchesService.LiveMatchEntry match : liveMatches) {
+            List<LiveMatchesService.LiveMatchEntry> prioritizedMatches = new ArrayList<>(liveMatches);
+            prioritizedMatches.sort(Comparator.comparingLong(this::sitemapPrioritySortValue));
+            for (LiveMatchesService.LiveMatchEntry match : prioritizedMatches) {
                 String path = deriveCanonicalMatchPath(match);
                 if (path != null) {
                     String changefreq = match.isLive() ? "hourly" : "daily";
@@ -335,6 +337,26 @@ public class SitemapService {
         }
 
         return !hasResultSignal(signals);
+    }
+
+    private long sitemapPrioritySortValue(LiveMatchesService.LiveMatchEntry match) {
+        String status = normalize(match == null ? null : match.getStatus());
+        long scheduledStart = match == null || match.getScheduledStartTime() == null
+                ? Long.MAX_VALUE / 8
+                : match.getScheduledStartTime();
+        long updatedAt = match == null || match.getLastStateUpdatedAt() == null
+                ? 0
+                : match.getLastStateUpdatedAt();
+
+        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
+            return scheduledStart;
+        }
+        if (status.contains("upcoming") || status.contains("scheduled")) {
+            return Long.MAX_VALUE / 4 + scheduledStart;
+        }
+
+        // Newer completed matches remain ahead of older archive pages.
+        return Long.MAX_VALUE / 2 - Math.min(updatedAt, Long.MAX_VALUE / 8);
     }
 
     private boolean hasResultSignal(String value) {

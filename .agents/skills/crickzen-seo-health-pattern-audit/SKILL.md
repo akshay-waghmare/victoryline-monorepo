@@ -16,17 +16,24 @@ The script writes a timestamped JSON report under `artifacts/seo-health/` and ex
 ## Workflow
 
 1. Run the bundled audit with default repeated-route and match samples.
-2. Read the JSON `patterns` and `failures` sections first.
-3. Map correlated failures to one likely shared cause before editing:
+2. For impression drops, query Search Console performance and URL inspection before assigning causality:
+
+```powershell
+python .\scripts\query_gsc_search_analytics.py --credentials <service-account-path> --start-date YYYY-MM-DD --end-date YYYY-MM-DD
+```
+
+Keep credentials outside the repo and save only the sanitized JSON output.
+3. Read the JSON `patterns` and `failures` sections first.
+4. Map correlated failures to one likely shared cause before editing:
    - repeated `7,974`-byte or missing-H1 listing responses -> SSR timeout/fallback shell;
    - sitemap duplicates plus canonical-without-links -> duplicate source records or missing sitemap deduplication;
    - one sitemap 4XX -> unrouted or deleted URL still emitted;
    - many pages sharing missing H1, no links, low word count, and missing canonical -> one broken/thin template family;
    - alternative page with proper canonical -> usually expected alias behavior unless aliases are internally linked or sitemap-listed;
    - high sitemap match count with few discovery links -> orphan/crawl-graph weakness.
-4. Inspect relevant production logs and source only after the pattern is identified.
-5. Make the smallest fix, test locally, deploy only affected services, then rerun this audit.
-6. Submit the sitemap only after the post-deploy audit is clean.
+5. Inspect relevant production logs and source only after the pattern is identified.
+6. Make the smallest fix, test locally, deploy only affected services, then rerun this audit.
+7. Submit the sitemap only after the post-deploy audit is clean.
 
 ## Guardrails
 

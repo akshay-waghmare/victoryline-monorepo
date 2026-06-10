@@ -62,6 +62,7 @@ export function cricLiveMatcher(segments: UrlSegment[]): UrlMatchResult | null {
 }
 
 export const AdminLayoutsRoute: Routes = [
+  { path: '', component: HomeComponent },
   { path: 'Home', component: HomeComponent },
   { path: 'login', component: LoginComponent },
   { path: 'live-cricket-score', component: HomeComponent },

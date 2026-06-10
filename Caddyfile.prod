@@ -14,9 +14,18 @@
   # debug
 }
 
+# Consolidate every public URL onto the canonical host used by sitemaps and page metadata.
+crickzen.com {
+  redir https://www.crickzen.com{uri} permanent
+}
+
 # Production domain configuration with automatic HTTPS
-crickzen.com, www.crickzen.com {
+www.crickzen.com {
   encode zstd gzip
+
+  # Historical homepage aliases should not compete with the canonical root URL.
+  redir /Home / permanent
+  redir /live-cricket-score / permanent
   
   # SEO endpoints - proxy to backend
   # These are critical for search engine indexing
