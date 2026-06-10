@@ -83,3 +83,25 @@ Recovery monitoring:
 - Re-query Search Console daily for impressions, impression-earning page count, and current homepage URL inspection.
 - Expect indexing/discovery signals to improve before impressions; rankings and impressions can lag several days.
 - Treat current homepage URLs below an 80% indexed rate as an incident.
+
+## Production Rollout Evidence
+
+Deployed on June 10, 2026:
+
+- Recovery commit: `1d5ad5a`
+- Sitemap batch commit: `ab76d8a`
+- Frontend image: `victoryline-frontend:seo-recovery-1d5ad5a-20260610-1500`
+- Backend image: `victoryline-backend:seo-sitemap-batch-ab76d8a-20260610-1512`
+- Scraper image remained unchanged.
+
+Post-deploy proof:
+
+- Backend and frontend containers are healthy.
+- Apex host, `/Home`, and `/live-cricket-score` permanently redirect to the canonical `www` root.
+- `/` and `/matches` return full SSR HTML with one self-canonical and one H1.
+- Sitemap partitions reduced from 20 to 2 with 1,991 unique URLs and zero duplicates.
+- All 15 homepage-linked match URLs were present in sitemap partition 1.
+- Sitemap submission succeeded.
+- Final repeated-route audit reported zero failures and no SSR shell fallback.
+
+The remaining `ORPHAN_GRAPH_GAP` pattern is archive-level technical debt: 1,989 sitemap match URLs versus 22 links on the largest discovery render. It should be addressed with crawlable archive pagination, but it is not a blocker for the current live/upcoming match recovery.
