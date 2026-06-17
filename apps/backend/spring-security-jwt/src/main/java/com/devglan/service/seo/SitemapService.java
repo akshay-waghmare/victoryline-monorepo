@@ -33,6 +33,7 @@ public class SitemapService {
     private static final String[] STATIC_SITEMAP_PATHS = new String[] {
             "/",
             "/matches",
+            "/live-cricket-score",
             "/live-score",
             "/live-score/today",
             "/live-score/ipl",
@@ -446,7 +447,7 @@ public class SitemapService {
     }
 
     private String deriveStaticChangeFreq(String path) {
-        if ("/".equals(path) || "/matches".equals(path) || "/live-score".equals(path) || "/live-score/today".equals(path)) {
+        if ("/".equals(path) || "/matches".equals(path) || "/live-cricket-score".equals(path) || "/live-score".equals(path) || "/live-score/today".equals(path)) {
             return "hourly";
         }
         return "daily";
@@ -456,7 +457,7 @@ public class SitemapService {
         if ("/".equals(path)) {
             return 1.0;
         }
-        if ("/matches".equals(path) || "/live-score".equals(path) || "/live-score/today".equals(path)) {
+        if ("/matches".equals(path) || "/live-cricket-score".equals(path) || "/live-score".equals(path) || "/live-score/today".equals(path)) {
             return 0.9;
         }
         if ("/live-score/ipl".equals(path) || "/cricket-schedule/today".equals(path)) {

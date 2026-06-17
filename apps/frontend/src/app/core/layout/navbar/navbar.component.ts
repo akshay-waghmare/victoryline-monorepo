@@ -17,6 +17,7 @@ interface NavLink {
 export class NavbarComponent implements OnInit {
   navLinks: NavLink[] = [
     { path: '/', title: 'Home', icon: 'home' },
+    { path: '/live-cricket-score', title: 'Live Cricket', icon: 'sports_cricket' },
     { path: '/live-score', title: 'Live Score', icon: 'sports_cricket' },
     { path: '/live-score/today', title: 'Today', icon: 'today' },
     { path: '/cricket-schedule/today', title: 'Schedule', icon: 'event' },

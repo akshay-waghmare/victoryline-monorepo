@@ -22,6 +22,7 @@ import { Component } from '@angular/core';
             <h3 class="footer__section-title">Cricket</h3>
             <ul class="footer__list">
               <li><a href="/live-score" class="footer__link">Live Scores</a></li>
+              <li><a href="/live-cricket-score" class="footer__link">Live Cricket Score</a></li>
               <li><a href="/live-score/today" class="footer__link">Today Match Live Score</a></li>
               <li><a href="/cricket-schedule/today" class="footer__link">Today Schedule</a></li>
               <li><a href="/live-score/archive" class="footer__link">Match Archive</a></li>

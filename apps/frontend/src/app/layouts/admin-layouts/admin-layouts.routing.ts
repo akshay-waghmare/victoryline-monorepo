@@ -66,7 +66,7 @@ export const AdminLayoutsRoute: Routes = [
   { path: '', component: HomeComponent },
   { path: 'Home', component: HomeComponent },
   { path: 'login', component: LoginComponent },
-  { path: 'live-cricket-score', component: HomeComponent },
+  { path: 'live-cricket-score', component: LiveScoreHubComponent, data: { hubType: 'liveCricketScore' } },
   { path: 'matches', component: MatchesListComponent },
   { path: 'live-score', component: LiveScoreHubComponent, data: { hubType: 'liveScore' } },
   { path: 'live-score/today', component: LiveScoreHubComponent, data: { hubType: 'today' } },
