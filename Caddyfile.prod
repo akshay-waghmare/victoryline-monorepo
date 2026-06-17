@@ -25,7 +25,6 @@ www.crickzen.com {
 
   # Historical homepage aliases should not compete with the canonical root URL.
   redir /Home / permanent
-  redir /live-cricket-score / permanent
   
   # SEO endpoints - proxy to backend
   # These are critical for search engine indexing
