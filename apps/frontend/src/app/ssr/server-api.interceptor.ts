@@ -59,6 +59,10 @@ export class ServerApiInterceptor implements HttpInterceptor {
       return backendUrl + url;
     }
 
+    if (url.indexOf('/sitemaps/') === 0 || url === '/sitemap.xml' || url === '/robots.txt') {
+      return backendUrl + url;
+    }
+
     return null;
   }
 }

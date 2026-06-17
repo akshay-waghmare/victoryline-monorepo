@@ -1,7 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { catchError, map, takeUntil, timeout } from 'rxjs/operators';
 
 import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches, sortMatchesByPriority } from '../../../core/utils/match-utils';
 import { MatchCardViewModel, MatchStatus } from '../../matches/models/match-card.models';
@@ -19,6 +20,11 @@ interface HubConfig {
   emptyText: string;
 }
 
+interface HubFallbackLink {
+  href: string;
+  label: string;
+}
+
 @Component({
   selector: 'app-live-score-hub',
   templateUrl: './live-score-hub.component.html',
@@ -27,6 +33,7 @@ interface HubConfig {
 export class LiveScoreHubComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly archivePageSize = 80;
+  private readonly sitemapRequestTimeoutMs = 2500;
 
   config: HubConfig = this.getConfig('liveScore');
   allMatches: MatchCardViewModel[] = [];
@@ -35,6 +42,8 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   liveMatches: MatchCardViewModel[] = [];
   upcomingMatches: MatchCardViewModel[] = [];
   completedMatches: MatchCardViewModel[] = [];
+  sitemapLinks: HubFallbackLink[] = [];
+  visibleSitemapLinks: HubFallbackLink[] = [];
   archivePageLinks: number[] = [];
   archivePage = 1;
   isLoading = true;
@@ -44,6 +53,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
+    private http: HttpClient,
     private matchesService: MatchesService,
     private metaTagsService: MetaTagsService
   ) {}
@@ -64,6 +74,11 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
         this.archivePage = this.getArchivePage();
         this.applyMatches();
       });
+
+    if (this.isServerRender()) {
+      this.loadSitemapLinks();
+      return;
+    }
 
     this.matchesService.getLiveMatchesWithAutoRefresh()
       .pipe(takeUntil(this.destroy$))
@@ -111,6 +126,10 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     return page;
   }
 
+  trackByFallbackLink(index: number, link: HubFallbackLink): string {
+    return link.href;
+  }
+
   getMatchStatusLabel(match: MatchCardViewModel): string {
     if (!match) {
       return 'Match';
@@ -137,7 +156,108 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     var matches = this.getMatchesForHub(this.config.type);
     this.primaryMatches = this.limitUnique(matches, this.config.type === 'archive' ? this.archivePageSize : 36);
     this.discoveryMatches = this.limitUnique(this.allMatches, 120);
+    this.visibleSitemapLinks = this.getVisibleSitemapLinks();
     this.archivePageLinks = this.buildArchivePageLinks();
+  }
+
+  private loadSitemapLinks(): void {
+    this.isLoading = true;
+    this.hasError = false;
+
+    this.http.get('/sitemaps/sitemap-matches-0001.xml', { responseType: 'text' })
+      .pipe(
+        timeout(this.sitemapRequestTimeoutMs),
+        map((xml) => this.parseSitemapLinks(xml || '')),
+        catchError(() => {
+          return [this.getSeedLinks()] as any;
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((links: HubFallbackLink[]) => {
+        this.sitemapLinks = this.uniqueFallbackLinks(links || []);
+        this.visibleSitemapLinks = this.getVisibleSitemapLinks();
+        this.archivePageLinks = this.buildArchivePageLinks();
+        this.isLoading = false;
+        this.hasError = false;
+      });
+  }
+
+  private parseSitemapLinks(xml: string): HubFallbackLink[] {
+    var links: HubFallbackLink[] = [];
+    var pattern = /<loc>https:\/\/www\.crickzen\.com(\/cric-live\/[^<]+)<\/loc>/gi;
+    var match: RegExpExecArray | null;
+
+    while ((match = pattern.exec(xml)) !== null && links.length < 500) {
+      var href = match[1];
+      links.push({
+        href: href,
+        label: this.buildLabelFromHref(href)
+      });
+    }
+
+    return links.length > 0 ? links : this.getSeedLinks();
+  }
+
+  private getVisibleSitemapLinks(): HubFallbackLink[] {
+    var links = this.sitemapLinks || [];
+    if (this.config.type === 'archive') {
+      var start = Math.max(0, (this.archivePage - 1) * this.archivePageSize);
+      return links.slice(start, start + this.archivePageSize);
+    }
+
+    return links.slice(0, 160);
+  }
+
+  private uniqueFallbackLinks(links: HubFallbackLink[]): HubFallbackLink[] {
+    var seen: { [key: string]: boolean } = {};
+    var unique: HubFallbackLink[] = [];
+
+    links.forEach((link) => {
+      if (!link || !link.href || seen[link.href]) {
+        return;
+      }
+
+      seen[link.href] = true;
+      unique.push(link);
+    });
+
+    return unique;
+  }
+
+  private buildLabelFromHref(href: string): string {
+    var slug = String(href || '').replace(/^\/cric-live\//, '');
+    var clean = slug.replace(/-match-updates-[a-z0-9]+$/i, '');
+    var parts = clean.split('-').filter(Boolean);
+    var vsIndex = parts.indexOf('vs');
+
+    if (vsIndex > 0 && vsIndex < parts.length - 1) {
+      var team1 = this.formatSlugTokens(parts.slice(0, vsIndex));
+      var team2End = parts.findIndex((part, index) => index > vsIndex && /^\d+(st|nd|rd|th)$/i.test(part));
+      var team2 = this.formatSlugTokens(parts.slice(vsIndex + 1, team2End > -1 ? team2End : Math.min(parts.length, vsIndex + 3)));
+      return team1 + ' vs ' + team2 + ' live score';
+    }
+
+    return this.formatSlugTokens(parts.slice(0, 8)) + ' live score';
+  }
+
+  private formatSlugTokens(tokens: string[]): string {
+    return tokens
+      .filter(Boolean)
+      .map((token) => token.length <= 4 ? token.toUpperCase() : token.charAt(0).toUpperCase() + token.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  private getSeedLinks(): HubFallbackLink[] {
+    return [
+      {
+        href: '/cric-live/pak-w-vs-sa-w-11th-match-womens-t20-world-cup-2026-match-updates-X0Z',
+        label: 'PAK W vs SA W live score'
+      }
+    ];
+  }
+
+  private isServerRender(): boolean {
+    return typeof window === 'undefined' || !!((window as any).__SSR__);
   }
 
   private getMatchesForHub(type: SeoHubType): MatchCardViewModel[] {
@@ -211,7 +331,9 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private buildArchivePageLinks(): number[] {
-    var total = this.limitUnique(this.allMatches, 1000).length;
+    var total = this.sitemapLinks && this.sitemapLinks.length > 0
+      ? this.sitemapLinks.length
+      : this.limitUnique(this.allMatches, 1000).length;
     var pages = Math.max(1, Math.ceil(total / this.archivePageSize));
     var capped = Math.min(pages, 10);
     var result: number[] = [];

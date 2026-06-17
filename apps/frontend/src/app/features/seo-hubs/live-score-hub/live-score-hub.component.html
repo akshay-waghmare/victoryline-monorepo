@@ -47,7 +47,7 @@
       <p>{{ primaryMatches.length }} direct match links shown</p>
     </header>
 
-    <p class="seo-hub__empty" *ngIf="primaryMatches.length === 0">{{ config.emptyText }}</p>
+    <p class="seo-hub__empty" *ngIf="primaryMatches.length === 0 && visibleSitemapLinks.length === 0">{{ config.emptyText }}</p>
 
     <div class="seo-hub__match-grid" *ngIf="primaryMatches.length > 0">
       <article class="seo-hub__match-card" *ngFor="let match of primaryMatches; trackBy: trackByMatchId">
@@ -61,22 +61,40 @@
         </p>
       </article>
     </div>
+
+    <div class="seo-hub__match-grid" *ngIf="primaryMatches.length === 0 && visibleSitemapLinks.length > 0">
+      <article class="seo-hub__match-card" *ngFor="let link of visibleSitemapLinks; trackBy: trackByFallbackLink">
+        <span class="seo-hub__match-status">Match page</span>
+        <h3>
+          <a [attr.href]="link.href">{{ link.label }}</a>
+        </h3>
+        <p>Canonical match page with live score today, scorecard, toss update, playing XI, and match result context.</p>
+      </article>
+    </div>
   </section>
 
-  <section class="seo-hub__discovery" *ngIf="!isLoading && discoveryMatches.length > 0" aria-label="More canonical match links">
+  <section class="seo-hub__discovery" *ngIf="!isLoading && (discoveryMatches.length > 0 || sitemapLinks.length > 0)" aria-label="More canonical match links">
     <header class="seo-hub__section-head">
       <div>
         <span class="seo-hub__section-kicker">More discovery links</span>
         <h2>More cricket live score and scorecard pages</h2>
       </div>
-      <p>{{ discoveryMatches.length }} crawlable links</p>
+      <p>{{ discoveryMatches.length || sitemapLinks.length }} crawlable links</p>
     </header>
 
-    <nav class="seo-hub__link-cloud">
+    <nav class="seo-hub__link-cloud" *ngIf="discoveryMatches.length > 0">
       <a
         *ngFor="let match of discoveryMatches; trackBy: trackByMatchId"
         [attr.href]="getMatchHref(match)">
         {{ getMatchLabel(match) }}
+      </a>
+    </nav>
+
+    <nav class="seo-hub__link-cloud" *ngIf="discoveryMatches.length === 0 && sitemapLinks.length > 0">
+      <a
+        *ngFor="let link of sitemapLinks | slice:0:220; trackBy: trackByFallbackLink"
+        [attr.href]="link.href">
+        {{ link.label }}
       </a>
     </nav>
   </section>
