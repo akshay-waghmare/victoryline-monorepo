@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crickzen SEO Baseline Monitor"
+  short_description: "Monitor SEO baseline safely"
+  default_prompt: "Use $crickzen-seo-baseline-monitor to check the Crickzen SEO baseline, raw production HTML, and whether Spec 023 should remain blocked."
