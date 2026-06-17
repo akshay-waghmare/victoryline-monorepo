@@ -21,20 +21,20 @@ import { Component } from '@angular/core';
           <div class="footer__section">
             <h3 class="footer__section-title">Cricket</h3>
             <ul class="footer__list">
-              <li><a href="/matches" class="footer__link">Live Scores</a></li>
-              <li><a href="/matches" class="footer__link">Recent Matches</a></li>
-              <li><a href="/matches" class="footer__link">Upcoming Fixtures</a></li>
-              <li><a href="/matches" class="footer__link">Tournament Coverage</a></li>
+              <li><a href="/live-score" class="footer__link">Live Scores</a></li>
+              <li><a href="/live-score/today" class="footer__link">Today Match Live Score</a></li>
+              <li><a href="/cricket-schedule/today" class="footer__link">Today Schedule</a></li>
+              <li><a href="/live-score/archive" class="footer__link">Match Archive</a></li>
             </ul>
           </div>
           
           <div class="footer__section">
             <h3 class="footer__section-title">Features</h3>
             <ul class="footer__list">
-              <li><a href="#" class="footer__link">Live Commentary</a></li>
-              <li><a href="#" class="footer__link">Score Alerts</a></li>
-              <li><a href="#" class="footer__link">Match Analysis</a></li>
-              <li><a href="#" class="footer__link">Player Stats</a></li>
+              <li><a href="/live-score/ipl" class="footer__link">IPL Live Score</a></li>
+              <li><a href="/cricket-schedule/ipl-2026" class="footer__link">IPL 2026 Schedule</a></li>
+              <li><a href="/matches" class="footer__link">All Matches</a></li>
+              <li><a href="/players" class="footer__link">Player Stats</a></li>
             </ul>
           </div>
           
@@ -43,8 +43,8 @@ import { Component } from '@angular/core';
             <ul class="footer__list">
               <li><a href="/privacy-policy" class="footer__link">Privacy Policy</a></li>
               <li><a href="/terms-of-service" class="footer__link">Terms of Service</a></li>
-              <li><a href="#" class="footer__link">Contact Us</a></li>
-              <li><a href="#" class="footer__link">Support</a></li>
+              <li><a href="/teams" class="footer__link">Teams</a></li>
+              <li><a href="/series" class="footer__link">Series</a></li>
             </ul>
           </div>
         </div>

@@ -14,6 +14,16 @@ export interface StructuredDataLocationInput {
   };
 }
 
+export interface ArticleStructuredDataInput {
+  headline: string;
+  description: string;
+  url: string;
+  image?: string;
+  datePublished?: string;
+  dateModified?: string;
+  authorName?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class StructuredDataService {
   constructor(@Inject(DOCUMENT) private document: any) {}
@@ -46,6 +56,34 @@ export class StructuredDataService {
         { '@type': 'SportsTeam', name: input.homeTeam },
         { '@type': 'SportsTeam', name: input.awayTeam }
       ]
+    });
+  }
+
+  article(input: ArticleStructuredDataInput): JsonLd {
+    return this.cleanObject({
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: input.headline,
+      description: input.description,
+      image: input.image ? [input.image] : undefined,
+      datePublished: input.datePublished,
+      dateModified: input.dateModified || input.datePublished,
+      author: {
+        '@type': 'Organization',
+        name: input.authorName || 'Crickzen'
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Crickzen',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.crickzen.com/assets/icons/icon-512x512.png'
+        }
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': input.url
+      }
     });
   }
 
@@ -115,7 +153,7 @@ export class StructuredDataService {
   private toEventStatusUrl(status: 'Scheduled' | 'LiveEvent' | 'EventCompleted'): string {
     switch (status) {
       case 'LiveEvent':
-        return 'https://schema.org/EventScheduled';
+        return 'https://schema.org/EventInProgress';
       case 'EventCompleted':
         return 'https://schema.org/EventCompleted';
       default:

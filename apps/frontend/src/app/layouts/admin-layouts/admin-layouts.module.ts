@@ -74,6 +74,7 @@ import { Error404Component } from 'src/app/shared/components/error-404/error-404
 import { PlayersPageComponent } from 'src/app/features/stats/players-page/players-page.component';
 import { TeamsPageComponent } from 'src/app/features/stats/teams-page/teams-page.component';
 import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-page.component';
+import { LiveScoreHubComponent } from 'src/app/features/seo-hubs/live-score-hub/live-score-hub.component';
 
 // 002-match-details-ux: Shared components
 import { StalenessIndicatorComponent } from 'src/app/shared/components/staleness-indicator/staleness-indicator.component';
@@ -181,6 +182,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     PlayersPageComponent,
     TeamsPageComponent,
     SeriesPageComponent,
+    LiveScoreHubComponent,
   ],
   providers: [
     {

@@ -124,6 +124,116 @@ mat-card-content {
   color: #1e40af;
 }
 
+.cricket-odds__seo-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 8px 0;
+  text-align: left;
+}
+
+.cricket-odds__seo-detail {
+  padding: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+}
+
+.cricket-odds__seo-detail--wide {
+  grid-column: 1 / -1;
+}
+
+.cricket-odds__seo-detail--score {
+  border-color: rgba(34, 197, 94, 0.26);
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.cricket-odds__seo-detail--language {
+  border-color: rgba(14, 165, 233, 0.22);
+  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+}
+
+.cricket-odds__seo-detail-kicker {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cricket-odds__seo-detail h2,
+.cricket-odds__seo-detail h3 {
+  margin: 0;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.cricket-odds__seo-detail h2 {
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.cricket-odds__seo-detail h3 {
+  font-size: 0.94rem;
+  font-weight: 800;
+}
+
+.cricket-odds__seo-detail p {
+  margin: 8px 0 0 0;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.cricket-odds__seo-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 0 0;
+}
+
+.cricket-odds__seo-facts div {
+  padding: 10px;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.cricket-odds__seo-facts dt {
+  margin: 0 0 4px 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cricket-odds__seo-facts dd {
+  margin: 0;
+  color: #0f172a;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.cricket-odds__faq-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.cricket-odds__faq-list > div {
+  padding: 12px;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
 .cricket-odds__announcement {
   display: flex;
   align-items: center;
@@ -355,6 +465,12 @@ mat-card-content {
 
   .cricket-odds__seo-links {
     flex-wrap: wrap;
+  }
+
+  .cricket-odds__seo-detail-grid,
+  .cricket-odds__seo-facts,
+  .cricket-odds__faq-list {
+    grid-template-columns: 1fr;
   }
 
   .match-page-card {

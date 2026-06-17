@@ -51,15 +51,15 @@ export class MatchSeoService {
     const canonicalDecision = evaluateMatchCanonicalPolicy(routeIntent);
     const canonicalPath = canonicalDecision.canonicalPath || normalizedRoutePath || requestedPath || '/matches';
     const isIndexable = isValidSlug && canonicalDecision.robots === 'index,follow' && !(input.isFallback && isNumericRoute);
-    const suffix = isCompleted ? ' Final Score | Full Scorecard' : ' Live Score Ball by Ball';
+    const suffix = isCompleted ? ' Match Result, Scorecard & Updates' : ' Live Score Today, Scorecard & Match Updates';
     const title = isIndexable ? this.truncateTitle(teams, suffix) : 'Cricket Match Not Available | Crickzen';
     const series = this.cleanSeries(matchInfo.series_name || (input.currentMatch && input.currentMatch.seriesName) || (parsed && parsed.series) || '');
     const ogImageUrl = this.host + getOgImageForMatch(sourceSlug || routeSlug || 'match');
     const description = isIndexable
-      ? this.truncateDescription(`${teams} ${isCompleted ? 'final score, result, scorecard, and key match updates' : 'live score, wickets, overs, and ball-by-ball updates'}${series ? ` in ${series}` : ''}.`)
+      ? this.truncateDescription(`Follow ${teams} live score, scorecard, toss update, playing XI, venue stats and match result for today's cricket match${series ? ` in ${series}` : ''}.`)
       : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
     const canonicalUrl = this.host + canonicalPath;
-    const h1 = isIndexable ? `${teams}${isCompleted ? ' Final Score' : ' Live Score Ball by Ball'}` : 'Cricket match not available';
+    const h1 = isIndexable ? `${teams}${isCompleted ? ' Match Result & Scorecard' : ' Live Score Today'}` : 'Cricket match not available';
     const summary = isIndexable
       ? this.buildSummary(teams, series, statusLabel, isCompleted)
       : 'This match could not be resolved to a reliable scorecard yet. Use the match centre to find live scores, upcoming fixtures, and recent cricket results.';
@@ -246,11 +246,11 @@ export class MatchSeoService {
   }
 
   private truncateDescription(value: string): string {
-    return value.length > 155 ? value.substring(0, 152).trim() + '...' : value;
+    return value.length > 170 ? value.substring(0, 167).trim() + '...' : value;
   }
 
   private buildSummary(teams: string, series: string, statusLabel: string, isCompleted: boolean): string {
-    const statusText = isCompleted ? 'final score and full scorecard' : 'live score and ball-by-ball updates';
-    return `${teams} ${statusText}${series ? ` for ${series}` : ''}. Follow latest runs, wickets, overs, innings context, match status, and scorecard updates on Crickzen.`;
+    const statusText = isCompleted ? 'match result, final scorecard, and key updates' : 'live score today, scorecard, toss update, playing XI, and match result tracker';
+    return `${teams} ${statusText}${series ? ` for ${series}` : ''}. Follow today's cricket match live score, venue context, innings updates, and result on Crickzen.`;
   }
 }

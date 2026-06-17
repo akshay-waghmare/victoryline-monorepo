@@ -30,6 +30,7 @@ type HomeTab = 'live' | 'upcoming' | 'results';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomeComponent implements OnInit, OnDestroy {
+  private readonly maxHomeMatchesPerTab = 12;
   private carouselElement: HTMLDivElement | null = null;
   private readonly carouselScrollListener = () => this.updateCarouselControls();
 
@@ -288,13 +289,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   private syncActiveMatches(): void {
     switch (this.activeTab) {
       case 'live':
-        this.activeMatches = this.liveMatches;
+        // Protect homepage SSR from rendering an unexpectedly inflated catalog.
+        this.activeMatches = this.liveMatches.slice(0, this.maxHomeMatchesPerTab);
         break;
       case 'upcoming':
-        this.activeMatches = this.upcomingMatches;
+        this.activeMatches = this.upcomingMatches.slice(0, this.maxHomeMatchesPerTab);
         break;
       default:
-        this.activeMatches = this.recentMatches;
+        this.activeMatches = this.recentMatches.slice(0, this.maxHomeMatchesPerTab);
         break;
     }
   }
@@ -313,9 +315,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private buildDiscoveryMatches(): MatchCardViewModel[] {
     var candidates = ([] as MatchCardViewModel[])
-      .concat(this.liveMatches.slice(0, 4))
-      .concat(this.upcomingMatches.slice(0, 3))
-      .concat(this.recentMatches.slice(0, 3));
+      .concat(this.liveMatches.slice(0, 8))
+      .concat(this.upcomingMatches.slice(0, 8));
+
+    if (candidates.length === 0) {
+      candidates = candidates.concat(this.recentMatches.slice(0, 8));
+    }
+
     var seen: { [key: string]: boolean } = {};
 
     return candidates.filter(match => {
@@ -326,7 +332,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
       seen[href] = true;
       return true;
-    }).slice(0, 8);
+    }).slice(0, 20);
   }
 
   private bindCarousel(element: HTMLDivElement | null): void {

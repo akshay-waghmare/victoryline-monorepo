@@ -2533,6 +2533,123 @@ getMatchShellContextNote(): string | null {
     || null;
 }
 
+getSeoTournamentLabel(): string {
+  return (this.matchSeo && this.matchSeo.series)
+    || this.getMatchShellSeries()
+    || 'Tournament details will be updated as soon as the match feed provides the competition name.';
+}
+
+getSeoDateTimeLabel(): string {
+  var value = (this.matchInfo && this.matchInfo.match_date)
+    || (this.currentMatch && (this.currentMatch.scheduledStartTime || this.currentMatch.startTime))
+    || null;
+
+  if (!value) {
+    return 'Match date and start time will be confirmed from the official schedule feed.';
+  }
+
+  var parsed = new Date(value);
+  if (isNaN(parsed.getTime())) {
+    return String(value);
+  }
+
+  return parsed.toLocaleString('en-IN', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+getSeoVenueLabel(): string {
+  return this.getMatchShellVenue()
+    || 'Venue details will be updated when the match centre receives the official ground information.';
+}
+
+getSeoLiveScoreLabel(): string {
+  if (this.heroFallbackView && this.heroFallbackView.score) {
+    var heroScore = this.heroFallbackView.score;
+    return heroScore.teamName + ' ' + heroScore.runs + '/' + heroScore.wickets + ' (' + heroScore.overs + ' ov)'
+      + (heroScore.resultSummary ? ' - ' + heroScore.resultSummary : '');
+  }
+
+  if (this.cricObj && this.cricObj.score_update) {
+    return String(this.cricObj.score_update);
+  }
+
+  if (this.matchInfo && this.matchInfo.final_result_text) {
+    return String(this.matchInfo.final_result_text);
+  }
+
+  return 'Live score block will update with runs, wickets, overs, innings context, and match result as soon as the feed receives official data.';
+}
+
+getSeoTossLabel(): string {
+  if (this.tossWonCountry && this.batOrBallSelected) {
+    return this.tossWonCountry + ' won the toss and chose to ' + this.batOrBallSelected + '.';
+  }
+
+  if (this.matchInfo && this.matchInfo.toss_info) {
+    return String(this.matchInfo.toss_info);
+  }
+
+  return 'Toss update is not announced yet. We will update toss time, toss winner, and bat/ball decision here before the match starts.';
+}
+
+getSeoPlayingXiLabel(): string {
+  if (this.matchInfo && this.matchInfo.playing_xi) {
+    return 'Playing XI is available in the Lineups tab with team squads and player roles.';
+  }
+
+  return 'Playing XI is not confirmed yet. Expected playing 11 and final lineup updates will appear here when teams are announced.';
+}
+
+getSeoScorecardLabel(): string {
+  if (this.scorecardData && this.scorecardData.innings && this.scorecardData.innings.length) {
+    return 'Full scorecard is available with ' + this.scorecardData.innings.length + ' innings.';
+  }
+
+  if (this.scorecardData) {
+    return 'Scorecard data is available below and will continue to refresh with batting, bowling, and innings details.';
+  }
+
+  return 'Scorecard section will show batting score, bowling figures, fall of wickets, partnerships, and match result once data is available.';
+}
+
+getSeoVenueStatsLabel(): string {
+  if (this.matchInfo && this.matchInfo.venue_stats && Object.keys(this.matchInfo.venue_stats).length > 0) {
+    return 'Venue stats are available for pitch behavior, bat-first trends, and chase context.';
+  }
+
+  return 'Venue stats will be updated with pitch context, average scores, bat-first trend, and chase record when reliable data is available.';
+}
+
+getSeoTeamFormLabel(): string {
+  var hasForm = this.matchInfo && this.matchInfo.team_form && Object.keys(this.matchInfo.team_form).length > 0;
+  var hasComparison = this.matchInfo && this.matchInfo.team_comparison && Object.keys(this.matchInfo.team_comparison).length > 0;
+
+  if (hasForm || hasComparison) {
+    return 'Team form and head-to-head context is available in this match centre for recent results and matchup signals.';
+  }
+
+  return 'Team form and head-to-head data will be added when recent-match and comparison feeds are available for both teams.';
+}
+
+getSeoFaqMatchResultAnswer(): string {
+  if (this.getFallbackResultSummary()) {
+    return this.getFallbackResultSummary() || '';
+  }
+
+  return 'The match result will be updated here after the final ball or official result confirmation.';
+}
+
+getSeoLanguageKeywordCopy(): string {
+  var teams = this.matchSeo ? this.matchSeo.teams : this.getMatchShellTitle();
+  return teams + ' live score today, aaj ka match live score, today cricket match live score Hindi, live score Marathi, scorecard, toss update, playing XI, and match result are tracked on this single canonical page.';
+}
+
 private formatStatusLabel(value: string): string {
   if (!value) {
     return 'Match Centre';
@@ -2674,6 +2791,17 @@ private titleCaseSlug(value: string): string {
     var items: any[] = [breadcrumbs];
     var startDate = this.toIsoDate(this.matchInfo && this.matchInfo.match_date);
     var location = this.getStructuredDataLocation();
+    var dateModified = this.getStructuredDataDateModified(startDate);
+
+    items.unshift(this.structuredDataService.article({
+      headline: this.matchSeo.title,
+      description: this.matchSeo.description,
+      url: this.matchSeo.canonicalUrl,
+      image: this.matchSeo.ogImageUrl,
+      datePublished: startDate || dateModified || undefined,
+      dateModified: dateModified || startDate || undefined,
+      authorName: 'Crickzen'
+    }));
 
     if (location) {
       items.unshift(this.structuredDataService.sportsEvent({
@@ -2689,6 +2817,25 @@ private titleCaseSlug(value: string): string {
     }
 
     return items;
+  }
+
+  private getStructuredDataDateModified(fallbackDate: string | null): string | null {
+    var candidates = [
+      this.currentMatch && this.currentMatch.lastStateUpdatedAt,
+      this.currentMatch && this.currentMatch.lastUpdated,
+      this.matchInfo && this.matchInfo.updated_at,
+      this.matchInfo && this.matchInfo.updatedAt,
+      fallbackDate
+    ];
+
+    for (var index = 0; index < candidates.length; index++) {
+      var parsed = this.toIsoDate(candidates[index]);
+      if (parsed) {
+        return parsed;
+      }
+    }
+
+    return null;
   }
 
   private getStructuredDataLocation(): StructuredDataLocationInput | null {

@@ -1,0 +1,92 @@
+<main class="seo-hub">
+  <section class="seo-hub__hero">
+    <span class="seo-hub__eyebrow">{{ config.eyebrow }}</span>
+    <h1>{{ config.title }}</h1>
+    <p>{{ config.intro }}</p>
+    <nav class="seo-hub__hub-links" aria-label="Live score hub links">
+      <a href="/live-score">Live score</a>
+      <a href="/live-score/today">Live score today</a>
+      <a href="/live-score/ipl">IPL live score</a>
+      <a href="/cricket-schedule/today">Cricket schedule today</a>
+      <a href="/cricket-schedule/ipl-2026">IPL 2026 schedule</a>
+      <a href="/live-score/archive">Match archive</a>
+    </nav>
+  </section>
+
+  <section class="seo-hub__summary" aria-label="Match category counts">
+    <div>
+      <span>Live</span>
+      <strong>{{ liveMatches.length }}</strong>
+    </div>
+    <div>
+      <span>Upcoming</span>
+      <strong>{{ upcomingMatches.length }}</strong>
+    </div>
+    <div>
+      <span>Results</span>
+      <strong>{{ completedMatches.length }}</strong>
+    </div>
+  </section>
+
+  <section class="seo-hub__state" *ngIf="isLoading">
+    <h2>Loading match links</h2>
+    <p>We are preparing live score, scorecard, toss update, playing XI, and match result links.</p>
+  </section>
+
+  <section class="seo-hub__state seo-hub__state--error" *ngIf="hasError && !isLoading">
+    <h2>Match feed unavailable</h2>
+    <p>The hub page is indexable, but live match links could not be loaded right now.</p>
+  </section>
+
+  <section class="seo-hub__matches" *ngIf="!isLoading && !hasError">
+    <header class="seo-hub__section-head">
+      <div>
+        <span class="seo-hub__section-kicker">Canonical match links</span>
+        <h2>{{ config.title }} match pages</h2>
+      </div>
+      <p>{{ primaryMatches.length }} direct match links shown</p>
+    </header>
+
+    <p class="seo-hub__empty" *ngIf="primaryMatches.length === 0">{{ config.emptyText }}</p>
+
+    <div class="seo-hub__match-grid" *ngIf="primaryMatches.length > 0">
+      <article class="seo-hub__match-card" *ngFor="let match of primaryMatches; trackBy: trackByMatchId">
+        <span class="seo-hub__match-status">{{ getMatchStatusLabel(match) }}</span>
+        <h3>
+          <a [attr.href]="getMatchHref(match)">{{ getMatchLabel(match) }}</a>
+        </h3>
+        <p>{{ match.seriesName || match.venue || 'Cricket match' }}</p>
+        <p class="seo-hub__match-meta">
+          {{ match.startTime | date:'medium' }}<span *ngIf="match.venue"> at {{ match.venue }}</span>
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="seo-hub__discovery" *ngIf="!isLoading && discoveryMatches.length > 0" aria-label="More canonical match links">
+    <header class="seo-hub__section-head">
+      <div>
+        <span class="seo-hub__section-kicker">More discovery links</span>
+        <h2>More cricket live score and scorecard pages</h2>
+      </div>
+      <p>{{ discoveryMatches.length }} crawlable links</p>
+    </header>
+
+    <nav class="seo-hub__link-cloud">
+      <a
+        *ngFor="let match of discoveryMatches; trackBy: trackByMatchId"
+        [attr.href]="getMatchHref(match)">
+        {{ getMatchLabel(match) }}
+      </a>
+    </nav>
+  </section>
+
+  <nav class="seo-hub__pagination" *ngIf="archivePageLinks.length > 1" aria-label="Match archive pagination">
+    <a
+      *ngFor="let page of archivePageLinks; trackBy: trackByPage"
+      [attr.href]="getArchiveHref(page)"
+      [class.seo-hub__pagination-link--active]="page === archivePage">
+      Page {{ page }}
+    </a>
+  </nav>
+</main>

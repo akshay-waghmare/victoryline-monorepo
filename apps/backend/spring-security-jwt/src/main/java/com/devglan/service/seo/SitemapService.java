@@ -30,6 +30,16 @@ import java.util.Set;
 @Service
 public class SitemapService {
     private static final Logger LOGGER = LoggerFactory.getLogger(SitemapService.class);
+    private static final String[] STATIC_SITEMAP_PATHS = new String[] {
+            "/",
+            "/matches",
+            "/live-score",
+            "/live-score/today",
+            "/live-score/ipl",
+            "/cricket-schedule/today",
+            "/cricket-schedule/ipl-2026",
+            "/live-score/archive"
+    };
 
     // Timestamp formatting handled inside SitemapWriter
 
@@ -143,8 +153,9 @@ public class SitemapService {
         
         // Always add static pages to partition 1
         if (part == 1) {
-            allUrls.add(writer.url("/", "hourly", 1.0));
-            allUrls.add(writer.url("/matches", "hourly", 0.9));
+            for (String staticPath : STATIC_SITEMAP_PATHS) {
+                allUrls.add(writer.url(staticPath, deriveStaticChangeFreq(staticPath), deriveStaticPriority(staticPath)));
+            }
         }
         
         // Try to get live matches from the API
@@ -209,7 +220,7 @@ public class SitemapService {
 
     private int determinePartitionCount() {
         try {
-            int total = 2; // home and matches
+            int total = STATIC_SITEMAP_PATHS.length;
             
             // Count live matches from API
             List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
@@ -432,6 +443,26 @@ public class SitemapService {
         if (s.contains("live")) return "hourly";
         if (s.contains("upcoming") || s.contains("scheduled")) return "daily";
         return "weekly";
+    }
+
+    private String deriveStaticChangeFreq(String path) {
+        if ("/".equals(path) || "/matches".equals(path) || "/live-score".equals(path) || "/live-score/today".equals(path)) {
+            return "hourly";
+        }
+        return "daily";
+    }
+
+    private double deriveStaticPriority(String path) {
+        if ("/".equals(path)) {
+            return 1.0;
+        }
+        if ("/matches".equals(path) || "/live-score".equals(path) || "/live-score/today".equals(path)) {
+            return 0.9;
+        }
+        if ("/live-score/ipl".equals(path) || "/cricket-schedule/today".equals(path)) {
+            return 0.85;
+        }
+        return 0.8;
     }
 
     private double derivePriority(Matches m) {

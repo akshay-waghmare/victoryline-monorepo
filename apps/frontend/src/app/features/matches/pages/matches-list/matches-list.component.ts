@@ -151,7 +151,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     this.upcomingMatchGroups = this.selectedStatus === MatchStatus.UPCOMING
       ? this.buildUpcomingGroups(this.visibleMatches)
       : [];
-    this.crawlableMatches = this.visibleMatches.filter(match => !!buildCanonicalMatchPath(match)).slice(0, 12);
+    this.crawlableMatches = this.visibleMatches.filter(match => !!buildCanonicalMatchPath(match)).slice(0, 48);
   }
   
   /**

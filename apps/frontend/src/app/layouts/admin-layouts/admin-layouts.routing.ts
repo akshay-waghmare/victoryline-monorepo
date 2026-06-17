@@ -28,6 +28,7 @@ import { MatchesListComponent } from 'src/app/features/matches/pages/matches-lis
 import { PlayersPageComponent } from 'src/app/features/stats/players-page/players-page.component';
 import { TeamsPageComponent } from 'src/app/features/stats/teams-page/teams-page.component';
 import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-page.component';
+import { LiveScoreHubComponent } from 'src/app/features/seo-hubs/live-score-hub/live-score-hub.component';
 import { Error404Component } from 'src/app/shared/components/error-404/error-404.component';
 import { normalizeMatchRoutePath } from 'src/app/core/utils/match-utils';
 
@@ -67,6 +68,13 @@ export const AdminLayoutsRoute: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'live-cricket-score', component: HomeComponent },
   { path: 'matches', component: MatchesListComponent },
+  { path: 'live-score', component: LiveScoreHubComponent, data: { hubType: 'liveScore' } },
+  { path: 'live-score/today', component: LiveScoreHubComponent, data: { hubType: 'today' } },
+  { path: 'live-score/ipl', component: LiveScoreHubComponent, data: { hubType: 'ipl' } },
+  { path: 'live-score/archive', component: LiveScoreHubComponent, data: { hubType: 'archive' } },
+  { path: 'live-score/archive/:page', component: LiveScoreHubComponent, data: { hubType: 'archive' } },
+  { path: 'cricket-schedule/today', component: LiveScoreHubComponent, data: { hubType: 'scheduleToday' } },
+  { path: 'cricket-schedule/ipl-2026', component: LiveScoreHubComponent, data: { hubType: 'iplSchedule' } },
   { path: 'dashboard', component: DashboardComponent },
   { path: 'add-service', component: AddServiceComponent },
   { path: 'football', component: ServiceListComponent },

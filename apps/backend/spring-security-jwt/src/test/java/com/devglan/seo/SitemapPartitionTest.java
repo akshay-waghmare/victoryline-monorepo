@@ -79,6 +79,11 @@ public class SitemapPartitionTest {
         assertThat(partition1Xml).contains("<urlset");
         assertThat(partition1Xml).contains("https://www.crickzen.com/</loc>");
         assertThat(partition1Xml).contains("https://www.crickzen.com/matches</loc>");
+        assertThat(partition1Xml).contains("https://www.crickzen.com/live-score</loc>");
+        assertThat(partition1Xml).contains("https://www.crickzen.com/live-score/today</loc>");
+        assertThat(partition1Xml).contains("https://www.crickzen.com/live-score/ipl</loc>");
+        assertThat(partition1Xml).contains("https://www.crickzen.com/cricket-schedule/today</loc>");
+        assertThat(partition1Xml).contains("https://www.crickzen.com/cricket-schedule/ipl-2026</loc>");
         assertThat(partition1Xml).doesNotContain("https://www.crickzen.com/blog</loc>");
     }
 
