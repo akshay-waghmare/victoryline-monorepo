@@ -82,6 +82,13 @@ For each monitored URL, record:
 
 ## SerpBear Starter Keywords
 
+Current status as of `2026-06-18`:
+
+- SerpBear is not installed or running in the local or production Crickzen infrastructure.
+- No SerpBear container, process, environment configuration, or API integration was found.
+- Google Search Console is currently the active source for impressions, clicks, CTR, queries, average position, URL inspection, sitemap submission, and live-match indexing status.
+- The standalone dashboard at `tools/seo-dashboard` supports an optional SerpBear JSON export through `SERPBEAR_EXPORT_PATH`.
+
 Hub keywords:
 
 - live cricket score

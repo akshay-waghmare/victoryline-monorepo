@@ -24,6 +24,7 @@ Allowed work during the baseline window:
 - Run raw production HTML audits after deploys.
 - Collect GSC indexing, impressions, query, CTR, and canonical-selection signals.
 - Collect SerpBear keyword movement.
+- Start the standalone live-match SEO dashboard with `.\scripts\Start-SeoDashboard.ps1`.
 - Update monitoring docs with observed evidence.
 
 ## Monitoring Cadence
