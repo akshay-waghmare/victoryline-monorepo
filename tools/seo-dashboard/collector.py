@@ -61,6 +61,17 @@ def canonical_match_url(match: Dict[str, Any], base_url: str) -> str:
     return f"{base_url}/cric-live/{slug}" if slug else ""
 
 
+def find_discovery_hubs(
+    canonical_url: str, base_url: str, hub_html: Dict[str, str]
+) -> List[str]:
+    canonical_path = canonical_url.replace(base_url, "", 1)
+    return [
+        path
+        for path, html in hub_html.items()
+        if canonical_url in html or canonical_path in html
+    ]
+
+
 def parse_html_proof(html: str, expected_url: str) -> Dict[str, Any]:
     canonical_match = re.search(
         r"<link[^>]+rel=[\"']canonical[\"'][^>]+href=[\"']([^\"']+)",
@@ -395,9 +406,7 @@ def collect_dashboard_data() -> Dict[str, Any]:
     for index, match in enumerate(live_matches):
         canonical_url = canonical_match_url(match, base_url)
         metrics = page_metrics.get(canonical_url, {})
-        discovery_hubs = [
-            path for path, html in hub_html.items() if canonical_url in html
-        ]
+        discovery_hubs = find_discovery_hubs(canonical_url, base_url, hub_html)
         row: Dict[str, Any] = {
             "slug": canonical_url.split("/")[-1] if canonical_url else "",
             "url": canonical_url,

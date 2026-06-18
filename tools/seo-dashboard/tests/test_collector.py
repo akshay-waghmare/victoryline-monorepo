@@ -1,6 +1,12 @@
 import unittest
 
-from collector import canonical_match_url, normalize_serpbear, parse_html_proof, summarize
+from collector import (
+    canonical_match_url,
+    find_discovery_hubs,
+    normalize_serpbear,
+    parse_html_proof,
+    summarize,
+)
 
 
 class CollectorTest(unittest.TestCase):
@@ -31,6 +37,18 @@ class CollectorTest(unittest.TestCase):
         self.assertTrue(proof["canonicalMatches"])
         self.assertEqual(proof["cricLiveLinks"], 1)
         self.assertTrue(proof["faqPresent"])
+
+    def test_find_discovery_hubs_supports_relative_links(self):
+        canonical_url = "https://www.crickzen.com/cric-live/example"
+        hubs = find_discovery_hubs(
+            canonical_url,
+            "https://www.crickzen.com",
+            {
+                "/live-score": '<a href="/cric-live/example">Example</a>',
+                "/archive": "<p>No link</p>",
+            },
+        )
+        self.assertEqual(hubs, ["/live-score"])
 
     def test_normalize_serpbear(self):
         rows = normalize_serpbear(
