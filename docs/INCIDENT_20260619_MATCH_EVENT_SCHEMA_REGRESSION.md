@@ -121,6 +121,19 @@ Going forward, match-page schema changes should follow these rules:
 4. Verify one public sample with a Googlebot user agent, not only a normal browser UA.
 5. Document every schema-specific prod rollout with exact before/after JSON-LD proof.
 
+## Where The Guardrail Lives Now
+
+This prevention logic is now encoded in the repo, not only in this write-up:
+
+- `scripts/Audit-MatchSeo.ps1`
+  - fails on missing `SportsEvent.location`
+  - fails on missing `SportsEvent.startDate`
+- `.agents/skills/crickzen-match-seo-ops/SKILL.md`
+  - requires bundle-level `SportsEvent` validation
+  - requires Googlebot parity verification on a public sample
+
+That matters because the next person doing match-page SEO work should hit the guardrail during the normal audit flow instead of needing to rediscover this incident from Search Console.
+
 ## Operational Follow-up
 
 Search Console will not clear the issue instantly. Google still needs to:

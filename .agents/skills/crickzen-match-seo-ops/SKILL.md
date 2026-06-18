@@ -11,9 +11,30 @@ Use this skill when `/cric-live/*` pages need SEO verification or recovery.
 
 1. Check one real live or recent match page directly.
 2. Verify the raw SSR HTML, not only the hydrated browser view.
-3. Confirm sitemap and `robots.txt` still resolve.
-4. Confirm GSC/indexing service status.
-5. Submit sitemap only after the HTML checks pass.
+3. Verify `SportsEvent` required fields as a bundle, not one field at a time.
+4. Confirm sitemap and `robots.txt` still resolve.
+5. Confirm GSC/indexing service status.
+6. Submit sitemap only after the HTML checks pass.
+
+## SportsEvent guardrail
+
+For Crickzen match pages, treat these as the minimum Event-rich-result contract:
+
+- `startDate`
+- `location`
+
+Do not ship a change that emits `SportsEvent` when either field is missing or untrustworthy.
+
+Preferred behavior:
+
+- if both fields are trustworthy, emit `SportsEvent`
+- if either field is weak, omit `SportsEvent` instead of emitting invalid JSON-LD
+
+Also confirm at least one public sample still exposes the same JSON-LD to:
+
+- normal browser UA
+- desktop Googlebot UA
+- mobile Googlebot UA
 
 ## Local SSR build note
 
@@ -48,6 +69,8 @@ Expected good signs:
 - exactly one `h1`
 - `og:image` present
 - `application/ld+json` present for real match pages
+- `SportsEvent.startDate` present when `SportsEvent` is present
+- `SportsEvent.location` present when `SportsEvent` is present
 - bad route returns `404`
 
 ## Production checks
@@ -66,6 +89,17 @@ Also verify:
 Invoke-WebRequest https://www.crickzen.com/robots.txt -UseBasicParsing
 Invoke-WebRequest https://www.crickzen.com/sitemap.xml -UseBasicParsing
 Invoke-WebRequest https://www.crickzen.com/api/v1/seo/indexing/status -UseBasicParsing
+```
+
+Crawler-parity spot check:
+
+```powershell
+$url = 'https://www.crickzen.com/cric-live/<match-slug>'
+$desktopGooglebot = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+$mobileGooglebot = 'Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
+Invoke-WebRequest $url -UseBasicParsing
+Invoke-WebRequest $url -UseBasicParsing -Headers @{ 'User-Agent' = $desktopGooglebot }
+Invoke-WebRequest $url -UseBasicParsing -Headers @{ 'User-Agent' = $mobileGooglebot }
 ```
 
 ## GSC checks
@@ -93,6 +127,9 @@ Do not treat manual per-URL indexing as a rollout blocker by default. It may fai
 - one `h1`
 - `og:image` present
 - JSON-LD present on real match pages
+- no `SPORTSEVENT_LOCATION_MISSING` flag
+- no `SPORTSEVENT_STARTDATE_MISSING` flag
+- Googlebot sees the same JSON-LD contract in raw HTML
 - sitemap submission succeeds
 
 ## Reference
