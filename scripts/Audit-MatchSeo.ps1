@@ -183,6 +183,7 @@ foreach ($url in $urls) {
   $jsonLdItems = Get-JsonLdItems $html
   $sportsEvents = @($jsonLdItems | Where-Object { $_.'@type' -eq "SportsEvent" })
   $sportsEventsMissingLocation = @($sportsEvents | Where-Object { -not $_.location }).Count
+  $sportsEventsMissingStartDate = @($sportsEvents | Where-Object { -not $_.startDate }).Count
   $invalidJsonLdCount = @($jsonLdItems | Where-Object { $_.invalidJsonLd }).Count
   $ogCount = Count-Matches $html "<meta[^>]+property=[`"']og:"
   $twitterCount = Count-Matches $html "<meta[^>]+name=[`"']twitter:"
@@ -207,6 +208,7 @@ foreach ($url in $urls) {
   if ($validSlug -and -not $ogImage) { $flags += "OG_IMAGE_MISSING" }
   if ($invalidJsonLdCount -gt 0) { $flags += "JSONLD_PARSE_ERROR" }
   if ($sportsEventsMissingLocation -gt 0) { $flags += "SPORTSEVENT_LOCATION_MISSING" }
+  if ($sportsEventsMissingStartDate -gt 0) { $flags += "SPORTSEVENT_STARTDATE_MISSING" }
   if (($absolutePath -eq "/" -or $absolutePath -eq "/matches") -and $internalMatchLinks -eq 0) { $flags += "NO_INTERNAL_MATCH_LINKS" }
 
   $results += [pscustomobject]@{
@@ -226,12 +228,14 @@ foreach ($url in $urls) {
     TwitterTags = $twitterCount
     JsonLd = $jsonLdCount
     SportsEvents = $sportsEvents.Count
+    SportsEventsMissingLocation = $sportsEventsMissingLocation
+    SportsEventsMissingStartDate = $sportsEventsMissingStartDate
     Flags = ($flags -join ",")
   }
 }
 
 $table = $results |
-  Select-Object Url, Status, Canonical, ExpectedCanonical, CanonicalRouteOutcome, Robots, H1Count, WordCount, InternalMatchLinks, JsonLd, SportsEvents, Flags |
+  Select-Object Url, Status, Canonical, ExpectedCanonical, CanonicalRouteOutcome, Robots, H1Count, WordCount, InternalMatchLinks, JsonLd, SportsEvents, SportsEventsMissingLocation, SportsEventsMissingStartDate, Flags |
   Format-Table -AutoSize |
   Out-String -Width 320
 $routeSummary = $results |

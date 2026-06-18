@@ -187,3 +187,15 @@ The next good follow-up after this rollout is to continue the pre-match discover
 - keep `/cric-live/{slug}` canonical stable
 - strengthen multi-hub upcoming discovery where needed
 - keep dashboard and backend monitoring changes on their own verified path
+
+## Related Follow-up On The Same Day
+
+Later on 2026-06-19, a match-page Event schema regression was diagnosed and hot-fixed separately:
+
+- the earlier June 3 work had hardened `location`
+- a later rich-match SSR pass still left `startDate` vulnerable to a narrow parse path
+- audit tooling only checked missing `location`, not missing `startDate`
+
+That follow-up is documented in:
+
+- `docs/INCIDENT_20260619_MATCH_EVENT_SCHEMA_REGRESSION.md`
