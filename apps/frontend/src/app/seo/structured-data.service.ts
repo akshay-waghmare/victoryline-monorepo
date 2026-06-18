@@ -34,10 +34,14 @@ export class StructuredDataService {
     homeTeam: string;
     awayTeam: string;
     startDate?: string; // ISO 8601
+    endDate?: string; // ISO 8601
     description?: string;
     location?: string | StructuredDataLocationInput;
     status?: 'Scheduled' | 'LiveEvent' | 'EventCompleted';
     offersUrl?: string;
+    image?: string;
+    organizerName?: string;
+    organizerUrl?: string;
   }): JsonLd {
     return this.cleanObject({
       '@context': 'https://schema.org',
@@ -47,9 +51,16 @@ export class StructuredDataService {
       description: input.description,
       sport: 'Cricket',
       startDate: input.startDate,
+      endDate: input.endDate,
       eventStatus: this.toEventStatusUrl(input.status || 'Scheduled'),
       location: this.buildLocation(input.location),
       offers: input.offersUrl ? { '@type': 'Offer', url: input.offersUrl } : undefined,
+      image: input.image ? [input.image] : undefined,
+      organizer: input.organizerName ? this.cleanObject({
+        '@type': 'Organization',
+        name: input.organizerName,
+        url: input.organizerUrl
+      }) : undefined,
       homeTeam: { '@type': 'SportsTeam', name: input.homeTeam },
       awayTeam: { '@type': 'SportsTeam', name: input.awayTeam },
       competitor: [

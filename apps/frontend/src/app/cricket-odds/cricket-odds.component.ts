@@ -2959,7 +2959,7 @@ private titleCaseSlug(value: string): string {
       { name: this.matchSeo.teams, url: this.matchSeo.canonicalUrl }
     ]);
     var items: any[] = [breadcrumbs];
-    var startDate = this.toIsoDate(this.matchInfo && this.matchInfo.match_date);
+    var startDate = this.getStructuredDataStartDate();
     var location = this.getStructuredDataLocation();
     var dateModified = this.getStructuredDataDateModified(startDate);
 
@@ -2973,16 +2973,20 @@ private titleCaseSlug(value: string): string {
       authorName: 'Crickzen'
     }));
 
-    if (location) {
+    if (startDate && location) {
       items.unshift(this.structuredDataService.sportsEvent({
         name: this.matchSeo.h1,
         url: this.matchSeo.canonicalUrl,
         description: this.matchSeo.summary,
         homeTeam: this.matchSeo.team1,
         awayTeam: this.matchSeo.team2,
-        startDate: startDate || undefined,
+        startDate: startDate,
         location: location,
-        status: this.getStructuredDataStatus()
+        status: this.getStructuredDataStatus(),
+        offersUrl: this.matchSeo.canonicalUrl,
+        image: this.matchSeo.ogImageUrl,
+        organizerName: 'Crickzen',
+        organizerUrl: 'https://www.crickzen.com'
       }));
     }
 
@@ -2996,6 +3000,24 @@ private titleCaseSlug(value: string): string {
       this.matchInfo && this.matchInfo.updated_at,
       this.matchInfo && this.matchInfo.updatedAt,
       fallbackDate
+    ];
+
+    for (var index = 0; index < candidates.length; index++) {
+      var parsed = this.toIsoDate(candidates[index]);
+      if (parsed) {
+        return parsed;
+      }
+    }
+
+    return null;
+  }
+
+  private getStructuredDataStartDate(): string | null {
+    var candidates = [
+      this.currentMatch && this.currentMatch.scheduledStartTime,
+      this.currentMatch && this.currentMatch.startTime,
+      this.matchInfo && this.matchInfo.start_date,
+      this.matchInfo && this.matchInfo.match_date
     ];
 
     for (var index = 0; index < candidates.length; index++) {
@@ -3026,7 +3048,33 @@ private titleCaseSlug(value: string): string {
 
     if (typeof venue === 'string') {
       var venueName = this.cleanStructuredDataVenueName(venue);
-      return venueName ? { name: venueName } : null;
+      if (!venueName) {
+        return null;
+      }
+
+      var parts = venueName.split(',').map(function(part) {
+        return part.trim();
+      }).filter(function(part) {
+        return !!part;
+      });
+      var address: any = {};
+
+      if (parts.length >= 2) {
+        address.addressLocality = parts[1];
+      }
+
+      if (parts.length >= 3) {
+        address.addressRegion = parts[2];
+      }
+
+      if (parts.length >= 4) {
+        address.addressCountry = parts.slice(3).join(', ');
+      }
+
+      return {
+        name: venueName,
+        address: Object.keys(address).length > 0 ? address : undefined
+      };
     }
 
     var name = this.cleanStructuredDataVenueName(venue.name || venue.venue || venue.ground || venue.stadium || '');
