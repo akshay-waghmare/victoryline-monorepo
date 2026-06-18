@@ -20,7 +20,7 @@ import { AuthService } from '../auth.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabChangeEvent } from '@angular/material/tabs';
 import { buildLegacyCricketTopicPaths } from '../core/utils/cricket-websocket-topics';
-import { extractSlugFromUrl, getRecentBallDisplay, normalizeMatchRoutePath, RecentBallKind } from '../core/utils/match-utils';
+import { extractMatchRouteSuffix, extractSlugFromUrl, getRecentBallDisplay, normalizeMatchRoutePath, RecentBallKind } from '../core/utils/match-utils';
 import { upsertCommentaryEntries } from './commentary.utils';
 import { LiveHeroViewModel } from '../match-live/services/live-hero.models';
 import { MatchSeoViewModel } from '../seo/match-seo.models';
@@ -63,6 +63,8 @@ interface TeamStatsSelectionEvent {
   teamName: string;
   externalId?: string;
 }
+
+type MatchPageTabKey = 'commentary' | 'details' | 'scorecard' | 'lineups';
 
 @Component({
   selector: 'app-cricket-odds',
@@ -183,6 +185,14 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   winBatFirstPercentage: number;
   winBowlFirstPercentage: number;
   scorecardInfo: any;
+  selectedTabIndex: number = 0;
+  private hasUserSelectedTab: boolean = false;
+  private readonly tabIndexByKey: { [key in MatchPageTabKey]: number } = {
+    commentary: 0,
+    details: 1,
+    scorecard: 2,
+    lineups: 3
+  };
 
 
   constructor(private rxStompService: RxStompService,
@@ -239,6 +249,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     if (this.routeMatchHint) {
       this.applyRouteMatchHint(this.routeMatchHint);
     }
+    this.syncMatchTabSelection(true);
     
     // 002-match-details-ux: Extract matchId from URL or route params
     this.matchId = this.activatedRoute.snapshot.queryParamMap.get('matchId') 
@@ -256,6 +267,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (this.cricetTopicSubscription) {
         this.cricetTopicSubscription.unsubscribe();
       }
+      this.hasUserSelectedTab = false;
       this.fetchCricketData();
     });
 
@@ -303,6 +315,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
                   || params['matchId']
                   || match
                   || this.matchId;
+    this.syncMatchTabSelection(true);
 
     if (!isSameRouteMatch) {
       this.resetStatsExplorerState();
@@ -946,17 +959,15 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 }
 
 onTabChange(event: MatTabChangeEvent) {
-  var match = this.matchId || this.activatedRoute.snapshot.params['path'];
-  if (event.index === 1) { // Match Info tab is selected
-    this.fetchMatchInfo(match);
-  } else if (event.index === 2) { // Scorecard tab is selected
-    this.fetchScorecardInfo(match);
-  } else if (event.index === 3) { // Lineups tab is selected (002-match-details-ux)
-    // Load match info if not already loaded (needed for playing XI data)
-    if (!this.matchInfo) {
-      this.fetchMatchInfo(match);
-    }
+  var isProgrammaticSelection = event.index === this.selectedTabIndex;
+  this.selectedTabIndex = event.index;
+
+  if (isProgrammaticSelection) {
+    return;
   }
+
+  this.hasUserSelectedTab = true;
+  this.ensureDataForTab(event.index);
 }
 
 fetchScorecardInfo(matchUrl:string){
@@ -988,6 +999,7 @@ fetchMatchInfo(matchUrl:string) {
     data => {
       this.matchInfo = data;
       this.isFallbackMatchInfo = false;
+      this.syncMatchTabSelection();
       console.log('Match Info:', this.matchInfo);
 
       // T045: Update browser tab title with team names (Feature 008 - SEO)
@@ -1007,6 +1019,7 @@ fetchMatchInfo(matchUrl:string) {
     error => {
       console.error('Error fetching match info:', error);
       this.populateFallbackMatchInfo();
+      this.syncMatchTabSelection();
     }
   );
 }
@@ -1122,6 +1135,7 @@ private applyRouteMatchHint(match: any): void {
   if (!this.matchInfo || this.isFallbackMatchInfo) {
     this.populateFallbackMatchInfo(match);
   }
+  this.syncMatchTabSelection();
 }
 
 private routeSlugMatches(matchSlug: string, match: any): boolean {
@@ -1148,7 +1162,8 @@ private routeSlugMatches(matchSlug: string, match: any): boolean {
 }
 
 private isLiveLikeStatus(status: string | null | undefined): boolean {
-  return status === 'LIVE' || status === 'INNINGS_BREAK' || status === 'RAIN_DELAY';
+  var normalized = this.normalizeMatchStatus(status);
+  return normalized === 'LIVE' || normalized === 'INNINGS_BREAK' || normalized === 'RAIN_DELAY';
 }
 
 private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): void {
@@ -2285,6 +2300,107 @@ private populateFallbackMatchInfo(match: any = this.currentMatch): void {
   this.venueStatsKeys = [];
   this.playingXIKeys = [];
   this.teamFormKeys = [];
+  this.syncMatchTabSelection();
+}
+
+private syncMatchTabSelection(force: boolean = false): void {
+  if (this.hasUserSelectedTab && !force) {
+    return;
+  }
+
+  var key = this.resolveRequestedTabKey() || this.resolveLifecycleDefaultTab();
+  this.selectedTabIndex = this.tabIndexByKey[key];
+}
+
+private resolveRequestedTabKey(): MatchPageTabKey | null {
+  var suffix = extractMatchRouteSuffix(this.currentRequestedPath || (this.router && this.router.url ? this.router.url : ''));
+
+  switch (suffix) {
+    case 'live':
+    case 'commentary':
+      return 'commentary';
+    case 'scorecard':
+    case 'match-scorecard':
+      return 'scorecard';
+    case 'info':
+    case 'match-details':
+      return 'details';
+    default:
+      return null;
+  }
+}
+
+private resolveLifecycleDefaultTab(): MatchPageTabKey {
+  var status = this.getResolvedMatchStatus();
+
+  if (this.isCompletedStatus(status)) {
+    return 'scorecard';
+  }
+
+  if (this.isUpcomingStatus(status)) {
+    return 'details';
+  }
+
+  return 'commentary';
+}
+
+private ensureDataForTab(index: number): void {
+  var match = this.matchId || this.activatedRoute.snapshot.params['path'];
+  if (!match) {
+    return;
+  }
+
+  if (index === this.tabIndexByKey.details) {
+    this.fetchMatchInfo(match);
+    return;
+  }
+
+  if (index === this.tabIndexByKey.scorecard) {
+    this.fetchScorecardInfo(match);
+    return;
+  }
+
+  if (index === this.tabIndexByKey.lineups && !this.matchInfo) {
+    this.fetchMatchInfo(match);
+  }
+}
+
+private getResolvedMatchStatus(): string {
+  return (this.matchInfo && (this.matchInfo.match_status || this.matchInfo.status))
+    || (this.currentMatch && (this.currentMatch.status || this.currentMatch.displayStatus))
+    || '';
+}
+
+private normalizeMatchStatus(status: string | null | undefined): string {
+  return String(status || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, '_');
+}
+
+private isUpcomingStatus(status: string | null | undefined): boolean {
+  var normalized = this.normalizeMatchStatus(status);
+  return normalized === 'UPCOMING'
+    || normalized === 'SCHEDULED'
+    || normalized === 'FIXTURE'
+    || normalized === 'NOT_STARTED'
+    || normalized.indexOf('UPCOMING') !== -1
+    || normalized.indexOf('SCHEDULE') !== -1
+    || normalized.indexOf('NOT_STARTED') !== -1
+    || normalized.indexOf('FIXTURE') !== -1;
+}
+
+private isCompletedStatus(status: string | null | undefined): boolean {
+  var normalized = this.normalizeMatchStatus(status);
+  return normalized === 'COMPLETED'
+    || normalized === 'ABANDONED'
+    || normalized === 'RESULT'
+    || normalized === 'FINISHED'
+    || normalized.indexOf('COMPLETE') !== -1
+    || normalized.indexOf('RESULT') !== -1
+    || normalized.indexOf('FINISH') !== -1
+    || normalized.indexOf('ABANDON') !== -1
+    || normalized.indexOf('NO_RESULT') !== -1;
 }
 
 private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
@@ -2533,6 +2649,44 @@ getMatchShellContextNote(): string | null {
     || null;
 }
 
+getDetailsIntroKicker(): string {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return 'Supporting match detail';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'More match detail';
+  }
+
+  return 'Supporting live detail';
+}
+
+getDetailsIntroTitle(): string {
+  var teams = this.matchSeo ? this.matchSeo.teams : this.getMatchShellTitle();
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return 'More detail for ' + teams;
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'Everything else for ' + teams;
+  }
+
+  return 'Extra context for ' + teams;
+}
+
+getDetailsIntroSummary(): string {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return this.getSeoScorecardLabel();
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'Use this section for the start time, venue context, toss status, playing XI updates, and fixture-specific pre-match detail before the first ball.';
+  }
+
+  return 'Use this section for supporting context while commentary stays primary for the live match.';
+}
+
 getSeoTournamentLabel(): string {
   return (this.matchSeo && this.matchSeo.series)
     || this.getMatchShellSeries()
@@ -2569,6 +2723,10 @@ getSeoVenueLabel(): string {
 }
 
 getSeoLiveScoreLabel(): string {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus()) && this.getFallbackResultSummary()) {
+    return this.getFallbackResultSummary() || '';
+  }
+
   if (this.heroFallbackView && this.heroFallbackView.score) {
     var heroScore = this.heroFallbackView.score;
     return heroScore.teamName + ' ' + heroScore.runs + '/' + heroScore.wickets + ' (' + heroScore.overs + ' ov)'
@@ -2583,10 +2741,18 @@ getSeoLiveScoreLabel(): string {
     return String(this.matchInfo.final_result_text);
   }
 
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'This fixture is scheduled and the live score block will switch into innings context as soon as play begins.';
+  }
+
   return 'Live score block will update with runs, wickets, overs, innings context, and match result as soon as the feed receives official data.';
 }
 
 getSeoTossLabel(): string {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus()) && this.getFallbackResultSummary()) {
+    return 'Toss context is no longer the main story. Use the scorecard and final result details for the completed match view.';
+  }
+
   if (this.tossWonCountry && this.batOrBallSelected) {
     return this.tossWonCountry + ' won the toss and chose to ' + this.batOrBallSelected + '.';
   }
@@ -2613,6 +2779,10 @@ getSeoScorecardLabel(): string {
 
   if (this.scorecardData) {
     return 'Scorecard data is available below and will continue to refresh with batting, bowling, and innings details.';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'Scorecard will populate after play begins, while fixture details, toss status, and lineup updates stay available ahead of start.';
   }
 
   return 'Scorecard section will show batting score, bowling figures, fall of wickets, partnerships, and match result once data is available.';

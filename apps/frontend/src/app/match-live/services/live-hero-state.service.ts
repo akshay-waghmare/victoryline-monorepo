@@ -3,7 +3,7 @@ import { BehaviorSubject, Observable, Subscription, merge, of } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { CricketService } from '../../cricket-odds/cricket-odds.service';
-import { buildLegacyCricketTopicPaths } from '../../core/utils/cricket-websocket-topics';
+import { buildCricketLiveTopicPaths } from '../../core/utils/cricket-websocket-topics';
 import {
   LegacyCricketData,
   LegacyMatchOdds,
@@ -203,7 +203,7 @@ export class LiveHeroStateService {
       this.wsSubscription = null;
     }
 
-    const topics = buildLegacyCricketTopicPaths(matchId);
+    const topics = buildCricketLiveTopicPaths(matchId);
     if (!topics.length) {
       return;
     }
@@ -695,6 +695,24 @@ export class LiveHeroStateService {
 
     mappings.forEach(([target, source]) => {
       if (payload[source] !== undefined) {
+        (patch as any)[target] = payload[source];
+      }
+    });
+
+    const snapshotAliases: Array<[keyof LegacyCricketData, string]> = [
+      ['batting_team', 'battingTeamName'],
+      ['fav_team', 'favTeam'],
+      ['final_result_text', 'finalResultText'],
+      ['team_odds', 'teamOdds'],
+      ['match_odds', 'matchOdds'],
+      ['batsman_data', 'batsmanData'],
+      ['bowler_data', 'bowlerData'],
+      ['session_odds', 'sessionOddsList'],
+      ['overs_data', 'oversData'],
+      ['runs_on_ball', 'runsOnBall']
+    ];
+    snapshotAliases.forEach(([target, source]) => {
+      if ((patch as any)[target] === undefined && payload[source] !== undefined) {
         (patch as any)[target] = payload[source];
       }
     });

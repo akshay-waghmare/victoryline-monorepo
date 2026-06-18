@@ -35,37 +35,83 @@
   </section>
 
   <section class="seo-hub__state seo-hub__state--error" *ngIf="hasError && !isLoading">
-    <h2>Match feed unavailable</h2>
-    <p>The hub page is indexable, but live match links could not be loaded right now.</p>
+    <h2>Match feed needs attention</h2>
+    <p>The hub stayed indexable and will fall back to sitemap links where needed, but the feed did not return the preferred live and upcoming discovery set.</p>
   </section>
 
-  <section class="seo-hub__matches" *ngIf="!isLoading && !hasError">
+  <section class="seo-hub__matches" *ngIf="!isLoading && (liveSectionMatches.length > 0 || upcomingSectionMatches.length > 0 || recentSectionMatches.length > 0 || fallbackSitemapMatches.length > 0)">
     <header class="seo-hub__section-head">
       <div>
         <span class="seo-hub__section-kicker">{{ config.primaryKicker }}</span>
         <h2>{{ config.primaryHeading }}</h2>
         <p>{{ config.primarySummary }}</p>
       </div>
-      <p>{{ primaryMatches.length || primaryFallbackLinks.length }} direct match links shown</p>
+      <p>{{ liveSectionMatches.length + upcomingSectionMatches.length + recentSectionMatches.length || fallbackSitemapMatches.length }} direct match links shown</p>
     </header>
 
-    <p class="seo-hub__empty" *ngIf="primaryMatches.length === 0 && primaryFallbackLinks.length === 0">{{ config.emptyText }}</p>
+    <p class="seo-hub__empty" *ngIf="liveSectionMatches.length === 0 && upcomingSectionMatches.length === 0 && recentSectionMatches.length === 0 && fallbackSitemapMatches.length === 0">{{ config.emptyText }}</p>
 
-    <div class="seo-hub__match-grid" *ngIf="primaryMatches.length > 0">
-      <article class="seo-hub__match-card" *ngFor="let match of primaryMatches; trackBy: trackByMatchId">
-        <span class="seo-hub__match-status">{{ getMatchStatusLabel(match) }}</span>
-        <h3>
-          <a [attr.href]="getMatchHref(match)">{{ getMatchLabel(match) }}</a>
-        </h3>
-        <p>{{ getMatchCardDescription(match) }}</p>
-        <p class="seo-hub__match-meta">
-          {{ match.startTime | date:'medium' }}<span *ngIf="match.venue"> at {{ match.venue }}</span>
-        </p>
-      </article>
+    <div class="seo-hub__lane-stack" *ngIf="liveSectionMatches.length > 0 || upcomingSectionMatches.length > 0 || recentSectionMatches.length > 0">
+      <section class="seo-hub__lane" *ngIf="liveSectionMatches.length > 0">
+        <header class="seo-hub__lane-head">
+          <span class="seo-hub__lane-kicker">Live now</span>
+          <h3>Current live score links</h3>
+        </header>
+        <div class="seo-hub__match-grid">
+          <article class="seo-hub__match-card" *ngFor="let match of liveSectionMatches; trackBy: trackByMatchId">
+            <span class="seo-hub__match-status">{{ getMatchStatusLabel(match) }}</span>
+            <h3>
+              <a [attr.href]="getMatchHref(match)">{{ getMatchLabel(match) }}</a>
+            </h3>
+            <p>{{ getMatchCardDescription(match) }}</p>
+            <p class="seo-hub__match-meta">
+              {{ match.startTime | date:'medium' }}<span *ngIf="match.venue"> at {{ match.venue }}</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="seo-hub__lane" *ngIf="upcomingSectionMatches.length > 0">
+        <header class="seo-hub__lane-head">
+          <span class="seo-hub__lane-kicker">Upcoming live scores</span>
+          <h3>Next canonical match pages before first ball</h3>
+        </header>
+        <div class="seo-hub__match-grid">
+          <article class="seo-hub__match-card" *ngFor="let match of upcomingSectionMatches; trackBy: trackByMatchId">
+            <span class="seo-hub__match-status">{{ getMatchStatusLabel(match) }}</span>
+            <h3>
+              <a [attr.href]="getMatchHref(match)">{{ getMatchLabel(match) }}</a>
+            </h3>
+            <p>{{ getMatchCardDescription(match) }}</p>
+            <p class="seo-hub__match-meta">
+              Starts at {{ match.startTime | date:'medium' }}<span *ngIf="match.venue"> · {{ match.venue }}</span>
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="seo-hub__lane" *ngIf="recentSectionMatches.length > 0">
+        <header class="seo-hub__lane-head">
+          <span class="seo-hub__lane-kicker">Recently completed</span>
+          <h3>Fresh result pages still linked in SSR</h3>
+        </header>
+        <div class="seo-hub__match-grid">
+          <article class="seo-hub__match-card" *ngFor="let match of recentSectionMatches; trackBy: trackByMatchId">
+            <span class="seo-hub__match-status">{{ getMatchStatusLabel(match) }}</span>
+            <h3>
+              <a [attr.href]="getMatchHref(match)">{{ getMatchLabel(match) }}</a>
+            </h3>
+            <p>{{ getMatchCardDescription(match) }}</p>
+            <p class="seo-hub__match-meta">
+              {{ match.startTime | date:'medium' }}<span *ngIf="match.venue"> at {{ match.venue }}</span>
+            </p>
+          </article>
+        </div>
+      </section>
     </div>
 
-    <div class="seo-hub__match-grid" *ngIf="primaryMatches.length === 0 && primaryFallbackLinks.length > 0">
-      <article class="seo-hub__match-card" *ngFor="let link of primaryFallbackLinks; trackBy: trackByFallbackLink">
+    <div class="seo-hub__match-grid" *ngIf="liveSectionMatches.length === 0 && upcomingSectionMatches.length === 0 && recentSectionMatches.length === 0 && fallbackSitemapMatches.length > 0">
+      <article class="seo-hub__match-card" *ngFor="let link of fallbackSitemapMatches; trackBy: trackByFallbackLink">
         <span class="seo-hub__match-status">Match page</span>
         <h3>
           <a [attr.href]="link.href">{{ link.label }}</a>

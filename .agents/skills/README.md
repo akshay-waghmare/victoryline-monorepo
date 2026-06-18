@@ -7,6 +7,7 @@ Available local skills for this repository:
 - `crickzen-local-stack-ops` — bring up and verify the local Docker stack, including frontend image verification
 - `crickzen-match-state-reconcile` — debug mismatches between cards, hero, match-info, scorecard, and live snapshot data
 - `crickzen-match-seo-ops` — audit match-page SEO from SSR HTML, verify sitemap/GSC state, and prove rollout markers
+- `crickzen-match-surface-ux-pass` — clean crowded homepage, hubs, matches, and match-page surfaces without stripping SSR SEO support
 - `crickzen-seo-health-pattern-audit` — run repeated production SEO health checks and detect correlated sitemap, SSR, canonical, thin-page, and crawl-graph patterns
 - `crickzen-frontend-prod-rollout` — deploy frontend-only production fixes safely by pinning and recreating only the frontend image
 - `emil-design-eng` — UI polish and design-engineering guidance

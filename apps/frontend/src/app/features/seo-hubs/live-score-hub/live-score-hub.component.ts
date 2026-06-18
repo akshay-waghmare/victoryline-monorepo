@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { catchError, map, takeUntil, timeout } from 'rxjs/operators';
 
-import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches, sortMatchesByPriority } from '../../../core/utils/match-utils';
+import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches, prioritizeUpcomingMatchesForDiscovery, sortMatchesByPriority } from '../../../core/utils/match-utils';
 import { MatchCardViewModel, MatchStatus } from '../../matches/models/match-card.models';
 import { MatchesService } from '../../matches/services/matches.service';
 import { MetaTagsService } from '../../../seo/meta-tags.service';
@@ -48,15 +48,19 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private readonly archivePageSize = 80;
   private readonly sitemapRequestTimeoutMs = 2500;
+  private readonly discoveryUpcomingWindowHours = 48;
 
   config: HubConfig = this.getConfig('liveScore');
   allMatches: MatchCardViewModel[] = [];
-  primaryMatches: MatchCardViewModel[] = [];
+  liveSectionMatches: MatchCardViewModel[] = [];
+  upcomingSectionMatches: MatchCardViewModel[] = [];
+  recentSectionMatches: MatchCardViewModel[] = [];
   discoveryMatches: MatchCardViewModel[] = [];
   liveMatches: MatchCardViewModel[] = [];
   upcomingMatches: MatchCardViewModel[] = [];
   completedMatches: MatchCardViewModel[] = [];
   sitemapLinks: HubFallbackLink[] = [];
+  fallbackSitemapMatches: HubFallbackLink[] = [];
   primaryFallbackLinks: HubFallbackLink[] = [];
   visibleSitemapLinks: HubFallbackLink[] = [];
   discoveryFallbackLinks: HubFallbackLink[] = [];
@@ -91,11 +95,6 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
         this.applyMatches();
       });
 
-    if (this.isServerRender()) {
-      this.loadSitemapLinks();
-      return;
-    }
-
     this.matchesService.getLiveMatchesWithAutoRefresh()
       .pipe(takeUntil(this.destroy$))
       .subscribe(
@@ -107,16 +106,23 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
           this.isLoading = false;
           this.hasError = false;
           this.applyMatches();
+          if (this.config.type === 'archive' && this.sitemapLinks.length === 0) {
+            this.loadSitemapLinks();
+          }
         },
         () => {
           this.allMatches = [];
-          this.primaryMatches = [];
+          this.liveSectionMatches = [];
+          this.upcomingSectionMatches = [];
+          this.recentSectionMatches = [];
           this.discoveryMatches = [];
           this.liveMatches = [];
           this.upcomingMatches = [];
           this.completedMatches = [];
           this.isLoading = false;
           this.hasError = true;
+          this.applyMatches();
+          this.loadSitemapLinks();
         }
       );
   }
@@ -156,12 +162,12 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     }
 
     if (match.status === MatchStatus.UPCOMING) {
-      return 'Upcoming';
+      return 'Upcoming live score';
     }
     if (match.status === MatchStatus.COMPLETED || match.status === MatchStatus.ABANDONED) {
       return 'Result';
     }
-    return 'Live';
+    return 'Live now';
   }
 
   getArchiveHref(page: number): string {
@@ -201,23 +207,23 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private applyMatches(): void {
-    if (!this.allMatches) {
-      return;
-    }
-
     var matches = this.getMatchesForHub(this.config.type);
-    this.primaryMatches = this.limitUnique(matches, this.config.type === 'archive' ? this.archivePageSize : 36);
-    this.discoveryMatches = this.limitUnique(this.allMatches, 120);
+    this.liveSectionMatches = this.limitUnique(filterLiveMatches(matches), 12);
+    this.upcomingSectionMatches = this.limitUnique(this.getUpcomingPriorityMatches(matches), this.config.type === 'scheduleToday' ? 18 : 14);
+    this.recentSectionMatches = this.limitUnique(filterCompletedMatches(matches), 12);
+    this.discoveryMatches = this.limitUnique(this.buildDiscoveryMatches(matches), 120);
     this.visibleSitemapLinks = this.getVisibleSitemapLinks();
-    this.primaryFallbackLinks = this.getPrimaryFallbackLinks();
-    this.discoveryFallbackLinks = this.getDiscoveryFallbackLinks();
+    this.fallbackSitemapMatches = this.shouldUseSitemapFallback()
+      ? this.getPrimaryFallbackLinks()
+      : [];
+    this.primaryFallbackLinks = this.fallbackSitemapMatches;
+    this.discoveryFallbackLinks = this.shouldUseSitemapFallback()
+      ? this.getDiscoveryFallbackLinks()
+      : [];
     this.archivePageLinks = this.buildArchivePageLinks();
   }
 
   private loadSitemapLinks(): void {
-    this.isLoading = true;
-    this.hasError = false;
-
     this.http.get('/sitemaps/sitemap-matches-0001.xml', { responseType: 'text' })
       .pipe(
         timeout(this.sitemapRequestTimeoutMs),
@@ -229,12 +235,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
       )
       .subscribe((links: HubFallbackLink[]) => {
         this.sitemapLinks = this.uniqueFallbackLinks(links || []);
-        this.visibleSitemapLinks = this.getVisibleSitemapLinks();
-        this.primaryFallbackLinks = this.getPrimaryFallbackLinks();
-        this.discoveryFallbackLinks = this.getDiscoveryFallbackLinks();
-        this.archivePageLinks = this.buildArchivePageLinks();
-        this.isLoading = false;
-        this.hasError = false;
+        this.applyMatches();
       });
   }
 
@@ -379,25 +380,65 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private getMatchesForHub(type: SeoHubType): MatchCardViewModel[] {
-    if (type === 'today') {
-      return this.allMatches.filter((match) => this.isTodayMatch(match) || this.isLiveMatch(match));
-    }
-
-    if (type === 'ipl' || type === 'iplSchedule') {
-      return this.allMatches.filter((match) => this.isIplMatch(match));
-    }
-
-    if (type === 'scheduleToday') {
-      return this.upcomingMatches.filter((match) => this.isTodayMatch(match));
-    }
-
     if (type === 'archive') {
       var canonicalMatches = this.limitUnique(this.allMatches, 1000);
       var start = Math.max(0, (this.archivePage - 1) * this.archivePageSize);
       return canonicalMatches.slice(start, start + this.archivePageSize);
     }
 
-    return this.allMatches;
+    if (type === 'ipl' || type === 'iplSchedule') {
+      return this.allMatches.filter((match) => this.isIplMatch(match));
+    }
+
+    if (type === 'today') {
+      return this.limitUnique(([] as MatchCardViewModel[])
+        .concat(filterLiveMatches(this.allMatches))
+        .concat(this.getUpcomingPriorityMatches(this.allMatches))
+        .concat(filterCompletedMatches(this.allMatches).slice(0, 16)), 96);
+    }
+
+    if (type === 'scheduleToday') {
+      return this.limitUnique(([] as MatchCardViewModel[])
+        .concat(this.getUpcomingPriorityMatches(this.allMatches))
+        .concat(filterLiveMatches(this.allMatches))
+        .concat(filterCompletedMatches(this.allMatches).slice(0, 12)), 96);
+    }
+
+    return this.limitUnique(([] as MatchCardViewModel[])
+      .concat(filterLiveMatches(this.allMatches))
+      .concat(this.getUpcomingPriorityMatches(this.allMatches))
+      .concat(filterCompletedMatches(this.allMatches))
+      .concat(this.allMatches), 160);
+  }
+
+  private getUpcomingPriorityMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    var todayUpcoming = filterUpcomingMatches(matches).filter((match) => this.isTodayMatch(match));
+    var prioritizedUpcoming = prioritizeUpcomingMatchesForDiscovery(matches, 12, this.discoveryUpcomingWindowHours);
+
+    return this.limitUnique(([] as MatchCardViewModel[])
+      .concat(prioritizedUpcoming)
+      .concat(todayUpcoming)
+      .concat(filterUpcomingMatches(matches)), 48);
+  }
+
+  private buildDiscoveryMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    return ([] as MatchCardViewModel[])
+      .concat(this.liveSectionMatches)
+      .concat(this.upcomingSectionMatches)
+      .concat(this.recentSectionMatches)
+      .concat(matches);
+  }
+
+  private shouldUseSitemapFallback(): boolean {
+    if (this.config.type === 'archive') {
+      return true;
+    }
+
+    return this.sitemapLinks.length > 0
+      && this.liveSectionMatches.length === 0
+      && this.upcomingSectionMatches.length === 0
+      && this.recentSectionMatches.length === 0
+      && this.discoveryMatches.length === 0;
   }
 
   private limitUnique(matches: MatchCardViewModel[], limit: number): MatchCardViewModel[] {

@@ -7,31 +7,41 @@
       <p class="matches-list__subtitle">{{ getStatusDescription() }}</p>
     </div>
 
-    <div class="matches-list__summary" aria-label="Match summary">
-      <button
-        type="button"
-        class="matches-list__summary-card matches-list__summary-card--live"
-        [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.LIVE"
-        (click)="onStatusFilterChange(MatchStatus.LIVE)">
-        <span class="matches-list__summary-label">Live</span>
-        <strong class="matches-list__summary-value">{{ liveMatchesCount }}</strong>
-      </button>
-      <button
-        type="button"
-        class="matches-list__summary-card"
-        [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.UPCOMING"
-        (click)="onStatusFilterChange(MatchStatus.UPCOMING)">
-        <span class="matches-list__summary-label">Upcoming</span>
-        <strong class="matches-list__summary-value">{{ upcomingMatchesCount }}</strong>
-      </button>
-      <button
-        type="button"
-        class="matches-list__summary-card"
-        [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.COMPLETED"
-        (click)="onStatusFilterChange(MatchStatus.COMPLETED)">
-        <span class="matches-list__summary-label">Results</span>
-        <strong class="matches-list__summary-value">{{ completedMatchesCount }}</strong>
-      </button>
+    <div class="matches-list__summary-panel">
+      <div class="matches-list__summary-head">
+        <span class="matches-list__summary-kicker">At a glance</span>
+        <p class="matches-list__summary-copy">Pick the lane you want before you drop into previews, scorecards, or commentary.</p>
+      </div>
+
+      <div class="matches-list__summary" aria-label="Match summary">
+        <button
+          type="button"
+          class="matches-list__summary-card matches-list__summary-card--live"
+          [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.LIVE"
+          (click)="onStatusFilterChange(MatchStatus.LIVE)">
+          <span class="matches-list__summary-label">Live now</span>
+          <strong class="matches-list__summary-value">{{ liveMatchesCount }}</strong>
+          <span class="matches-list__summary-description">{{ getStatusCardSummary(MatchStatus.LIVE) }}</span>
+        </button>
+        <button
+          type="button"
+          class="matches-list__summary-card"
+          [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.UPCOMING"
+          (click)="onStatusFilterChange(MatchStatus.UPCOMING)">
+          <span class="matches-list__summary-label">Up next</span>
+          <strong class="matches-list__summary-value">{{ upcomingMatchesCount }}</strong>
+          <span class="matches-list__summary-description">{{ getStatusCardSummary(MatchStatus.UPCOMING) }}</span>
+        </button>
+        <button
+          type="button"
+          class="matches-list__summary-card"
+          [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.COMPLETED"
+          (click)="onStatusFilterChange(MatchStatus.COMPLETED)">
+          <span class="matches-list__summary-label">Results</span>
+          <strong class="matches-list__summary-value">{{ completedMatchesCount }}</strong>
+          <span class="matches-list__summary-description">{{ getStatusCardSummary(MatchStatus.COMPLETED) }}</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -103,18 +113,6 @@
       </span>
     </div>
 
-    <nav class="matches-list__crawl-links" *ngIf="crawlableMatches.length > 0" aria-label="Direct match links">
-      <span class="matches-list__crawl-links-label">Direct match links</span>
-      <div class="matches-list__crawl-links-list">
-        <a
-          *ngFor="let match of crawlableMatches; trackBy: trackByMatchId"
-          class="matches-list__crawl-link"
-          [attr.href]="getMatchHref(match)">
-          {{ getMatchLinkLabel(match) }}
-        </a>
-      </div>
-    </nav>
-
     <div class="matches-list__empty" *ngIf="filteredMatches.length === 0">
       <span class="matches-list__empty-icon material-icons">sports_cricket</span>
       <p class="matches-list__empty-message">{{ getEmptyStateMessage() }}</p>
@@ -154,5 +152,70 @@
         {{ loadMoreLabel }}
       </button>
     </div>
+
+    <details
+      class="matches-list__seo-drawer"
+      *ngIf="liveDiscoveryMatches.length > 0 || upcomingDiscoveryMatches.length > 0 || recentDiscoveryMatches.length > 0 || crawlableMatches.length > 0"
+      aria-label="More match discovery pages">
+      <summary class="matches-list__seo-drawer-summary">
+        <span class="matches-list__seo-drawer-title">More match pages</span>
+        <span class="matches-list__seo-drawer-copy">Keep the list focused first, then open the deeper preview, result, and crawlable link sets only when you need them.</span>
+      </summary>
+
+      <div class="matches-list__seo-drawer-body">
+        <section class="matches-list__discovery-sections" *ngIf="liveDiscoveryMatches.length > 0 || upcomingDiscoveryMatches.length > 0 || recentDiscoveryMatches.length > 0" aria-label="Match discovery sections">
+          <article class="matches-list__discovery-card" *ngIf="liveDiscoveryMatches.length > 0">
+            <span class="matches-list__discovery-kicker">Live now</span>
+            <h2 class="matches-list__discovery-title">Open the matches already in play</h2>
+            <div class="matches-list__crawl-links-list">
+              <a
+                *ngFor="let match of liveDiscoveryMatches; trackBy: trackByMatchId"
+                class="matches-list__crawl-link"
+                [attr.href]="getMatchHref(match)">
+                {{ getMatchLinkLabel(match) }}
+              </a>
+            </div>
+          </article>
+
+          <article class="matches-list__discovery-card" *ngIf="upcomingDiscoveryMatches.length > 0">
+            <span class="matches-list__discovery-kicker">Upcoming live scores</span>
+            <h2 class="matches-list__discovery-title">Open fixture pages before the start time</h2>
+            <div class="matches-list__crawl-links-list">
+              <a
+                *ngFor="let match of upcomingDiscoveryMatches; trackBy: trackByMatchId"
+                class="matches-list__crawl-link"
+                [attr.href]="getMatchHref(match)">
+                {{ getMatchLinkLabel(match) }}
+              </a>
+            </div>
+          </article>
+
+          <article class="matches-list__discovery-card" *ngIf="recentDiscoveryMatches.length > 0">
+            <span class="matches-list__discovery-kicker">Recently completed</span>
+            <h2 class="matches-list__discovery-title">Jump into the latest result pages</h2>
+            <div class="matches-list__crawl-links-list">
+              <a
+                *ngFor="let match of recentDiscoveryMatches; trackBy: trackByMatchId"
+                class="matches-list__crawl-link"
+                [attr.href]="getMatchHref(match)">
+                {{ getMatchLinkLabel(match) }}
+              </a>
+            </div>
+          </article>
+        </section>
+
+        <nav class="matches-list__crawl-links" *ngIf="crawlableMatches.length > 0" aria-label="Direct match links">
+          <span class="matches-list__crawl-links-label">Direct match links</span>
+          <div class="matches-list__crawl-links-list">
+            <a
+              *ngFor="let match of crawlableMatches; trackBy: trackByMatchId"
+              class="matches-list__crawl-link"
+              [attr.href]="getMatchHref(match)">
+              {{ getMatchLinkLabel(match) }}
+            </a>
+          </div>
+        </nav>
+      </div>
+    </details>
   </div>
 </div>

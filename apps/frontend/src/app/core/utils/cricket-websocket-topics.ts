@@ -29,3 +29,13 @@ export function buildLegacyCricketTopicPaths(matchId: string): string[] {
     return '/topic/cricket.' + trimmedMatchId + '.' + key;
   });
 }
+
+export function buildCricketSnapshotTopicPath(matchId: string): string {
+  const trimmedMatchId = matchId ? matchId.trim() : '';
+  return trimmedMatchId ? '/topic/cricket.match.' + trimmedMatchId + '.snapshot' : '';
+}
+
+export function buildCricketLiveTopicPaths(matchId: string): string[] {
+  const snapshotTopic = buildCricketSnapshotTopicPath(matchId);
+  return snapshotTopic ? [snapshotTopic].concat(buildLegacyCricketTopicPaths(matchId)) : [];
+}

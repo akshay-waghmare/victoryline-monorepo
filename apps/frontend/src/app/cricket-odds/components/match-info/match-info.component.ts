@@ -113,6 +113,10 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
   }
 
   get summaryEyebrow(): string {
+    return 'At a glance';
+  }
+
+  get summaryContext(): string {
     if (this.seriesName) {
       return this.seriesName;
     }
@@ -268,6 +272,15 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
   get summaryCards(): MatchInfoMetaCard[] {
     var cards: MatchInfoMetaCard[] = [];
 
+    if (this.isCompletedMatch() && this.resultSummary) {
+      cards.push({
+        icon: 'emoji_events',
+        label: 'Result',
+        value: this.resultSummary,
+        tone: 'success'
+      });
+    }
+
     if (this.matchDate) {
       cards.push({
         icon: 'schedule',
@@ -284,7 +297,14 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
       tone: 'default'
     });
 
-    if (this.tossInfo !== 'Toss information not available') {
+    if (this.isUpcomingMatch()) {
+      cards.push({
+        icon: 'groups',
+        label: 'Lineups',
+        value: this.matchHasConfirmedLineups() ? 'Playing XI available' : 'Playing XI pending',
+        tone: this.matchHasConfirmedLineups() ? 'success' : 'neutral'
+      });
+    } else if (this.tossInfo !== 'Toss information not available') {
       cards.push({
         icon: 'sports_cricket',
         label: 'Toss',
@@ -307,12 +327,28 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
 
   get summaryNarrative(): string {
     var summary = this.resultSummary;
-    if (summary) {
+    if (this.isCompletedMatch() && summary) {
       return summary;
+    }
+
+    if (this.isUpcomingMatch()) {
+      if (this.matchDate && this.venueName !== 'Venue not available') {
+        return 'Scheduled for ' + this.formatDateTime(this.matchDate) + ' at ' + this.venueName + '.';
+      }
+
+      if (this.matchDate) {
+        return 'Scheduled for ' + this.formatDateTime(this.matchDate) + '.';
+      }
+
+      return 'Fixture details are filling in ahead of the start time.';
     }
 
     if (this.tossInfo !== 'Toss information not available') {
       return this.tossInfo;
+    }
+
+    if (summary) {
+      return summary;
     }
 
     if (this.matchDate && this.venueName !== 'Venue not available') {
@@ -546,6 +582,12 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
       || status.indexOf('schedule') !== -1
       || status.indexOf('fixture') !== -1
       || status.indexOf('not started') !== -1;
+  }
+
+  private matchHasConfirmedLineups(): boolean {
+    var source = this.source;
+    var lineups = source && source.playing_xi ? source.playing_xi : null;
+    return !!lineups && Object.keys(lineups).length > 0;
   }
 
   private normalizeStatus(value: string): string {

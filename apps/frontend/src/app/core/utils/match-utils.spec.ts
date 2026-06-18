@@ -1,5 +1,5 @@
 import { MatchStatus } from '../../features/matches/models/match-card.models';
-import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractMatchRouteSuffix, extractSlugFromUrl, getRecentBallDisplay, normalizeMatchRoutePath } from './match-utils';
+import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractMatchRouteSuffix, extractSlugFromUrl, filterUpcomingMatchesInHours, getRecentBallDisplay, normalizeMatchRoutePath, prioritizeUpcomingMatchesForDiscovery } from './match-utils';
 
 describe('match-utils recent ball helpers', () => {
   it('formats wicket and boundary events for compact display', () => {
@@ -106,5 +106,55 @@ describe('match-utils recent ball helpers', () => {
     expect(buildCanonicalMatchLinkLabel({ ...baseMatch, status: MatchStatus.LIVE })).toBe('India vs Australia live score');
     expect(buildCanonicalMatchLinkLabel({ ...baseMatch, status: MatchStatus.UPCOMING })).toBe('India vs Australia match preview');
     expect(buildCanonicalMatchLinkLabel({ ...baseMatch, status: MatchStatus.COMPLETED })).toBe('India vs Australia result');
+  });
+
+  it('filters upcoming matches by a forward hour window', () => {
+    var now = Date.now();
+    var matches = [
+      { status: MatchStatus.UPCOMING, startTime: new Date(now + (6 * 60 * 60 * 1000)) },
+      { status: MatchStatus.UPCOMING, startTime: new Date(now + (24 * 60 * 60 * 1000)) },
+      { status: MatchStatus.UPCOMING, startTime: new Date(now + (72 * 60 * 60 * 1000)) },
+      { status: MatchStatus.LIVE, startTime: new Date(now + (12 * 60 * 60 * 1000)) }
+    ] as any;
+
+    var filtered = filterUpcomingMatchesInHours(matches, 12, 48);
+
+    expect(filtered.length).toBe(1);
+    expect(filtered[0].startTime.getTime()).toBe(matches[1].startTime.getTime());
+  });
+
+  it('prioritizes 12-48 hour upcoming matches for discovery before same-day fixtures', () => {
+    var now = Date.now();
+    var matches = [
+      {
+        id: 'soon-a-vs-soon-b-101A',
+        externalMatchKey: 'soon-a-vs-soon-b-101A',
+        matchUrl: 'https://crex.com/cricket-live-score/soon-a-vs-soon-b-101A',
+        status: MatchStatus.UPCOMING,
+        startTime: new Date(now + (2 * 60 * 60 * 1000))
+      },
+      {
+        id: 'sample-a-vs-sample-b-101B',
+        externalMatchKey: 'sample-a-vs-sample-b-101B',
+        matchUrl: 'https://crex.com/cricket-live-score/sample-a-vs-sample-b-101B',
+        status: MatchStatus.UPCOMING,
+        startTime: new Date(now + (18 * 60 * 60 * 1000))
+      },
+      {
+        id: 'later-a-vs-later-b-101C',
+        externalMatchKey: 'later-a-vs-later-b-101C',
+        matchUrl: 'https://crex.com/cricket-live-score/later-a-vs-later-b-101C',
+        status: MatchStatus.UPCOMING,
+        startTime: new Date(now + (30 * 60 * 60 * 1000))
+      }
+    ] as any;
+
+    var prioritized = prioritizeUpcomingMatchesForDiscovery(matches, 12, 48);
+
+    expect(prioritized.map(function(match) { return match.id; })).toEqual([
+      'sample-a-vs-sample-b-101B',
+      'later-a-vs-later-b-101C',
+      'soon-a-vs-soon-b-101A'
+    ]);
   });
 });

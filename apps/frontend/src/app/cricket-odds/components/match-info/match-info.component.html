@@ -2,6 +2,7 @@
   <div *ngIf="hasData" class="match-info-shell">
     <header class="match-info-hero">
       <div class="match-info-hero__eyebrow">{{ summaryEyebrow }}</div>
+      <div class="match-info-hero__context" *ngIf="summaryContext">{{ summaryContext }}</div>
       <div class="match-info-hero__headline">
         <div class="match-info-hero__copy">
           <h2 class="match-info-hero__title">{{ matchTitle }}</h2>

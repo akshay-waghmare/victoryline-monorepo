@@ -9,104 +9,12 @@
         [matchId]="matchId">
       </app-snapshot-header> -->
 
-    <!-- Main content area (T009) -->
+      <!-- Main content area (T009) -->
     <main class="match-page-content" role="main" aria-label="Match details content">
       <mat-card-content class="match-page-content__inner">
-        <section class="cricket-odds__seo-summary" *ngIf="matchSeo">
-          <div class="cricket-odds__seo-copy">
-            <p class="cricket-odds__seo-eyebrow">{{ matchSeo.statusLabel }}</p>
-            <h1 class="cricket-odds__seo-title">{{ matchSeo.h1 }}</h1>
-            <p class="cricket-odds__seo-description">{{ matchSeo.summary }}</p>
-            <p class="cricket-odds__seo-series" *ngIf="matchSeo.series">{{ matchSeo.series }}</p>
-          </div>
-          <nav class="cricket-odds__seo-links" aria-label="Related cricket pages">
-            <a routerLink="/matches">All cricket matches</a>
-            <a routerLink="/live-score">Live cricket scores</a>
-            <a routerLink="/live-score/today">Today match live score</a>
-          </nav>
-        </section>
-
-        <section class="cricket-odds__seo-detail-grid" *ngIf="matchSeo" aria-label="Match SEO details">
-          <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide">
-            <span class="cricket-odds__seo-detail-kicker">Match details</span>
-            <h2>{{ matchSeo.teams }} match details</h2>
-            <p>{{ matchSeo.summary }}</p>
-            <dl class="cricket-odds__seo-facts">
-              <div>
-                <dt>Tournament</dt>
-                <dd>{{ getSeoTournamentLabel() }}</dd>
-              </div>
-              <div>
-                <dt>Date and time</dt>
-                <dd>{{ getSeoDateTimeLabel() }}</dd>
-              </div>
-              <div>
-                <dt>Venue</dt>
-                <dd>{{ getSeoVenueLabel() }}</dd>
-              </div>
-            </dl>
-          </article>
-
-          <article class="cricket-odds__seo-detail cricket-odds__seo-detail--score">
-            <span class="cricket-odds__seo-detail-kicker">Live score block</span>
-            <h2>{{ matchSeo.teams }} live score today</h2>
-            <p>{{ getSeoLiveScoreLabel() }}</p>
-          </article>
-
-          <article class="cricket-odds__seo-detail">
-            <span class="cricket-odds__seo-detail-kicker">Toss update</span>
-            <h2>Toss update</h2>
-            <p>{{ getSeoTossLabel() }}</p>
-          </article>
-
-          <article class="cricket-odds__seo-detail">
-            <span class="cricket-odds__seo-detail-kicker">Playing XI</span>
-            <h2>Playing XI and team news</h2>
-            <p>{{ getSeoPlayingXiLabel() }}</p>
-          </article>
-
-          <article class="cricket-odds__seo-detail">
-            <span class="cricket-odds__seo-detail-kicker">Scorecard</span>
-            <h2>Scorecard and match result</h2>
-            <p>{{ getSeoScorecardLabel() }}</p>
-          </article>
-
-          <article class="cricket-odds__seo-detail">
-            <span class="cricket-odds__seo-detail-kicker">Venue stats</span>
-            <h2>Venue stats and pitch context</h2>
-            <p>{{ getSeoVenueStatsLabel() }}</p>
-          </article>
-
-          <article class="cricket-odds__seo-detail">
-            <span class="cricket-odds__seo-detail-kicker">Team form</span>
-            <h2>Team form and head-to-head</h2>
-            <p>{{ getSeoTeamFormLabel() }}</p>
-          </article>
-
-          <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide">
-            <span class="cricket-odds__seo-detail-kicker">FAQ</span>
-            <h2>{{ matchSeo.teams }} live score FAQ</h2>
-            <div class="cricket-odds__faq-list">
-              <div>
-                <h3>Where can I follow {{ matchSeo.teams }} live score today?</h3>
-                <p>Follow {{ matchSeo.teams }} live score today on this page with scorecard, toss update, playing XI, venue stats, and today match live score updates.</p>
-              </div>
-              <div>
-                <h3>When will the toss and playing XI be updated?</h3>
-                <p>Toss update and playing XI are refreshed when the match feed receives confirmed team news from the official match centre.</p>
-              </div>
-              <div>
-                <h3>Where will the match result be shown?</h3>
-                <p>{{ getSeoFaqMatchResultAnswer() }}</p>
-              </div>
-            </div>
-          </article>
-
-          <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide cricket-odds__seo-detail--language">
-            <span class="cricket-odds__seo-detail-kicker">Hindi and Marathi search help</span>
-            <h2>Aaj ka match live score and Marathi live score</h2>
-            <p>{{ getSeoLanguageKeywordCopy() }}</p>
-          </article>
+        <section class="cricket-odds__sr-only" *ngIf="matchSeo" aria-hidden="true">
+          <h1>{{ matchSeo.h1 }}</h1>
+          <p>{{ matchSeo.summary }}</p>
         </section>
 
         <app-live-hero
@@ -136,7 +44,7 @@
           <p class="cricket-odds__summary-result" *ngIf="getFallbackResultSummary()">{{ getFallbackResultSummary() }}</p>
         </section>
 
-      <mat-tab-group class="match-page-tabs" (selectedTabChange)="onTabChange($event)">
+      <mat-tab-group class="match-page-tabs" [selectedIndex]="selectedTabIndex" (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
         <mat-tab>
           <ng-template mat-tab-label>
@@ -267,12 +175,12 @@
 
         </mat-tab>
 
-        <!-- Second Tab: Match Info -->
+        <!-- Second Tab: Match Details -->
         <mat-tab>
           <ng-template mat-tab-label>
             <span class="match-page-tab-label">
               <mat-icon>info</mat-icon>
-              <span>Match Info</span>
+              <span>Match Details</span>
             </span>
           </ng-template>
           <section class="match-tab-panel">
@@ -281,9 +189,113 @@
               [matchInfo]="matchInfo">
             </app-match-details-info>
 
+            <section class="cricket-odds__seo-summary" *ngIf="matchSeo">
+              <div class="cricket-odds__seo-copy">
+                <p class="cricket-odds__seo-eyebrow">{{ getDetailsIntroKicker() }}</p>
+                <h2 class="cricket-odds__seo-title">{{ getDetailsIntroTitle() }}</h2>
+                <p class="cricket-odds__seo-description">{{ getDetailsIntroSummary() }}</p>
+                <p class="cricket-odds__seo-series" *ngIf="matchSeo.series">{{ matchSeo.series }}</p>
+              </div>
+              <nav class="cricket-odds__seo-links" aria-label="Related cricket pages">
+                <a routerLink="/matches">All cricket matches</a>
+                <a routerLink="/live-score">Live cricket scores</a>
+                <a routerLink="/live-score/today">Today match live score</a>
+              </nav>
+            </section>
+
+            <details class="cricket-odds__seo-drawer" *ngIf="matchSeo">
+              <summary class="cricket-odds__seo-drawer-summary">
+                <span class="cricket-odds__seo-drawer-title">More match detail</span>
+                <span class="cricket-odds__seo-drawer-copy">Keep the match snapshot first, then open the deeper score, venue, FAQ, and search-support sections only when you want more context.</span>
+              </summary>
+
+              <section class="cricket-odds__seo-detail-grid" aria-label="Match detail sections">
+                <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide">
+                  <span class="cricket-odds__seo-detail-kicker">Match details</span>
+                  <h3>{{ matchSeo.teams }} match details</h3>
+                  <p>{{ matchSeo.summary }}</p>
+                  <dl class="cricket-odds__seo-facts">
+                    <div>
+                      <dt>Tournament</dt>
+                      <dd>{{ getSeoTournamentLabel() }}</dd>
+                    </div>
+                    <div>
+                      <dt>Date and time</dt>
+                      <dd>{{ getSeoDateTimeLabel() }}</dd>
+                    </div>
+                    <div>
+                      <dt>Venue</dt>
+                      <dd>{{ getSeoVenueLabel() }}</dd>
+                    </div>
+                  </dl>
+                </article>
+
+                <article class="cricket-odds__seo-detail cricket-odds__seo-detail--score">
+                  <span class="cricket-odds__seo-detail-kicker">Live score block</span>
+                  <h3>{{ matchSeo.teams }} live score today</h3>
+                  <p>{{ getSeoLiveScoreLabel() }}</p>
+                </article>
+
+                <article class="cricket-odds__seo-detail">
+                  <span class="cricket-odds__seo-detail-kicker">Toss update</span>
+                  <h3>Toss update</h3>
+                  <p>{{ getSeoTossLabel() }}</p>
+                </article>
+
+                <article class="cricket-odds__seo-detail">
+                  <span class="cricket-odds__seo-detail-kicker">Playing XI</span>
+                  <h3>Playing XI and team news</h3>
+                  <p>{{ getSeoPlayingXiLabel() }}</p>
+                </article>
+
+                <article class="cricket-odds__seo-detail">
+                  <span class="cricket-odds__seo-detail-kicker">Scorecard</span>
+                  <h3>Scorecard and match result</h3>
+                  <p>{{ getSeoScorecardLabel() }}</p>
+                </article>
+
+                <article class="cricket-odds__seo-detail">
+                  <span class="cricket-odds__seo-detail-kicker">Venue stats</span>
+                  <h3>Venue stats and pitch context</h3>
+                  <p>{{ getSeoVenueStatsLabel() }}</p>
+                </article>
+
+                <article class="cricket-odds__seo-detail">
+                  <span class="cricket-odds__seo-detail-kicker">Team form</span>
+                  <h3>Team form and head-to-head</h3>
+                  <p>{{ getSeoTeamFormLabel() }}</p>
+                </article>
+
+                <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide">
+                  <span class="cricket-odds__seo-detail-kicker">FAQ</span>
+                  <h3>{{ matchSeo.teams }} live score FAQ</h3>
+                  <div class="cricket-odds__faq-list">
+                    <div>
+                      <h4>Where can I follow {{ matchSeo.teams }} live score today?</h4>
+                      <p>Follow {{ matchSeo.teams }} live score today on this page with scorecard, toss update, playing XI, venue stats, and today match live score updates.</p>
+                    </div>
+                    <div>
+                      <h4>When will the toss and playing XI be updated?</h4>
+                      <p>Toss update and playing XI are refreshed when the match feed receives confirmed team news from the official match centre.</p>
+                    </div>
+                    <div>
+                      <h4>Where will the match result be shown?</h4>
+                      <p>{{ getSeoFaqMatchResultAnswer() }}</p>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide cricket-odds__seo-detail--language">
+                  <span class="cricket-odds__seo-detail-kicker">Hindi and Marathi search help</span>
+                  <h3>Aaj ka match live score and Marathi live score</h3>
+                  <p>{{ getSeoLanguageKeywordCopy() }}</p>
+                </article>
+              </section>
+            </details>
+
             <div class="loading-indicator match-tab-state" *ngIf="!matchInfo">
               <mat-spinner></mat-spinner>
-              <p>Loading match info...</p>
+              <p>Loading match details...</p>
             </div>
           </section>
         </mat-tab>

@@ -135,6 +135,57 @@ export function filterUpcomingMatches(matches: MatchCardViewModel[]): MatchCardV
 }
 
 /**
+ * Filter upcoming matches to a forward-looking time window.
+ * Useful for SSR discovery sections that should prioritize the next real fixtures
+ * instead of relying on whichever tab or sitemap slice happens to render first.
+ */
+export function filterUpcomingMatchesInHours(
+  matches: MatchCardViewModel[],
+  minHoursAhead: number,
+  maxHoursAhead: number
+): MatchCardViewModel[] {
+  var now = Date.now();
+  var minMs = Math.max(0, minHoursAhead || 0) * 60 * 60 * 1000;
+  var maxMs = Math.max(minHoursAhead || 0, maxHoursAhead || 0) * 60 * 60 * 1000;
+
+  return matches.filter(function(match) {
+    if (!match || match.status !== MatchStatus.UPCOMING || !match.startTime || isNaN(match.startTime.getTime())) {
+      return false;
+    }
+
+    var delta = match.startTime.getTime() - now;
+    return delta >= minMs && delta <= maxMs;
+  });
+}
+
+/**
+ * Order upcoming matches for SSR discovery so the 12-48 hour pre-match window
+ * is surfaced before same-day crowding, while still keeping nearer fixtures
+ * and the rest of the upcoming feed available behind it.
+ */
+export function prioritizeUpcomingMatchesForDiscovery(
+  matches: MatchCardViewModel[],
+  primaryMinHoursAhead: number,
+  primaryMaxHoursAhead: number
+): MatchCardViewModel[] {
+  var candidates = ([] as MatchCardViewModel[])
+    .concat(filterUpcomingMatchesInHours(matches, primaryMinHoursAhead, primaryMaxHoursAhead))
+    .concat(filterUpcomingMatchesInHours(matches, 0, primaryMinHoursAhead))
+    .concat(filterUpcomingMatches(matches));
+  var seen: { [key: string]: boolean } = {};
+
+  return candidates.filter(function(match) {
+    var href = buildCanonicalMatchPath(match);
+    if (!href || seen[href]) {
+      return false;
+    }
+
+    seen[href] = true;
+    return true;
+  });
+}
+
+/**
  * Filter completed matches
  */
 export function filterCompletedMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {

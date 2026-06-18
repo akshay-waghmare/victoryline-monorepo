@@ -1,7 +1,51 @@
 <div class="container">
   <header class="home__hero">
-    <h1 class="home__title">Match centre</h1>
+    <div class="home__hero-shell">
+      <div class="home__hero-copy">
+        <span class="home__hero-kicker">Cricket live scores</span>
+        <h1 class="home__title">Match centre at a glance</h1>
+        <p class="home__hero-description">
+          See what is live now, what starts next, and which result just landed before you dive into commentary, scorecards, or the full schedule.
+        </p>
+      </div>
+
+      <div class="home__hero-actions">
+        <a routerLink="/live-score" class="home__hero-link">
+          Live scores
+          <i class="material-icons">north_east</i>
+        </a>
+        <a routerLink="/matches" class="home__hero-link home__hero-link--muted">
+          Full schedule
+          <i class="material-icons">chevron_right</i>
+        </a>
+      </div>
+    </div>
   </header>
+
+  <section
+    class="home__glance-strip"
+    *ngIf="!isLoadingMatches && !hasMatchError && glanceCards.length > 0"
+    aria-label="Matches at a glance">
+    <div class="home__glance-intro">
+      <span class="home__section-kicker">At a glance</span>
+      <p class="home__glance-copy">Choose the match lane you want before you drop into commentary, scorecards, or the wider schedule.</p>
+    </div>
+    <button
+      type="button"
+      class="home__glance-card"
+      *ngFor="let card of glanceCards"
+      [attr.data-tone]="card.tone"
+      [class.home__glance-card--active]="activeTab === card.tab"
+      [attr.aria-label]="getGlanceCardAriaLabel(card)"
+      (click)="setActiveTab(card.tab)">
+      <span class="home__glance-kicker">{{ card.title }}</span>
+      <div class="home__glance-metric">
+        <span class="home__glance-value">{{ card.metric }}</span>
+        <span class="home__glance-label">{{ card.metricLabel }}</span>
+      </div>
+      <p class="home__glance-summary">{{ card.summary }}</p>
+    </button>
+  </section>
 
   <section
     id="home-matches-section"
@@ -55,19 +99,6 @@
       </a>
     </div>
 
-    <nav class="home__match-links" aria-label="Cricket live score hubs">
-      <span class="home__match-links-label">Live score hubs</span>
-      <div class="home__match-links-list">
-        <a class="home__match-link" href="/live-score">Cricket live score today</a>
-        <a class="home__match-link" href="/live-cricket-score">Live cricket score</a>
-        <a class="home__match-link" href="/live-score/today">Today match live score</a>
-        <a class="home__match-link" href="/live-score/ipl">IPL live score today</a>
-        <a class="home__match-link" href="/cricket-schedule/today">Cricket schedule today</a>
-        <a class="home__match-link" href="/cricket-schedule/ipl-2026">IPL 2026 schedule</a>
-        <a class="home__match-link" href="/live-score/archive">Match archive</a>
-      </div>
-    </nav>
-
     <div class="home__carousel-wrapper">
       <button
         type="button"
@@ -103,17 +134,83 @@
       Swipe the rail to move quickly across matches.
     </p>
 
-    <nav class="home__match-links" *ngIf="discoveryMatches.length > 0" aria-label="Direct match links">
-      <span class="home__match-links-label">Quick match links</span>
-      <div class="home__match-links-list">
-        <a
-          *ngFor="let match of discoveryMatches; trackBy: trackByMatchId"
-          class="home__match-link"
-          [attr.href]="getMatchHref(match)">
-          {{ getMatchLinkLabel(match) }}
-        </a>
+    <details
+      class="home__seo-drawer"
+      *ngIf="liveDiscoveryMatches.length > 0 || upcomingDiscoveryMatches.length > 0 || recentDiscoveryMatches.length > 0 || discoveryMatches.length > 0"
+      aria-label="More live score pages">
+      <summary class="home__seo-drawer-summary">
+        <span class="home__seo-drawer-title">More live score pages</span>
+        <span class="home__seo-drawer-copy">Keep the top of the page focused, then open the deeper score hubs, previews, and result links only when you need them.</span>
+      </summary>
+
+      <div class="home__seo-drawer-body">
+        <section class="home__discovery-sections" aria-label="Current and upcoming match discovery">
+          <article class="home__discovery-card" *ngIf="liveDiscoveryMatches.length > 0">
+            <span class="home__discovery-kicker">Live now</span>
+            <h2 class="home__discovery-title">Open the matches already in play</h2>
+            <div class="home__match-links-list">
+              <a
+                *ngFor="let match of liveDiscoveryMatches; trackBy: trackByMatchId"
+                class="home__match-link"
+                [attr.href]="getMatchHref(match)">
+                {{ getMatchLinkLabel(match) }}
+              </a>
+            </div>
+          </article>
+
+          <article class="home__discovery-card" *ngIf="upcomingDiscoveryMatches.length > 0">
+            <span class="home__discovery-kicker">Upcoming live scores</span>
+            <h2 class="home__discovery-title">Open match pages before the first ball</h2>
+            <div class="home__match-links-list">
+              <a
+                *ngFor="let match of upcomingDiscoveryMatches; trackBy: trackByMatchId"
+                class="home__match-link"
+                [attr.href]="getMatchHref(match)">
+                {{ getMatchLinkLabel(match) }}
+              </a>
+            </div>
+          </article>
+
+          <article class="home__discovery-card" *ngIf="recentDiscoveryMatches.length > 0">
+            <span class="home__discovery-kicker">Recently completed</span>
+            <h2 class="home__discovery-title">Jump into the latest result pages</h2>
+            <div class="home__match-links-list">
+              <a
+                *ngFor="let match of recentDiscoveryMatches; trackBy: trackByMatchId"
+                class="home__match-link"
+                [attr.href]="getMatchHref(match)">
+                {{ getMatchLinkLabel(match) }}
+              </a>
+            </div>
+          </article>
+        </section>
+
+        <nav class="home__match-links" aria-label="Cricket live score hubs">
+          <span class="home__match-links-label">Explore more score hubs</span>
+          <div class="home__match-links-list">
+            <a class="home__match-link" href="/live-score">Cricket live score today</a>
+            <a class="home__match-link" href="/live-cricket-score">Live cricket score</a>
+            <a class="home__match-link" href="/live-score/today">Today match live score</a>
+            <a class="home__match-link" href="/live-score/ipl">IPL live score today</a>
+            <a class="home__match-link" href="/cricket-schedule/today">Cricket schedule today</a>
+            <a class="home__match-link" href="/cricket-schedule/ipl-2026">IPL 2026 schedule</a>
+            <a class="home__match-link" href="/live-score/archive">Match archive</a>
+          </div>
+        </nav>
+
+        <nav class="home__match-links" *ngIf="discoveryMatches.length > 0" aria-label="Direct match links">
+          <span class="home__match-links-label">Quick match links</span>
+          <div class="home__match-links-list">
+            <a
+              *ngFor="let match of discoveryMatches; trackBy: trackByMatchId"
+              class="home__match-link"
+              [attr.href]="getMatchHref(match)">
+              {{ getMatchLinkLabel(match) }}
+            </a>
+          </div>
+        </nav>
       </div>
-    </nav>
+    </details>
   </section>
 
   <section class="home__state home__state--loading" *ngIf="isLoadingMatches">

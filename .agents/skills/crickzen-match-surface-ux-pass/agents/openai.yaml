@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crickzen Match Surface UX Pass"
+  short_description: "Clean crowded match surfaces without breaking SSR SEO."
+  default_prompt: "Use this skill to clean Crickzen homepage, matches, live-score hub, or match-detail surfaces when SEO support is crowding the first-view UX, at-a-glance context is missing, or competitor comparison is needed without changing canonicals."

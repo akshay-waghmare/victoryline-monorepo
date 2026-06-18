@@ -81,4 +81,33 @@ describe('MatchDetailsInfoComponent', () => {
       { label: 'Lowest score', firstValue: '82', secondValue: '65', winner: 'tied' }
     ]);
   });
+
+  it('uses fixture-focused summary cards for upcoming matches', () => {
+    component.matchInfo = {
+      match_status: 'UPCOMING',
+      match_date: '2026-06-19T00:30:00Z',
+      venue: 'Grand Prairie Stadium',
+      playing_xi: null,
+      series_name: 'Major League Cricket 2026'
+    };
+
+    expect(component.summaryEyebrow).toBe('At a glance');
+    expect(component.summaryContext).toBe('Major League Cricket 2026');
+    expect(component.summaryCards[0].label).toBe('Starts');
+    expect(component.summaryCards.some(function(card) { return card.label === 'Lineups' && card.value === 'Playing XI pending'; })).toBe(true);
+    expect(component.summaryNarrative.indexOf('Scheduled for') === 0).toBe(true);
+  });
+
+  it('surfaces result-first summary cards for completed matches', () => {
+    component.matchInfo = {
+      match_status: 'COMPLETED',
+      final_result_text: 'Team One won by 5 wickets',
+      venue: 'Grand Prairie Stadium',
+      series_name: 'Major League Cricket 2026'
+    };
+
+    expect(component.summaryCards[0].label).toBe('Result');
+    expect(component.summaryCards[0].value).toBe('Team One won by 5 wickets');
+    expect(component.summaryNarrative).toBe('Team One won by 5 wickets');
+  });
 });

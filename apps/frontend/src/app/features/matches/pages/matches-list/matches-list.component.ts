@@ -18,6 +18,7 @@ import {
   filterMatchesByStatus, 
   searchMatches, 
   filterLiveMatches, 
+  prioritizeUpcomingMatchesForDiscovery,
   filterUpcomingMatches, 
   filterCompletedMatches 
 } from '../../../../core/utils/match-utils';
@@ -53,6 +54,9 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   visibleMatches: MatchCardViewModel[] = [];
   upcomingMatchGroups: { label: string; matches: MatchCardViewModel[] }[] = [];
   crawlableMatches: MatchCardViewModel[] = [];
+  liveDiscoveryMatches: MatchCardViewModel[] = [];
+  upcomingDiscoveryMatches: MatchCardViewModel[] = [];
+  recentDiscoveryMatches: MatchCardViewModel[] = [];
   
   // Loading states
   isLoading = true;
@@ -151,7 +155,17 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     this.upcomingMatchGroups = this.selectedStatus === MatchStatus.UPCOMING
       ? this.buildUpcomingGroups(this.visibleMatches)
       : [];
-    this.crawlableMatches = this.visibleMatches.filter(match => !!buildCanonicalMatchPath(match)).slice(0, 48);
+    this.liveDiscoveryMatches = this.uniqueMatches(filterLiveMatches(this.allMatches), 8);
+    this.upcomingDiscoveryMatches = this.uniqueMatches(
+      prioritizeUpcomingMatchesForDiscovery(this.allMatches, 12, 48),
+      16
+    );
+    this.recentDiscoveryMatches = this.uniqueMatches(filterCompletedMatches(this.allMatches), 8);
+    this.crawlableMatches = this.uniqueMatches(([] as MatchCardViewModel[])
+      .concat(this.liveDiscoveryMatches)
+      .concat(this.upcomingDiscoveryMatches)
+      .concat(this.recentDiscoveryMatches)
+      .concat(this.visibleMatches), 48);
   }
   
   /**
@@ -325,6 +339,18 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     return buildCanonicalMatchLinkLabel(match);
   }
 
+  getStatusCardSummary(status: MatchStatus): string {
+    switch (status) {
+      case MatchStatus.UPCOMING:
+        return this.buildUpcomingStatusSummary();
+      case MatchStatus.COMPLETED:
+        return this.buildCompletedStatusSummary();
+      case MatchStatus.LIVE:
+      default:
+        return this.buildLiveStatusSummary();
+    }
+  }
+
   getEmptyStateMessage(): string {
     if (this.searchQuery) {
       return 'No matches found';
@@ -457,6 +483,104 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     });
 
     return Object.keys(groups).map(key => groups[key]);
+  }
+
+  private uniqueMatches(matches: MatchCardViewModel[], limit: number): MatchCardViewModel[] {
+    const seen: { [key: string]: boolean } = {};
+
+    return (matches || []).filter(match => {
+      const href = buildCanonicalMatchPath(match);
+      if (!href || seen[href]) {
+        return false;
+      }
+
+      seen[href] = true;
+      return true;
+    }).slice(0, limit);
+  }
+
+  private buildLiveStatusSummary(): string {
+    var match = filterLiveMatches(this.allMatches)[0];
+    if (!match) {
+      return 'Open the live lane as soon as a tracked match begins.';
+    }
+
+    var scoreline = this.getCompactScoreline(match);
+    if (scoreline) {
+      return this.getCompactTeams(match) + ' is live. ' + scoreline + '.';
+    }
+
+    return this.getCompactTeams(match) + ' is live now.';
+  }
+
+  private buildUpcomingStatusSummary(): string {
+    var match = prioritizeUpcomingMatchesForDiscovery(this.allMatches, 0, 48)[0];
+    if (!match) {
+      return 'Upcoming start times and venues will show here when fixtures arrive.';
+    }
+
+    return this.getCompactTeams(match) + ' starts ' + this.getCompactStartLabel(match) + this.getCompactVenueSuffix(match) + '.';
+  }
+
+  private buildCompletedStatusSummary(): string {
+    var match = filterCompletedMatches(this.allMatches)[0];
+    if (!match) {
+      return 'Fresh results will appear here once tracked matches finish.';
+    }
+
+    if (match.resultSummary) {
+      return match.resultSummary;
+    }
+
+    return this.getCompactTeams(match) + ' has a completed scorecard ready to open.';
+  }
+
+  private getCompactTeams(match: MatchCardViewModel): string {
+    return this.getTeamLabel(match.team1 && (match.team1.shortName || match.team1.name))
+      + ' vs '
+      + this.getTeamLabel(match.team2 && (match.team2.shortName || match.team2.name));
+  }
+
+  private getTeamLabel(value: string | undefined): string {
+    return value || 'Match';
+  }
+
+  private getCompactStartLabel(match: MatchCardViewModel): string {
+    if (match.timeDisplay) {
+      return match.timeDisplay;
+    }
+
+    try {
+      return new Date(match.startTime).toLocaleString('en-IN', {
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        month: 'short'
+      });
+    } catch (error) {
+      return 'soon';
+    }
+  }
+
+  private getCompactVenueSuffix(match: MatchCardViewModel): string {
+    return match.venue ? ' at ' + match.venue : '';
+  }
+
+  private getCompactScoreline(match: MatchCardViewModel): string | null {
+    if (match.team1 && match.team1.score && match.team2 && match.team2.score) {
+      return match.team1.shortName + ' ' + match.team1.score.displayText + ' | '
+        + match.team2.shortName + ' ' + match.team2.score.displayText;
+    }
+
+    if (match.team1 && match.team1.score) {
+      return match.team1.shortName + ' ' + match.team1.score.displayText;
+    }
+
+    if (match.team2 && match.team2.score) {
+      return match.team2.shortName + ' ' + match.team2.score.displayText;
+    }
+
+    return null;
   }
 
   get canLoadMore(): boolean {

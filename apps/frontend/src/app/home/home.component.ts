@@ -16,12 +16,21 @@ import { Subscription } from 'rxjs';
 
 import { BlogListService, BlogPost } from '../component/blog-list.service';
 import { NewsItem, NewsService } from '../component/news.service';
-import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractSlugFromUrl, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches } from '../core/utils/match-utils';
-import { MatchCardViewModel } from '../features/matches/models/match-card.models';
+import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractSlugFromUrl, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches, prioritizeUpcomingMatchesForDiscovery } from '../core/utils/match-utils';
+import { MatchCardViewModel, MatchStatus } from '../features/matches/models/match-card.models';
 import { MatchesService } from '../features/matches/services/matches.service';
 import { MetaTagsService } from '../seo/meta-tags.service';
 
 type HomeTab = 'live' | 'upcoming' | 'results';
+
+interface HomeGlanceCard {
+  metric: string;
+  metricLabel: string;
+  summary: string;
+  tab: HomeTab;
+  title: string;
+  tone: 'live' | 'upcoming' | 'results';
+}
 
 @Component({
   selector: 'app-home',
@@ -41,9 +50,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   liveMatches: MatchCardViewModel[] = [];
   upcomingMatches: MatchCardViewModel[] = [];
+  allUpcomingMatches: MatchCardViewModel[] = [];
   recentMatches: MatchCardViewModel[] = [];
   activeMatches: MatchCardViewModel[] = [];
   discoveryMatches: MatchCardViewModel[] = [];
+  liveDiscoveryMatches: MatchCardViewModel[] = [];
+  upcomingDiscoveryMatches: MatchCardViewModel[] = [];
+  recentDiscoveryMatches: MatchCardViewModel[] = [];
+  glanceCards: HomeGlanceCard[] = [];
 
   isLoadingMatches = true;
   hasMatchError = false;
@@ -128,7 +142,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
       (matches) => {
         this.liveMatches = filterLiveMatches(matches);
-        this.upcomingMatches = filterUpcomingMatches(matches).slice(0, 6);
+        this.allUpcomingMatches = filterUpcomingMatches(matches);
+        this.upcomingMatches = this.allUpcomingMatches.slice(0, 6);
         this.recentMatches = filterCompletedMatches(matches).slice(0, 6);
 
         if (this.isLoadingMatches) {
@@ -143,8 +158,10 @@ export class HomeComponent implements OnInit, OnDestroy {
         console.error('Error loading matches:', error);
         this.liveMatches = [];
         this.upcomingMatches = [];
+        this.allUpcomingMatches = [];
         this.recentMatches = [];
         this.activeMatches = [];
+        this.glanceCards = [];
         this.totalTrackedMatches = 0;
         this.hasMatchError = true;
         this.isLoadingMatches = false;
@@ -226,6 +243,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     return buildCanonicalMatchLinkLabel(match);
   }
 
+  getGlanceCardAriaLabel(card: HomeGlanceCard): string {
+    return card.title + '. ' + card.metric + ' ' + card.metricLabel + '. ' + card.summary;
+  }
+
   updateMetaTagsForMatch(match: MatchCardViewModel): void {
     const title = match.team1.name + ' vs ' + match.team2.name + ' - ' + match.displayStatus;
     const description = 'Live cricket score: ' + match.team1.name + ' vs ' + match.team2.name + ' at ' + match.venue;
@@ -279,8 +300,18 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private refreshHomeState(): void {
+    var discoveryUpcomingSource = this.allUpcomingMatches && this.allUpcomingMatches.length > 0
+      ? this.allUpcomingMatches
+      : this.upcomingMatches;
     this.totalTrackedMatches = this.liveMatches.length + this.upcomingMatches.length + this.recentMatches.length;
     this.syncActiveMatches();
+    this.liveDiscoveryMatches = this.uniqueDiscoveryMatches(this.liveMatches, 6);
+    this.upcomingDiscoveryMatches = this.uniqueDiscoveryMatches(
+      prioritizeUpcomingMatchesForDiscovery(discoveryUpcomingSource, 12, 48),
+      12
+    );
+    this.recentDiscoveryMatches = this.uniqueDiscoveryMatches(this.recentMatches, 4);
+    this.glanceCards = this.buildGlanceCards();
     this.discoveryMatches = this.buildDiscoveryMatches();
     this.updateCarouselControlsSoon();
     this.changeDetectorRef.markForCheck();
@@ -313,18 +344,75 @@ export class HomeComponent implements OnInit, OnDestroy {
     return 'results';
   }
 
-  private buildDiscoveryMatches(): MatchCardViewModel[] {
-    var candidates = ([] as MatchCardViewModel[])
-      .concat(this.liveMatches.slice(0, 8))
-      .concat(this.upcomingMatches.slice(0, 8));
+  private buildGlanceCards(): HomeGlanceCard[] {
+    var cards: HomeGlanceCard[] = [];
 
-    if (candidates.length === 0) {
-      candidates = candidates.concat(this.recentMatches.slice(0, 8));
+    if (this.liveMatches.length > 0) {
+      cards.push({
+        metric: String(this.liveMatches.length),
+        metricLabel: this.liveMatches.length === 1 ? 'match in play' : 'matches in play',
+        summary: this.buildLiveGlanceSummary(this.liveMatches[0]),
+        tab: 'live',
+        title: 'Live now',
+        tone: 'live'
+      });
     }
 
+    if (this.upcomingMatches.length > 0) {
+      cards.push({
+        metric: String(this.upcomingMatches.length),
+        metricLabel: this.upcomingMatches.length === 1 ? 'match starting next' : 'matches coming up',
+        summary: this.buildUpcomingGlanceSummary(this.getLeadUpcomingMatch()),
+        tab: 'upcoming',
+        title: 'Up next',
+        tone: 'upcoming'
+      });
+    }
+
+    if (this.recentMatches.length > 0) {
+      cards.push({
+        metric: String(this.recentMatches.length),
+        metricLabel: this.recentMatches.length === 1 ? 'result ready' : 'results ready',
+        summary: this.buildRecentGlanceSummary(this.recentMatches[0]),
+        tab: 'results',
+        title: 'Latest result',
+        tone: 'results'
+      });
+    }
+
+    return cards;
+  }
+
+  private buildDiscoveryMatches(): MatchCardViewModel[] {
+    var liveMatches = this.liveDiscoveryMatches && this.liveDiscoveryMatches.length > 0
+      ? this.liveDiscoveryMatches
+      : this.uniqueDiscoveryMatches(this.liveMatches, 6);
+    var upcomingMatches = this.upcomingDiscoveryMatches && this.upcomingDiscoveryMatches.length > 0
+      ? this.upcomingDiscoveryMatches
+      : this.uniqueDiscoveryMatches(prioritizeUpcomingMatchesForDiscovery(
+        this.allUpcomingMatches && this.allUpcomingMatches.length > 0 ? this.allUpcomingMatches : this.upcomingMatches,
+        12,
+        48
+      ), 12);
+    var recentMatches = this.recentDiscoveryMatches && this.recentDiscoveryMatches.length > 0
+      ? this.recentDiscoveryMatches
+      : this.uniqueDiscoveryMatches(this.recentMatches, 4);
+
+    var candidates = ([] as MatchCardViewModel[])
+      .concat(liveMatches)
+      .concat(upcomingMatches);
+
+    if (candidates.length === 0) {
+      candidates = candidates.concat(recentMatches);
+    }
+
+    return this.uniqueDiscoveryMatches(candidates.concat(recentMatches), 20);
+  }
+
+  private uniqueDiscoveryMatches(matches: MatchCardViewModel[], limit: number): MatchCardViewModel[] {
     var seen: { [key: string]: boolean } = {};
 
-    return candidates.filter(match => {
+    return (matches || []).filter(match => {
       var href = buildCanonicalMatchPath(match);
       if (!href || seen[href]) {
         return false;
@@ -332,7 +420,116 @@ export class HomeComponent implements OnInit, OnDestroy {
 
       seen[href] = true;
       return true;
-    }).slice(0, 20);
+    }).slice(0, limit);
+  }
+
+  private getLeadUpcomingMatch(): MatchCardViewModel | null {
+    var prioritized = prioritizeUpcomingMatchesForDiscovery(
+      this.allUpcomingMatches && this.allUpcomingMatches.length > 0 ? this.allUpcomingMatches : this.upcomingMatches,
+      0,
+      48
+    );
+
+    if (prioritized.length > 0) {
+      return prioritized[0];
+    }
+
+    return this.upcomingMatches.length > 0 ? this.upcomingMatches[0] : null;
+  }
+
+  private buildLiveGlanceSummary(match: MatchCardViewModel | null | undefined): string {
+    if (!match) {
+      return 'A live score card will appear here as soon as a tracked match starts.';
+    }
+
+    var scoreline = this.getCompactScoreline(match);
+    var venue = this.getCompactVenue(match);
+    var teams = this.getCompactTeams(match);
+
+    if (scoreline) {
+      return teams + ' is live' + (venue ? ' at ' + venue : '') + '. ' + scoreline + '.';
+    }
+
+    return teams + ' is live' + (venue ? ' at ' + venue : '') + '.';
+  }
+
+  private buildUpcomingGlanceSummary(match: MatchCardViewModel | null): string {
+    if (!match) {
+      return 'Upcoming start times and venues will appear here as soon as the feed has them.';
+    }
+
+    var timeLabel = this.getCompactStartLabel(match);
+    var venue = this.getCompactVenue(match);
+
+    return this.getCompactTeams(match) + ' starts ' + timeLabel + (venue ? ' at ' + venue : '') + '.';
+  }
+
+  private buildRecentGlanceSummary(match: MatchCardViewModel | null | undefined): string {
+    if (!match) {
+      return 'Recent results will appear here once a tracked match finishes.';
+    }
+
+    if (match.resultSummary) {
+      return match.resultSummary;
+    }
+
+    return this.getCompactTeams(match) + ' has a completed scorecard ready to open.';
+  }
+
+  private getCompactTeams(match: MatchCardViewModel): string {
+    return this.getTeamLabel(match.team1 && match.team1.shortName ? match.team1.shortName : match.team1 && match.team1.name)
+      + ' vs '
+      + this.getTeamLabel(match.team2 && match.team2.shortName ? match.team2.shortName : match.team2 && match.team2.name);
+  }
+
+  private getTeamLabel(value: string | undefined): string {
+    return value || 'Match';
+  }
+
+  private getCompactVenue(match: MatchCardViewModel): string {
+    return match && match.venue ? match.venue : '';
+  }
+
+  private getCompactStartLabel(match: MatchCardViewModel): string {
+    if (match && match.timeDisplay) {
+      return match.timeDisplay;
+    }
+
+    if (!match || !match.startTime) {
+      return 'soon';
+    }
+
+    try {
+      return new Date(match.startTime).toLocaleString('en-IN', {
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        month: 'short'
+      });
+    } catch (error) {
+      return 'soon';
+    }
+  }
+
+  private getCompactScoreline(match: MatchCardViewModel): string | null {
+    if (!match) {
+      return null;
+    }
+
+    if (match.status === MatchStatus.LIVE && match.team1 && match.team1.score && match.team2 && match.team2.score) {
+      return match.team1.shortName + ' ' + match.team1.score.displayText + ' | '
+        + match.team2.shortName + ' ' + match.team2.score.displayText;
+    }
+
+    if (match.team1 && match.team1.score) {
+      return match.team1.shortName + ' ' + match.team1.score.displayText;
+    }
+
+    if (match.team2 && match.team2.score) {
+      return match.team2.shortName + ' ' + match.team2.score.displayText;
+    }
+
+    return null;
   }
 
   private bindCarousel(element: HTMLDivElement | null): void {

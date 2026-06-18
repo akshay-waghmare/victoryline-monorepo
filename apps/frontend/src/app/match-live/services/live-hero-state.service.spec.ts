@@ -1,7 +1,10 @@
 import { NgZone } from '@angular/core';
 import { of, Subject } from 'rxjs';
 
-import { buildLegacyCricketTopicPaths } from '../../core/utils/cricket-websocket-topics';
+import {
+  buildCricketLiveTopicPaths,
+  buildCricketSnapshotTopicPath
+} from '../../core/utils/cricket-websocket-topics';
 import { LiveHeroStateService } from './live-hero-state.service';
 
 describe('LiveHeroStateService websocket handling', () => {
@@ -68,14 +71,31 @@ describe('LiveHeroStateService websocket handling', () => {
     spyOn<any>(service, 'isBrowser').and.returnValue(true);
   });
 
-  it('subscribes to explicit legacy topics instead of wildcard destinations', () => {
+  it('subscribes to the merged snapshot and explicit legacy topics instead of wildcard destinations', () => {
     service.init('match-1');
 
     const watchedTopics = rxStomp.watch.calls.allArgs().map((args: any[]) => args[0]);
-    const expectedTopics = buildLegacyCricketTopicPaths('match-1');
+    const expectedTopics = buildCricketLiveTopicPaths('match-1');
 
     expect(watchedTopics).toEqual(expectedTopics);
     expect(watchedTopics).not.toContain('/topic/cricket.match-1.*');
+  });
+
+  it('merges a complete snapshot payload into the live hero', () => {
+    let latestView: any = null;
+    service.view$.subscribe((view) => {
+      latestView = view;
+    });
+    service.init('match-1');
+
+    topicSubjects[buildCricketSnapshotTopicPath('match-1')].next({
+      body: '{"score":"31-2","over":4.3,"battingTeamName":"MI"}'
+    });
+
+    expect(latestView.score.runs).toBe(31);
+    expect(latestView.score.wickets).toBe(2);
+    expect(latestView.score.overs).toBe('4.3');
+    expect(latestView.score.teamName).toBe('MI');
   });
 
   it('re-enters Angular zone when a websocket payload arrives', () => {
@@ -104,6 +124,6 @@ describe('LiveHeroStateService websocket handling', () => {
 
     service.manualRetry();
 
-    expect(rxStomp.watch.calls.count()).toBe(buildLegacyCricketTopicPaths('match-1').length);
+    expect(rxStomp.watch.calls.count()).toBe(buildCricketLiveTopicPaths('match-1').length);
   });
 });
