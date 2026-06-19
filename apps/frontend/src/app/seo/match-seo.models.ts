@@ -12,6 +12,7 @@ export interface MatchSeoViewModel {
   team1: string;
   team2: string;
   series: string;
+  breadcrumbSeries: string;
   statusLabel: string;
   summary: string;
   isIndexable: boolean;

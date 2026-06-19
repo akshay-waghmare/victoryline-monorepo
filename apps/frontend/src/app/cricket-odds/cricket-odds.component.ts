@@ -2954,8 +2954,8 @@ private titleCaseSlug(value: string): string {
     }
 
     var breadcrumbs = this.structuredDataService.breadcrumbs([
-      { name: 'Home', url: 'https://www.crickzen.com/' },
-      { name: 'Matches', url: 'https://www.crickzen.com/matches' },
+      { name: 'Cricket', url: 'https://www.crickzen.com/matches' },
+      { name: this.matchSeo.breadcrumbSeries, url: 'https://www.crickzen.com/series' },
       { name: this.matchSeo.teams, url: this.matchSeo.canonicalUrl }
     ]);
     var items: any[] = [breadcrumbs];

@@ -79,4 +79,38 @@ describe('MatchSeoService canonical lifecycle', () => {
     expect(unresolved.robots).toBe('noindex,follow');
     expect(unresolved.isIndexable).toBe(false);
   });
+
+  it('keeps full team names in concise metadata without literal truncation', () => {
+    var seo = service.build({
+      routeSlug: 'so-vs-tsk-1st-match-major-league-cricket-2026-match-updates-110W',
+      requestedPath: '/cric-live/so-vs-tsk-1st-match-major-league-cricket-2026-match-updates-110W',
+      matchInfo: {
+        team1_name: 'Texas Super Kings',
+        team2_name: 'Seattle Orcas',
+        match_status: 'Upcoming',
+        series_name: 'Major League Cricket 2026'
+      }
+    });
+
+    expect(seo.title).toBe('Texas Super Kings vs Seattle Orcas Live Score & Match Updates');
+    expect(seo.description).toBe('Follow Texas Super Kings vs Seattle Orcas live score, scorecard, toss, playing XI, venue and result in Major League Cricket 2026.');
+    expect(seo.title).not.toContain('...');
+    expect(seo.description).not.toContain('...');
+  });
+
+  it('uses the canonical slug series when the schedule feed series is polluted', () => {
+    var seo = service.build({
+      routeSlug: 'so-vs-tsk-1st-match-major-league-cricket-2026-match-updates-110W',
+      requestedPath: '/cric-live/so-vs-tsk-1st-match-major-league-cricket-2026-match-updates-110W',
+      matchInfo: {
+        team1_name: 'Texas Super Kings',
+        team2_name: 'Seattle Orcas',
+        match_status: 'Upcoming',
+        series_name: 'Texas Super Kings 12:30 AM 1stT20, MLC 2026 Seattle Orcas'
+      }
+    });
+
+    expect(seo.series).toBe('Major League Cricket 2026');
+    expect(seo.breadcrumbSeries).toBe('Major League Cricket');
+  });
 });

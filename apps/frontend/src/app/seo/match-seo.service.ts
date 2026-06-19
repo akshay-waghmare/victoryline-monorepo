@@ -51,12 +51,19 @@ export class MatchSeoService {
     const canonicalDecision = evaluateMatchCanonicalPolicy(routeIntent);
     const canonicalPath = canonicalDecision.canonicalPath || normalizedRoutePath || requestedPath || '/matches';
     const isIndexable = isValidSlug && canonicalDecision.robots === 'index,follow' && !(input.isFallback && isNumericRoute);
-    const suffix = isCompleted ? ' Match Result, Scorecard & Updates' : ' Live Score Today, Scorecard & Match Updates';
-    const title = isIndexable ? this.truncateTitle(teams, suffix) : 'Cricket Match Not Available | Crickzen';
-    const series = this.cleanSeries(matchInfo.series_name || (input.currentMatch && input.currentMatch.seriesName) || (parsed && parsed.series) || '');
+    const title = isIndexable
+      ? `${teams}${isCompleted ? ' Match Result & Scorecard' : ' Live Score & Match Updates'}`
+      : 'Cricket Match Not Available | Crickzen';
+    const series = this.resolveSeries(
+      matchInfo.series_name || (input.currentMatch && input.currentMatch.seriesName) || '',
+      parsed && parsed.series,
+      team1,
+      team2
+    );
+    const breadcrumbSeries = this.getBreadcrumbSeries(series);
     const ogImageUrl = this.host + getOgImageForMatch(sourceSlug || routeSlug || 'match');
     const description = isIndexable
-      ? this.truncateDescription(`Follow ${teams} live score, scorecard, toss update, playing XI, venue stats and match result for today's cricket match${series ? ` in ${series}` : ''}.`)
+      ? this.buildDescription(teams, series, isCompleted)
       : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
     const canonicalUrl = this.host + canonicalPath;
     const h1 = isIndexable ? `${teams}${isCompleted ? ' Match Result & Scorecard' : ' Live Score Today'}` : 'Cricket match not available';
@@ -76,6 +83,7 @@ export class MatchSeoService {
       team1: team1 || 'Team A',
       team2: team2 || 'Team B',
       series,
+      breadcrumbSeries,
       statusLabel,
       summary,
       isIndexable,
@@ -185,8 +193,7 @@ export class MatchSeoService {
 
   private formatSeriesTokens(tokens: string[]): string {
     const cleaned = tokens.join('-')
-      .replace(/-?match-updates-[a-z0-9]+$/i, '')
-      .replace(/-?[a-z0-9]{3,5}$/i, '');
+      .replace(/-?match-updates-[a-z0-9]+$/i, '');
 
     return cleaned
       .split('-')
@@ -221,9 +228,32 @@ export class MatchSeoService {
 
   private cleanSeries(value: string): string {
     return this.cleanName(value)
+      .replace(/^\d+(st|nd|rd|th)\s+(match|t20i?|odi|test)\s+/i, '')
       .replace(/\bmatch updates\b.*$/i, '')
-      .replace(/\s+\b[A-Z0-9]{3,5}\b$/i, '')
       .trim();
+  }
+
+  private resolveSeries(rawSeries: string, parsedSeries: string | null, team1: string, team2: string): string {
+    const cleanedRaw = this.cleanSeries(rawSeries);
+    const cleanedParsed = this.cleanSeries(parsedSeries || '');
+    const normalizedRaw = cleanedRaw.toLowerCase();
+    const containsBothTeams = !!(
+      team1
+      && team2
+      && normalizedRaw.indexOf(team1.toLowerCase()) !== -1
+      && normalizedRaw.indexOf(team2.toLowerCase()) !== -1
+    );
+    const looksLikeScheduleRow = /\b\d{1,2}:\d{2}\s*(am|pm)\b/i.test(cleanedRaw);
+
+    if ((containsBothTeams || looksLikeScheduleRow) && cleanedParsed) {
+      return cleanedParsed;
+    }
+
+    return cleanedRaw || cleanedParsed;
+  }
+
+  private getBreadcrumbSeries(series: string): string {
+    return this.cleanName(series).replace(/\s+\d{4}$/i, '').trim() || 'Cricket Series';
   }
 
   private getStatusLabel(matchInfo: any, currentMatch: any): string {
@@ -233,20 +263,12 @@ export class MatchSeoService {
     return String(status).replace(/_/g, ' ');
   }
 
-  private truncateTitle(teams: string, suffix: string): string {
-    const full = teams + suffix;
-    if (full.length <= 60) {
-      return full;
+  private buildDescription(teams: string, series: string, isCompleted: boolean): string {
+    if (isCompleted) {
+      return `Get ${teams} match result, final scorecard, innings summary, venue details and updates${series ? ` from ${series}` : ''}.`;
     }
 
-    const maxTeamsLength = Math.max(12, 60 - suffix.length - 3);
-    const truncated = teams.substring(0, maxTeamsLength);
-    const lastSpace = truncated.lastIndexOf(' ');
-    return (lastSpace > 8 ? truncated.substring(0, lastSpace) : truncated).trim() + '...' + suffix;
-  }
-
-  private truncateDescription(value: string): string {
-    return value.length > 170 ? value.substring(0, 167).trim() + '...' : value;
+    return `Follow ${teams} live score, scorecard, toss, playing XI, venue and result${series ? ` in ${series}` : ''}.`;
   }
 
   private buildSummary(teams: string, series: string, statusLabel: string, isCompleted: boolean): string {

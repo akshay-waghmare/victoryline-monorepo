@@ -182,6 +182,12 @@ foreach ($url in $urls) {
   $jsonLdCount = Count-Matches $html "application/ld\+json"
   $jsonLdItems = Get-JsonLdItems $html
   $sportsEvents = @($jsonLdItems | Where-Object { $_.'@type' -eq "SportsEvent" })
+  $breadcrumbLists = @($jsonLdItems | Where-Object { $_.'@type' -eq "BreadcrumbList" })
+  $breadcrumbNames = @()
+  if ($breadcrumbLists.Count -gt 0) {
+    $breadcrumbNames = @($breadcrumbLists[0].itemListElement | ForEach-Object { $_.name })
+  }
+  $breadcrumbTrail = $breadcrumbNames -join " > "
   $sportsEventsMissingLocation = @($sportsEvents | Where-Object { -not $_.location }).Count
   $sportsEventsMissingStartDate = @($sportsEvents | Where-Object { -not $_.startDate }).Count
   $invalidJsonLdCount = @($jsonLdItems | Where-Object { $_.invalidJsonLd }).Count
@@ -204,9 +210,14 @@ foreach ($url in $urls) {
   if (-not $validSlug -and $robots -notmatch "noindex") { $flags += "INVALID_NOT_NOINDEX" }
   if ($h1Count -ne 1) { $flags += "H1_COUNT_$h1Count" }
   if ($title -match "Team A|Team B") { $flags += "PLACEHOLDER_TITLE" }
+  if ($title -match "\.\.\.") { $flags += "TITLE_LITERAL_ELLIPSIS" }
+  if ($description -match "\.\.\.") { $flags += "DESCRIPTION_LITERAL_ELLIPSIS" }
   if ($canonical -match "/cric-live/\d+$" -and $robots -notmatch "noindex") { $flags += "NUMERIC_INDEXABLE" }
   if ($validSlug -and -not $ogImage) { $flags += "OG_IMAGE_MISSING" }
   if ($invalidJsonLdCount -gt 0) { $flags += "JSONLD_PARSE_ERROR" }
+  if ($validSlug -and $breadcrumbLists.Count -eq 0) { $flags += "BREADCRUMB_MISSING" }
+  if ($validSlug -and $breadcrumbNames.Count -gt 0 -and $breadcrumbNames[0] -ne "Cricket") { $flags += "BREADCRUMB_ROOT_NOT_CRICKET" }
+  if ($validSlug -and $breadcrumbNames.Count -gt 1 -and $breadcrumbNames[1] -eq "Matches") { $flags += "BREADCRUMB_SERIES_MISSING" }
   if ($sportsEventsMissingLocation -gt 0) { $flags += "SPORTSEVENT_LOCATION_MISSING" }
   if ($sportsEventsMissingStartDate -gt 0) { $flags += "SPORTSEVENT_STARTDATE_MISSING" }
   if (($absolutePath -eq "/" -or $absolutePath -eq "/matches") -and $internalMatchLinks -eq 0) { $flags += "NO_INTERNAL_MATCH_LINKS" }
@@ -227,6 +238,7 @@ foreach ($url in $urls) {
     OgImage = $ogImage
     TwitterTags = $twitterCount
     JsonLd = $jsonLdCount
+    BreadcrumbTrail = $breadcrumbTrail
     SportsEvents = $sportsEvents.Count
     SportsEventsMissingLocation = $sportsEventsMissingLocation
     SportsEventsMissingStartDate = $sportsEventsMissingStartDate
@@ -235,7 +247,7 @@ foreach ($url in $urls) {
 }
 
 $table = $results |
-  Select-Object Url, Status, Canonical, ExpectedCanonical, CanonicalRouteOutcome, Robots, H1Count, WordCount, InternalMatchLinks, JsonLd, SportsEvents, SportsEventsMissingLocation, SportsEventsMissingStartDate, Flags |
+  Select-Object Url, Status, Canonical, ExpectedCanonical, CanonicalRouteOutcome, Robots, H1Count, WordCount, InternalMatchLinks, JsonLd, BreadcrumbTrail, SportsEvents, SportsEventsMissingLocation, SportsEventsMissingStartDate, Flags |
   Format-Table -AutoSize |
   Out-String -Width 320
 $routeSummary = $results |
