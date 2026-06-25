@@ -161,6 +161,25 @@ export class StructuredDataService {
     });
   }
 
+  getPageSchemas(): JsonLd[] {
+    if (!this.document || !this.document.head) {
+      return [];
+    }
+
+    const nodes = this.document.head.querySelectorAll('script[data-schema="crickzen-jsonld"]');
+    const items: JsonLd[] = [];
+    Array.prototype.forEach.call(nodes, (node) => {
+      if (node && node.text) {
+        try {
+          items.push(JSON.parse(node.text));
+        } catch (e) {
+          // Ignore unparseable script nodes
+        }
+      }
+    });
+    return items;
+  }
+
   private toEventStatusUrl(status: 'Scheduled' | 'LiveEvent' | 'EventCompleted'): string {
     switch (status) {
       case 'LiveEvent':

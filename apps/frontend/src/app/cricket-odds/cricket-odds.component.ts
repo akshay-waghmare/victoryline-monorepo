@@ -2937,10 +2937,39 @@ private titleCaseSlug(value: string): string {
   private updateStructuredData(): void {
     var items = this.buildStructuredDataItems();
     if (items && items.length > 0) {
+      // On the browser, if the SSR-injected JSON-LD already contains a
+      // SportsEvent but the client-side rebuild does not (because API calls
+      // to /api/ are blocked by robots.txt in Google's renderer), preserve
+      // the SSR schemas rather than wiping them. This prevents hydration
+      // from destroying the SportsEvent rich-result eligibility that SSR
+      // correctly established.
+      if (this.isBrowser()) {
+        var hasSportsEvent = items.some(function(item) {
+          return item && item['@type'] === 'SportsEvent';
+        });
+        if (!hasSportsEvent) {
+          var existingSchemas = this.structuredDataService.getPageSchemas();
+          var ssrHasSportsEvent = existingSchemas.some(function(item) {
+            return item && item['@type'] === 'SportsEvent';
+          });
+          if (ssrHasSportsEvent) {
+            return;
+          }
+        }
+      }
       this.structuredDataService.setPageSchemas(items);
       return;
     }
 
+    // On the browser, don't clear SSR schemas if they exist — the client
+    // may simply not have finished loading match data yet. Clearing would
+    // destroy correctly-rendered SSR JSON-LD (especially SportsEvent).
+    if (this.isBrowser()) {
+      var existing = this.structuredDataService.getPageSchemas();
+      if (existing && existing.length > 0) {
+        return;
+      }
+    }
     this.structuredDataService.clearPageSchemas();
   }
 
