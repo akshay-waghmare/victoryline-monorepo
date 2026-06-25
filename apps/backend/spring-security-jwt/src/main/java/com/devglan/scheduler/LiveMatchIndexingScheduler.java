@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Scheduled job for automatic URL indexing of live matches.
@@ -60,8 +61,12 @@ public class LiveMatchIndexingScheduler {
     }
     
     /**
-     * Index new live matches every 15 minutes.
-     * 
+     * Index live and upcoming matches every 15 minutes.
+     *
+     * Upcoming matches are included so Google discovers pre-match pages before
+     * the first ball, not hours after the match goes LIVE. Completed/abandoned
+     * matches are filtered out because they do not need a real-time ping.
+     *
      * Cron alternative: @Scheduled(cron = "0 0/15 * * * *")
      * Using fixedRate for simplicity and immediate start after deployment.
      */
@@ -70,7 +75,7 @@ public class LiveMatchIndexingScheduler {
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
         
         if (!gscEnabled) {
-            logger.debug("[LiveMatchIndexer] GSC disabled, skipping live match indexing");
+            logger.debug("[LiveMatchIndexer] GSC disabled, skipping match indexing");
             return;
         }
         
@@ -84,24 +89,33 @@ public class LiveMatchIndexingScheduler {
             return;
         }
         
-        logger.info("[LiveMatchIndexer] Starting live match indexing at {}", timestamp);
+        logger.info("[LiveMatchIndexer] Starting match indexing at {}", timestamp);
         
         try {
-            List<LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatchesOnly();
+            List<LiveMatchEntry> allMatches = liveMatchesService.getLiveMatches();
             
-            if (liveMatches == null || liveMatches.isEmpty()) {
-                logger.info("[LiveMatchIndexer] No live matches found");
+            if (allMatches == null || allMatches.isEmpty()) {
+                logger.info("[LiveMatchIndexer] No matches found");
                 return;
             }
 
-            liveMatches.sort(Comparator.comparingLong(this::prioritySortValue));
+            List<LiveMatchEntry> indexableMatches = allMatches.stream()
+                    .filter(this::isIndexableForPing)
+                    .collect(Collectors.toList());
+
+            if (indexableMatches.isEmpty()) {
+                logger.info("[LiveMatchIndexer] No indexable matches found after filtering terminal matches");
+                return;
+            }
+
+            indexableMatches.sort(Comparator.comparingLong(this::prioritySortValue));
             
             int indexed = 0;
             int skipped = 0;
             int failed = 0;
             long indexedToday = seoCache.getIndexedSlugCount();
             
-            for (LiveMatchEntry match : liveMatches) {
+            for (LiveMatchEntry match : indexableMatches) {
                 if (indexedToday >= dailyIndexingBudget) {
                     logger.warn("[LiveMatchIndexer] Reached daily indexing budget ({}), stopping to protect quota", dailyIndexingBudget);
                     break;
@@ -177,6 +191,21 @@ public class LiveMatchIndexingScheduler {
                 && !slug.trim().isEmpty()
                 && !slug.trim().matches("\\d+")
                 && slug.toLowerCase().contains("-vs-");
+    }
+
+    /**
+     * Returns true for matches that should receive a real-time Indexing API ping.
+     * Live and upcoming matches qualify; completed/abandoned/finished matches do not.
+     */
+    private boolean isIndexableForPing(LiveMatchEntry match) {
+        if (match.isFinished()) {
+            return false;
+        }
+        String status = match.getStatus() == null ? "" : match.getStatus().toUpperCase();
+        if ("COMPLETED".equals(status) || "ABANDONED".equals(status) || "FINISHED".equals(status)) {
+            return false;
+        }
+        return true;
     }
 
     private long prioritySortValue(LiveMatchEntry match) {

@@ -42,22 +42,26 @@ public class SitemapScheduler {
     }
     
     /**
-     * Submit sitemap to Google Search Console daily at 3 AM (T035)
-     * 
-     * Cron expression: "0 0 3 * * *"
+     * Submit sitemap to Google Search Console every hour.
+     *
+     * Cron expression: "0 0 * * * *"
      * - Second: 0
      * - Minute: 0
-     * - Hour: 3 (3 AM)
+     * - Hour: * (every hour)
      * - Day of Month: * (every day)
      * - Month: * (every month)
      * - Day of Week: * (every day)
+     *
+     * Search Console API quota is 200 req/100s and 200,000/day; hourly
+     * submission (24/day) is well within the ceiling and ensures newly
+     * discovered fixtures prompt a re-fetch within ~1 hour instead of ~24.
      */
-    @Scheduled(cron = "0 0 3 * * *")
-    public void submitDailySitemap() {
+    @Scheduled(cron = "0 0 * * * *")
+    public void submitHourlySitemap() {
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
         
         // T038: INFO logging for job start
-        logger.info("[SitemapScheduler] Starting daily sitemap submission at {}", timestamp);
+        logger.info("[SitemapScheduler] Starting hourly sitemap submission at {}", timestamp);
         
         if (!gscEnabled) {
             logger.info("[SitemapScheduler] GSC integration disabled (gsc.enabled=false), skipping submission");
@@ -76,11 +80,11 @@ public class SitemapScheduler {
             
             if (success) {
                 // T038: INFO logging for successful submission
-                logger.info("[SitemapScheduler] Daily sitemap submission SUCCESSFUL: {} at {}", 
+                logger.info("[SitemapScheduler] Hourly sitemap submission SUCCESSFUL: {} at {}", 
                     sitemapUrl, timestamp);
             } else {
                 // T038: ERROR logging for failed submission
-                logger.error("[SitemapScheduler] Daily sitemap submission FAILED: {} at {}", 
+                logger.error("[SitemapScheduler] Hourly sitemap submission FAILED: {} at {}", 
                     sitemapUrl, timestamp);
             }
             
@@ -120,7 +124,7 @@ public class SitemapScheduler {
         status.append("  GSC Initialized: ").append(googleSearchConsoleService.isInitialized()).append("\n");
         status.append("  Sitemap URL: ").append(sitemapUrl).append("\n");
         status.append("  Site URL: ").append(googleSearchConsoleService.getSiteUrl()).append("\n");
-        status.append("  Schedule: Daily at 3:00 AM\n");
+        status.append("  Schedule: Every hour at :00\n");
         return status.toString();
     }
 }

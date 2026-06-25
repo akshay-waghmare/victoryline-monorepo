@@ -229,6 +229,67 @@ public class SitemapPartitionTest {
     }
 
     @Test
+    public void sitemap_does_not_emit_future_lastmod_for_upcoming_with_scheduledStartTime() {
+        LiveMatchesService.LiveMatchEntry upcoming = new LiveMatchesService.LiveMatchEntry();
+        upcoming.setUrl("https://crex.com/cricket-live-score/up-a-vs-up-b-1st-match-test-cup-2026-match-updates-12BB");
+        upcoming.setExternalMatchKey("up-a-vs-up-b-1st-match-test-cup-2026-match-updates-12BB");
+        upcoming.setStatus("UPCOMING");
+        upcoming.setScheduledStartTime(System.currentTimeMillis() + 86400000L); // 1 day in the future
+
+        liveMatchesService.setMatches(java.util.Collections.singletonList(upcoming));
+
+        String partitionXml = service.getPartitionXml(1);
+
+        assertThat(partitionXml).contains("/cric-live/up-a-vs-up-b-1st-match-test-cup-2026-match-updates-12BB");
+        // lastmod must NOT be in the future — extract it and verify
+        String lastmod = extractLastmod(partitionXml,
+                "https://www.crickzen.com/cric-live/up-a-vs-up-b-1st-match-test-cup-2026-match-updates-12BB");
+        assertThat(lastmod).isNotNull();
+        long lastmodEpoch = java.time.OffsetDateTime.parse(lastmod).toInstant().toEpochMilli();
+        assertThat(lastmodEpoch).isLessThanOrEqualTo(System.currentTimeMillis() + 5000L);
+    }
+
+    @Test
+    public void sitemap_does_not_emit_future_lastmod_for_upcoming_with_startDate_string() {
+        LiveMatchesService.LiveMatchEntry upcoming = new LiveMatchesService.LiveMatchEntry();
+        upcoming.setUrl("https://crex.com/cricket-live-score/up-c-vs-up-d-1st-match-test-cup-2026-match-updates-12CC");
+        upcoming.setExternalMatchKey("up-c-vs-up-d-1st-match-test-cup-2026-match-updates-12CC");
+        upcoming.setStatus("UPCOMING");
+        // No scheduledStartTime; only a future startDate string
+        String futureIso = java.time.OffsetDateTime.now()
+                .plusDays(2)
+                .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        upcoming.setStartDate(futureIso);
+
+        liveMatchesService.setMatches(java.util.Collections.singletonList(upcoming));
+
+        String partitionXml = service.getPartitionXml(1);
+
+        assertThat(partitionXml).contains("/cric-live/up-c-vs-up-d-1st-match-test-cup-2026-match-updates-12CC");
+        String lastmod = extractLastmod(partitionXml,
+                "https://www.crickzen.com/cric-live/up-c-vs-up-d-1st-match-test-cup-2026-match-updates-12CC");
+        assertThat(lastmod).isNotNull();
+        long lastmodEpoch = java.time.OffsetDateTime.parse(lastmod).toInstant().toEpochMilli();
+        assertThat(lastmodEpoch).isLessThanOrEqualTo(System.currentTimeMillis() + 5000L);
+    }
+
+    private String extractLastmod(String partitionXml, String loc) {
+        int locIndex = partitionXml.indexOf(loc);
+        if (locIndex < 0) {
+            return null;
+        }
+        int lastmodStart = partitionXml.indexOf("<lastmod>", locIndex);
+        if (lastmodStart < 0) {
+            return null;
+        }
+        int lastmodEnd = partitionXml.indexOf("</lastmod>", lastmodStart);
+        if (lastmodEnd < 0) {
+            return null;
+        }
+        return partitionXml.substring(lastmodStart + "<lastmod>".length(), lastmodEnd);
+    }
+
+    @Test
     public void sitemap_prioritizes_live_matches_into_first_partition() {
         List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
         for (int i = 1; i <= 120; i++) {

@@ -2973,7 +2973,7 @@ private titleCaseSlug(value: string): string {
       authorName: 'Crickzen'
     }));
 
-    if (startDate && location) {
+    if (startDate) {
       items.unshift(this.structuredDataService.sportsEvent({
         name: this.matchSeo.h1,
         url: this.matchSeo.canonicalUrl,
@@ -2981,7 +2981,7 @@ private titleCaseSlug(value: string): string {
         homeTeam: this.matchSeo.team1,
         awayTeam: this.matchSeo.team2,
         startDate: startDate,
-        location: location,
+        location: location || undefined,
         status: this.getStructuredDataStatus(),
         offersUrl: this.matchSeo.canonicalUrl,
         image: this.matchSeo.ogImageUrl,

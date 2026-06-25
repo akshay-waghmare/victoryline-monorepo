@@ -297,12 +297,32 @@ public class SitemapService {
             return writer.isoFromEpochMillis(match.getLastStateUpdatedAt());
         }
 
+        // For upcoming matches (future start time), use the current emit time
+        // instead of the future scheduledStartTime so lastmod is not a future
+        // timestamp — Google ignores future-dated lastmod, which weakens the
+        // freshness signal right when pre-match discovery matters most.
+        long now = System.currentTimeMillis();
         if (match.getScheduledStartTime() != null && match.getScheduledStartTime() > 0) {
+            if (match.getScheduledStartTime() > now) {
+                return writer.isoFromEpochMillis(now);
+            }
             return writer.isoFromEpochMillis(match.getScheduledStartTime());
         }
 
+        // startDate string fallback: also guard against future kickoff dates
+        // so an upcoming fixture with no scheduledStartTime but a parsed
+        // startDate string does not emit a future lastmod either.
         String parsedStartDate = parseLiveMatchStartDate(match.getStartDate());
         if (parsedStartDate != null) {
+            try {
+                java.time.OffsetDateTime odt = java.time.OffsetDateTime.parse(parsedStartDate);
+                if (odt.toInstant().toEpochMilli() > now) {
+                    return writer.isoFromEpochMillis(now);
+                }
+            } catch (Exception ignored) {
+                // If we cannot parse it for the future check, fall through to
+                // returning the parsed value as before rather than dropping it.
+            }
             return parsedStartDate;
         }
 
