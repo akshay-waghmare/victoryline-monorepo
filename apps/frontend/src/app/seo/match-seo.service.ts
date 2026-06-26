@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { extractMatchRouteSuffix, extractSlugFromUrl, normalizeMatchRoutePath } from '../core/utils/match-utils';
-import { buildBaseMatchCanonicalPath, createMatchRouteIntent, deriveMatchLifecycleState, evaluateMatchCanonicalPolicy, MatchRouteSurface } from './match-canonical-policy';
+import { buildBaseMatchCanonicalPath, createMatchRouteIntent, deriveMatchLifecycleState, evaluateMatchCanonicalPolicy, MatchLifecycleState, MatchRouteSurface } from './match-canonical-policy';
 import { MatchSeoViewModel } from './match-seo.models';
 import { getOgImageForMatch } from './og-images';
 
@@ -28,12 +28,14 @@ export class MatchSeoService {
     const matchInfo = input.matchInfo || {};
     const team1 = this.cleanName(matchInfo.team1_name || this.getTeamName(input.currentMatch, 'team1') || (parsed && parsed.team1) || '');
     const team2 = this.cleanName(matchInfo.team2_name || this.getTeamName(input.currentMatch, 'team2') || (parsed && parsed.team2) || '');
+    const team1Short = this.resolveTeamShortName(matchInfo, input.currentMatch, 'team1', team1);
+    const team2Short = this.resolveTeamShortName(matchInfo, input.currentMatch, 'team2', team2);
     const hasTeams = !!(team1 && team2);
     const isNumericRoute = /^\d+$/.test(routeSlug);
     const isValidSlug = !!(sourceSlug && sourceSlug.indexOf('-vs-') !== -1 && parsed && hasTeams);
     const teams = hasTeams ? `${team1} vs ${team2}` : 'Cricket match';
+    const shortTeams = this.buildShortTeams(team1Short, team2Short, teams);
     const statusLabel = this.getStatusLabel(matchInfo, input.currentMatch);
-    const isCompleted = /completed|finished|result/i.test(statusLabel) || /won by|match drawn|match tied/i.test(matchInfo.lastKnownState || matchInfo.resultSummary || '');
     const lifecycle = deriveMatchLifecycleState(statusLabel, matchInfo.lastKnownState || matchInfo.resultSummary || '');
     const requestedPath = this.getRequestedPath(input.requestedPath, routeSlug, sourceSlug);
     const normalizedRoutePath = normalizeMatchRoutePath(requestedPath || input.matchUrl || '');
@@ -52,7 +54,7 @@ export class MatchSeoService {
     const canonicalPath = canonicalDecision.canonicalPath || normalizedRoutePath || requestedPath || '/matches';
     const isIndexable = isValidSlug && canonicalDecision.robots === 'index,follow' && !(input.isFallback && isNumericRoute);
     const title = isIndexable
-      ? `${teams}${isCompleted ? ' Match Result & Scorecard' : ' Live Score & Match Updates'}`
+      ? this.buildTitle(teams, shortTeams, lifecycle)
       : 'Cricket Match Not Available | Crickzen';
     const series = this.resolveSeries(
       matchInfo.series_name || (input.currentMatch && input.currentMatch.seriesName) || '',
@@ -63,12 +65,12 @@ export class MatchSeoService {
     const breadcrumbSeries = this.getBreadcrumbSeries(series);
     const ogImageUrl = this.host + getOgImageForMatch(sourceSlug || routeSlug || 'match');
     const description = isIndexable
-      ? this.buildDescription(teams, series, isCompleted)
+      ? this.buildDescription(teams, shortTeams, series, lifecycle)
       : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
     const canonicalUrl = this.host + canonicalPath;
-    const h1 = isIndexable ? `${teams}${isCompleted ? ' Match Result & Scorecard' : ' Live Score Today'}` : 'Cricket match not available';
+    const h1 = isIndexable ? this.buildH1(teams, shortTeams, lifecycle) : 'Cricket match not available';
     const summary = isIndexable
-      ? this.buildSummary(teams, series, statusLabel, isCompleted)
+      ? this.buildSummary(teams, shortTeams, series, lifecycle)
       : 'This match could not be resolved to a reliable scorecard yet. Use the match centre to find live scores, upcoming fixtures, and recent cricket results.';
 
     return {
@@ -82,6 +84,9 @@ export class MatchSeoService {
       teams,
       team1: team1 || 'Team A',
       team2: team2 || 'Team B',
+      team1Short,
+      team2Short,
+      shortTeams,
       series,
       breadcrumbSeries,
       statusLabel,
@@ -263,16 +268,147 @@ export class MatchSeoService {
     return String(status).replace(/_/g, ' ');
   }
 
-  private buildDescription(teams: string, series: string, isCompleted: boolean): string {
-    if (isCompleted) {
-      return `Get ${teams} match result, final scorecard, innings summary, venue details and updates${series ? ` from ${series}` : ''}.`;
+  private buildTitle(teams: string, shortTeams: string, lifecycle: MatchLifecycleState): string {
+    switch (lifecycle) {
+      case 'prematch':
+        return this.appendShortTeams(`${teams} Live Score, Match Preview & Playing XI`, shortTeams, 'title');
+      case 'postmatch':
+        return this.appendShortTeams(`${teams} Match Result & Full Scorecard`, shortTeams, 'title');
+      default:
+        return this.appendShortTeams(`${teams} Live Score, Commentary & Scorecard`, shortTeams, 'title');
     }
-
-    return `Follow ${teams} live score, scorecard, toss, playing XI, venue and result${series ? ` in ${series}` : ''}.`;
   }
 
-  private buildSummary(teams: string, series: string, statusLabel: string, isCompleted: boolean): string {
-    const statusText = isCompleted ? 'match result, final scorecard, and key updates' : 'live score today, scorecard, toss update, playing XI, and match result tracker';
-    return `${teams} ${statusText}${series ? ` for ${series}` : ''}. Follow today's cricket match live score, venue context, innings updates, and result on Crickzen.`;
+  private buildH1(teams: string, shortTeams: string, lifecycle: MatchLifecycleState): string {
+    switch (lifecycle) {
+      case 'prematch':
+        return this.appendShortTeams(`${teams} Live Score, Preview & Playing XI`, shortTeams, 'h1');
+      case 'postmatch':
+        return this.appendShortTeams(`${teams} Match Result & Scorecard`, shortTeams, 'h1');
+      default:
+        return this.appendShortTeams(`${teams} Live Score, Commentary & Scorecard`, shortTeams, 'h1');
+    }
+  }
+
+  private buildDescription(teams: string, shortTeams: string, series: string, lifecycle: MatchLifecycleState): string {
+    switch (lifecycle) {
+      case 'prematch':
+        return `Track ${teams} live score before start with match preview, toss updates, playing XI, venue details, and fixture context${series ? ` in ${series}` : ''}. ${shortTeams} coverage stays on this canonical match page.`;
+      case 'postmatch':
+        return `Get ${teams} match result, full scorecard, innings summary, venue details, and key updates${series ? ` from ${series}` : ''}. ${shortTeams} result coverage stays on this canonical match page.`;
+      default:
+        return `Follow ${teams} live score, ball-by-ball commentary, scorecard, toss, playing XI, venue, and match result${series ? ` in ${series}` : ''}. ${shortTeams} commentary and scorecard stay on this canonical match page.`;
+    }
+  }
+
+  private buildSummary(teams: string, shortTeams: string, series: string, lifecycle: MatchLifecycleState): string {
+    switch (lifecycle) {
+      case 'prematch':
+        return `${teams} match preview, live score tracker, toss watch, and playing XI updates${series ? ` for ${series}` : ''}. ${shortTeams} start-time, venue, and fixture build-up stay together on Crickzen.`;
+      case 'postmatch':
+        return `${teams} match result, full scorecard, and innings summary${series ? ` for ${series}` : ''}. ${shortTeams} final result, venue context, and archived score details stay together on Crickzen.`;
+      default:
+        return `${teams} live score, commentary, and scorecard${series ? ` for ${series}` : ''}. ${shortTeams} innings updates, playing XI context, and match result tracking stay together on Crickzen.`;
+    }
+  }
+
+  private resolveTeamShortName(matchInfo: any, currentMatch: any, key: 'team1' | 'team2', fullName: string): string {
+    var explicit = this.cleanName(
+      (matchInfo && (
+        matchInfo[key + '_short_name']
+        || matchInfo[key + 'ShortName']
+        || matchInfo[key + '_short']
+        || matchInfo[key + '_abbreviation']
+      ))
+      || (currentMatch && currentMatch[key] && (
+        currentMatch[key].shortName
+        || currentMatch[key].short_code
+        || currentMatch[key].abbreviation
+      ))
+      || (currentMatch && currentMatch[key + 'ShortName'])
+      || ''
+    );
+
+    if (explicit) {
+      return this.normalizeShortTeamName(explicit);
+    }
+
+    return this.buildShortTeamName(fullName);
+  }
+
+  private buildShortTeams(team1Short: string, team2Short: string, teams: string): string {
+    if (team1Short && team2Short) {
+      return team1Short + ' vs ' + team2Short;
+    }
+
+    return teams;
+  }
+
+  private buildShortTeamName(fullName: string): string {
+    var normalized = this.cleanName(fullName);
+    if (!normalized) {
+      return '';
+    }
+
+    if (this.isLikelyShortTeamName(normalized)) {
+      return this.normalizeShortTeamName(normalized);
+    }
+
+    var shorthandMap: { [key: string]: string } = {
+      'india': 'IND',
+      'australia': 'AUS',
+      'england': 'ENG',
+      'pakistan': 'PAK',
+      'south africa': 'SA',
+      'new zealand': 'NZ',
+      'sri lanka': 'SL',
+      'west indies': 'WI',
+      'bangladesh': 'BAN',
+      'afghanistan': 'AFG',
+      'ireland': 'IRE',
+      'zimbabwe': 'ZIM',
+      'nepal': 'NEP',
+      'oman': 'OMA',
+      'namibia': 'NAM',
+      'thailand': 'THA',
+      'uzbekistan': 'UZB',
+      'united states of america': 'USA',
+      'united states': 'USA'
+    };
+    var lowered = normalized.toLowerCase();
+    if (shorthandMap[lowered]) {
+      return shorthandMap[lowered];
+    }
+
+    var tokens = normalized.split(/[\s-]+/).filter(Boolean).filter(function(token) {
+      return ['and', 'of', 'the'].indexOf(token.toLowerCase()) === -1;
+    });
+
+    if (tokens.length > 1) {
+      return tokens.slice(0, 4).map(function(token) {
+        return token.charAt(0).toUpperCase();
+      }).join('');
+    }
+
+    return normalized.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase();
+  }
+
+  private normalizeShortTeamName(value: string): string {
+    return value.replace(/\s+/g, ' ').trim().toUpperCase();
+  }
+
+  private isLikelyShortTeamName(value: string): boolean {
+    var compact = value.replace(/[\s.-]/g, '');
+    return compact.length <= 4 || /^[A-Z0-9\s.-]+$/.test(value);
+  }
+
+  private appendShortTeams(base: string, shortTeams: string, target: 'title' | 'h1'): string {
+    if (!shortTeams || !base || base.indexOf(shortTeams) !== -1) {
+      return base;
+    }
+
+    return target === 'title'
+      ? base + ' | ' + shortTeams
+      : base + ' (' + shortTeams + ')';
   }
 }

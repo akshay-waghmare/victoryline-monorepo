@@ -44,6 +44,54 @@
           <p class="cricket-odds__summary-result" *ngIf="getFallbackResultSummary()">{{ getFallbackResultSummary() }}</p>
         </section>
 
+        <details class="cricket-odds__intent-drawer" *ngIf="matchSeo">
+          <summary class="cricket-odds__intent-drawer-summary">
+            <span class="cricket-odds__intent-drawer-title">More match detail for {{ getMatchIntentShortPair() }}</span>
+            <span class="cricket-odds__intent-drawer-copy">Keep the at-a-glance layer first, then open the match-specific commentary, scorecard, lineup, and details support block when you want more.</span>
+          </summary>
+
+          <section class="cricket-odds__intent-rail" aria-label="Canonical match intent snapshot">
+            <div class="cricket-odds__intent-copy">
+              <p class="cricket-odds__intent-eyebrow">{{ getCanonicalIntentKicker() }}</p>
+              <h2 class="cricket-odds__intent-title">{{ getCanonicalIntentTitle() }}</h2>
+              <p class="cricket-odds__intent-summary">{{ getCanonicalIntentSummary() }}</p>
+            </div>
+
+            <nav class="cricket-odds__intent-links" aria-label="Jump to match sections">
+              <a href="#commentary" (click)="jumpToMatchSection('commentary', $event)">{{ getCommentaryJumpLabel() }}</a>
+              <a href="#scorecard" (click)="jumpToMatchSection('scorecard', $event)">{{ getScorecardJumpLabel() }}</a>
+              <a href="#lineups" (click)="jumpToMatchSection('lineups', $event)">{{ getLineupsJumpLabel() }}</a>
+              <a href="#match-info" (click)="jumpToMatchSection('details', $event)">{{ getDetailsJumpLabel() }}</a>
+            </nav>
+
+            <div class="cricket-odds__intent-grid">
+              <article class="cricket-odds__intent-card cricket-odds__intent-card--commentary">
+                <span class="cricket-odds__intent-kicker">Commentary</span>
+                <h3>{{ getCommentarySectionTitle() }}</h3>
+                <p>{{ getCommentaryIntentLabel() }}</p>
+              </article>
+
+              <article class="cricket-odds__intent-card cricket-odds__intent-card--scorecard">
+                <span class="cricket-odds__intent-kicker">Scorecard</span>
+                <h3>{{ getScorecardSectionTitle() }}</h3>
+                <p>{{ getScorecardIntentLabel() }}</p>
+              </article>
+
+              <article class="cricket-odds__intent-card cricket-odds__intent-card--lineups">
+                <span class="cricket-odds__intent-kicker">Lineups</span>
+                <h3>{{ getLineupsSectionTitle() }}</h3>
+                <p>{{ getLineupsIntentLabel() }}</p>
+              </article>
+
+              <article class="cricket-odds__intent-card cricket-odds__intent-card--details">
+                <span class="cricket-odds__intent-kicker">Match details</span>
+                <h3>{{ getDetailsJumpLabel() }}</h3>
+                <p>{{ getMatchDetailsIntentLabel() }}</p>
+              </article>
+            </div>
+          </section>
+        </details>
+
       <mat-tab-group class="match-page-tabs" [selectedIndex]="selectedTabIndex" (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
         <mat-tab>
@@ -53,7 +101,7 @@
               <span>Live Match</span>
             </span>
           </ng-template>
-          <section class="match-tab-panel">
+          <section class="match-tab-panel" id="commentary">
             <div *ngIf="isBetProcessing" class="loader-container">
               <div class="loader"></div>
             </div>
@@ -66,10 +114,10 @@
                 <div class="commentary-section">
                   <div class="commentary-header">
                     <div class="commentary-title-copy">
-                      <p class="commentary-kicker">Commentary feed</p>
+                      <p class="commentary-kicker">{{ getCommentarySectionKicker() }}</p>
                       <h3 class="commentary-title">
                         <mat-icon>speaker_notes</mat-icon>
-                        <span>Ball-by-ball commentary</span>
+                        <span>{{ getCommentarySectionTitle() }}</span>
                       </h3>
                       <p class="commentary-subtitle">{{ getCommentaryHeaderNote() }}</p>
                     </div>
@@ -168,7 +216,7 @@
             <ng-template #noCommentaryState>
               <div class="match-tab-state">
                 <mat-icon>timeline</mat-icon>
-                <p>Ball-by-ball commentary has not arrived for this match yet.</p>
+                <p>{{ getCommentaryEmptyStateLabel() }}</p>
               </div>
             </ng-template>
           </section>
@@ -183,7 +231,7 @@
               <span>Match Details</span>
             </span>
           </ng-template>
-          <section class="match-tab-panel">
+          <section class="match-tab-panel" id="match-info">
             <app-match-details-info 
               *ngIf="matchInfo"
               [matchInfo]="matchInfo">
@@ -309,7 +357,13 @@
               <span class="match-page-tab-badge" *ngIf="scorecardData?.innings?.length">{{ scorecardData.innings.length }}</span>
             </span>
           </ng-template>
-          <section class="match-tab-panel">
+          <section class="match-tab-panel" id="scorecard">
+            <header class="match-tab-intro" *ngIf="matchSeo">
+              <p class="match-tab-intro__kicker">{{ getScorecardSectionKicker() }}</p>
+              <h3 class="match-tab-intro__title">{{ getScorecardSectionTitle() }}</h3>
+              <p class="match-tab-intro__summary">{{ getScorecardSectionSummary() }}</p>
+            </header>
+
             <div *ngIf="scorecardData">
               <app-scorecard
                 [scorecardInfo]="scorecardData"
@@ -340,7 +394,13 @@
               <span>Lineups</span>
             </span>
           </ng-template>
-          <section class="match-tab-panel">
+          <section class="match-tab-panel" id="lineups">
+            <header class="match-tab-intro" *ngIf="matchSeo">
+              <p class="match-tab-intro__kicker">{{ getLineupsSectionKicker() }}</p>
+              <h3 class="match-tab-intro__title">{{ getLineupsSectionTitle() }}</h3>
+              <p class="match-tab-intro__summary">{{ getLineupsSectionSummary() }}</p>
+            </header>
+
             <app-lineups
               *ngIf="matchInfo && matchInfo.playing_xi"
               [playingXIData]="matchInfo"

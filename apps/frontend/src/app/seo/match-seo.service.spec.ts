@@ -92,10 +92,49 @@ describe('MatchSeoService canonical lifecycle', () => {
       }
     });
 
-    expect(seo.title).toBe('Texas Super Kings vs Seattle Orcas Live Score & Match Updates');
-    expect(seo.description).toBe('Follow Texas Super Kings vs Seattle Orcas live score, scorecard, toss, playing XI, venue and result in Major League Cricket 2026.');
+    expect(seo.title).toBe('Texas Super Kings vs Seattle Orcas Live Score, Match Preview & Playing XI | TSK vs SO');
+    expect(seo.h1).toBe('Texas Super Kings vs Seattle Orcas Live Score, Preview & Playing XI (TSK vs SO)');
+    expect(seo.description).toBe('Track Texas Super Kings vs Seattle Orcas live score before start with match preview, toss updates, playing XI, venue details, and fixture context in Major League Cricket 2026. TSK vs SO coverage stays on this canonical match page.');
+    expect(seo.shortTeams).toBe('TSK vs SO');
     expect(seo.title).not.toContain('...');
     expect(seo.description).not.toContain('...');
+  });
+
+  it('uses lifecycle-aware live metadata to capture commentary and scorecard intent', () => {
+    var seo = service.build({
+      routeSlug: slug,
+      requestedPath: '/cric-live/' + slug,
+      matchInfo: {
+        team1_name: 'India',
+        team2_name: 'Australia',
+        match_status: 'Live',
+        series_name: 'Border Gavaskar Trophy'
+      }
+    });
+
+    expect(seo.title).toBe('India vs Australia Live Score, Commentary & Scorecard | IND vs AUS');
+    expect(seo.h1).toBe('India vs Australia Live Score, Commentary & Scorecard (IND vs AUS)');
+    expect(seo.description).toContain('ball-by-ball commentary');
+    expect(seo.description).toContain('IND vs AUS commentary and scorecard');
+  });
+
+  it('uses lifecycle-aware completed metadata to capture result and full scorecard intent', () => {
+    var seo = service.build({
+      routeSlug: slug,
+      requestedPath: '/cric-live/' + slug,
+      matchInfo: {
+        team1_name: 'India',
+        team2_name: 'Australia',
+        match_status: 'Result',
+        resultSummary: 'India won by 6 wickets',
+        series_name: 'Border Gavaskar Trophy'
+      }
+    });
+
+    expect(seo.title).toBe('India vs Australia Match Result & Full Scorecard | IND vs AUS');
+    expect(seo.h1).toBe('India vs Australia Match Result & Scorecard (IND vs AUS)');
+    expect(seo.summary).toContain('full scorecard');
+    expect(seo.summary).toContain('IND vs AUS');
   });
 
   it('uses the canonical slug series when the schedule feed series is polluted', () => {

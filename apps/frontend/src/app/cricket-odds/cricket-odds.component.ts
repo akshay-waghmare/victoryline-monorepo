@@ -3,6 +3,8 @@ import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { forkJoin, merge, Subject } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
+import { TransferState, makeStateKey } from '@angular/platform-browser';
+
 import {
   CricketService,
   PlayerStatsMatchView,
@@ -27,6 +29,9 @@ import { MatchSeoViewModel } from '../seo/match-seo.models';
 import { MatchSeoService } from '../seo/match-seo.service';
 import { MetaTagsService } from '../seo/meta-tags.service';
 import { StructuredDataLocationInput, StructuredDataService } from '../seo/structured-data.service';
+
+const MATCH_INFO_KEY = makeStateKey<any>('cricket_match_info');
+const CRICKET_DATA_KEY = makeStateKey<any>('cricket_data_snapshot');
 
 interface FormattedExposure {
   win: number;
@@ -206,7 +211,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private structuredDataService: StructuredDataService,
               private activatedRoute: ActivatedRoute,
               private router: Router,
-              private ngZone: NgZone) { }
+              private ngZone: NgZone,
+              private transferState: TransferState) { }
 
   trackByCommentaryId(index: number, entry: any): string {
     return (entry && entry.id) || (entry && entry.overBall) || String(index);
@@ -280,6 +286,21 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.batOrBallSelected = batOrBallSelected;
       // this.checkIfCountryAndOptionSet();
     });
+
+    // Hydrate from SSR TransferState to avoid re-fetch flash on client
+    if (this.isBrowser()) {
+      const ssrMatchInfo = this.transferState.get(MATCH_INFO_KEY, null);
+      if (ssrMatchInfo) {
+        this.matchInfo = ssrMatchInfo;
+        this.isFallbackMatchInfo = false;
+      }
+      const ssrCricketData = this.transferState.get(CRICKET_DATA_KEY, null);
+      if (ssrCricketData) {
+        this.parseCricObjData(ssrCricketData);
+      }
+      this.transferState.remove(MATCH_INFO_KEY);
+      this.transferState.remove(CRICKET_DATA_KEY);
+    }
 
     //watching live score for cricet data
     this.fetchCricketData();
@@ -372,6 +393,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.cricObj = JSON.parse(data.body);
     } else {
       this.cricObj = data;
+    }
+
+    // Store parsed cricket data in TransferState on the server for client hydration
+    if (!this.isBrowser() && this.cricObj) {
+      this.transferState.set(CRICKET_DATA_KEY, this.cricObj);
     }
 
     // Your existing logic for handling received cricket data...s
@@ -970,6 +996,37 @@ onTabChange(event: MatTabChangeEvent) {
   this.ensureDataForTab(event.index);
 }
 
+jumpToMatchSection(target: MatchPageTabKey, event?: Event): void {
+  if (event) {
+    event.preventDefault();
+  }
+
+  var index = this.tabIndexByKey[target];
+  if (index === undefined || index === null) {
+    return;
+  }
+
+  this.selectedTabIndex = index;
+  this.hasUserSelectedTab = true;
+  this.ensureDataForTab(index);
+
+  if (!this.isBrowser()) {
+    return;
+  }
+
+  var targetId = target === 'details' ? 'match-info' : target;
+  setTimeout(function() {
+    var section = document.getElementById(targetId);
+    if (section && section.scrollIntoView) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', '#' + targetId);
+    }
+  }, 30);
+}
+
 fetchScorecardInfo(matchUrl:string){
 
   var scorecardRequest = this.cricketService.getScorecardInfo(matchUrl);
@@ -1001,6 +1058,11 @@ fetchMatchInfo(matchUrl:string) {
       this.isFallbackMatchInfo = false;
       this.syncMatchTabSelection();
       console.log('Match Info:', this.matchInfo);
+
+      // Store in TransferState on the server for client hydration
+      if (!this.isBrowser()) {
+        this.transferState.set(MATCH_INFO_KEY, data);
+      }
 
       // T045: Update browser tab title with team names (Feature 008 - SEO)
       this.updatePageTitle();
@@ -1040,6 +1102,7 @@ private resolveRouteMatch(matchSlug: string): void {
 
     this.currentMatch = directMatch;
     this.updateSeriesFallbackContext(directMatch);
+    this.updatePageTitle();
     this.fetchPlayerStatsForMatch(directMatch, matchSlug);
     this.fetchMatchInfo(matchSlug);
     this.fetchScorecardInfo(matchSlug);
@@ -1075,6 +1138,7 @@ private resolveRouteMatch(matchSlug: string): void {
         this.matchUrl = resolvedUrl;
       }
 
+      this.updatePageTitle();
       this.fetchPlayerStatsForMatch(resolvedMatch, matchSlug);
 
       if (!this.showLiveHero) {
@@ -1135,6 +1199,7 @@ private applyRouteMatchHint(match: any): void {
   if (!this.matchInfo || this.isFallbackMatchInfo) {
     this.populateFallbackMatchInfo(match);
   }
+  this.updatePageTitle();
   this.syncMatchTabSelection();
 }
 
@@ -2649,6 +2714,99 @@ getMatchShellContextNote(): string | null {
     || null;
 }
 
+getMatchIntentFullPair(): string {
+  return this.matchSeo ? this.matchSeo.teams : this.getMatchShellTitle();
+}
+
+getMatchIntentShortPair(): string {
+  if (this.matchSeo && this.matchSeo.shortTeams) {
+    return this.matchSeo.shortTeams;
+  }
+
+  var team1Short = this.resolveIntentTeamShortName('team1');
+  var team2Short = this.resolveIntentTeamShortName('team2');
+  if (team1Short && team2Short) {
+    return team1Short + ' vs ' + team2Short;
+  }
+
+  return this.getMatchIntentFullPair();
+}
+
+getMatchIntentCombinedLabel(): string {
+  var fullPair = this.getMatchIntentFullPair();
+  var shortPair = this.getMatchIntentShortPair();
+
+  if (!shortPair || shortPair === fullPair) {
+    return fullPair;
+  }
+
+  return fullPair + ' (' + shortPair + ')';
+}
+
+getCommentaryJumpLabel(): string {
+  return this.getMatchIntentShortPair() + ' commentary';
+}
+
+getScorecardJumpLabel(): string {
+  return this.getMatchIntentShortPair() + ' scorecard';
+}
+
+getLineupsJumpLabel(): string {
+  return this.getMatchIntentShortPair() + ' lineups';
+}
+
+getDetailsJumpLabel(): string {
+  return this.getMatchIntentShortPair() + ' match details';
+}
+
+getCommentarySectionKicker(): string {
+  return this.getMatchIntentFullPair() + ' commentary';
+}
+
+getCommentarySectionTitle(): string {
+  return this.getMatchIntentShortPair() + ' ball-by-ball commentary';
+}
+
+getScorecardSectionKicker(): string {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return this.getMatchIntentFullPair() + ' result and scorecard';
+  }
+
+  return this.getMatchIntentFullPair() + ' scorecard';
+}
+
+getScorecardSectionTitle(): string {
+  return this.getMatchIntentShortPair() + ' scorecard and innings detail';
+}
+
+getScorecardSectionSummary(): string {
+  return this.getScorecardIntentLabel();
+}
+
+getLineupsSectionKicker(): string {
+  return this.getMatchIntentFullPair() + ' team news';
+}
+
+getLineupsSectionTitle(): string {
+  return this.getMatchIntentShortPair() + ' playing XI and lineups';
+}
+
+getLineupsSectionSummary(): string {
+  return this.getLineupsIntentLabel();
+}
+
+getCommentaryEmptyStateLabel(): string {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return this.getMatchIntentCombinedLabel() + ' commentary archive is not available for this match.';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return this.getMatchIntentCombinedLabel() + ' commentary will begin here once the toss is complete and live updates start.';
+  }
+
+  return this.getMatchIntentCombinedLabel() + ' commentary has not arrived from the live feed yet.';
+}
+
 getDetailsIntroKicker(): string {
   if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
     return 'Supporting match detail';
@@ -2662,7 +2820,7 @@ getDetailsIntroKicker(): string {
 }
 
 getDetailsIntroTitle(): string {
-  var teams = this.matchSeo ? this.matchSeo.teams : this.getMatchShellTitle();
+  var teams = this.getMatchIntentCombinedLabel();
 
   if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
     return 'More detail for ' + teams;
@@ -2685,6 +2843,196 @@ getDetailsIntroSummary(): string {
   }
 
   return 'Use this section for supporting context while commentary stays primary for the live match.';
+}
+
+getCanonicalIntentKicker(): string {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return 'Canonical result page';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'Canonical match preview page';
+  }
+
+  return 'Canonical live score page';
+}
+
+getCanonicalIntentTitle(): string {
+  var teams = this.getMatchIntentCombinedLabel();
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return teams + ' result, scorecard and match context';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return teams + ' preview, playing XI and live score tracker';
+  }
+
+  return teams + ' commentary, scorecard and live score';
+}
+
+getCanonicalIntentSummary(): string {
+  var shortTeams = this.getMatchIntentShortPair();
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return 'This single canonical page keeps the final result, full scorecard, innings summary, and match context together after the game finishes for ' + shortTeams + '.';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'This single canonical page starts as the preview surface, then becomes the live score, commentary, scorecard, toss, and playing XI page once play begins for ' + shortTeams + '.';
+  }
+
+  return 'This single canonical page carries the live score, commentary, scorecard, lineups, toss context, and match state while the innings unfold for ' + shortTeams + '.';
+}
+
+getCommentaryIntentLabel(): string {
+  var latestCommentary = this.getLatestCommentarySummary();
+  var fullPair = this.getMatchIntentFullPair();
+  var shortPair = this.getMatchIntentShortPair();
+  if (latestCommentary) {
+    return fullPair + ' live commentary for ' + shortPair + ': ' + latestCommentary.replace(/^Latest commentary:\s*/i, '');
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return fullPair + ' ball-by-ball commentary is archived here when live updates were captured during the match.';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return fullPair + ' live commentary for ' + shortPair + ' will begin here once the toss is complete and live updates start.';
+  }
+
+  return fullPair + ' live commentary for ' + shortPair + ' will populate here as soon as the official ball-by-ball feed starts updating.';
+}
+
+getScorecardIntentLabel(): string {
+  var fullPair = this.getMatchIntentFullPair();
+  var shortPair = this.getMatchIntentShortPair();
+  if (this.scorecardData && this.scorecardData.innings && this.scorecardData.innings.length) {
+    return fullPair + ' scorecard is available with ' + this.scorecardData.innings.length + ' innings, batting cards, bowling figures, and result context for ' + shortPair + '.';
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return fullPair + ' final scorecard is syncing and will appear here with innings tables, partnerships, and result details.';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return fullPair + ' scorecard for ' + shortPair + ' will populate when innings data is available, while preview detail stays here before the first ball.';
+  }
+
+  return fullPair + ' live scorecard for ' + shortPair + ' will populate here with batting, bowling, overs, wickets, and innings context as play progresses.';
+}
+
+getLineupsIntentLabel(): string {
+  var fullPair = this.getMatchIntentFullPair();
+  var shortPair = this.getMatchIntentShortPair();
+  if (this.matchInfo && this.matchInfo.playing_xi) {
+    return fullPair + ' playing XI is available with team combinations, player roles, and lineup context for ' + shortPair + ' in the Lineups tab.';
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return fullPair + ' official lineups remain available here once the final XIs are confirmed for the match archive.';
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return fullPair + ' playing XI for ' + shortPair + ' will appear once the teams are confirmed at the toss.';
+  }
+
+  return fullPair + ' lineups for ' + shortPair + ' will appear here as soon as the official XIs are confirmed by the match centre.';
+}
+
+getMatchDetailsIntentLabel(): string {
+  var fullPair = this.getMatchIntentFullPair();
+  var status = this.getMatchShellStatus();
+  var dateTime = this.getSeoDateTimeLabel();
+  var venue = this.getSeoVenueLabel();
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return fullPair + '. ' + status + '. ' + dateTime + '. ' + venue;
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return fullPair + '. ' + status + '. ' + venue + '. Use the result and scorecard sections for the final outcome and innings detail.';
+  }
+
+  return fullPair + '. ' + status + '. ' + venue + '. Use this section for venue, toss, and match-state context while commentary stays primary.';
+}
+
+private resolveIntentTeamShortName(key: 'team1' | 'team2'): string {
+  var fromSeo = this.matchSeo && (key === 'team1' ? this.matchSeo.team1Short : this.matchSeo.team2Short);
+  if (fromSeo) {
+    return fromSeo;
+  }
+
+  var fromCurrentMatch = this.currentMatch && this.currentMatch[key] && (
+    this.currentMatch[key].shortName
+    || this.currentMatch[key].short_code
+    || this.currentMatch[key].abbreviation
+  );
+  if (fromCurrentMatch) {
+    return this.normalizeIntentShortTeamName(fromCurrentMatch);
+  }
+
+  var fullName = this.matchSeo
+    ? (key === 'team1' ? this.matchSeo.team1 : this.matchSeo.team2)
+    : this.cleanIntentTeamName(this.matchInfo && this.matchInfo[key + '_name']);
+
+  return this.buildIntentShortTeamName(fullName);
+}
+
+private buildIntentShortTeamName(fullName: string): string {
+  var normalized = this.cleanIntentTeamName(fullName);
+  if (!normalized) {
+    return '';
+  }
+
+  if (this.isLikelyIntentShortTeamName(normalized)) {
+    return this.normalizeIntentShortTeamName(normalized);
+  }
+
+  var shorthandMap: { [key: string]: string } = {
+    'india': 'IND',
+    'australia': 'AUS',
+    'england': 'ENG',
+    'pakistan': 'PAK',
+    'south africa': 'SA',
+    'new zealand': 'NZ',
+    'sri lanka': 'SL',
+    'west indies': 'WI',
+    'bangladesh': 'BAN',
+    'afghanistan': 'AFG',
+    'ireland': 'IRE',
+    'zimbabwe': 'ZIM',
+    'thailand': 'THA',
+    'uzbekistan': 'UZB'
+  };
+  var lowered = normalized.toLowerCase();
+  if (shorthandMap[lowered]) {
+    return shorthandMap[lowered];
+  }
+
+  var tokens = normalized.split(/[\s-]+/).filter(Boolean).filter(function(token) {
+    return ['and', 'of', 'the'].indexOf(token.toLowerCase()) === -1;
+  });
+  if (tokens.length > 1) {
+    return tokens.slice(0, 4).map(function(token) {
+      return token.charAt(0).toUpperCase();
+    }).join('');
+  }
+
+  return normalized.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase();
+}
+
+private normalizeIntentShortTeamName(value: string): string {
+  return this.cleanIntentTeamName(value).toUpperCase();
+}
+
+private cleanIntentTeamName(value: string): string {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+private isLikelyIntentShortTeamName(value: string): boolean {
+  var compact = this.cleanIntentTeamName(value).replace(/[\s.-]/g, '');
+  return compact.length > 0 && (compact.length <= 4 || /^[A-Z0-9\s.-]+$/.test(value));
 }
 
 getSeoTournamentLabel(): string {
@@ -2818,6 +3166,33 @@ getSeoFaqMatchResultAnswer(): string {
 getSeoLanguageKeywordCopy(): string {
   var teams = this.matchSeo ? this.matchSeo.teams : this.getMatchShellTitle();
   return teams + ' live score today, aaj ka match live score, today cricket match live score Hindi, live score Marathi, scorecard, toss update, playing XI, and match result are tracked on this single canonical page.';
+}
+
+private getLatestCommentarySummary(): string | null {
+  if (!this.commentaryEntries || this.commentaryEntries.length === 0) {
+    return null;
+  }
+
+  var latest = this.commentaryEntries[0];
+  var primary = this.getCommentaryPrimaryText(latest);
+  var secondary = this.getCommentarySecondaryText(latest);
+  var text = primary + (secondary ? ' ' + secondary : '');
+  text = text.replace(/\s+/g, ' ').trim();
+
+  if (!text) {
+    return null;
+  }
+
+  return this.truncateIntentCopy('Latest commentary: ' + text, 170);
+}
+
+private truncateIntentCopy(value: string, maxLength: number): string {
+  var text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return text.slice(0, Math.max(0, maxLength - 3)).trim() + '...';
 }
 
 private formatStatusLabel(value: string): string {

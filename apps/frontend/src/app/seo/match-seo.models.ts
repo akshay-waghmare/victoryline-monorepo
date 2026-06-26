@@ -11,6 +11,9 @@ export interface MatchSeoViewModel {
   teams: string;
   team1: string;
   team2: string;
+  team1Short: string;
+  team2Short: string;
+  shortTeams: string;
   series: string;
   breadcrumbSeries: string;
   statusLabel: string;
