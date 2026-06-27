@@ -8,6 +8,7 @@ import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, filterCompletedM
 import { MatchCardViewModel, MatchStatus } from '../../matches/models/match-card.models';
 import { MatchesService } from '../../matches/services/matches.service';
 import { MetaTagsService } from '../../../seo/meta-tags.service';
+import { StructuredDataService } from '../../../seo/structured-data.service';
 
 type SeoHubType = 'liveScore' | 'liveCricketScore' | 'today' | 'ipl' | 'scheduleToday' | 'iplSchedule' | 'archive';
 
@@ -75,7 +76,8 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private http: HttpClient,
     private matchesService: MatchesService,
-    private metaTagsService: MetaTagsService
+    private metaTagsService: MetaTagsService,
+    private structuredDataService: StructuredDataService
   ) {}
 
   ngOnInit(): void {
@@ -130,6 +132,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.structuredDataService.clearPageSchemas();
   }
 
   getMatchHref(match: MatchCardViewModel): string {
@@ -221,6 +224,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
       ? this.getDiscoveryFallbackLinks()
       : [];
     this.archivePageLinks = this.buildArchivePageLinks();
+    this.updateStructuredData();
   }
 
   private loadSitemapLinks(): void {
@@ -525,6 +529,126 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
         card: 'summary'
       }
     });
+  }
+
+  private updateStructuredData(): void {
+    var currentUrl = 'https://www.crickzen.com' + this.config.canonicalPath;
+    var items: any[] = [
+      this.structuredDataService.page({
+        type: 'CollectionPage',
+        name: this.config.title + ' | Crickzen',
+        description: this.config.intro,
+        url: currentUrl
+      }),
+      this.structuredDataService.breadcrumbs(this.getBreadcrumbTrail()),
+      this.structuredDataService.itemList({
+        name: this.config.title + ' hub links',
+        url: currentUrl,
+        description: 'Visible navigation links from this lifecycle hub into other real cricket discovery surfaces.',
+        items: [
+          { name: 'Live score', url: 'https://www.crickzen.com/live-score', description: 'Open the main live-score hub.' },
+          { name: 'Live cricket score', url: 'https://www.crickzen.com/live-cricket-score', description: 'Open the live-cricket-score intent hub.' },
+          { name: 'Live score today', url: 'https://www.crickzen.com/live-score/today', description: 'Open today match live-score links.' },
+          { name: 'IPL live score', url: 'https://www.crickzen.com/live-score/ipl', description: 'Open IPL-focused live-score links.' },
+          { name: 'Cricket schedule today', url: 'https://www.crickzen.com/cricket-schedule/today', description: 'Open the schedule-first hub for upcoming fixtures.' },
+          { name: 'IPL 2026 schedule', url: 'https://www.crickzen.com/cricket-schedule/ipl-2026', description: 'Open IPL fixture and result links.' },
+          { name: 'Match archive', url: 'https://www.crickzen.com/live-score/archive', description: 'Open the retained archive of completed match pages.' },
+          { name: 'Cricket series', url: 'https://www.crickzen.com/series', description: 'Open the current lightweight series tables and standings surface.' }
+        ]
+      })
+    ];
+
+    if (this.config.faqs.length > 0 && !this.isLoading) {
+      items.push(this.structuredDataService.faqPage(this.config.faqs));
+    }
+
+    var primaryItems = this.getPrimaryStructuredLinks();
+    if (primaryItems.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: this.config.title + ' primary match links',
+        url: currentUrl,
+        description: 'The primary visible canonical match links shown on this lifecycle hub.',
+        items: primaryItems
+      }));
+    }
+
+    var discoveryItems = this.getDiscoveryStructuredLinks();
+    if (discoveryItems.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: this.config.title + ' discovery links',
+        url: currentUrl,
+        description: 'Additional visible canonical match links retained for discovery from this lifecycle hub.',
+        items: discoveryItems
+      }));
+    }
+
+    this.structuredDataService.setPageSchemas(items);
+  }
+
+  private getBreadcrumbTrail(): Array<{ name: string; url: string }> {
+    var items: Array<{ name: string; url: string }> = [
+      { name: 'Home', url: 'https://www.crickzen.com/' }
+    ];
+
+    if (this.config.type === 'today' || this.config.type === 'ipl' || this.config.type === 'archive') {
+      items.push({ name: 'Live score', url: 'https://www.crickzen.com/live-score' });
+    }
+
+    if (this.config.type === 'scheduleToday' || this.config.type === 'iplSchedule') {
+      items.push({ name: 'Cricket schedule', url: 'https://www.crickzen.com/cricket-schedule/today' });
+    }
+
+    if (this.config.canonicalPath !== '/live-score' && this.config.canonicalPath !== '/cricket-schedule/today') {
+      items.push({ name: this.config.title, url: 'https://www.crickzen.com' + this.config.canonicalPath });
+      return items;
+    }
+
+    if (this.config.canonicalPath === '/live-score') {
+      items.push({ name: 'Cricket live score today', url: 'https://www.crickzen.com/live-score' });
+    }
+
+    if (this.config.canonicalPath === '/cricket-schedule/today') {
+      items.push({ name: 'Cricket schedule today', url: 'https://www.crickzen.com/cricket-schedule/today' });
+    }
+
+    return items;
+  }
+
+  private getPrimaryStructuredLinks(): Array<{ name: string; url: string; description: string }> {
+    var matches = this.limitUnique(([] as MatchCardViewModel[])
+      .concat(this.liveSectionMatches)
+      .concat(this.upcomingSectionMatches)
+      .concat(this.recentSectionMatches), 48);
+
+    if (matches.length > 0) {
+      return matches.map((match) => ({
+        name: this.getMatchLabel(match),
+        url: 'https://www.crickzen.com' + this.getMatchHref(match),
+        description: this.getMatchCardDescription(match)
+      }));
+    }
+
+    return (this.fallbackSitemapMatches || []).map((link) => ({
+      name: link.label,
+      url: 'https://www.crickzen.com' + link.href,
+      description: this.config.fallbackCardText
+    }));
+  }
+
+  private getDiscoveryStructuredLinks(): Array<{ name: string; url: string; description: string }> {
+    if (this.discoveryMatches.length > 0) {
+      return this.discoveryMatches.map((match) => ({
+        name: this.getMatchLabel(match),
+        url: 'https://www.crickzen.com' + this.getMatchHref(match),
+        description: this.getMatchCardDescription(match)
+      }));
+    }
+
+    return (this.discoveryFallbackLinks || []).map((link) => ({
+      name: link.label,
+      url: 'https://www.crickzen.com' + link.href,
+      description: this.config.fallbackCardText
+    }));
   }
 
   private getConfig(type: SeoHubType): HubConfig {

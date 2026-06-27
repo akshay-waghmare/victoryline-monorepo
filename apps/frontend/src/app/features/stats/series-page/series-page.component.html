@@ -1,4 +1,10 @@
 <div class="stats-page">
+  <nav class="stats-page__breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a>
+    <span aria-hidden="true">/</span>
+    <span>Series</span>
+  </nav>
+
   <div class="stats-page__header">
     <h1 class="stats-page__title">
       <mat-icon class="stats-page__title-icon">emoji_events</mat-icon>
@@ -10,6 +16,17 @@
         [value]="searchQuery" (input)="onSearchChange($event.target.value)" />
     </div>
   </div>
+
+  <section class="stats-page__intro">
+    <p>
+      Browse current cricket series and tournaments, then open available points tables, standings, and summary data while the deeper series surface continues to grow.
+    </p>
+    <nav class="stats-page__related-links" aria-label="Related cricket links">
+      <a href="/matches">Cricket matches</a>
+      <a href="/live-score">Cricket live score today</a>
+      <a href="/cricket-schedule/today">Cricket schedule today</a>
+    </nav>
+  </section>
 
   <div *ngIf="isLoading" class="stats-page__loading">
     <mat-spinner diameter="36"></mat-spinner>
@@ -39,6 +56,14 @@
       <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
     </div>
   </div>
+
+  <section class="stats-page__faq" aria-label="Series FAQ">
+    <h2>Series FAQ</h2>
+    <article *ngFor="let faq of seriesFaqs">
+      <h3>{{ faq.question }}</h3>
+      <p>{{ faq.answer }}</p>
+    </article>
+  </section>
 
   <!-- Detail overlay -->
   <div *ngIf="detailOpen" class="stats-detail-overlay" (click)="closeDetail()">

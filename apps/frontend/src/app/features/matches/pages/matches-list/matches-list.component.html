@@ -1,4 +1,9 @@
 <div class="matches-list">
+  <nav class="matches-list__breadcrumb" aria-label="Breadcrumb">
+    <a href="/">Home</a>
+    <span aria-hidden="true">/</span>
+    <span>Matches</span>
+  </nav>
 
   <header class="matches-list__header">
     <div class="matches-list__header-copy">
@@ -44,6 +49,16 @@
       </div>
     </div>
   </header>
+
+  <nav class="matches-list__crawl-links" aria-label="Related cricket hubs">
+    <span class="matches-list__crawl-links-label">Related cricket hubs</span>
+    <div class="matches-list__crawl-links-list">
+      <a class="matches-list__crawl-link" href="/live-score">Cricket live score today</a>
+      <a class="matches-list__crawl-link" href="/cricket-schedule/today">Cricket schedule today</a>
+      <a class="matches-list__crawl-link" href="/live-score/archive">Cricket match archive</a>
+      <a class="matches-list__crawl-link" href="/series">Cricket series</a>
+    </div>
+  </nav>
 
   <div class="matches-list__controls">
     <app-tab-nav

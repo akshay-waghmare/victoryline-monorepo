@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Title } from '@angular/platform-browser';
 import { Subject, forkJoin } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { CricketService, PlayerStatsSeriesDetailView } from '../../../cricket-odds/cricket-odds.service';
+import { MetaTagsService } from '../../../seo/meta-tags.service';
+import { StructuredDataService } from '../../../seo/structured-data.service';
 
 interface SeriesSummary {
   externalId: string;
@@ -17,6 +18,21 @@ interface SeriesSummary {
   styleUrls: ['./series-page.component.css']
 })
 export class SeriesPageComponent implements OnInit, OnDestroy {
+  readonly seriesFaqs = [
+    {
+      question: 'What can I find on the Crickzen series page?',
+      answer: 'The series page lists current cricket series and tournaments, then opens available tables, standings, and summary data inside the current series surface.'
+    },
+    {
+      question: 'Does the series page include points tables and standings?',
+      answer: 'Yes. When standings data is available for a series, Crickzen shows the points table and supporting series stats inside the detail view.'
+    },
+    {
+      question: 'How does the series page connect to match discovery?',
+      answer: 'This page acts as a lightweight series-intent surface that complements live-score, schedule, and match-result pages while deeper series enrichment is still in progress.'
+    }
+  ];
+
   seriesList: SeriesSummary[] = [];
   isLoading = true;
   searchQuery = '';
@@ -29,10 +45,20 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   isDetailLoading = false;
   detailOpen = false;
 
-  constructor(private cricketService: CricketService, private titleService: Title) {}
+  constructor(
+    private cricketService: CricketService,
+    private metaTagsService: MetaTagsService,
+    private structuredDataService: StructuredDataService
+  ) {}
 
   ngOnInit(): void {
-    this.titleService.setTitle('Series | Crickzen');
+    this.metaTagsService.setPageMeta('/series', {
+      title: 'Cricket Series, Tournaments, Tables & Standings | Crickzen',
+      description: 'Browse current cricket series and tournaments, then open available points tables, standings, and series summaries on Crickzen.',
+      canonicalUrl: 'https://www.crickzen.com/series',
+      robots: 'index,follow'
+    });
+    this.updateStructuredData();
     this.loadSeries();
     this.searchSubject.pipe(
       debounceTime(300),
@@ -47,6 +73,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.structuredDataService.clearPageSchemas();
   }
 
   loadSeries(query?: string): void {
@@ -54,8 +81,16 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     this.cricketService.listSeries('crex', query).pipe(
       takeUntil(this.destroy$)
     ).subscribe(
-      (data) => { this.seriesList = data || []; this.isLoading = false; },
-      () => { this.seriesList = []; this.isLoading = false; }
+      (data) => {
+        this.seriesList = data || [];
+        this.isLoading = false;
+        this.updateStructuredData();
+      },
+      () => {
+        this.seriesList = [];
+        this.isLoading = false;
+        this.updateStructuredData();
+      }
     );
   }
 
@@ -250,5 +285,43 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
 
   trackByExternalId(index: number, item: SeriesSummary): string {
     return item.externalId;
+  }
+
+  private updateStructuredData(): void {
+    this.structuredDataService.setPageSchemas([
+      this.structuredDataService.page({
+        type: 'CollectionPage',
+        name: 'Cricket series and standings on Crickzen',
+        description: 'Browse current cricket series and tournaments, then open available points tables, standings, and summary data.',
+        url: 'https://www.crickzen.com/series'
+      }),
+      this.structuredDataService.breadcrumbs([
+        { name: 'Home', url: 'https://www.crickzen.com/' },
+        { name: 'Series', url: 'https://www.crickzen.com/series' }
+      ]),
+      this.structuredDataService.itemList({
+        name: 'Related cricket discovery links',
+        url: 'https://www.crickzen.com/series',
+        description: 'Visible navigation from the series page into the main live-score and match-discovery surfaces.',
+        items: [
+          {
+            name: 'Cricket matches',
+            url: 'https://www.crickzen.com/matches',
+            description: 'Browse live, upcoming, and completed cricket matches.'
+          },
+          {
+            name: 'Cricket live score today',
+            url: 'https://www.crickzen.com/live-score',
+            description: 'Open the live-score hub for current match pages.'
+          },
+          {
+            name: 'Cricket schedule today',
+            url: 'https://www.crickzen.com/cricket-schedule/today',
+            description: 'Open the schedule-first hub for upcoming fixtures.'
+          }
+        ]
+      }),
+      this.structuredDataService.faqPage(this.seriesFaqs)
+    ]);
   }
 }

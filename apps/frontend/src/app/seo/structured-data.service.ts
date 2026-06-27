@@ -24,6 +24,12 @@ export interface ArticleStructuredDataInput {
   authorName?: string;
 }
 
+export interface StructuredDataLinkItem {
+  name: string;
+  url: string;
+  description?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class StructuredDataService {
   constructor(@Inject(DOCUMENT) private document: any) {}
@@ -129,6 +135,68 @@ export class StructuredDataService {
         name: it.name,
         item: it.url,
       })),
+    });
+  }
+
+  page(input: {
+    name: string;
+    description: string;
+    url: string;
+    type?: 'WebPage' | 'CollectionPage';
+  }): JsonLd {
+    return this.cleanObject({
+      '@context': 'https://schema.org',
+      '@type': input.type || 'WebPage',
+      name: input.name,
+      description: input.description,
+      url: input.url,
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'Crickzen',
+        url: 'https://www.crickzen.com'
+      }
+    });
+  }
+
+  itemList(input: {
+    name: string;
+    url?: string;
+    description?: string;
+    items: StructuredDataLinkItem[];
+  }): JsonLd {
+    return this.cleanObject({
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: input.name,
+      url: input.url,
+      description: input.description,
+      numberOfItems: input.items ? input.items.length : 0,
+      itemListElement: (input.items || []).map((item, index) => this.cleanObject({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: item.url,
+        item: this.cleanObject({
+          '@type': 'WebPage',
+          name: item.name,
+          url: item.url,
+          description: item.description
+        })
+      }))
+    });
+  }
+
+  faqPage(items: Array<{ question: string; answer: string }>): JsonLd {
+    return this.cleanObject({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: (items || []).map((item) => this.cleanObject({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer
+        }
+      }))
     });
   }
 

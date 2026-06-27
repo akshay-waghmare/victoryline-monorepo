@@ -43,16 +43,18 @@ export class ServerApiInterceptor implements HttpInterceptor {
   }
 
   private rewriteUrl(url: string, backendUrl: string): string | null {
+    const stripApiPrefix = this.shouldStripApiPrefix(backendUrl);
+
     if (url.indexOf('/api/v1') === 0 || url.indexOf('/api/poll') === 0) {
-      return backendUrl + url;
+      return stripApiPrefix ? backendUrl + url.replace(/^\/api/, '') : backendUrl + url;
     }
 
     if (url.indexOf('/api/') === 0) {
-      return backendUrl + url.replace(/^\/api/, '');
+      return stripApiPrefix ? backendUrl + url.replace(/^\/api/, '') : backendUrl + url;
     }
 
     if (url === '/api') {
-      return backendUrl + '/';
+      return stripApiPrefix ? backendUrl + '/' : backendUrl + '/api';
     }
 
     if (url.indexOf('/token/') === 0 || url === '/token') {
@@ -64,5 +66,24 @@ export class ServerApiInterceptor implements HttpInterceptor {
     }
 
     return null;
+  }
+
+  private shouldStripApiPrefix(backendUrl: string): boolean {
+    try {
+      const parsed = new URL(backendUrl);
+      const host = (parsed.hostname || '').toLowerCase();
+      const path = (parsed.pathname || '').replace(/\/+$/, '');
+
+      if (path === '/api') {
+        return true;
+      }
+
+      return host === 'localhost'
+        || host === '127.0.0.1'
+        || host === 'backend'
+        || parsed.port === '8099';
+    } catch (_) {
+      return backendUrl.indexOf('/api') !== -1;
+    }
   }
 }

@@ -24,6 +24,7 @@ import {
 } from '../../../../core/utils/match-utils';
 import { Tab } from '../../../../shared/components/tab-nav/tab-nav.component';
 import { MetaTagsService } from '../../../../seo/meta-tags.service';
+import { StructuredDataService } from '../../../../seo/structured-data.service';
 
 @Component({
   selector: 'app-matches-list',
@@ -83,7 +84,8 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   constructor(
     private matchesService: MatchesService,
     private router: Router,
-    private metaTagsService: MetaTagsService
+    private metaTagsService: MetaTagsService,
+    private structuredDataService: StructuredDataService
   ) {}
 
   ngOnInit(): void {
@@ -93,12 +95,14 @@ export class MatchesListComponent implements OnInit, OnDestroy {
       canonicalUrl: 'https://www.crickzen.com/matches',
       robots: 'index,follow'
     });
+    this.updateStructuredData();
     this.loadMatches();
   }
   
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.structuredDataService.clearPageSchemas();
   }
   
   /**
@@ -121,12 +125,14 @@ export class MatchesListComponent implements OnInit, OnDestroy {
           this.updateTabCounts();
           this.applyFilters();
           this.isLoading = false;
+          this.updateStructuredData();
           console.log('Matches auto-refreshed:', matches.length);
         },
         (error) => {
           this.hasError = true;
           this.errorMessage = 'Failed to load matches. Please try again later.';
           this.isLoading = false;
+          this.updateStructuredData();
           console.error('Error loading matches:', error);
         }
       );
@@ -166,6 +172,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
       .concat(this.upcomingDiscoveryMatches)
       .concat(this.recentDiscoveryMatches)
       .concat(this.visibleMatches), 48);
+    this.updateStructuredData();
   }
   
   /**
@@ -619,5 +626,98 @@ export class MatchesListComponent implements OnInit, OnDestroy {
 
   private getPageSize(status: MatchStatus): number {
     return this.pageSizeByStatus[status] || 24;
+  }
+
+  private updateStructuredData(): void {
+    var items: any[] = [
+      this.structuredDataService.page({
+        type: 'CollectionPage',
+        name: 'Cricket matches on Crickzen',
+        description: 'Browse live matches, upcoming fixtures, and recent results with direct paths into commentary, scorecards, lineups, and match details.',
+        url: 'https://www.crickzen.com/matches'
+      }),
+      this.structuredDataService.breadcrumbs([
+        { name: 'Home', url: 'https://www.crickzen.com/' },
+        { name: 'Matches', url: 'https://www.crickzen.com/matches' }
+      ]),
+      this.structuredDataService.itemList({
+        name: 'Related match hubs',
+        url: 'https://www.crickzen.com/matches',
+        description: 'Visible navigation from the matches page into the main cricket discovery hubs.',
+        items: [
+          {
+            name: 'Cricket live score today',
+            url: 'https://www.crickzen.com/live-score',
+            description: 'Open the main live-score hub.'
+          },
+          {
+            name: 'Cricket schedule today',
+            url: 'https://www.crickzen.com/cricket-schedule/today',
+            description: 'Open the schedule-first hub for upcoming fixtures.'
+          },
+          {
+            name: 'Cricket match archive',
+            url: 'https://www.crickzen.com/live-score/archive',
+            description: 'Open the archive for retained result pages.'
+          },
+          {
+            name: 'Cricket series',
+            url: 'https://www.crickzen.com/series',
+            description: 'Browse the current lightweight series tables and standings surface.'
+          }
+        ]
+      })
+    ];
+
+    if (this.liveDiscoveryMatches.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: 'Live cricket match links',
+        url: 'https://www.crickzen.com/matches',
+        description: 'Canonical match pages for live matches shown from the matches page.',
+        items: this.toStructuredMatchLinks(this.liveDiscoveryMatches)
+      }));
+    }
+
+    if (this.upcomingDiscoveryMatches.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: 'Upcoming cricket fixture links',
+        url: 'https://www.crickzen.com/matches',
+        description: 'Canonical match pages surfaced before start time from the matches page.',
+        items: this.toStructuredMatchLinks(this.upcomingDiscoveryMatches)
+      }));
+    }
+
+    if (this.recentDiscoveryMatches.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: 'Recent cricket result links',
+        url: 'https://www.crickzen.com/matches',
+        description: 'Canonical match pages retained after completion from the matches page.',
+        items: this.toStructuredMatchLinks(this.recentDiscoveryMatches)
+      }));
+    }
+
+    this.structuredDataService.setPageSchemas(items);
+  }
+
+  private toStructuredMatchLinks(matches: MatchCardViewModel[]): Array<{ name: string; url: string; description: string }> {
+    return (matches || []).map((match) => ({
+      name: this.getMatchLinkLabel(match),
+      url: 'https://www.crickzen.com' + this.getMatchHref(match),
+      description: this.buildStructuredMatchDescription(match)
+    }));
+  }
+
+  private buildStructuredMatchDescription(match: MatchCardViewModel): string {
+    var venue = match && match.venue ? ' at ' + match.venue : '';
+
+    if (match && match.status === MatchStatus.UPCOMING) {
+      return 'Upcoming cricket fixture with preview details, toss context, lineups, and live score path' + venue + '.';
+    }
+
+    if (match && match.status === MatchStatus.COMPLETED) {
+      return 'Completed cricket match with result, scorecard, commentary archive, and match detail path' + venue + '.';
+    }
+
+    return 'Live cricket match with commentary, scorecard, lineups, and match details' + venue + '.';
   }
 }

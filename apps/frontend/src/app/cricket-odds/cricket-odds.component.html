@@ -17,6 +17,14 @@
           <p>{{ matchSeo.summary }}</p>
         </section>
 
+        <nav class="cricket-odds__breadcrumb" *ngIf="matchSeo" aria-label="Breadcrumb">
+          <a href="/matches">Cricket</a>
+          <span aria-hidden="true">/</span>
+          <a [attr.href]="getSeriesSurfaceHref()">{{ getBreadcrumbSeriesLabel() }}</a>
+          <span aria-hidden="true">/</span>
+          <span>{{ matchSeo.teams }}</span>
+        </nav>
+
         <app-live-hero
           class="cricket-odds__hero"
           *ngIf="matchId && (showLiveHero || heroFallbackView)"
@@ -91,6 +99,40 @@
             </div>
           </section>
         </details>
+
+        <section class="cricket-odds__seo-detail-grid" *ngIf="matchSeo" aria-label="Canonical match support sections">
+          <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide" id="match-info">
+            <span class="cricket-odds__seo-detail-kicker">{{ getDetailsIntroKicker() }}</span>
+            <h2>{{ getDetailsIntroTitle() }}</h2>
+            <p>{{ getMatchDetailsIntentLabel() }}</p>
+            <dl class="cricket-odds__seo-facts" *ngIf="matchInfo">
+              <div *ngIf="matchInfo.match_date">
+                <dt>Date and time</dt>
+                <dd>{{ matchInfo.match_date | date: 'fullDate' }}, {{ matchInfo.match_date | date: 'shortTime' }}</dd>
+              </div>
+              <div *ngIf="matchInfo.venue">
+                <dt>Venue</dt>
+                <dd>{{ matchInfo.venue }}</dd>
+              </div>
+              <div *ngIf="matchInfo.toss_info">
+                <dt>Toss</dt>
+                <dd>{{ matchInfo.toss_info }}</dd>
+              </div>
+            </dl>
+          </article>
+
+          <article class="cricket-odds__seo-detail" id="scorecard">
+            <span class="cricket-odds__seo-detail-kicker">{{ getScorecardSectionKicker() }}</span>
+            <h2>{{ getScorecardSectionTitle() }}</h2>
+            <p>{{ getScorecardSectionSummary() }}</p>
+          </article>
+
+          <article class="cricket-odds__seo-detail" id="lineups">
+            <span class="cricket-odds__seo-detail-kicker">{{ getLineupsSectionKicker() }}</span>
+            <h2>{{ getLineupsSectionTitle() }}</h2>
+            <p>{{ getLineupsSectionSummary() }}</p>
+          </article>
+        </section>
 
       <mat-tab-group class="match-page-tabs" [selectedIndex]="selectedTabIndex" (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
@@ -231,7 +273,7 @@
               <span>Match Details</span>
             </span>
           </ng-template>
-          <section class="match-tab-panel" id="match-info">
+          <section class="match-tab-panel" id="match-info-panel">
             <app-match-details-info 
               *ngIf="matchInfo"
               [matchInfo]="matchInfo">
@@ -245,9 +287,10 @@
                 <p class="cricket-odds__seo-series" *ngIf="matchSeo.series">{{ matchSeo.series }}</p>
               </div>
               <nav class="cricket-odds__seo-links" aria-label="Related cricket pages">
+                <a [attr.href]="getPrimaryLifecycleHubHref()">{{ getPrimaryLifecycleHubLabel() }}</a>
                 <a routerLink="/matches">All cricket matches</a>
-                <a routerLink="/live-score">Live cricket scores</a>
-                <a routerLink="/live-score/today">Today match live score</a>
+                <a [attr.href]="getSeriesSurfaceHref()">{{ getSeriesSurfaceLinkLabel() }}</a>
+                <a routerLink="/live-cricket-score">Live cricket score hub</a>
               </nav>
             </section>
 
@@ -357,7 +400,7 @@
               <span class="match-page-tab-badge" *ngIf="scorecardData?.innings?.length">{{ scorecardData.innings.length }}</span>
             </span>
           </ng-template>
-          <section class="match-tab-panel" id="scorecard">
+          <section class="match-tab-panel" id="scorecard-panel">
             <header class="match-tab-intro" *ngIf="matchSeo">
               <p class="match-tab-intro__kicker">{{ getScorecardSectionKicker() }}</p>
               <h3 class="match-tab-intro__title">{{ getScorecardSectionTitle() }}</h3>
@@ -394,7 +437,7 @@
               <span>Lineups</span>
             </span>
           </ng-template>
-          <section class="match-tab-panel" id="lineups">
+          <section class="match-tab-panel" id="lineups-panel">
             <header class="match-tab-intro" *ngIf="matchSeo">
               <p class="match-tab-intro__kicker">{{ getLineupsSectionKicker() }}</p>
               <h3 class="match-tab-intro__title">{{ getLineupsSectionTitle() }}</h3>

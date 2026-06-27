@@ -38,7 +38,7 @@ export class MatchesService {
   // Singleton shared stream — all components subscribe to the same timer + WebSocket triggers.
   // This prevents multiple components (Home, MatchesList) from each creating their own
   // independent polling loops and multiplying HTTP requests.
-  private readonly sharedMatches$: Observable<MatchCardViewModel[]>;
+  private readonly sharedMatches$: Observable<MatchCardViewModel[]> | null;
 
   constructor(
     private eventListService: EventListService,
@@ -53,14 +53,19 @@ export class MatchesService {
         )
       : EMPTY;
 
-    const refresh$ = this.isBrowser()
-      ? merge(timer(0, 30000), wsRefresh$)
-      : of(null);
+    if (this.isBrowser()) {
+      const refresh$ = merge(timer(0, 30000), wsRefresh$);
 
-    this.sharedMatches$ = refresh$.pipe(
-      switchMap(() => this.getAllMatches()),
-      shareReplay(1)
-    );
+      this.sharedMatches$ = refresh$.pipe(
+        switchMap(() => this.getAllMatches()),
+        shareReplay(1)
+      );
+      return;
+    }
+
+    // SSR requests should fetch a fresh snapshot per render instead of
+    // reusing one cached observable across the whole Node process.
+    this.sharedMatches$ = null;
   }
 
   /**
@@ -69,6 +74,10 @@ export class MatchesService {
    * Refreshes every 30s via timer AND immediately on WebSocket push from backend.
    */
   getLiveMatchesWithAutoRefresh(): Observable<MatchCardViewModel[]> {
+    if (!this.isBrowser() || !this.sharedMatches$) {
+      return this.getAllMatches();
+    }
+
     return this.sharedMatches$;
   }
 

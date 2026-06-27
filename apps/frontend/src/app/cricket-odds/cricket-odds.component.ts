@@ -2845,6 +2845,45 @@ getDetailsIntroSummary(): string {
   return 'Use this section for supporting context while commentary stays primary for the live match.';
 }
 
+getBreadcrumbSeriesLabel(): string {
+  return this.matchSeo && this.matchSeo.breadcrumbSeries
+    ? this.matchSeo.breadcrumbSeries
+    : 'Series';
+}
+
+getSeriesSurfaceHref(): string {
+  return '/series';
+}
+
+getSeriesSurfaceLinkLabel(): string {
+  var series = this.getBreadcrumbSeriesLabel();
+  return series === 'Series' ? 'Cricket series' : series + ' series hub';
+}
+
+getPrimaryLifecycleHubHref(): string {
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return '/cricket-schedule/today';
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return '/live-score/archive';
+  }
+
+  return '/live-score';
+}
+
+getPrimaryLifecycleHubLabel(): string {
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'Cricket schedule today';
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return 'Cricket match archive';
+  }
+
+  return 'Cricket live score today';
+}
+
 getCanonicalIntentKicker(): string {
   if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
     return 'Canonical result page';
@@ -3359,7 +3398,7 @@ private titleCaseSlug(value: string): string {
 
     var breadcrumbs = this.structuredDataService.breadcrumbs([
       { name: 'Cricket', url: 'https://www.crickzen.com/matches' },
-      { name: this.matchSeo.breadcrumbSeries, url: 'https://www.crickzen.com/series' },
+      { name: this.getBreadcrumbSeriesLabel(), url: 'https://www.crickzen.com' + this.getSeriesSurfaceHref() },
       { name: this.matchSeo.teams, url: this.matchSeo.canonicalUrl }
     ]);
     var items: any[] = [breadcrumbs];
@@ -3376,6 +3415,49 @@ private titleCaseSlug(value: string): string {
       dateModified: dateModified || startDate || undefined,
       authorName: 'Crickzen'
     }));
+
+    items.push(this.structuredDataService.itemList({
+      name: this.matchSeo.teams + ' support links',
+      url: this.matchSeo.canonicalUrl,
+      description: 'Visible lifecycle and series links that keep the canonical match page connected to schedule, live-score, archive, and series surfaces.',
+      items: [
+        {
+          name: this.getPrimaryLifecycleHubLabel(),
+          url: 'https://www.crickzen.com' + this.getPrimaryLifecycleHubHref(),
+          description: 'Primary lifecycle hub for this match state.'
+        },
+        {
+          name: 'All cricket matches',
+          url: 'https://www.crickzen.com/matches',
+          description: 'Open the full list of live, upcoming, and completed matches.'
+        },
+        {
+          name: this.getSeriesSurfaceLinkLabel(),
+          url: 'https://www.crickzen.com' + this.getSeriesSurfaceHref(),
+          description: 'Open the current lightweight series tables and standings surface.'
+        },
+        {
+          name: 'Live cricket score hub',
+          url: 'https://www.crickzen.com/live-cricket-score',
+          description: 'Open the keyword-focused live cricket score hub.'
+        }
+      ]
+    }));
+
+    items.push(this.structuredDataService.faqPage([
+      {
+        question: 'Where can I follow ' + this.matchSeo.teams + ' live score today?',
+        answer: 'Follow ' + this.matchSeo.teams + ' live score today on this page with scorecard, toss update, playing XI, venue stats, and today match live score updates.'
+      },
+      {
+        question: 'When will the toss and playing XI be updated?',
+        answer: 'Toss update and playing XI are refreshed when the match feed receives confirmed team news from the official match centre.'
+      },
+      {
+        question: 'Where will the match result be shown?',
+        answer: this.getSeoFaqMatchResultAnswer()
+      }
+    ]));
 
     if (startDate) {
       items.unshift(this.structuredDataService.sportsEvent({

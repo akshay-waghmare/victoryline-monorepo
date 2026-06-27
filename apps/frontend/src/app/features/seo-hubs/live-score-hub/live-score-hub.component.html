@@ -1,4 +1,23 @@
 <main class="seo-hub">
+  <nav class="seo-hub__breadcrumbs" aria-label="Breadcrumb">
+    <a href="/">Home</a>
+    <ng-container *ngIf="config.canonicalPath === '/live-score'">
+      <span aria-hidden="true">/</span>
+      <span>Cricket live score today</span>
+    </ng-container>
+    <ng-container *ngIf="config.canonicalPath === '/cricket-schedule/today'">
+      <span aria-hidden="true">/</span>
+      <span>Cricket schedule today</span>
+    </ng-container>
+    <ng-container *ngIf="config.canonicalPath !== '/live-score' && config.canonicalPath !== '/cricket-schedule/today'">
+      <span aria-hidden="true">/</span>
+      <a *ngIf="config.type === 'today' || config.type === 'ipl' || config.type === 'archive'" href="/live-score">Live score</a>
+      <a *ngIf="config.type === 'scheduleToday' || config.type === 'iplSchedule'" href="/cricket-schedule/today">Cricket schedule</a>
+      <span aria-hidden="true">/</span>
+      <span>{{ config.title }}</span>
+    </ng-container>
+  </nav>
+
   <section class="seo-hub__hero">
     <span class="seo-hub__eyebrow">{{ config.eyebrow }}</span>
     <h1>{{ config.title }}</h1>
@@ -11,6 +30,7 @@
       <a href="/cricket-schedule/today">Cricket schedule today</a>
       <a href="/cricket-schedule/ipl-2026">IPL 2026 schedule</a>
       <a href="/live-score/archive">Match archive</a>
+      <a href="/series">Cricket series</a>
     </nav>
   </section>
 
