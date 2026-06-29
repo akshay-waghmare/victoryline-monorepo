@@ -168,6 +168,25 @@
     </nav>
   </section>
 
+  <section class="seo-hub__discovery" *ngIf="!isLoading && resultSupportLinks.length > 0" aria-label="Result support links">
+    <header class="seo-hub__section-head">
+      <div>
+        <span class="seo-hub__section-kicker">Result retention</span>
+        <h2>Completed match reports and highlights stay linked</h2>
+        <p>These retained result-support URLs help completed scorecards, match details, and recap intent stay discoverable after the live window closes.</p>
+      </div>
+      <p>{{ resultSupportLinks.length }} result links</p>
+    </header>
+
+    <nav class="seo-hub__link-cloud">
+      <a
+        *ngFor="let link of resultSupportLinks; trackBy: trackBySupportLink"
+        [attr.href]="link.href">
+        {{ link.label }}
+      </a>
+    </nav>
+  </section>
+
   <section class="seo-hub__faq" *ngIf="!isLoading && config.faqs.length > 0" aria-label="Hub FAQ">
     <header class="seo-hub__section-head">
       <div>

@@ -52,6 +52,7 @@ function createComponentShape(): LiveScoreHubComponent {
   component.fallbackSitemapMatches = [];
   component.primaryFallbackLinks = [];
   component.discoveryFallbackLinks = [];
+  component.resultSupportLinks = [];
   component.archivePageLinks = [];
   component.archivePage = 1;
   component.config = { type: 'today' } as any;
@@ -74,5 +75,20 @@ describe('LiveScoreHubComponent discovery priorities', () => {
 
     expect(component.upcomingSectionMatches.some(function(match) { return match.id === 'upcoming-a-vs-upcoming-b-123B'; })).toBe(true);
     expect(component.upcomingSectionMatches[0].id).toBe('upcoming-a-vs-upcoming-b-123B');
+  });
+
+  it('retains completed result-support links for archive intent', () => {
+    var component = createComponentShape();
+    var completedA = createMatch('india-vs-australia-1st-odi-123A', MatchStatus.COMPLETED, -18);
+    var completedB = createMatch('england-vs-south-africa-2nd-t20-123B', MatchStatus.COMPLETED, -8);
+
+    component.config = { type: 'archive' } as any;
+    component.allMatches = [completedA, completedB];
+    component.completedMatches = [completedA, completedB];
+
+    (component as any).applyMatches();
+
+    expect(component.resultSupportLinks.length).toBe(2);
+    expect(component.resultSupportLinks.every(function(link) { return link.href.indexOf('/cricket-match-report/') === 0; })).toBe(true);
   });
 });

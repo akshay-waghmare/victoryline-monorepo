@@ -52,6 +52,19 @@
           <p class="cricket-odds__summary-result" *ngIf="getFallbackResultSummary()">{{ getFallbackResultSummary() }}</p>
         </section>
 
+        <section class="cricket-odds__freshness-links" *ngIf="matchSeo && getFreshnessSupportLinks().length > 0" aria-label="Related freshness support pages">
+          <div class="cricket-odds__freshness-intro">
+            <span class="cricket-odds__freshness-kicker">Freshness support pages</span>
+            <p>Use these support pages for preview, live-update, and result intent while this canonical match page keeps the stable live score, commentary, and scorecard role.</p>
+          </div>
+          <nav class="cricket-odds__freshness-nav">
+            <a *ngFor="let link of getFreshnessSupportLinks()" [attr.href]="link.href">
+              <strong>{{ link.label }}</strong>
+              <span>{{ link.summary }}</span>
+            </a>
+          </nav>
+        </section>
+
         <details class="cricket-odds__intent-drawer" *ngIf="matchSeo">
           <summary class="cricket-odds__intent-drawer-summary">
             <span class="cricket-odds__intent-drawer-title">More match detail for {{ getMatchIntentShortPair() }}</span>
@@ -119,18 +132,60 @@
                 <dd>{{ matchInfo.toss_info }}</dd>
               </div>
             </dl>
+            <nav class="cricket-odds__section-support" *ngIf="getPreviewSupportHref() || getLiveUpdatesSupportHref() || getResultSupportHref()" aria-label="Match detail support links">
+              <a *ngIf="isUpcomingStatus(getResolvedMatchStatus()) && getPreviewSupportHref()" [attr.href]="getPreviewSupportHref()">
+                <strong>{{ getPreviewSupportLabel() }}</strong>
+                <span>Pitch, venue, toss timing, likely playing XI, and prematch setup.</span>
+              </a>
+              <a *ngIf="getLiveUpdatesSupportHref()" [attr.href]="getLiveUpdatesSupportHref()">
+                <strong>{{ getLiveUpdatesSupportLabel() }}</strong>
+                <span>Fresh match-day updates, today-match phrasing, and key live moments.</span>
+              </a>
+              <a *ngIf="!isUpcomingStatus(getResolvedMatchStatus()) && getResultSupportHref()" [attr.href]="getResultSupportHref()">
+                <strong>{{ getResultSupportLabel() }}</strong>
+                <span>Result summary, full scorecard follow-up, and match recap.</span>
+              </a>
+            </nav>
           </article>
 
           <article class="cricket-odds__seo-detail" id="scorecard">
             <span class="cricket-odds__seo-detail-kicker">{{ getScorecardSectionKicker() }}</span>
             <h2>{{ getScorecardSectionTitle() }}</h2>
             <p>{{ getScorecardSectionSummary() }}</p>
+            <nav class="cricket-odds__section-support" *ngIf="getLiveUpdatesSupportHref() || getResultSupportHref() || getPreviewSupportHref()" aria-label="Scorecard support links">
+              <a *ngIf="isUpcomingStatus(getResolvedMatchStatus()) && getPreviewSupportHref()" [attr.href]="getPreviewSupportHref()">
+                <strong>{{ getPreviewSupportLabel() }}</strong>
+                <span>Pitch, venue, toss timing, likely playing XI, and prematch setup.</span>
+              </a>
+              <a *ngIf="!isCompletedStatus(getResolvedMatchStatus()) && getLiveUpdatesSupportHref()" [attr.href]="getLiveUpdatesSupportHref()">
+                <strong>{{ getLiveUpdatesSupportLabel() }}</strong>
+                <span>Fresh match-day updates, today-match phrasing, and key live moments.</span>
+              </a>
+              <a *ngIf="getResultSupportHref()" [attr.href]="getResultSupportHref()">
+                <strong>{{ getResultSupportLabel() }}</strong>
+                <span>Result summary, full scorecard follow-up, and match recap.</span>
+              </a>
+            </nav>
           </article>
 
           <article class="cricket-odds__seo-detail" id="lineups">
             <span class="cricket-odds__seo-detail-kicker">{{ getLineupsSectionKicker() }}</span>
             <h2>{{ getLineupsSectionTitle() }}</h2>
             <p>{{ getLineupsSectionSummary() }}</p>
+            <nav class="cricket-odds__section-support" *ngIf="getPreviewSupportHref() || getLiveUpdatesSupportHref() || getResultSupportHref()" aria-label="Lineups support links">
+              <a *ngIf="isUpcomingStatus(getResolvedMatchStatus()) && getPreviewSupportHref()" [attr.href]="getPreviewSupportHref()">
+                <strong>{{ getPreviewSupportLabel() }}</strong>
+                <span>Pitch, venue, toss timing, likely playing XI, and prematch setup.</span>
+              </a>
+              <a *ngIf="!isUpcomingStatus(getResolvedMatchStatus()) && getLiveUpdatesSupportHref()" [attr.href]="getLiveUpdatesSupportHref()">
+                <strong>{{ getLiveUpdatesSupportLabel() }}</strong>
+                <span>Fresh match-day updates, today-match phrasing, and key live moments.</span>
+              </a>
+              <a *ngIf="isCompletedStatus(getResolvedMatchStatus()) && getResultSupportHref()" [attr.href]="getResultSupportHref()">
+                <strong>{{ getResultSupportLabel() }}</strong>
+                <span>Result summary, full scorecard follow-up, and match recap.</span>
+              </a>
+            </nav>
           </article>
         </section>
 
@@ -405,6 +460,12 @@
               <p class="match-tab-intro__kicker">{{ getScorecardSectionKicker() }}</p>
               <h3 class="match-tab-intro__title">{{ getScorecardSectionTitle() }}</h3>
               <p class="match-tab-intro__summary">{{ getScorecardSectionSummary() }}</p>
+              <nav class="cricket-odds__section-support cricket-odds__section-support--tab" *ngIf="getScorecardSupportLinks().length > 0" aria-label="Scorecard support links">
+                <a *ngFor="let link of getScorecardSupportLinks()" [attr.href]="link.href">
+                  <strong>{{ link.label }}</strong>
+                  <span>{{ link.summary }}</span>
+                </a>
+              </nav>
             </header>
 
             <div *ngIf="scorecardData">
@@ -442,6 +503,12 @@
               <p class="match-tab-intro__kicker">{{ getLineupsSectionKicker() }}</p>
               <h3 class="match-tab-intro__title">{{ getLineupsSectionTitle() }}</h3>
               <p class="match-tab-intro__summary">{{ getLineupsSectionSummary() }}</p>
+              <nav class="cricket-odds__section-support cricket-odds__section-support--tab" *ngIf="getLineupsSupportLinks().length > 0" aria-label="Lineups support links">
+                <a *ngFor="let link of getLineupsSupportLinks()" [attr.href]="link.href">
+                  <strong>{{ link.label }}</strong>
+                  <span>{{ link.summary }}</span>
+                </a>
+              </nav>
             </header>
 
             <app-lineups

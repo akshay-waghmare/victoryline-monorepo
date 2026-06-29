@@ -9,6 +9,7 @@ import { MatchCardViewModel, MatchStatus } from '../../matches/models/match-card
 import { MatchesService } from '../../matches/services/matches.service';
 import { MetaTagsService } from '../../../seo/meta-tags.service';
 import { StructuredDataService } from '../../../seo/structured-data.service';
+import { MatchFreshnessLink, buildFreshnessDiscoveryLinksForMatches } from '../../../seo/match-freshness-links';
 
 type SeoHubType = 'liveScore' | 'liveCricketScore' | 'today' | 'ipl' | 'scheduleToday' | 'iplSchedule' | 'archive';
 
@@ -65,6 +66,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   primaryFallbackLinks: HubFallbackLink[] = [];
   visibleSitemapLinks: HubFallbackLink[] = [];
   discoveryFallbackLinks: HubFallbackLink[] = [];
+  resultSupportLinks: MatchFreshnessLink[] = [];
   archivePageLinks: number[] = [];
   archivePage = 1;
   isLoading = true;
@@ -155,6 +157,10 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     return link.href;
   }
 
+  trackBySupportLink(index: number, link: MatchFreshnessLink): string {
+    return link.href;
+  }
+
   trackByFaq(index: number, faq: HubFaq): string {
     return faq.question;
   }
@@ -215,6 +221,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     this.upcomingSectionMatches = this.limitUnique(this.getUpcomingPriorityMatches(matches), this.config.type === 'scheduleToday' ? 18 : 14);
     this.recentSectionMatches = this.limitUnique(filterCompletedMatches(matches), 12);
     this.discoveryMatches = this.limitUnique(this.buildDiscoveryMatches(matches), 120);
+    this.resultSupportLinks = this.buildResultSupportLinks(matches);
     this.visibleSitemapLinks = this.getVisibleSitemapLinks();
     this.fallbackSitemapMatches = this.shouldUseSitemapFallback()
       ? this.getPrimaryFallbackLinks()
@@ -433,6 +440,12 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
       .concat(matches);
   }
 
+  private buildResultSupportLinks(matches: MatchCardViewModel[]): MatchFreshnessLink[] {
+    var completedMatches = this.limitUnique(filterCompletedMatches(matches), this.config.type === 'archive' ? 24 : 12);
+    return buildFreshnessDiscoveryLinksForMatches(completedMatches, this.config.type === 'archive' ? 24 : 12)
+      .filter(function(link) { return link.type === 'result'; });
+  }
+
   private shouldUseSitemapFallback(): boolean {
     if (this.config.type === 'archive') {
       return true;
@@ -579,6 +592,22 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
         url: currentUrl,
         description: 'Additional visible canonical match links retained for discovery from this lifecycle hub.',
         items: discoveryItems
+      }));
+    }
+
+    var resultItems = this.resultSupportLinks.map(function(link) {
+      return {
+        name: link.label,
+        url: 'https://www.crickzen.com' + link.href,
+        description: link.summary
+      };
+    });
+    if (resultItems.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: this.config.title + ' result support links',
+        url: currentUrl,
+        description: 'Visible result and highlights support links retained from recent completed fixtures.',
+        items: resultItems
       }));
     }
 

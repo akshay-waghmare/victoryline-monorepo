@@ -151,4 +151,32 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(component.getCommentaryJumpLabel()).toBe('IND vs AUS commentary');
     expect(component.getScorecardJumpLabel()).toBe('IND vs AUS scorecard');
   });
+
+  it('prioritizes preview support links for upcoming lineups and details sections', () => {
+    var component = createComponent();
+    component.matchInfo = { match_status: 'UPCOMING' };
+    component.freshnessLinks = [
+      { href: '/cricket-match-preview/ind-vs-aus-1st-odi-123A', label: 'IND vs AUS preview', summary: 'Preview', type: 'preview' },
+      { href: '/cricket-live-updates/ind-vs-aus-1st-odi-123A', label: 'IND vs AUS live updates', summary: 'Live', type: 'live-updates' },
+      { href: '/cricket-match-report/ind-vs-aus-1st-odi-123A', label: 'IND vs AUS result and highlights', summary: 'Result', type: 'result' }
+    ] as any;
+
+    expect(component.getLineupsSupportLinks().map(function(link) { return link.type; })).toEqual(['preview']);
+    expect(component.getDetailsSupportLinks().map(function(link) { return link.type; })).toEqual(['preview', 'live-updates']);
+    expect(component.getScorecardSupportLinks().map(function(link) { return link.type; })).toEqual(['preview', 'live-updates']);
+  });
+
+  it('retains result support links for completed scorecard and match-info sections', () => {
+    var component = createComponent();
+    component.matchInfo = { match_status: 'COMPLETED' };
+    component.freshnessLinks = [
+      { href: '/cricket-match-preview/ind-vs-aus-1st-odi-123A', label: 'IND vs AUS preview', summary: 'Preview', type: 'preview' },
+      { href: '/cricket-live-updates/ind-vs-aus-1st-odi-123A', label: 'IND vs AUS live updates', summary: 'Live', type: 'live-updates' },
+      { href: '/cricket-match-report/ind-vs-aus-1st-odi-123A', label: 'IND vs AUS result and highlights', summary: 'Result', type: 'result' }
+    ] as any;
+
+    expect(component.getScorecardSupportLinks().map(function(link) { return link.type; })).toEqual(['result']);
+    expect(component.getLineupsSupportLinks().map(function(link) { return link.type; })).toEqual(['result']);
+    expect(component.getDetailsSupportLinks().map(function(link) { return link.type; })).toEqual(['result', 'live-updates']);
+  });
 });

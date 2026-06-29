@@ -29,6 +29,7 @@ import { MatchSeoViewModel } from '../seo/match-seo.models';
 import { MatchSeoService } from '../seo/match-seo.service';
 import { MetaTagsService } from '../seo/meta-tags.service';
 import { StructuredDataLocationInput, StructuredDataService } from '../seo/structured-data.service';
+import { MatchFreshnessLink, buildFreshnessLinksFromMatch, buildFreshnessLinksFromSlug } from '../seo/match-freshness-links';
 
 const MATCH_INFO_KEY = makeStateKey<any>('cricket_match_info');
 const CRICKET_DATA_KEY = makeStateKey<any>('cricket_data_snapshot');
@@ -173,6 +174,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   heroFallbackView: LiveHeroViewModel | null = null;
   private isFallbackMatchInfo: boolean = false;
   matchSeo: MatchSeoViewModel | null = null;
+  freshnessLinks: MatchFreshnessLink[] = [];
 
   // Toggle to hide/show odds sections
   showOdds: boolean = true;
@@ -1097,7 +1099,9 @@ private resolveRouteMatch(matchSlug: string): void {
       url: directMatchUrl,
       externalMatchKey: this.matchId || matchSlug,
       seriesName: this.currentMatch && this.currentMatch.seriesName ? this.currentMatch.seriesName : null,
-      status: this.currentMatch && this.currentMatch.status ? this.currentMatch.status : null
+      status: this.currentMatch && this.currentMatch.status ? this.currentMatch.status : null,
+      team1: this.currentMatch && this.currentMatch.team1 ? this.currentMatch.team1 : null,
+      team2: this.currentMatch && this.currentMatch.team2 ? this.currentMatch.team2 : null
     };
 
     this.currentMatch = directMatch;
@@ -2860,6 +2864,118 @@ getSeriesSurfaceLinkLabel(): string {
   return series === 'Series' ? 'Cricket series' : series + ' series hub';
 }
 
+getFreshnessSupportLinks(): MatchFreshnessLink[] {
+  return this.resolveFreshnessSupportLinks();
+}
+
+getPreviewSupportHref(): string | null {
+  return this.buildSupportHref('preview');
+}
+
+getLiveUpdatesSupportHref(): string | null {
+  return this.buildSupportHref('live-updates');
+}
+
+getResultSupportHref(): string | null {
+  return this.buildSupportHref('result');
+}
+
+getPreviewSupportLabel(): string {
+  return this.getMatchIntentShortPair() + ' preview';
+}
+
+getLiveUpdatesSupportLabel(): string {
+  return this.getMatchIntentShortPair() + ' live updates';
+}
+
+getResultSupportLabel(): string {
+  return this.getMatchIntentShortPair() + ' result and highlights';
+}
+
+getDetailsSupportLinks(): MatchFreshnessLink[] {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return this.getFreshnessSupportLinksByType(['result', 'live-updates']);
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return this.getFreshnessSupportLinksByType(['preview', 'live-updates']);
+  }
+
+  return this.getFreshnessSupportLinksByType(['live-updates', 'result']);
+}
+
+getScorecardSupportLinks(): MatchFreshnessLink[] {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return this.getFreshnessSupportLinksByType(['result']);
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return this.getFreshnessSupportLinksByType(['preview', 'live-updates']);
+  }
+
+  return this.getFreshnessSupportLinksByType(['live-updates', 'result']);
+}
+
+getLineupsSupportLinks(): MatchFreshnessLink[] {
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return this.getFreshnessSupportLinksByType(['result']);
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return this.getFreshnessSupportLinksByType(['preview']);
+  }
+
+  return this.getFreshnessSupportLinksByType(['live-updates', 'preview']);
+}
+
+private getFreshnessSupportLinksByType(types: Array<'preview' | 'live-updates' | 'result'>): MatchFreshnessLink[] {
+  var source = this.resolveFreshnessSupportLinks();
+  if (!source || !source.length) {
+    return [];
+  }
+
+  var ordered: MatchFreshnessLink[] = [];
+  var seen: { [key: string]: boolean } = {};
+
+  (types || []).forEach(function(type) {
+    source.forEach(function(link) {
+      if (!link || link.type !== type || !link.href || seen[link.href]) {
+        return;
+      }
+
+      seen[link.href] = true;
+      ordered.push(link);
+    });
+  });
+
+  return ordered;
+}
+
+private resolveFreshnessSupportLinks(): MatchFreshnessLink[] {
+  if (this.freshnessLinks && this.freshnessLinks.length > 0) {
+    return this.freshnessLinks;
+  }
+
+  return this.buildFallbackFreshnessLinks();
+}
+
+private buildSupportHref(type: 'preview' | 'live-updates' | 'result'): string | null {
+  var slug = this.getCanonicalMatchSlug();
+  if (!slug) {
+    return null;
+  }
+
+  if (type === 'preview') {
+    return '/cricket-match-preview/' + slug;
+  }
+
+  if (type === 'result') {
+    return '/cricket-match-report/' + slug;
+  }
+
+  return '/cricket-live-updates/' + slug;
+}
+
 getPrimaryLifecycleHubHref(): string {
   if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
     return '/cricket-schedule/today';
@@ -3334,6 +3450,10 @@ private titleCaseSlug(value: string): string {
       }
     });
 
+    this.freshnessLinks = this.currentMatch
+      ? buildFreshnessLinksFromMatch(this.currentMatch)
+      : this.buildFallbackFreshnessLinks();
+
     this.updateStructuredData();
   }
 
@@ -3342,6 +3462,27 @@ private titleCaseSlug(value: string): string {
    */
   private extractUrlSlug(url: string): string | null {
     return extractSlugFromUrl(url);
+  }
+
+  private buildFallbackFreshnessLinks(): MatchFreshnessLink[] {
+    var slug = this.getCanonicalMatchSlug();
+    if (!slug || !this.matchSeo) {
+      return [];
+    }
+
+    return buildFreshnessLinksFromSlug(
+      slug,
+      this.getResolvedMatchStatus(),
+      this.matchSeo.team1,
+      this.matchSeo.team2
+    );
+  }
+
+  private getCanonicalMatchSlug(): string {
+    return this.currentUrl
+      || this.matchId
+      || (this.matchSeo && this.matchSeo.canonicalPath ? this.matchSeo.canonicalPath.replace(/^\/cric-live\//, '') : '')
+      || '';
   }
 
   private isBrowser(): boolean {
@@ -3443,6 +3584,20 @@ private titleCaseSlug(value: string): string {
         }
       ]
     }));
+
+    var freshnessLinks = this.resolveFreshnessSupportLinks();
+    if (freshnessLinks.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: this.matchSeo.teams + ' freshness-support pages',
+        url: this.matchSeo.canonicalUrl,
+        description: 'Preview, live-update, and result pages related to the same canonical match entity.',
+        items: freshnessLinks.map((link) => ({
+          name: link.label,
+          url: 'https://www.crickzen.com' + link.href,
+          description: link.summary
+        }))
+      }));
+    }
 
     items.push(this.structuredDataService.faqPage([
       {
