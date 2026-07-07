@@ -1,16 +1,18 @@
-# Homepage Restore And Frontend Prod Sync
+# Homepage Restore, Backend Catch-Up, And Prod Sync
 
 Date: 2026-07-08 IST
 Branch: `008-match-title-seo`
 Primary frontend commit: `34c1325`
+Follow-up backend rollout commit base: `b295c4b`
 Prod host: `administrator@204.12.199.137`
 
 ## Scope
 
-This checkpoint covered three things:
+This checkpoint covered four things:
 
 - restore the older Crickzen homepage after the newer homepage changes broke the live surface
 - keep the upcoming match tabs visible on `/cric-live/{slug}` while stopping the scorecard tab from looking stuck before innings data exists
+- deploy the backend freshness and live-patch slice that was present locally but not yet present in the backend prod image
 - sync the known production checkout drift back against local so future work starts from the real deployed state rather than chat memory
 
 ## Commits already on the branch
@@ -21,7 +23,7 @@ This checkpoint covered three things:
 
 ## Production image state after this rollout
 
-- `BACKEND_IMAGE=macubex/victoryline-backend:20260708-012231-3126nc1`
+- `BACKEND_IMAGE=macubex/victoryline-backend:20260708-030731-backend-b295c4b`
 - `FRONTEND_IMAGE=macubex/victoryline-frontend:20260708-024508-34c1325`
 - `SCRAPER_IMAGE=macubex/victoryline-scraper:20260708-012231-3126nc1`
 
@@ -47,7 +49,31 @@ The fix was:
 - use an explicit scorecard loading flag instead of proxying off the live-hero state
 - show the honest empty-state copy when the match has not started
 
-### 3. Prod-to-local sync check
+### 3. Backend catch-up rollout
+
+The backend image that was running before this checkpoint did not match the current local backend code. The deployed backend WAR was missing the newer freshness and live-patch slice even though that code was already present locally.
+
+The backend rollout shipped those undeployed backend changes by building and pushing:
+
+- `macubex/victoryline-backend:20260708-030731-backend-b295c4b`
+
+The important backend changes included:
+
+- `CricketDataController`
+  - `POST /cricket-data/live-patch`
+  - `GET /cricket-data/freshness-summary`
+- `CricketDataService`
+  - snapshot publishing
+  - cache-only live patch path
+- `LiveMatchIndexingScheduler`
+  - upcoming indexing windows and priority lead-hours
+- `SitemapService`
+  - freshness support paths and freshness-aware `lastmod`
+- `MatchFreshnessSummaryService`
+- `FreshnessEventDTO`
+- `FreshnessSummaryDTO`
+
+### 4. Prod-to-local sync check
 
 The production checkout still shows tracked modifications, but the meaningful code drift is already represented locally:
 
@@ -59,6 +85,8 @@ The production checkout still shows tracked modifications, but the meaningful co
   - local and prod logic match; the remaining difference observed during comparison was the same mojibake in a comment dash on prod
 
 This means local already contains the functional prod drift that mattered for the current rollout, even though both worktrees are still broadly dirty for other reasons.
+
+For the backend specifically, the deployed image was compared against a locally built WAR at the class level. Before the backend rollout, local was ahead of the deployed image. After the rollout, prod backend was updated to the newer backend image built from local.
 
 ## Verification
 
@@ -78,6 +106,11 @@ Frontend-only image push and switch completed with:
 - image tag `20260708-024508-34c1325`
 - container `victoryline-frontend` healthy after restart
 
+Backend image push and switch completed with:
+
+- image tag `20260708-030731-backend-b295c4b`
+- container `victoryline-backend` healthy after restart
+
 ### Live URL proof
 
 Verified after rollout:
@@ -91,6 +124,12 @@ Verified after rollout:
   - `Scorecard` tab present
   - `Loading scorecard` not present in HTML
   - `Detailed scorecard is not available for this match yet.` present in HTML
+- `https://www.crickzen.com/api/cricket-data/freshness-summary?url=https://www.crickzen.com/cric-live/demo-match-seo-check&pageType=preview`
+  - returned `200`
+  - confirmed the new backend freshness summary endpoint is live publicly
+- `https://www.crickzen.com/api/cricket-data/upcoming-matches?_ts=backend-final-check`
+  - returned `200`
+  - confirmed the public API recovered cleanly after backend restart
 
 ## Repo cleanliness notes
 
