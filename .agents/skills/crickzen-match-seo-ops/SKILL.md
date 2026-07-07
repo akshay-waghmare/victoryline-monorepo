@@ -7,6 +7,18 @@ description: Audit, verify, and roll out Crickzen match-page SEO changes across 
 
 Use this skill when `/cric-live/*` pages need SEO verification or recovery.
 
+## Intent guardrail
+
+Do not treat a technically valid page as "SEO complete" unless it still matches live-match intent.
+
+For match pages, verify:
+
+- `content type`: live-score match page, not article-like filler
+- `content format`: scoreboard plus match-detail utility, not thin promo copy
+- `content angle`: freshness, live status, toss, lineup, scorecard, or result depending on lifecycle
+
+If titles, descriptions, headings, or SSR copy drift away from that utility-first intent, fix them before worrying about extra schema or keyword repetition.
+
 ## Default audit order
 
 1. Check one real live or recent match page directly.
@@ -15,6 +27,18 @@ Use this skill when `/cric-live/*` pages need SEO verification or recovery.
 4. Confirm sitemap and `robots.txt` still resolve.
 5. Confirm GSC/indexing service status.
 6. Submit sitemap only after the HTML checks pass.
+
+## Preflight issue-cluster check
+
+Before treating a match page as the root cause, sanity-check whether the reported issue is actually one of these broader families:
+
+- orphan-match spike caused by weak hub links rather than broken page HTML
+- `noindex` or non-canonical URLs entering sitemap output from lifecycle/support routes
+- schema.org validation spikes caused by one shared JSON-LD path
+- title/description inflation caused by one shared lifecycle-state string
+- single-internal-link match pages caused by weak discovery hubs instead of page-level metadata bugs
+
+If the symptom is broad, run `crickzen-seo-health-pattern-audit` first and come back to this skill only after the likely shared cause is narrowed down.
 
 ## SportsEvent guardrail
 
@@ -68,6 +92,8 @@ Expected good signs:
 - self-canonical on the match URL
 - exactly one `h1`
 - `og:image` present
+- title and description naturally reflect the primary match query plus lifecycle state
+- raw HTML contains utility copy for score, venue, toss, lineup, scorecard, or result instead of only UI chrome
 - `application/ld+json` present for real match pages
 - `SportsEvent.startDate` present when `SportsEvent` is present
 - `SportsEvent.location` present when `SportsEvent` is present
@@ -124,12 +150,15 @@ Do not treat manual per-URL indexing as a rollout blocker by default. It may fai
 - unresolved route returns `404`
 - canonical matches requested slug
 - `robots=index,follow` on valid match page
+- sampled match page is not `noindex`
 - one `h1`
 - `og:image` present
+- title, description, and visible copy match live-match intent for the page lifecycle
 - JSON-LD present on real match pages
 - no `SPORTSEVENT_LOCATION_MISSING` flag
 - no `SPORTSEVENT_STARTDATE_MISSING` flag
 - Googlebot sees the same JSON-LD contract in raw HTML
+- if the page is present in sitemap, it is self-canonical and indexable
 - sitemap submission succeeds
 
 ## Reference

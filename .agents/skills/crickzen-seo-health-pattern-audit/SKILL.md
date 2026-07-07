@@ -24,16 +24,34 @@ python .\scripts\query_gsc_search_analytics.py --credentials <service-account-pa
 
 Keep credentials outside the repo and save only the sanitized JSON output.
 3. Read the JSON `patterns` and `failures` sections first.
-4. Map correlated failures to one likely shared cause before editing:
+4. Add a search-intent and page-type check before editing:
+   - is the affected query family better served by a match page, hub page, schedule page, series page, or result page?
+   - does the current winner type in Google imply a mismatch in content type, format, or angle?
+   - are we chasing a head term where long-tail traffic potential is the more realistic opportunity?
+5. Map correlated failures to one likely shared cause before editing:
    - repeated `7,974`-byte or missing-H1 listing responses -> SSR timeout/fallback shell;
    - sitemap duplicates plus canonical-without-links -> duplicate source records or missing sitemap deduplication;
    - one sitemap 4XX -> unrouted or deleted URL still emitted;
    - many pages sharing missing H1, no links, low word count, and missing canonical -> one broken/thin template family;
    - alternative page with proper canonical -> usually expected alias behavior unless aliases are internally linked or sitemap-listed;
    - high sitemap match count with few discovery links -> orphan/crawl-graph weakness.
-5. Inspect relevant production logs and source only after the pattern is identified.
-6. Make the smallest fix, test locally, deploy only affected services, then rerun this audit.
-7. Submit the sitemap only after the post-deploy audit is clean.
+6. Inspect relevant production logs and source only after the pattern is identified.
+7. Make the smallest fix, test locally, deploy only affected services, then rerun this audit.
+8. Submit the sitemap only after the post-deploy audit is clean.
+
+## Ahrefs and crawler issue triage lens
+
+When a tool reports large raw counts, classify them into these buckets before changing code:
+
+- `orphan page (indexable)`: compare sitemap match volume to direct SSR discovery-link volume first; for Crickzen this is often a crawl-graph gap, not a broken canonical or broken sitemap
+- `noindex page in sitemap`: treat as a real hygiene failure until sampled URLs prove the crawler is reading stale aliases or old support routes
+- `non-canonical page in sitemap`: check sitemap sources and canonical route families together; do not assume the page template is wrong
+- `indexable page not in sitemap`: confirm whether the URLs are intended support pages, recent lifecycle pages, or thin aliases before adding them blindly
+- `schema validation error spike`: look for one shared JSON-LD generator or one route family before editing many pages individually
+- `title/meta too long` spikes: look for one generator or one state-string concatenation bug, especially toss-delay and result-copy paths
+- `one dofollow incoming internal link`: treat as an internal-link distribution problem unless the route family itself is intentionally isolated
+
+If the tool surfaces only counts but not representative URLs, sample real URLs before editing.
 
 ## Guardrails
 
@@ -54,6 +72,8 @@ Acceptance after a fix:
 - sitemap URLs are unique and contain no known invalid static routes;
 - sampled sitemap match pages return `200`, one canonical, one H1, JSON-LD, and no `noindex`;
 - every repeated discovery-page render returns one H1 and crawlable `/cric-live/` links;
+- the affected surface matches the likely query intent instead of forcing every keyword onto one page type;
 - `robots.txt`, sitemap, indexing status, and websocket info return `200`;
 - an unknown route returns `404`;
 - no new `[SSR] Render timed out` or `[SSR] Render failed` production logs appear during verification.
+- sampled sitemap URLs do not expose `noindex`, wrong canonicals, or schema regressions on the live site.
