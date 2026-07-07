@@ -12,11 +12,6 @@
       <!-- Main content area (T009) -->
     <main class="match-page-content" role="main" aria-label="Match details content">
       <mat-card-content class="match-page-content__inner">
-        <section class="cricket-odds__sr-only" *ngIf="matchSeo" aria-hidden="true">
-          <h1>{{ matchSeo.h1 }}</h1>
-          <p>{{ matchSeo.summary }}</p>
-        </section>
-
         <nav class="cricket-odds__breadcrumb" *ngIf="matchSeo" aria-label="Breadcrumb">
           <a href="/matches">Cricket</a>
           <span aria-hidden="true">/</span>
@@ -24,6 +19,7 @@
           <span aria-hidden="true">/</span>
           <span>{{ matchSeo.teams }}</span>
         </nav>
+        <h1 class="cricket-odds__sr-only" *ngIf="matchSeo">{{ matchSeo.h1 }}</h1>
 
         <app-live-hero
           class="cricket-odds__hero"
@@ -50,143 +46,6 @@
           </p>
           <p class="cricket-odds__summary-meta" *ngIf="matchInfo.venue">{{ matchInfo.venue }}</p>
           <p class="cricket-odds__summary-result" *ngIf="getFallbackResultSummary()">{{ getFallbackResultSummary() }}</p>
-        </section>
-
-        <section class="cricket-odds__freshness-links" *ngIf="matchSeo && getFreshnessSupportLinks().length > 0" aria-label="Related freshness support pages">
-          <div class="cricket-odds__freshness-intro">
-            <span class="cricket-odds__freshness-kicker">Freshness support pages</span>
-            <p>Use these support pages for preview, live-update, and result intent while this canonical match page keeps the stable live score, commentary, and scorecard role.</p>
-          </div>
-          <nav class="cricket-odds__freshness-nav">
-            <a *ngFor="let link of getFreshnessSupportLinks()" [attr.href]="link.href">
-              <strong>{{ link.label }}</strong>
-              <span>{{ link.summary }}</span>
-            </a>
-          </nav>
-        </section>
-
-        <details class="cricket-odds__intent-drawer" *ngIf="matchSeo">
-          <summary class="cricket-odds__intent-drawer-summary">
-            <span class="cricket-odds__intent-drawer-title">More match detail for {{ getMatchIntentShortPair() }}</span>
-            <span class="cricket-odds__intent-drawer-copy">Keep the at-a-glance layer first, then open the match-specific commentary, scorecard, lineup, and details support block when you want more.</span>
-          </summary>
-
-          <section class="cricket-odds__intent-rail" aria-label="Canonical match intent snapshot">
-            <div class="cricket-odds__intent-copy">
-              <p class="cricket-odds__intent-eyebrow">{{ getCanonicalIntentKicker() }}</p>
-              <h2 class="cricket-odds__intent-title">{{ getCanonicalIntentTitle() }}</h2>
-              <p class="cricket-odds__intent-summary">{{ getCanonicalIntentSummary() }}</p>
-            </div>
-
-            <nav class="cricket-odds__intent-links" aria-label="Jump to match sections">
-              <a href="#commentary" (click)="jumpToMatchSection('commentary', $event)">{{ getCommentaryJumpLabel() }}</a>
-              <a href="#scorecard" (click)="jumpToMatchSection('scorecard', $event)">{{ getScorecardJumpLabel() }}</a>
-              <a href="#lineups" (click)="jumpToMatchSection('lineups', $event)">{{ getLineupsJumpLabel() }}</a>
-              <a href="#match-info" (click)="jumpToMatchSection('details', $event)">{{ getDetailsJumpLabel() }}</a>
-            </nav>
-
-            <div class="cricket-odds__intent-grid">
-              <article class="cricket-odds__intent-card cricket-odds__intent-card--commentary">
-                <span class="cricket-odds__intent-kicker">Commentary</span>
-                <h3>{{ getCommentarySectionTitle() }}</h3>
-                <p>{{ getCommentaryIntentLabel() }}</p>
-              </article>
-
-              <article class="cricket-odds__intent-card cricket-odds__intent-card--scorecard">
-                <span class="cricket-odds__intent-kicker">Scorecard</span>
-                <h3>{{ getScorecardSectionTitle() }}</h3>
-                <p>{{ getScorecardIntentLabel() }}</p>
-              </article>
-
-              <article class="cricket-odds__intent-card cricket-odds__intent-card--lineups">
-                <span class="cricket-odds__intent-kicker">Lineups</span>
-                <h3>{{ getLineupsSectionTitle() }}</h3>
-                <p>{{ getLineupsIntentLabel() }}</p>
-              </article>
-
-              <article class="cricket-odds__intent-card cricket-odds__intent-card--details">
-                <span class="cricket-odds__intent-kicker">Match details</span>
-                <h3>{{ getDetailsJumpLabel() }}</h3>
-                <p>{{ getMatchDetailsIntentLabel() }}</p>
-              </article>
-            </div>
-          </section>
-        </details>
-
-        <section class="cricket-odds__seo-detail-grid" *ngIf="matchSeo" aria-label="Canonical match support sections">
-          <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide" id="match-info">
-            <span class="cricket-odds__seo-detail-kicker">{{ getDetailsIntroKicker() }}</span>
-            <h2>{{ getDetailsIntroTitle() }}</h2>
-            <p>{{ getMatchDetailsIntentLabel() }}</p>
-            <dl class="cricket-odds__seo-facts" *ngIf="matchInfo">
-              <div *ngIf="matchInfo.match_date">
-                <dt>Date and time</dt>
-                <dd>{{ matchInfo.match_date | date: 'fullDate' }}, {{ matchInfo.match_date | date: 'shortTime' }}</dd>
-              </div>
-              <div *ngIf="matchInfo.venue">
-                <dt>Venue</dt>
-                <dd>{{ matchInfo.venue }}</dd>
-              </div>
-              <div *ngIf="matchInfo.toss_info">
-                <dt>Toss</dt>
-                <dd>{{ matchInfo.toss_info }}</dd>
-              </div>
-            </dl>
-            <nav class="cricket-odds__section-support" *ngIf="getPreviewSupportHref() || getLiveUpdatesSupportHref() || getResultSupportHref()" aria-label="Match detail support links">
-              <a *ngIf="isUpcomingStatus(getResolvedMatchStatus()) && getPreviewSupportHref()" [attr.href]="getPreviewSupportHref()">
-                <strong>{{ getPreviewSupportLabel() }}</strong>
-                <span>Pitch, venue, toss timing, likely playing XI, and prematch setup.</span>
-              </a>
-              <a *ngIf="getLiveUpdatesSupportHref()" [attr.href]="getLiveUpdatesSupportHref()">
-                <strong>{{ getLiveUpdatesSupportLabel() }}</strong>
-                <span>Fresh match-day updates, today-match phrasing, and key live moments.</span>
-              </a>
-              <a *ngIf="!isUpcomingStatus(getResolvedMatchStatus()) && getResultSupportHref()" [attr.href]="getResultSupportHref()">
-                <strong>{{ getResultSupportLabel() }}</strong>
-                <span>Result summary, full scorecard follow-up, and match recap.</span>
-              </a>
-            </nav>
-          </article>
-
-          <article class="cricket-odds__seo-detail" id="scorecard">
-            <span class="cricket-odds__seo-detail-kicker">{{ getScorecardSectionKicker() }}</span>
-            <h2>{{ getScorecardSectionTitle() }}</h2>
-            <p>{{ getScorecardSectionSummary() }}</p>
-            <nav class="cricket-odds__section-support" *ngIf="getLiveUpdatesSupportHref() || getResultSupportHref() || getPreviewSupportHref()" aria-label="Scorecard support links">
-              <a *ngIf="isUpcomingStatus(getResolvedMatchStatus()) && getPreviewSupportHref()" [attr.href]="getPreviewSupportHref()">
-                <strong>{{ getPreviewSupportLabel() }}</strong>
-                <span>Pitch, venue, toss timing, likely playing XI, and prematch setup.</span>
-              </a>
-              <a *ngIf="!isCompletedStatus(getResolvedMatchStatus()) && getLiveUpdatesSupportHref()" [attr.href]="getLiveUpdatesSupportHref()">
-                <strong>{{ getLiveUpdatesSupportLabel() }}</strong>
-                <span>Fresh match-day updates, today-match phrasing, and key live moments.</span>
-              </a>
-              <a *ngIf="getResultSupportHref()" [attr.href]="getResultSupportHref()">
-                <strong>{{ getResultSupportLabel() }}</strong>
-                <span>Result summary, full scorecard follow-up, and match recap.</span>
-              </a>
-            </nav>
-          </article>
-
-          <article class="cricket-odds__seo-detail" id="lineups">
-            <span class="cricket-odds__seo-detail-kicker">{{ getLineupsSectionKicker() }}</span>
-            <h2>{{ getLineupsSectionTitle() }}</h2>
-            <p>{{ getLineupsSectionSummary() }}</p>
-            <nav class="cricket-odds__section-support" *ngIf="getPreviewSupportHref() || getLiveUpdatesSupportHref() || getResultSupportHref()" aria-label="Lineups support links">
-              <a *ngIf="isUpcomingStatus(getResolvedMatchStatus()) && getPreviewSupportHref()" [attr.href]="getPreviewSupportHref()">
-                <strong>{{ getPreviewSupportLabel() }}</strong>
-                <span>Pitch, venue, toss timing, likely playing XI, and prematch setup.</span>
-              </a>
-              <a *ngIf="!isUpcomingStatus(getResolvedMatchStatus()) && getLiveUpdatesSupportHref()" [attr.href]="getLiveUpdatesSupportHref()">
-                <strong>{{ getLiveUpdatesSupportLabel() }}</strong>
-                <span>Fresh match-day updates, today-match phrasing, and key live moments.</span>
-              </a>
-              <a *ngIf="isCompletedStatus(getResolvedMatchStatus()) && getResultSupportHref()" [attr.href]="getResultSupportHref()">
-                <strong>{{ getResultSupportLabel() }}</strong>
-                <span>Result summary, full scorecard follow-up, and match recap.</span>
-              </a>
-            </nav>
-          </article>
         </section>
 
       <mat-tab-group class="match-page-tabs" [selectedIndex]="selectedTabIndex" (selectedTabChange)="onTabChange($event)">
@@ -263,6 +122,39 @@
                       </ng-template>
                     </div>
                   </div>
+
+                  <ng-container *ngIf="getLiveMatchUpdates() as liveUpdates">
+                    <details class="live-updates-section live-updates-section--after-commentary" *ngIf="liveUpdates.length > 0" aria-label="Live Match Updates">
+                      <summary class="live-updates-section__header">
+                        <div>
+                          <p class="live-updates-section__kicker">Live Match Updates</p>
+                          <h3 class="live-updates-section__title">{{ getMatchIntentShortPair() }} key moments</h3>
+                          <p class="live-updates-section__summary">Open the curated match developments on demand without pushing the ball-by-ball commentary out of the first reading layer.</p>
+                        </div>
+                        <span class="live-updates-section__score">{{ liveUpdates.length }} updates</span>
+                      </summary>
+
+                      <div class="live-updates-section__list">
+                        <article
+                          *ngFor="let update of liveUpdates; let i = index; trackBy: trackByLiveMatchUpdate"
+                          class="live-updates-section__card"
+                          [attr.id]="'live-update-' + (i + 1)"
+                          [class.live-updates-section__card--important]="update.important">
+                          <div class="live-updates-section__meta-row">
+                            <span class="live-updates-section__time">{{ update.displayTime }}</span>
+                            <span class="live-updates-section__type">{{ update.headline }}</span>
+                            <span class="live-updates-section__score" *ngIf="update.score">{{ update.score }}</span>
+                          </div>
+                          <p class="live-updates-section__body">{{ update.body }}</p>
+                          <p class="live-updates-section__context" *ngIf="update.over || update.innings">
+                            <span *ngIf="update.over">{{ update.over }}</span>
+                            <span *ngIf="update.over && update.innings"> • </span>
+                            <span *ngIf="update.innings">Innings {{ update.innings }}</span>
+                          </p>
+                        </article>
+                      </div>
+                    </details>
+                  </ng-container>
                 </div>
               </div>
 
@@ -336,7 +228,7 @@
 
             <section class="cricket-odds__seo-summary" *ngIf="matchSeo">
               <div class="cricket-odds__seo-copy">
-                <p class="cricket-odds__seo-eyebrow">{{ getDetailsIntroKicker() }}</p>
+                <p class="cricket-odds__seo-eyebrow">Canonical live match coverage</p>
                 <h2 class="cricket-odds__seo-title">{{ getDetailsIntroTitle() }}</h2>
                 <p class="cricket-odds__seo-description">{{ getDetailsIntroSummary() }}</p>
                 <p class="cricket-odds__seo-series" *ngIf="matchSeo.series">{{ matchSeo.series }}</p>
@@ -412,21 +304,13 @@
                   <p>{{ getSeoTeamFormLabel() }}</p>
                 </article>
 
-                <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide">
+                <article class="cricket-odds__seo-detail cricket-odds__seo-detail--wide" *ngIf="getMatchFaqItems().length > 0">
                   <span class="cricket-odds__seo-detail-kicker">FAQ</span>
                   <h3>{{ matchSeo.teams }} live score FAQ</h3>
                   <div class="cricket-odds__faq-list">
-                    <div>
-                      <h4>Where can I follow {{ matchSeo.teams }} live score today?</h4>
-                      <p>Follow {{ matchSeo.teams }} live score today on this page with scorecard, toss update, playing XI, venue stats, and today match live score updates.</p>
-                    </div>
-                    <div>
-                      <h4>When will the toss and playing XI be updated?</h4>
-                      <p>Toss update and playing XI are refreshed when the match feed receives confirmed team news from the official match centre.</p>
-                    </div>
-                    <div>
-                      <h4>Where will the match result be shown?</h4>
-                      <p>{{ getSeoFaqMatchResultAnswer() }}</p>
+                    <div *ngFor="let faq of getMatchFaqItems()">
+                      <h4>{{ faq.question }}</h4>
+                      <p>{{ faq.answer }}</p>
                     </div>
                   </div>
                 </article>
@@ -476,12 +360,12 @@
               </app-scorecard>
             </div>
             
-            <div class="match-tab-state" *ngIf="!scorecardData && showLiveHero">
+            <div class="match-tab-state" *ngIf="isLoadingScorecard">
               <mat-icon>scoreboard</mat-icon>
               <p>Loading scorecard...</p>
             </div>
 
-            <div class="match-tab-state" *ngIf="!scorecardData && !showLiveHero">
+            <div class="match-tab-state" *ngIf="!scorecardData && !isLoadingScorecard">
               <mat-icon>sports_cricket</mat-icon>
               <p>Detailed scorecard is not available for this match yet.</p>
             </div>
@@ -533,6 +417,69 @@
           </section>
         </mat-tab>
       </mat-tab-group>
+
+      <section class="cricket-odds__support-stack" *ngIf="matchSeo" aria-label="Secondary match support">
+        <section class="cricket-odds__freshness-links" *ngIf="getFreshnessSupportLinks().length > 0" aria-label="Related freshness support pages">
+          <div class="cricket-odds__freshness-intro">
+            <span class="cricket-odds__freshness-kicker">Freshness support pages</span>
+            <p>Use these support pages for preview, live-update, and result intent while this canonical match page keeps the stable live score, commentary, and scorecard role.</p>
+          </div>
+          <nav class="cricket-odds__freshness-nav">
+            <a *ngFor="let link of getFreshnessSupportLinks()" [attr.href]="link.href">
+              <strong>{{ link.label }}</strong>
+              <span>{{ link.summary }}</span>
+            </a>
+          </nav>
+        </section>
+
+        <details class="cricket-odds__intent-drawer">
+          <summary class="cricket-odds__intent-drawer-summary">
+            <span class="cricket-odds__intent-drawer-title">More match detail for {{ getMatchIntentShortPair() }}</span>
+            <span class="cricket-odds__intent-drawer-copy">Keep the at-a-glance layer first, then open the match-specific commentary, scorecard, lineup, and details support block when you want more.</span>
+          </summary>
+
+          <section class="cricket-odds__intent-rail" aria-label="Canonical match intent snapshot">
+            <div class="cricket-odds__intent-copy">
+              <p class="cricket-odds__intent-eyebrow">{{ getCanonicalIntentKicker() }}</p>
+              <h2 class="cricket-odds__intent-title">{{ getCanonicalIntentTitle() }}</h2>
+              <p class="cricket-odds__intent-summary">{{ getCanonicalIntentSummary() }}</p>
+            </div>
+
+            <nav class="cricket-odds__intent-links" aria-label="Jump to match sections">
+              <a href="#commentary" (click)="jumpToMatchSection('commentary', $event)">{{ getCommentaryJumpLabel() }}</a>
+              <a href="#scorecard" (click)="jumpToMatchSection('scorecard', $event)">{{ getScorecardJumpLabel() }}</a>
+              <a href="#lineups" (click)="jumpToMatchSection('lineups', $event)">{{ getLineupsJumpLabel() }}</a>
+              <a href="#match-info" (click)="jumpToMatchSection('details', $event)">{{ getDetailsJumpLabel() }}</a>
+            </nav>
+
+            <div class="cricket-odds__intent-grid">
+              <article class="cricket-odds__intent-card cricket-odds__intent-card--commentary">
+                <span class="cricket-odds__intent-kicker">Commentary</span>
+                <h3>{{ getCommentarySectionTitle() }}</h3>
+                <p>{{ getCommentaryIntentLabel() }}</p>
+              </article>
+
+              <article class="cricket-odds__intent-card cricket-odds__intent-card--scorecard">
+                <span class="cricket-odds__intent-kicker">Scorecard</span>
+                <h3>{{ getScorecardSectionTitle() }}</h3>
+                <p>{{ getScorecardIntentLabel() }}</p>
+              </article>
+
+              <article class="cricket-odds__intent-card cricket-odds__intent-card--lineups">
+                <span class="cricket-odds__intent-kicker">Lineups</span>
+                <h3>{{ getLineupsSectionTitle() }}</h3>
+                <p>{{ getLineupsIntentLabel() }}</p>
+              </article>
+
+              <article class="cricket-odds__intent-card cricket-odds__intent-card--details">
+                <span class="cricket-odds__intent-kicker">Match details</span>
+                <h3>{{ getDetailsJumpLabel() }}</h3>
+                <p>{{ getMatchDetailsIntentLabel() }}</p>
+              </article>
+            </div>
+          </section>
+        </details>
+      </section>
 
       <ng-template #statsExplorerTemplate>
         <section class="stats-explorer" *ngIf="shouldShowStatsExplorer()">

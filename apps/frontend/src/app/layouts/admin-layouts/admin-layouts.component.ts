@@ -23,5 +23,4 @@ export class AdminLayoutsComponent implements OnInit {
   handleToggleSidebar() {
     this.sidebarService.toggleVisibility();
   }
-
 }

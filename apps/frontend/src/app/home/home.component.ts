@@ -129,7 +129,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (this.matchSubscription) {
       this.matchSubscription.unsubscribe();
     }
-
     this.matchesService.stopAutoRefresh();
     this.bindCarousel(null);
     this.structuredDataService.clearPageSchemas();

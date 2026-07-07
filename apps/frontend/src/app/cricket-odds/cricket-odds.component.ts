@@ -28,8 +28,10 @@ import { LiveHeroViewModel } from '../match-live/services/live-hero.models';
 import { MatchSeoViewModel } from '../seo/match-seo.models';
 import { MatchSeoService } from '../seo/match-seo.service';
 import { MetaTagsService } from '../seo/meta-tags.service';
+import { getCommentaryUpdateIntent, getCommentaryUpdateLabel, isMeaningfulCommentaryUpdate } from '../seo/live-update-heuristics';
 import { StructuredDataLocationInput, StructuredDataService } from '../seo/structured-data.service';
 import { MatchFreshnessLink, buildFreshnessLinksFromMatch, buildFreshnessLinksFromSlug } from '../seo/match-freshness-links';
+import { LiveMatchUpdate } from '../shared/models/match.models';
 
 const MATCH_INFO_KEY = makeStateKey<any>('cricket_match_info');
 const CRICKET_DATA_KEY = makeStateKey<any>('cricket_data_snapshot');
@@ -68,6 +70,16 @@ interface PlayerStatsSelectionEvent {
 interface TeamStatsSelectionEvent {
   teamName: string;
   externalId?: string;
+}
+
+interface CoverageSummaryFact {
+  label: string;
+  value: string;
+}
+
+interface MatchFaqItem {
+  question: string;
+  answer: string;
 }
 
 type MatchPageTabKey = 'commentary' | 'details' | 'scorecard' | 'lineups';
@@ -124,6 +136,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   scorecardData: any;
   commentaryEntries: any[] = [];
   matchAnnouncement: string = '';
+  isLoadingMatchInfo: boolean = false;
+  isLoadingScorecard: boolean = false;
 
   last6Balls: RecentBallView[] = []; // Initialize empty array, will be populated from API data
   cricetTopicSubscription: any;
@@ -218,6 +232,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   trackByCommentaryId(index: number, entry: any): string {
     return (entry && entry.id) || (entry && entry.overBall) || String(index);
+  }
+
+  trackByLiveMatchUpdate(index: number, update: LiveMatchUpdate): string {
+    return (update && update.id) || String(index);
   }
 
   ngOnDestroy() {
@@ -1030,7 +1048,13 @@ jumpToMatchSection(target: MatchPageTabKey, event?: Event): void {
 }
 
 fetchScorecardInfo(matchUrl:string){
+  if (!this.shouldLoadScorecard()) {
+    this.isLoadingScorecard = false;
+    this.scorecardData = null;
+    return;
+  }
 
+  this.isLoadingScorecard = true;
   var scorecardRequest = this.cricketService.getScorecardInfo(matchUrl);
   if (!this.isBrowser()) {
     // Do not let a slow missing scorecard force SSR to fall back to the bare Angular shell.
@@ -1040,9 +1064,12 @@ fetchScorecardInfo(matchUrl:string){
   scorecardRequest.pipe(takeUntil(this.destroy$)).subscribe(
     data => {
       this.scorecardData = data;
+      this.isLoadingScorecard = false;
       console.log('Match Scorecard:', this.scorecardData);
     },
     error => {
+      this.isLoadingScorecard = false;
+      this.scorecardData = null;
       console.error('Error fetching match scorecard:', error);
     }
   );
@@ -1054,10 +1081,12 @@ fetchMatchInfo(matchUrl:string) {
     return;
   }
 
+  this.isLoadingMatchInfo = true;
   this.cricketService.getMatchInfo(matchUrl).subscribe(
     data => {
       this.matchInfo = data;
       this.isFallbackMatchInfo = false;
+      this.isLoadingMatchInfo = false;
       this.syncMatchTabSelection();
       console.log('Match Info:', this.matchInfo);
 
@@ -1081,6 +1110,7 @@ fetchMatchInfo(matchUrl:string) {
       this.setVenuePercentages();
     },
     error => {
+      this.isLoadingMatchInfo = false;
       console.error('Error fetching match info:', error);
       this.populateFallbackMatchInfo();
       this.syncMatchTabSelection();
@@ -1151,7 +1181,12 @@ private resolveRouteMatch(matchSlug: string): void {
 
       if (matchSlug) {
         this.fetchMatchInfo(matchSlug);
-        this.fetchScorecardInfo(matchSlug);
+        if (this.isLiveLikeStatus(resolvedMatch.status) || this.isCompletedStatus(resolvedMatch.status)) {
+          this.fetchScorecardInfo(matchSlug);
+        } else {
+          this.isLoadingScorecard = false;
+          this.scorecardData = null;
+        }
       }
     },
     error => {
@@ -2434,6 +2469,10 @@ private ensureDataForTab(index: number): void {
   }
 }
 
+private shouldLoadScorecard(): boolean {
+  return !this.isUpcomingStatus(this.getResolvedMatchStatus());
+}
+
 private getResolvedMatchStatus(): string {
   return (this.matchInfo && (this.matchInfo.match_status || this.matchInfo.status))
     || (this.currentMatch && (this.currentMatch.status || this.currentMatch.displayStatus))
@@ -2747,13 +2786,123 @@ getMatchIntentCombinedLabel(): string {
   return fullPair + ' (' + shortPair + ')';
 }
 
-getCommentaryJumpLabel(): string {
-  return this.getMatchIntentShortPair() + ' commentary';
-}
+  getCommentaryJumpLabel(): string {
+    return this.getMatchIntentShortPair() + ' commentary';
+  }
 
-getScorecardJumpLabel(): string {
-  return this.getMatchIntentShortPair() + ' scorecard';
-}
+  getCoverageSummaryFacts(): CoverageSummaryFact[] {
+    var facts: CoverageSummaryFact[] = [];
+    var score = this.getCoverageScoreSummaryValue();
+    var tournament = this.getMatchShellSeries();
+    var venue = this.getMatchShellVenue();
+    var toss = this.getCoverageTossSummaryValue();
+    var startTime = this.getCoverageStartTimeLabel();
+    var updated = this.getCoverageUpdatedLabel();
+
+    if (score) {
+      facts.push({ label: 'Score', value: score });
+    }
+
+    facts.push({ label: 'Status', value: this.getMatchShellStatus() });
+
+    if (tournament) {
+      facts.push({ label: 'Tournament', value: tournament });
+    }
+
+    if (venue) {
+      facts.push({ label: 'Venue', value: venue });
+    }
+
+    if (toss) {
+      facts.push({ label: 'Toss', value: toss });
+    }
+
+    if (startTime) {
+      facts.push({ label: 'Start time', value: startTime });
+    }
+
+    if (updated) {
+      facts.push({ label: 'Last updated', value: updated });
+    }
+
+    return facts.slice(0, 6);
+  }
+
+  getLiveMatchUpdates(): LiveMatchUpdate[] {
+    var seen: { [key: string]: boolean } = {};
+    var updates = (this.commentaryEntries || [])
+      .filter((entry) => this.isMeaningfulLiveUpdateEntry(entry))
+      .slice(0, 6)
+      .map((entry, index) => this.buildLiveMatchUpdateFromCommentary(entry, index))
+      .filter((entry): entry is LiveMatchUpdate => !!entry);
+
+    this.buildSyntheticLiveMatchUpdates().forEach(function(update) {
+      updates.push(update);
+    });
+
+    return updates
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .filter((update) => {
+        var key = update.type + '|' + update.body.toLowerCase();
+        if (seen[key]) {
+          return false;
+        }
+
+        seen[key] = true;
+        return true;
+      })
+      .slice(0, 6);
+  }
+
+  getMatchFaqItems(): MatchFaqItem[] {
+    var items: MatchFaqItem[] = [];
+    var teams = this.matchSeo ? this.matchSeo.teams : this.getMatchIntentFullPair();
+    var score = this.getCoverageScoreSummaryValue();
+    var toss = this.getCoverageTossSummaryValue();
+    var venue = this.getMatchShellVenue();
+    var result = this.getFallbackResultSummary();
+
+    if (teams) {
+      items.push({
+        question: 'Where can I follow ' + teams + ' live score today?',
+        answer: 'Follow ' + teams + ' live score today on this page with scorecard, toss update, commentary, playing XI, and match updates.'
+      });
+    }
+
+    if (toss) {
+      items.push({
+        question: 'Who won the toss?',
+        answer: toss
+      });
+    }
+
+    if (venue) {
+      items.push({
+        question: 'What is the venue for the match?',
+        answer: venue
+      });
+    }
+
+    if (score) {
+      items.push({
+        question: 'What is the current score?',
+        answer: score
+      });
+    }
+
+    if (result && this.isCompletedStatus(this.getResolvedMatchStatus())) {
+      items.push({
+        question: 'Who won the match?',
+        answer: result
+      });
+    }
+
+    return items;
+  }
+
+  getScorecardJumpLabel(): string {
+    return this.getMatchIntentShortPair() + ' scorecard';
+  }
 
 getLineupsJumpLabel(): string {
   return this.getMatchIntentShortPair() + ' lineups';
@@ -3323,6 +3472,72 @@ getSeoLanguageKeywordCopy(): string {
   return teams + ' live score today, aaj ka match live score, today cricket match live score Hindi, live score Marathi, scorecard, toss update, playing XI, and match result are tracked on this single canonical page.';
 }
 
+private getCoverageScoreSummaryValue(): string | null {
+  var value = this.getSeoLiveScoreLabel();
+  if (!value) {
+    return null;
+  }
+
+  if (/^This fixture is scheduled/i.test(value) || /^Live score block will update/i.test(value)) {
+    return null;
+  }
+
+  return value;
+}
+
+private getCoverageTossSummaryValue(): string | null {
+  if (this.tossWonCountry && this.batOrBallSelected) {
+    return this.tossWonCountry + ' won the toss and chose to ' + this.batOrBallSelected + '.';
+  }
+
+  if (this.matchInfo && this.matchInfo.toss_info) {
+    return String(this.matchInfo.toss_info);
+  }
+
+  return null;
+}
+
+private getCoverageStartTimeLabel(): string | null {
+  var value = this.getSeoDateTimeLabel();
+  return /will be confirmed/i.test(value) ? null : value;
+}
+
+private getCoverageUpdatedLabel(): string | null {
+  var candidates = [
+    this.currentMatch && this.currentMatch.lastStateUpdatedAt,
+    this.currentMatch && this.currentMatch.lastUpdated,
+    this.matchInfo && this.matchInfo.updated_at,
+    this.matchInfo && this.matchInfo.updatedAt
+  ];
+
+  for (var index = 0; index < candidates.length; index++) {
+    var parsed = this.formatCoverageDateTime(candidates[index]);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+private formatCoverageDateTime(value: any): string | null {
+  if (!value) {
+    return null;
+  }
+
+  var parsed = new Date(value);
+  if (isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 private getLatestCommentarySummary(): string | null {
   if (!this.commentaryEntries || this.commentaryEntries.length === 0) {
     return null;
@@ -3348,6 +3563,238 @@ private truncateIntentCopy(value: string, maxLength: number): string {
   }
 
   return text.slice(0, Math.max(0, maxLength - 3)).trim() + '...';
+}
+
+private shouldEmitLiveBlogPosting(updates: LiveMatchUpdate[]): boolean {
+  if (!updates || updates.length < 3) {
+    return false;
+  }
+
+  if (!this.isHighValueLiveCoverageMatch()) {
+    return false;
+  }
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return false;
+  }
+
+  return updates.filter((update) => update.body.replace(/[0-9/().:-]/g, '').trim().length >= 20).length >= 3;
+}
+
+private isHighValueLiveCoverageMatch(): boolean {
+  var haystack = [
+    this.matchSeo && this.matchSeo.teams,
+    this.matchSeo && this.matchSeo.series,
+    this.getMatchShellSeries(),
+    this.getMatchShellTitle()
+  ].join(' ').toLowerCase();
+
+  return /(india|ipl|world cup|final|playoff|semi[- ]final|qualifier)/i.test(haystack);
+}
+
+private buildSyntheticLiveMatchUpdates(): LiveMatchUpdate[] {
+  var updates: LiveMatchUpdate[] = [];
+  var fallbackTimestamp = this.getFallbackLiveUpdateTimestamp() || new Date().toISOString();
+  var toss = this.getCoverageTossSummaryValue();
+  var result = this.getFallbackResultSummary();
+  var status = this.getResolvedMatchStatus();
+
+  if (toss) {
+    updates.push({
+      id: 'synthetic-toss',
+      type: 'toss',
+      timestamp: fallbackTimestamp,
+      displayTime: this.formatCoverageDateTime(fallbackTimestamp) || 'Updated',
+      headline: 'Toss update',
+      body: toss,
+      important: true
+    });
+  }
+
+  if (!this.isUpcomingStatus(status) && !this.isCompletedStatus(status) && this.commentaryEntries.length === 0) {
+    updates.push({
+      id: 'synthetic-start',
+      type: 'start',
+      timestamp: fallbackTimestamp,
+      displayTime: this.formatCoverageDateTime(fallbackTimestamp) || 'Updated',
+      headline: 'Match start',
+      body: this.getMatchIntentFullPair() + ' is live. Scorecard, commentary, and match updates will continue to refresh on this page.',
+      important: true
+    });
+  }
+
+  if (result && this.isCompletedStatus(status)) {
+    updates.push({
+      id: 'synthetic-result',
+      type: 'result',
+      timestamp: fallbackTimestamp,
+      displayTime: this.formatCoverageDateTime(fallbackTimestamp) || 'Updated',
+      headline: 'Result update',
+      body: result,
+      important: true
+    });
+  }
+
+  return updates;
+}
+
+private buildLiveMatchUpdateFromCommentary(entry: any, index: number): LiveMatchUpdate | null {
+  if (!entry) {
+    return null;
+  }
+
+  var timestamp = this.extractLiveUpdateTimestamp(entry) || this.getFallbackLiveUpdateTimestamp();
+  var body = this.buildLiveUpdateBody(entry);
+  if (!timestamp || !body) {
+    return null;
+  }
+
+  var type = this.getLiveUpdateType(entry);
+  return {
+    id: String((entry && entry.id) || ('commentary-update-' + index)),
+    type: type,
+    timestamp: timestamp,
+    displayTime: this.formatCoverageDateTime(timestamp) || 'Updated',
+    headline: this.buildLiveUpdateHeadline(entry, type),
+    body: body,
+    innings: entry && entry.inningsNumber ? Number(entry.inningsNumber) : undefined,
+    over: this.resolveLiveUpdateOver(entry),
+    score: this.resolveLiveUpdateScore(entry),
+    important: this.isImportantLiveUpdateType(type)
+  };
+}
+
+private isMeaningfulLiveUpdateEntry(entry: any): boolean {
+  if (!entry) {
+    return false;
+  }
+
+  var text = this.buildLiveUpdateBody(entry);
+  return isMeaningfulCommentaryUpdate(entry.type, text);
+}
+
+private getLiveUpdateType(entry: any): LiveMatchUpdate['type'] {
+  if (String((entry && entry.type) || '').toUpperCase() === 'OVER_SUMMARY') {
+    return 'over_summary';
+  }
+
+  switch (getCommentaryUpdateIntent(entry && entry.type, this.buildLiveUpdateBody(entry))) {
+    case 'toss':
+      return 'toss';
+    case 'wicket':
+      return 'wicket';
+    case 'innings-break':
+      return 'innings_break';
+    case 'milestone':
+      return 'milestone';
+    case 'chase':
+      return 'chase_equation';
+    case 'weather':
+      return 'general';
+    case 'boundary':
+      return 'general';
+    default:
+      return /won by|wins by|match-winning|result/.test(this.buildLiveUpdateBody(entry).toLowerCase()) ? 'result' : 'general';
+  }
+}
+
+private buildLiveUpdateHeadline(entry: any, type: LiveMatchUpdate['type']): string {
+  var fallbackLabel = this.getCommentaryEventLabel(entry) || 'Match update';
+  switch (type) {
+    case 'toss':
+      return getCommentaryUpdateLabel('toss', fallbackLabel);
+    case 'wicket':
+      return 'Wicket';
+    case 'over_summary':
+      return 'Over summary';
+    case 'milestone':
+      return 'Milestone update';
+    case 'innings_break':
+      return 'Innings break';
+    case 'chase_equation':
+      return 'Chase equation';
+    case 'result':
+      return 'Result update';
+    default:
+      return getCommentaryUpdateLabel(getCommentaryUpdateIntent(entry && entry.type, this.buildLiveUpdateBody(entry)), fallbackLabel);
+  }
+}
+
+private buildLiveUpdateBody(entry: any): string {
+  if (!entry) {
+    return '';
+  }
+
+  if (String(entry.type || '').toUpperCase() === 'OVER_SUMMARY') {
+    return this.getOverSummaryText(entry);
+  }
+
+  var primary = this.getCommentaryPrimaryText(entry);
+  var secondary = this.getCommentarySecondaryText(entry);
+  return (primary + (secondary ? ' ' + secondary : '')).replace(/\s+/g, ' ').trim();
+}
+
+private extractLiveUpdateTimestamp(entry: any): string | null {
+  if (!entry) {
+    return null;
+  }
+
+  var candidates = [entry.updatedAt, entry.updated_at, entry.createdAt, entry.created_at, entry.timestamp, entry.time, entry.date];
+  for (var index = 0; index < candidates.length; index++) {
+    var parsed = this.toIsoDate(candidates[index]);
+    if (parsed) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+private getFallbackLiveUpdateTimestamp(): string | null {
+  return this.toIsoDate(this.matchInfo && (this.matchInfo.updated_at || this.matchInfo.updatedAt))
+    || this.toIsoDate(this.currentMatch && this.currentMatch.lastUpdated)
+    || this.getStructuredDataDateModified(this.getStructuredDataStartDate())
+    || this.getStructuredDataStartDate();
+}
+
+private resolveLiveUpdateOver(entry: any): string | undefined {
+  if (!entry) {
+    return undefined;
+  }
+
+  if (entry.overBall) {
+    return String(entry.overBall);
+  }
+
+  if (entry.overNumber !== undefined && entry.overNumber !== null) {
+    return 'Over ' + String(entry.overNumber);
+  }
+
+  return undefined;
+}
+
+private resolveLiveUpdateScore(entry: any): string | undefined {
+  if (!entry) {
+    return undefined;
+  }
+
+  if (entry.totalScore) {
+    return String(entry.totalScore);
+  }
+
+  if (entry.score) {
+    return String(entry.score);
+  }
+
+  if (String(entry.type || '').toUpperCase() === 'OVER_SUMMARY') {
+    return this.getOverSummaryScore(entry) || undefined;
+  }
+
+  return undefined;
+}
+
+private isImportantLiveUpdateType(type: LiveMatchUpdate['type']): boolean {
+  return type === 'toss' || type === 'wicket' || type === 'innings_break' || type === 'result' || type === 'milestone';
 }
 
 private formatStatusLabel(value: string): string {
@@ -3546,6 +3993,22 @@ private titleCaseSlug(value: string): string {
     var startDate = this.getStructuredDataStartDate();
     var location = this.getStructuredDataLocation();
     var dateModified = this.getStructuredDataDateModified(startDate);
+    var liveMatchUpdates = this.getLiveMatchUpdates();
+    var faqItems = this.getMatchFaqItems();
+    var sportsEventSchema = startDate ? this.structuredDataService.sportsEvent({
+      name: this.matchSeo.h1,
+      url: this.matchSeo.canonicalUrl,
+      description: this.matchSeo.summary,
+      homeTeam: this.matchSeo.team1,
+      awayTeam: this.matchSeo.team2,
+      startDate: startDate,
+      location: location || undefined,
+      status: this.getStructuredDataStatus(),
+      offersUrl: this.matchSeo.canonicalUrl,
+      image: this.matchSeo.ogImageUrl,
+      organizerName: 'Crickzen',
+      organizerUrl: 'https://www.crickzen.com'
+    }) : null;
 
     items.unshift(this.structuredDataService.article({
       headline: this.matchSeo.title,
@@ -3554,7 +4017,7 @@ private titleCaseSlug(value: string): string {
       image: this.matchSeo.ogImageUrl,
       datePublished: startDate || dateModified || undefined,
       dateModified: dateModified || startDate || undefined,
-      authorName: 'Crickzen'
+      authorName: 'Crickzen Sports Desk'
     }));
 
     items.push(this.structuredDataService.itemList({
@@ -3599,36 +4062,34 @@ private titleCaseSlug(value: string): string {
       }));
     }
 
-    items.push(this.structuredDataService.faqPage([
-      {
-        question: 'Where can I follow ' + this.matchSeo.teams + ' live score today?',
-        answer: 'Follow ' + this.matchSeo.teams + ' live score today on this page with scorecard, toss update, playing XI, venue stats, and today match live score updates.'
-      },
-      {
-        question: 'When will the toss and playing XI be updated?',
-        answer: 'Toss update and playing XI are refreshed when the match feed receives confirmed team news from the official match centre.'
-      },
-      {
-        question: 'Where will the match result be shown?',
-        answer: this.getSeoFaqMatchResultAnswer()
-      }
-    ]));
+    if (faqItems.length > 0) {
+      items.push(this.structuredDataService.faqPage(faqItems));
+    }
 
-    if (startDate) {
-      items.unshift(this.structuredDataService.sportsEvent({
-        name: this.matchSeo.h1,
+    if (this.shouldEmitLiveBlogPosting(liveMatchUpdates)) {
+      items.unshift(this.structuredDataService.liveBlogPosting({
+        headline: this.matchSeo.title,
+        description: this.matchSeo.description,
         url: this.matchSeo.canonicalUrl,
-        description: this.matchSeo.summary,
-        homeTeam: this.matchSeo.team1,
-        awayTeam: this.matchSeo.team2,
-        startDate: startDate,
-        location: location || undefined,
-        status: this.getStructuredDataStatus(),
-        offersUrl: this.matchSeo.canonicalUrl,
         image: this.matchSeo.ogImageUrl,
-        organizerName: 'Crickzen',
-        organizerUrl: 'https://www.crickzen.com'
+        datePublished: startDate || dateModified || undefined,
+        dateModified: dateModified || startDate || undefined,
+        coverageStartTime: startDate || dateModified || undefined,
+        coverageEndTime: dateModified || startDate || undefined,
+        authorName: 'Crickzen Sports Desk',
+        articleSection: 'Live Match Updates',
+        about: sportsEventSchema || undefined,
+        liveBlogUpdates: liveMatchUpdates.map((update, index) => ({
+          headline: update.headline,
+          url: this.matchSeo.canonicalUrl + '#live-update-' + (index + 1),
+          datePublished: update.timestamp,
+          articleBody: update.body
+        }))
       }));
+    }
+
+    if (sportsEventSchema) {
+      items.unshift(sportsEventSchema);
     }
 
     return items;
