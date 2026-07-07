@@ -2,7 +2,7 @@
 
 Date: 2026-07-08 IST
 Branch: `008-match-title-seo`
-Backend image tag: `20260708-030731-backend-b295c4b`
+Backend image tag: `20260708-031940-backend-nocache-war`
 Prod host: `administrator@204.12.199.137`
 
 ## Why this rollout was needed
@@ -24,18 +24,22 @@ That meant the current backend prod image was missing the local freshness, sitem
 
 ## What was deployed
 
+An intermediate backend image built from the repo Dockerfile was not trustworthy enough because the resulting WAR still did not match the local backend WAR at the class level, even after a no-cache rebuild.
+
+The final deployable backend artifact was packaged from the verified local WAR into a runtime-only image.
+
 Built and pushed from local:
 
-- `macubex/victoryline-backend:20260708-030731-backend-b295c4b`
+- `macubex/victoryline-backend:20260708-031940-backend-nocache-war`
 
 Updated prod:
 
-- `BACKEND_IMAGE=macubex/victoryline-backend:20260708-030731-backend-b295c4b`
+- `BACKEND_IMAGE=macubex/victoryline-backend:20260708-031940-backend-nocache-war`
 
 Unchanged in this step:
 
 - `FRONTEND_IMAGE=macubex/victoryline-frontend:20260708-024508-34c1325`
-- `SCRAPER_IMAGE=macubex/victoryline-scraper:20260708-012231-3126nc1`
+- `SCRAPER_IMAGE=macubex/victoryline-scraper:20260708-031940-scraper-nocache`
 
 ## Main backend behavior now present on prod
 
@@ -52,8 +56,10 @@ Unchanged in this step:
 
 Verified:
 
-- `victoryline-backend` running with image `macubex/victoryline-backend:20260708-030731-backend-b295c4b`
+- `victoryline-backend` running with image `macubex/victoryline-backend:20260708-031940-backend-nocache-war`
 - backend health `healthy`
+- `victoryline-scraper` running with image `macubex/victoryline-scraper:20260708-031940-scraper-nocache`
+- scraper health `healthy`
 
 ### Boot and runtime proof
 
@@ -78,5 +84,5 @@ Verified:
 After this rollout:
 
 - frontend prod matches the intended local frontend state for the homepage restore and upcoming-tab fix
-- scraper prod matches local logically, with two runtime bind-mounted files already confirmed against local
+- scraper prod matches local logically, and the final no-cache scraper image plus the two runtime bind-mounted files were both confirmed against local
 - backend prod is now caught up to the local backend WAR that was previously ahead of prod

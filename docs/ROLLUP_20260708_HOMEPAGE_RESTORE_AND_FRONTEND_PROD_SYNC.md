@@ -23,9 +23,9 @@ This checkpoint covered four things:
 
 ## Production image state after this rollout
 
-- `BACKEND_IMAGE=macubex/victoryline-backend:20260708-030731-backend-b295c4b`
+- `BACKEND_IMAGE=macubex/victoryline-backend:20260708-031940-backend-nocache-war`
 - `FRONTEND_IMAGE=macubex/victoryline-frontend:20260708-024508-34c1325`
-- `SCRAPER_IMAGE=macubex/victoryline-scraper:20260708-012231-3126nc1`
+- `SCRAPER_IMAGE=macubex/victoryline-scraper:20260708-031940-scraper-nocache`
 
 ## What changed
 
@@ -53,9 +53,11 @@ The fix was:
 
 The backend image that was running before this checkpoint did not match the current local backend code. The deployed backend WAR was missing the newer freshness and live-patch slice even though that code was already present locally.
 
-The backend rollout shipped those undeployed backend changes by building and pushing:
+The backend rollout first exposed a build-path problem: a source-build Docker image restarted successfully but still did not match the local backend WAR class-for-class. The final corrected backend rollout shipped the intended backend state by packaging the verified local WAR directly into a runtime image.
 
-- `macubex/victoryline-backend:20260708-030731-backend-b295c4b`
+The final backend rollout shipped those undeployed backend changes by building and pushing:
+
+- `macubex/victoryline-backend:20260708-031940-backend-nocache-war`
 
 The important backend changes included:
 
@@ -108,8 +110,13 @@ Frontend-only image push and switch completed with:
 
 Backend image push and switch completed with:
 
-- image tag `20260708-030731-backend-b295c4b`
+- image tag `20260708-031940-backend-nocache-war`
 - container `victoryline-backend` healthy after restart
+
+Scraper image verification and switch completed with:
+
+- image tag `20260708-031940-scraper-nocache`
+- container `victoryline-scraper` healthy after restart
 
 ### Live URL proof
 
@@ -130,6 +137,9 @@ Verified after rollout:
 - `https://www.crickzen.com/api/cricket-data/upcoming-matches?_ts=backend-final-check`
   - returned `200`
   - confirmed the public API recovered cleanly after backend restart
+- verified runtime container state on prod
+  - backend image `macubex/victoryline-backend:20260708-031940-backend-nocache-war`
+  - scraper image `macubex/victoryline-scraper:20260708-031940-scraper-nocache`
 
 ## Repo cleanliness notes
 
