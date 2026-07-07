@@ -138,7 +138,7 @@ class LiveMatchDiscoverer:
                             const listItems = document.querySelectorAll('li.live-card');
                             if (listItems.length > 0) {
                                 listItems.forEach(li => {
-                                    if (!isFinishedText(li.innerText)) {
+                                    if (isLive(li) && !isFinishedText(li.innerText)) {
                                         // Prefer a direct match link; fall back to first <a> if needed
                                         const a = getMatchLink(li) || li.querySelector('a');
                                         if (a) {
@@ -241,16 +241,22 @@ class LiveMatchDiscoverer:
             if inspect.isawaitable(callback_result):
                 await callback_result
         
-        if valid_urls or schedule_matches:
-            # Sync with backend
-            token = await asyncio.to_thread(CricketDataService.get_bearer_token)
-            if valid_urls:
-                await asyncio.to_thread(CricketDataService.add_live_matches, valid_urls, token)
-                logger.info("Synced live matches with backend.")
-            if schedule_matches:
-                await asyncio.to_thread(CricketDataService.add_schedule_matches, schedule_matches, token)
-                logger.info("Synced schedule matches with backend.")
-            print("[DISCOVERY] Synced with backend.", flush=True)
+        # Always reconcile the live catalog, even when CREX currently has zero live matches.
+        # Otherwise stale LIVE rows remain in the backend forever because nothing tells it
+        # the authoritative live set is now empty.
+        token = await asyncio.to_thread(CricketDataService.get_bearer_token)
+        live_synced = await asyncio.to_thread(CricketDataService.add_live_matches, valid_urls, token)
+        if live_synced:
+            logger.info("Synced live matches with backend.")
         else:
-            print("[DISCOVERY] No valid URLs or schedule matches found to sync.", flush=True)
+            logger.error("Live match lifecycle sync failed; retrying next discovery cycle.")
+
+        if schedule_matches:
+            schedule_synced = await asyncio.to_thread(CricketDataService.add_schedule_matches, schedule_matches, token)
+            if schedule_synced:
+                logger.info("Synced schedule matches with backend.")
+            else:
+                logger.error("Schedule lifecycle sync failed; retrying next discovery cycle.")
+
+        print("[DISCOVERY] Backend sync cycle completed.", flush=True)
 

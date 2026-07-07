@@ -50,6 +50,12 @@ public class LiveMatchIndexingScheduler {
 
     @Value("${gsc.live-match-indexing.daily-budget:180}")
     private int dailyIndexingBudget;
+
+    @Value("${gsc.live-match-indexing.upcoming-window-hours:120}")
+    private int upcomingIndexingWindowHours;
+
+    @Value("${gsc.live-match-indexing.upcoming-priority-lead-hours:30}")
+    private int upcomingPriorityLeadHours;
     
     public LiveMatchIndexingScheduler(
             GoogleSearchConsoleService googleSearchConsoleService,
@@ -205,16 +211,36 @@ public class LiveMatchIndexingScheduler {
         if ("COMPLETED".equals(status) || "ABANDONED".equals(status) || "FINISHED".equals(status)) {
             return false;
         }
+        if ("UPCOMING".equals(status) || "SCHEDULED".equals(status)) {
+            Long scheduledStartTime = match.getScheduledStartTime();
+            if (scheduledStartTime == null || scheduledStartTime <= 0) {
+                return true;
+            }
+            long now = System.currentTimeMillis();
+            if (scheduledStartTime <= now) {
+                return true;
+            }
+            long horizonMillis = Math.max(1, upcomingIndexingWindowHours) * 60L * 60L * 1000L;
+            return scheduledStartTime - now <= horizonMillis;
+        }
         return true;
     }
 
     private long prioritySortValue(LiveMatchEntry match) {
         String status = match.getStatus() == null ? "" : match.getStatus().toUpperCase();
         long start = match.getScheduledStartTime() == null ? Long.MAX_VALUE / 2 : match.getScheduledStartTime();
+        long now = System.currentTimeMillis();
         if ("LIVE".equals(status) || "INNINGS_BREAK".equals(status) || "RAIN_DELAY".equals(status)) {
             return start;
         }
         if ("UPCOMING".equals(status)) {
+            long hoursUntilStart = match.getScheduledStartTime() == null
+                    ? Long.MAX_VALUE / 2
+                    : (match.getScheduledStartTime() - now) / (60L * 60L * 1000L);
+            if (hoursUntilStart >= Math.max(0, upcomingPriorityLeadHours)
+                    && hoursUntilStart <= Math.max(upcomingPriorityLeadHours, upcomingIndexingWindowHours)) {
+                return Long.MAX_VALUE / 8 + start;
+            }
             return Long.MAX_VALUE / 4 + start;
         }
         return Long.MAX_VALUE / 2 + start;
@@ -239,6 +265,8 @@ public class LiveMatchIndexingScheduler {
         status.append("  Indexing API Initialized: ").append(googleSearchConsoleService.isIndexingInitialized()).append("\n");
         status.append("  Max Per Run: ").append(maxIndexingPerRun).append("\n");
         status.append("  Daily Budget: ").append(dailyIndexingBudget).append("\n");
+        status.append("  Upcoming Window Hours: ").append(upcomingIndexingWindowHours).append("\n");
+        status.append("  Upcoming Priority Lead Hours: ").append(upcomingPriorityLeadHours).append("\n");
         status.append("  Already Indexed (today): ").append(seoCache.getIndexedSlugCount()).append("\n");
         status.append("  Persistence: Redis (25h TTL) with in-memory fallback\n");
         status.append("  Schedule: Every 15 minutes\n");

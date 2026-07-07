@@ -137,6 +137,16 @@ def health_check():
 
     status_code = 503 if restart_recommended else 200
 
+    fast_updates: Dict[str, Any]
+    try:
+        fast_updates = scraper_service.get_fast_update_status()
+    except Exception as exc:
+        logger.error("Failed to build fast update status: %s", exc, exc_info=True)
+        fast_updates = {
+            "enabled": False,
+            "error": str(exc),
+        }
+
     return jsonify({
         "status": "success",
         "data": {
@@ -152,6 +162,7 @@ def health_check():
             "restart_scheduled": restart_scheduled,
             "restart_reason": restart_condition["reason"] if restart_condition else None,
             "restart_metadata": restart_condition["metadata"] if restart_condition else None,
+            "fast_updates": fast_updates,
         }
     }), status_code
 

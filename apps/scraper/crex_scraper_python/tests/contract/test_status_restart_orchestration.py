@@ -18,6 +18,7 @@ def test_health_endpoint_reports_restart_recommendation_without_scheduling(clien
     with patch("crex_scraper_python.src.app.scraper_service") as mock_service:
         mock_service.health = MagicMock()
         mock_service._container_restart_scheduled = False
+        mock_service.get_fast_update_status.return_value = {}
         mock_service.get_restart_condition.return_value = {
             "reason": "stale_live_data",
             "metadata": {

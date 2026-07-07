@@ -33,6 +33,7 @@ public class SitemapService {
     private static final String[] STATIC_SITEMAP_PATHS = new String[] {
             "/",
             "/matches",
+            "/series",
             "/live-cricket-score",
             "/live-score",
             "/live-score/today",
@@ -56,11 +57,18 @@ public class SitemapService {
 
     private final SeoCache seoCache;
     private final LiveMatchesService liveMatchesService;
+    private final MatchFreshnessSummaryService matchFreshnessSummaryService;
     private MatchRepository matchRepository; // optional; may be null in tests
 
-    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService) {
+    @Autowired
+    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService, MatchFreshnessSummaryService matchFreshnessSummaryService) {
         this.seoCache = seoCache;
         this.liveMatchesService = liveMatchesService;
+        this.matchFreshnessSummaryService = matchFreshnessSummaryService;
+    }
+
+    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService) {
+        this(seoCache, liveMatchesService, null);
     }
 
     // Setter injection keeps tests working while allowing Spring to wire repository in app
@@ -170,6 +178,16 @@ public class SitemapService {
                     String changefreq = match.isLive() ? "hourly" : "daily";
                     double priority = match.isLive() ? 0.9 : 0.8;
                     allUrls.add(writer.urlWithLastMod(path, deriveLiveMatchLastMod(match, writer), changefreq, priority));
+                }
+
+                String freshnessPath = deriveFreshnessSupportPath(match);
+                if (freshnessPath != null) {
+                    allUrls.add(writer.urlWithLastMod(
+                            freshnessPath,
+                            deriveFreshnessLastMod(match, freshnessPath, writer),
+                            deriveFreshnessChangeFreq(match),
+                            deriveFreshnessPriority(match)
+                    ));
                 }
             }
         }
@@ -438,6 +456,10 @@ public class SitemapService {
             if (path != null) {
                 paths.add(path);
             }
+            String freshnessPath = deriveFreshnessSupportPath(match);
+            if (freshnessPath != null) {
+                paths.add(freshnessPath);
+            }
         }
         return paths.size();
     }
@@ -473,6 +495,56 @@ public class SitemapService {
         return "daily";
     }
 
+    private String deriveFreshnessSupportPath(LiveMatchesService.LiveMatchEntry match) {
+        String canonicalPath = deriveCanonicalMatchPath(match);
+        if (canonicalPath == null) {
+            return null;
+        }
+
+        String slug = canonicalPath.replaceFirst("^/cric-live/", "");
+        String status = normalize(match == null ? null : match.getStatus());
+
+        if (isCompletedWithoutIndexableResult(match)) {
+            return null;
+        }
+
+        if (status.contains("upcoming") || status.contains("scheduled")) {
+            return "/cricket-match-preview/" + slug;
+        }
+
+        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
+            return "/cricket-live-updates/" + slug;
+        }
+
+        if (match != null && (match.isFinished() || status.contains("completed") || status.contains("finished"))) {
+            return "/cricket-match-report/" + slug;
+        }
+
+        return null;
+    }
+
+    private String deriveFreshnessChangeFreq(LiveMatchesService.LiveMatchEntry match) {
+        String status = normalize(match == null ? null : match.getStatus());
+        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
+            return "hourly";
+        }
+        if (status.contains("upcoming") || status.contains("scheduled")) {
+            return "daily";
+        }
+        return "weekly";
+    }
+
+    private double deriveFreshnessPriority(LiveMatchesService.LiveMatchEntry match) {
+        String status = normalize(match == null ? null : match.getStatus());
+        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
+            return 0.82;
+        }
+        if (status.contains("upcoming") || status.contains("scheduled")) {
+            return 0.76;
+        }
+        return 0.7;
+    }
+
     private double deriveStaticPriority(String path) {
         if ("/".equals(path)) {
             return 1.0;
@@ -497,6 +569,36 @@ public class SitemapService {
 
     private String formatPartitionName(int part) {
         return String.format("%0" + SeoConstants.SITEMAP_PARTITION_PAD + "d", part);
+    }
+
+    private String deriveFreshnessLastMod(LiveMatchesService.LiveMatchEntry match, String freshnessPath, SitemapWriter writer) {
+        if (match == null || freshnessPath == null || matchFreshnessSummaryService == null) {
+            return deriveLiveMatchLastMod(match, writer);
+        }
+
+        String pageType = inferFreshnessPageType(freshnessPath);
+        try {
+            Long meaningfulUpdatedAt = matchFreshnessSummaryService.resolveMeaningfulUpdatedAt(match.getUrl(), pageType);
+            if (meaningfulUpdatedAt != null && meaningfulUpdatedAt > 0 && meaningfulUpdatedAt <= System.currentTimeMillis()) {
+                return writer.isoFromEpochMillis(meaningfulUpdatedAt);
+            }
+        } catch (Exception ex) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Falling back to live-match lastmod for freshness path {} due to summary lookup error", freshnessPath, ex);
+            }
+        }
+
+        return deriveLiveMatchLastMod(match, writer);
+    }
+
+    private String inferFreshnessPageType(String freshnessPath) {
+        if (freshnessPath.contains("/cricket-match-report/")) {
+            return "result";
+        }
+        if (freshnessPath.contains("/cricket-live-updates/")) {
+            return "live-updates";
+        }
+        return "preview";
     }
 
     private long epochSeconds() {

@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.devglan.dao.BetResponse;
 import com.devglan.dao.CricketDataDTO;
+import com.devglan.dao.FreshnessSummaryDTO;
 import com.devglan.dao.ProfitLossDTO;
 import com.devglan.dao.ScheduleResponseDTO;
 import com.devglan.dao.SessionOverData;
@@ -49,6 +50,7 @@ import com.devglan.service.CricketNewsService;
 import com.devglan.model.CricketNews;
 import com.devglan.service.ScorecardService;
 import com.devglan.service.UserService;
+import com.devglan.service.seo.MatchFreshnessSummaryService;
 import com.devglan.websocket.service.CricketDataService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -89,10 +91,22 @@ public class CricketDataController {
 	private ScorecardService scoreCardService;
 
 	@Autowired
+	private MatchFreshnessSummaryService matchFreshnessSummaryService;
+
+	@Autowired
 	private com.fasterxml.jackson.databind.ObjectMapper springObjectMapper;
 
 	@PostMapping
 	public ResponseEntity<String> receiveCricketData(@RequestBody String rawBody) {
+	    return receiveCricketData(rawBody, true);
+	}
+
+	@PostMapping("/live-patch")
+	public ResponseEntity<String> receiveLivePatch(@RequestBody String rawBody) {
+	    return receiveCricketData(rawBody, false);
+	}
+
+	private ResponseEntity<String> receiveCricketData(String rawBody, boolean persist) {
 	    try {
 	        // Parse as tree first to extract commentary (works around Jackson back-reference config
 	        // in Spring's ObjectMapper that prevents DTO binding of commentary field)
@@ -119,14 +133,14 @@ public class CricketDataController {
                 return ResponseEntity.badRequest().body("Error: url is required");
             }
 
-            return cricketDataService.withMatchLock(data.getUrl(), () -> mergeAndBroadcastCricketData(data));
+            return cricketDataService.withMatchLock(data.getUrl(), () -> mergeAndBroadcastCricketData(data, persist));
 	    } catch (Exception e) {
 	        // Handle exceptions and return an error response if needed
 	        return ResponseEntity.status(500).body("Error: " + e.getMessage());
 	    }
 	}
 
-    private ResponseEntity<String> mergeAndBroadcastCricketData(CricketDataDTO data) {
+    private ResponseEntity<String> mergeAndBroadcastCricketData(CricketDataDTO data, boolean persist) {
         // Fetch the existing data including the merged matchInfo data
         CricketDataDTO existingData = cricketDataService.getLastUpdatedData(data.getUrl());
 
@@ -253,8 +267,18 @@ public class CricketDataController {
             nonNullFields.put("commentary", data.getCommentary());
         }
 
-        cricketDataService.setLastUpdatedData(existingData.getUrl(), existingData);
+        if (!nonNullFields.isEmpty()) {
+            existingData.setLastUpdated(System.currentTimeMillis());
+        }
+
+        // Keep viewer-facing updates off the persistence critical path.
+        cricketDataService.sendCricketSnapshot(data.getUrl(), existingData);
         cricketDataService.sendCricketData(data.getUrl(), nonNullFields);
+        if (persist) {
+            cricketDataService.setLastUpdatedData(existingData.getUrl(), existingData);
+        } else {
+            cricketDataService.cacheLastUpdatedData(existingData.getUrl(), existingData);
+        }
         cricketDataService.enrichCacheWithTransientData(data.getUrl(), data);
 
         return ResponseEntity.ok("Data received successfully!");
@@ -373,6 +397,19 @@ public class CricketDataController {
 	        log.error("Error retrieving commentary: {}", e.getMessage(), e);
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving commentary.");
 	    }
+	}
+
+	@GetMapping("/freshness-summary")
+	public ResponseEntity<FreshnessSummaryDTO> getFreshnessSummary(
+			@RequestParam("url") String url,
+			@RequestParam(value = "pageType", required = false) String pageType) {
+		try {
+			FreshnessSummaryDTO summary = matchFreshnessSummaryService.buildSummary(url, pageType);
+			return ResponseEntity.ok(summary);
+		} catch (Exception e) {
+			log.error("Error generating freshness summary for {}", url, e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+		}
 	}
 	 
 	@GetMapping("/bet/profit-loss")

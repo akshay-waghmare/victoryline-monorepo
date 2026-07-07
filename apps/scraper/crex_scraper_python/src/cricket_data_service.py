@@ -12,6 +12,24 @@ logger = get_logger(component="cricket_data_service")
 _auth_breaker = CircuitBreaker.from_settings("backend_auth")
 _api_breaker = CircuitBreaker.from_settings("backend_api")
 _player_stats_breaker = CircuitBreaker.from_settings("backend_player_stats")
+# Catalog reconciliation is authoritative and low-frequency. It must not be
+# blocked by failures from high-frequency score and snapshot pushes.
+_live_catalog_breaker = CircuitBreaker.from_settings(
+    "backend_live_catalog",
+    overrides={
+        "failure_threshold": 3,
+        "timeout_seconds": 15,
+        "success_threshold": 1,
+    },
+)
+_schedule_lifecycle_breaker = CircuitBreaker.from_settings(
+    "backend_schedule_lifecycle",
+    overrides={
+        "failure_threshold": 3,
+        "timeout_seconds": 15,
+        "success_threshold": 1,
+    },
+)
 
 # Track fast update timestamps per match URL to avoid stale regular pushes overwriting fresh data
 # Key: source_url, Value: timestamp of last fast update
@@ -69,7 +87,7 @@ class CricketDataService:
 
     @staticmethod
     def add_live_matches(urls, token):
-        """Adds live match URLs to the local backend service."""
+        """Reconcile the authoritative live-match catalog with the backend."""
         # NOTE: /cricket-data/add-live-matches endpoint is public (permitAll in WebSecurityConfig)
         # No token required, but we still accept it for backwards compatibility
         logger.info("matches.add.start", metadata={"url_count": len(urls)})
@@ -83,13 +101,15 @@ class CricketDataService:
             return response
         
         try:
-            _api_breaker.call(_post_matches)
+            _live_catalog_breaker.call(_post_matches)
             logger.info("matches.add.success", metadata={"url_count": len(urls)})
+            return True
         except CircuitBreakerOpenError:
-            logger.warning("matches.add.circuit_open", metadata={"breaker": "backend_api"})
+            logger.error("matches.add.circuit_open", metadata={"breaker": "backend_live_catalog"})
+            return False
         except Exception as e:
             logger.error("matches.add.error", metadata={"error": str(e), "url": add_matches_url})
-            # Don't raise - allow scraping to continue even if backend sync fails
+            return False
 
     @staticmethod
     def add_schedule_matches(matches, token):
@@ -116,12 +136,15 @@ class CricketDataService:
             return response
 
         try:
-            _api_breaker.call(_post_schedule)
+            _schedule_lifecycle_breaker.call(_post_schedule)
             logger.info("schedule.sync.success", metadata={"match_count": len(matches or [])})
+            return True
         except CircuitBreakerOpenError:
-            logger.warning("schedule.sync.circuit_open", metadata={"breaker": "backend_api"})
+            logger.error("schedule.sync.circuit_open", metadata={"breaker": "backend_schedule_lifecycle"})
+            return False
         except Exception as e:
             logger.error("schedule.sync.error", metadata={"error": str(e), "url": sync_schedule_url})
+            return False
 
     @staticmethod
     def fetch_match_data(match_id, token):
@@ -734,7 +757,7 @@ class CricketDataService:
         import time
         start_time = time.time()
         
-        service_url = os.getenv('SERVICE_URL', 'http://127.0.0.1:8099/cricket-data')
+        service_url = os.getenv('SERVICE_URL', 'http://127.0.0.1:8099/cricket-data').rstrip('/') + '/live-patch'
         
         # Special codes mapping for B field
         SPECIAL_CODES = {

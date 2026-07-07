@@ -14,6 +14,43 @@ from playwright.async_api import Page, BrowserContext
 logger = logging.getLogger(__name__)
 
 
+async def _is_page_alive(page: Page, timeout: float = 2.0) -> bool:
+    """Lightweight health check — returns True if the page can evaluate JS."""
+    if page.is_closed():
+        return False
+    try:
+        await asyncio.wait_for(page.evaluate("1"), timeout=timeout)
+        return True
+    except Exception:
+        return False
+
+
+_MATCH_PRIORITY_KEYWORDS = {
+    "international": 6,
+    "odi": 5,
+    "t20i": 5,
+    "test": 5,
+    "t20": 3,
+    "league": 2,
+    "qualifier": 4,
+    "semi-final": 4,
+    "semi final": 4,
+    "final": 4,
+    "eliminator": 3,
+    "playoff": 3,
+}
+
+
+def _estimate_match_priority(url: str) -> int:
+    """Score a match URL by estimated importance for intelligent eviction."""
+    lower = url.lower()
+    score = 0
+    for keyword, value in _MATCH_PRIORITY_KEYWORDS.items():
+        if keyword in lower:
+            score = max(score, value)
+    return score
+
+
 @dataclass
 class PageEntry:
     """Metadata for a persistent page."""
@@ -23,6 +60,7 @@ class PageEntry:
     last_used_at: float
     url: str
     error_count: int = 0
+    priority: int = 0
 
 
 class PersistentPagePool:
@@ -137,30 +175,35 @@ class PersistentPagePool:
                     last_used_at=now,
                     url=url,
                     error_count=0,
+                    priority=_estimate_match_priority(url),
                 )
                 
                 logger.info(f"[POOL] Page created for {match_id}. Pool size: {len(self._entries)}")
                 return page
                 
             except Exception as e:
-                # Clean up on failure
+                # Clean up on failure — close page and its dedicated context
                 if not page.is_closed():
                     await page.close()
+                try:
+                    await context.close()
+                except Exception:
+                    pass
                 logger.error(f"[POOL] Failed to create page for {match_id}: {e}")
                 raise
     
     async def _evict_one(self):
-        """Evict the oldest/least recently used page."""
+        """Evict the lowest-priority page (tie-break: LRU)."""
         if not self._entries:
             return
-        
-        # Find LRU entry
-        lru_id = min(self._entries, key=lambda k: self._entries[k].last_used_at)
-        logger.info(f"[POOL] Evicting LRU page: {lru_id}")
-        await self._cleanup_entry(lru_id)
+        target = self._find_lowest_priority_entry()
+        if target is None:
+            return
+        logger.info(f"[POOL] Evicting page: {target}")
+        await self._cleanup_entry(target)
     
     async def _cleanup_entry(self, match_id: str):
-        """Clean up a single page entry."""
+        """Clean up a single page entry — closes page AND its dedicated context."""
         if match_id not in self._entries:
             return
             
@@ -172,6 +215,13 @@ class PersistentPagePool:
                 logger.debug(f"[POOL] Closed page for {match_id}")
             except Exception as e:
                 logger.warning(f"[POOL] Error closing page {match_id}: {e}")
+
+        # Close the dedicated context that was created for this page
+        try:
+            await entry.context.close()
+            logger.debug(f"[POOL] Closed context for {match_id}")
+        except Exception as e:
+            logger.warning(f"[POOL] Error closing context for {match_id}: {e}")
     
     def record_error(self, match_id: str):
         """Record an error for a page (for threshold tracking)."""
@@ -214,32 +264,66 @@ class PersistentPagePool:
         """Set of match IDs with active pages."""
         return set(self._entries.keys())
     
-    def is_page_active(self, match_id: str) -> bool:
-        """Check if a page exists and is not closed."""
+    async def is_page_active(self, match_id: str) -> bool:
+        """Check if a page exists and is still alive (not closed + can evaluate JS)."""
         if match_id not in self._entries:
             return False
-        return not self._entries[match_id].page.is_closed()
+        return await _is_page_alive(self._entries[match_id].page)
 
     async def ensure_capacity(self, min_pages: int):
-        """Grow pool capacity to fit the current live-match count and avoid page eviction churn."""
-        if min_pages <= self._max_pages:
-            return
+        """Evict excess pages when live matches exceed the pool capacity.
+
+        Uses priority-based eviction: lower-importance matches are closed first.
+        """
         async with self._lock:
-            if min_pages > self._max_pages:
-                logger.info(f"[POOL] Growing capacity from {self._max_pages} to {min_pages}")
-                self._max_pages = min_pages
+            while len(self._entries) > self._max_pages and self._entries:
+                target = self._find_lowest_priority_entry()
+                if target is None:
+                    break
+                logger.warning(
+                    f"[POOL] Evicting {target} (pool capped at {self._max_pages}, "
+                    f"live matches={min_pages})"
+                )
+                await self._cleanup_entry(target)
+
+    def _find_lowest_priority_entry(self) -> Optional[str]:
+        """Find the entry with lowest priority (tie-break: least recently used)."""
+        if not self._entries:
+            return None
+        worst_id = None
+        worst_priority = float("inf")
+        worst_used = float("inf")
+        for mid, entry in self._entries.items():
+            if entry.priority < worst_priority:
+                worst_id = mid
+                worst_priority = entry.priority
+                worst_used = entry.last_used_at
+            elif entry.priority == worst_priority and entry.last_used_at < worst_used:
+                worst_id = mid
+                worst_used = entry.last_used_at
+        return worst_id
     
     def get_stats(self) -> Dict:
         """Get pool statistics for monitoring."""
         now = time.time()
-        ages = [now - e.created_at for e in self._entries.values()]
-        errors = [e.error_count for e in self._entries.values()]
+        try:
+            entries = list(self._entries.values())
+            match_ids = list(self._entries.keys())
+        except RuntimeError:
+            # The health endpoint runs in Flask's request thread while the
+            # scraper loop may mutate the pool from another thread.
+            snapshot = dict(self._entries)
+            entries = list(snapshot.values())
+            match_ids = list(snapshot.keys())
+
+        ages = [now - e.created_at for e in entries]
+        errors = [e.error_count for e in entries]
         
         return {
-            "size": len(self._entries),
+            "size": len(entries),
             "max_size": self._max_pages,
             "oldest_age_seconds": max(ages) if ages else 0,
             "avg_age_seconds": sum(ages) / len(ages) if ages else 0,
             "total_errors": sum(errors),
-            "match_ids": list(self._entries.keys()),
+            "match_ids": match_ids,
         }

@@ -5,9 +5,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Map;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.HttpStatus;
@@ -49,6 +52,55 @@ public class CricketDataControllerTest {
         assertThat(response.getBody()).isSameAs(dto);
         verify(cricketDataService, times(2)).getLastUpdatedData("match-slug");
         verify(matchDetailHydrationService).hydrate("match-slug");
+    }
+
+    @Test
+    public void liveUpdateBroadcastsBeforePersistence() throws Exception {
+        CricketDataDTO incoming = new CricketDataDTO();
+        incoming.setUrl("match-slug");
+        incoming.setScore("31-2");
+
+        ResponseEntity<String> response = invokeMergeAndBroadcast(incoming, true);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        InOrder order = org.mockito.Mockito.inOrder(cricketDataService);
+        order.verify(cricketDataService).sendCricketSnapshot(
+                org.mockito.ArgumentMatchers.eq("match-slug"),
+                org.mockito.ArgumentMatchers.any(CricketDataDTO.class));
+        order.verify(cricketDataService).sendCricketData(
+                org.mockito.ArgumentMatchers.eq("match-slug"),
+                org.mockito.ArgumentMatchers.<Map<String, Object>>any());
+        order.verify(cricketDataService).setLastUpdatedData(
+                org.mockito.ArgumentMatchers.eq("match-slug"),
+                org.mockito.ArgumentMatchers.any(CricketDataDTO.class));
+    }
+
+    @Test
+    public void livePatchBroadcastsAndCachesWithoutPersistence() throws Exception {
+        CricketDataDTO incoming = new CricketDataDTO();
+        incoming.setUrl("match-slug");
+        incoming.setScore("32-2");
+
+        ResponseEntity<String> response = invokeMergeAndBroadcast(incoming, false);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(cricketDataService).sendCricketSnapshot(
+                org.mockito.ArgumentMatchers.eq("match-slug"),
+                org.mockito.ArgumentMatchers.any(CricketDataDTO.class));
+        verify(cricketDataService).cacheLastUpdatedData(
+                org.mockito.ArgumentMatchers.eq("match-slug"),
+                org.mockito.ArgumentMatchers.any(CricketDataDTO.class));
+        verify(cricketDataService, org.mockito.Mockito.never()).setLastUpdatedData(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(CricketDataDTO.class));
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResponseEntity<String> invokeMergeAndBroadcast(CricketDataDTO data, boolean persist) throws Exception {
+        java.lang.reflect.Method method = CricketDataController.class
+                .getDeclaredMethod("mergeAndBroadcastCricketData", CricketDataDTO.class, boolean.class);
+        method.setAccessible(true);
+        return (ResponseEntity<String>) method.invoke(controller, data, persist);
     }
 
     private void setField(String fieldName, Object value) throws Exception {

@@ -157,6 +157,18 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
 
 	}
 
+	public void sendCricketSnapshot(String url, CricketDataDTO snapshot) {
+		String match = CrexMatchUrlHelper.extractMatchKey(url);
+		if (match == null || match.trim().isEmpty()) {
+			String[] parts = url.split("/");
+			match = parts.length >= 2 ? parts[parts.length - 2] : url;
+		}
+
+		if (this.brokerAvailable.get() && snapshot != null) {
+			messagingTemplate.convertAndSend("/topic/cricket.match." + match + ".snapshot", snapshot);
+		}
+	}
+
 	public void notifyNewMatch(String url) {
 		messagingTemplate.convertAndSend("/topic/live-matches", url);
 
@@ -214,6 +226,14 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
         
         // Update cache with fresh DB data (will be enriched with transient fields below)
         matchDataCache.remove(url);
+    }
+
+    /**
+     * Publish-speed cache update used by live patches. Full periodic scrapes remain
+     * responsible for relational persistence.
+     */
+    public void cacheLastUpdatedData(String url, CricketDataDTO data) {
+        matchDataCache.put(url, new CacheEntry<>(data));
     }
 
     /**

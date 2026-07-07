@@ -33,6 +33,8 @@ public class LiveMatchIndexingSchedulerTest {
         ReflectionTestUtils.setField(scheduler, "liveMatchIndexingEnabled", true);
         ReflectionTestUtils.setField(scheduler, "maxIndexingPerRun", 10);
         ReflectionTestUtils.setField(scheduler, "dailyIndexingBudget", 180);
+        ReflectionTestUtils.setField(scheduler, "upcomingIndexingWindowHours", 120);
+        ReflectionTestUtils.setField(scheduler, "upcomingPriorityLeadHours", 30);
     }
 
     @Test
@@ -91,6 +93,46 @@ public class LiveMatchIndexingSchedulerTest {
         scheduler.indexNewLiveMatches();
 
         assertThat(gscService.requestedSlugs).doesNotContain(slug);
+    }
+
+    @Test
+    public void skips_upcoming_matches_outside_five_day_window() {
+        long now = System.currentTimeMillis();
+        liveMatchesService.allMatches = Arrays.asList(
+                entry(
+                        "https://crex.com/cricket-live-score/early-a-vs-early-b-1st-match-test-cup-2026-match-updates-12CC",
+                        "UPCOMING",
+                        now + (72L * 60L * 60L * 1000L)),
+                entry(
+                        "https://crex.com/cricket-live-score/far-a-vs-far-b-1st-match-test-cup-2026-match-updates-12DD",
+                        "UPCOMING",
+                        now + (160L * 60L * 60L * 1000L)));
+
+        scheduler.indexNewLiveMatches();
+
+        assertThat(gscService.requestedSlugs)
+                .contains("early-a-vs-early-b-1st-match-test-cup-2026-match-updates-12CC")
+                .doesNotContain("far-a-vs-far-b-1st-match-test-cup-2026-match-updates-12DD");
+    }
+
+    @Test
+    public void early_window_upcoming_matches_prioritized_ahead_of_same_day_catch_up() {
+        long now = System.currentTimeMillis();
+        liveMatchesService.allMatches = Arrays.asList(
+                entry(
+                        "https://crex.com/cricket-live-score/catchup-a-vs-catchup-b-1st-match-test-cup-2026-match-updates-12EE",
+                        "UPCOMING",
+                        now + (8L * 60L * 60L * 1000L)),
+                entry(
+                        "https://crex.com/cricket-live-score/early-a-vs-early-b-1st-match-test-cup-2026-match-updates-12FF",
+                        "UPCOMING",
+                        now + (60L * 60L * 60L * 1000L)));
+
+        scheduler.indexNewLiveMatches();
+
+        int earlyIndex = gscService.slugOrder.indexOf("early-a-vs-early-b-1st-match-test-cup-2026-match-updates-12FF");
+        int catchupIndex = gscService.slugOrder.indexOf("catchup-a-vs-catchup-b-1st-match-test-cup-2026-match-updates-12EE");
+        assertThat(earlyIndex).isLessThan(catchupIndex);
     }
 
     private LiveMatchesService.LiveMatchEntry entry(String url, String status, Long scheduledStartTime) {

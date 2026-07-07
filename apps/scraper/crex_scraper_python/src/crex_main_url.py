@@ -718,8 +718,11 @@ def scrape(page, url):
             logger.info("backend.sync_live_matches.start", metadata={"url_count": len(urls)})
             token = CricketDataService.get_bearer_token()
             # Send matches regardless of token (endpoint is public)
-            CricketDataService.add_live_matches(urls, token)
-            logger.info("backend.sync_live_matches.complete", metadata={"url_count": len(urls), "synced": True})
+            synced = CricketDataService.add_live_matches(urls, token)
+            if synced:
+                logger.info("backend.sync_live_matches.complete", metadata={"url_count": len(urls), "synced": True})
+            else:
+                logger.error("backend.sync_live_matches.failed", metadata={"url_count": len(urls), "synced": False})
         except Exception as e:
             logger.warning("backend.sync_live_matches.error", metadata={"error": str(e), "message": "Backend sync failed, continuing with local scraping"})
         

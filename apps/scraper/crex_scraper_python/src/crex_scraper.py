@@ -47,6 +47,7 @@ class CrexScraperService:
         self._restart_lock = threading.Lock()
         self._container_restart_scheduled = False
         self._last_live_match_count = 0
+        self._last_managed_live_match_count = 0
         self._restart_condition_consecutive_count: int = 0
         
         # Persistent page pool and fast poll service (Feature 007 - Phase 2)
@@ -246,6 +247,51 @@ class CrexScraperService:
 
         return None
 
+    def get_fast_update_status(self) -> Dict[str, Any]:
+        """Return enough fast-lane coverage detail to detect silent production drift."""
+        live_matches = max(int(getattr(self, "_last_live_match_count", 0)), 0)
+        managed_live_matches = max(
+            int(getattr(self, "_last_managed_live_match_count", live_matches)),
+            0,
+        )
+        pool_stats = self.persistent_page_pool.get_stats() if self.persistent_page_pool else {}
+        intercept_stats = self.fast_poll_service.get_stats() if self.fast_poll_service else {}
+        covered_matches = int(pool_stats.get("size", 0))
+        coverage_ratio = 1.0 if live_matches == 0 else min(covered_matches / live_matches, 1.0)
+
+        return {
+            "enabled": bool(
+                self.settings.enable_fast_updates
+                and self.settings.enable_immediate_push
+                and self.settings.enable_persistent_pages
+                and self.persistent_page_pool
+                and self.fast_poll_service
+            ),
+            "live_matches": live_matches,
+            "managed_live_matches": managed_live_matches,
+            "covered_matches": covered_matches,
+            "coverage_ratio": round(coverage_ratio, 3),
+            "capacity": int(pool_stats.get("max_size", self.settings.persistent_page_max_count)),
+            "pool_errors": int(pool_stats.get("total_errors", 0)),
+            "active_interceptors": int(intercept_stats.get("active_pages", 0)),
+            "cached_matches": int(intercept_stats.get("cached_matches", 0)),
+        }
+
+    @staticmethod
+    def _extract_live_urls(matches: list[Any]) -> list[str]:
+        """Normalize backend live match responses into URLs."""
+        live_urls: list[str] = []
+        for match in matches or []:
+            url = None
+            if isinstance(match, dict):
+                url = match.get("url") or match.get("matchUrl")
+            elif isinstance(match, str):
+                url = match
+
+            if url:
+                live_urls.append(url)
+        return live_urls
+
     def schedule_container_restart(
         self,
         reason: str,
@@ -307,7 +353,9 @@ class CrexScraperService:
                      self._auth_token = await asyncio.to_thread(CricketDataService.get_bearer_token)
 
                 matches = await asyncio.to_thread(CricketDataService.get_live_matches, self._auth_token)
-                live_urls = []
+                catalog_live_urls = self._extract_live_urls(matches)
+                self._last_live_match_count = len(catalog_live_urls)
+                self.health.set_active_matches(self._last_live_match_count)
 
                 # Sort priority leagues (IPL) first so they are never dropped by the cap
                 _PRIORITY = ('indian-premier-league',)
@@ -321,24 +369,16 @@ class CrexScraperService:
                 if self.settings.max_live_matches > 0:
                     matches = matches[:self.settings.max_live_matches]
                     logger.info(f"poll.matches_capped count={len(matches)} limit={self.settings.max_live_matches}")
-                
-                for match in matches:
-                    # Handle both dict (from JSON) and string (if backend returns list of strings)
-                    url = None
-                    if isinstance(match, dict):
-                        url = match.get('url') or match.get('matchUrl')
-                    elif isinstance(match, str):
-                        url = match
-                    
+
+                live_urls = self._extract_live_urls(matches)
+                self._last_managed_live_match_count = len(live_urls)
+
+                for url in live_urls:
                     if url:
-                        live_urls.append(url)
                         match_id = self._extract_match_id(url) or url
-                        if self._should_submit_live_task(match_id):
+                        if await self._should_submit_live_task(match_id):
                             if await self.submit_task(match_id, url, "LIVE"):
                                 self._last_full_live_scrape_at[match_id] = time.monotonic()
-
-                self._last_live_match_count = len(live_urls)
-                self.health.set_active_matches(self._last_live_match_count)
 
                 if self.player_stats_crawler:
                     await self.player_stats_crawler.update_live_candidates(live_urls)
@@ -393,51 +433,63 @@ class CrexScraperService:
                     CricketDataService.get_live_matches, 
                     self._auth_token
                 )
-                
-                current_match_urls = set()
-                await self.persistent_page_pool.ensure_capacity(len(matches))
-                
+
+                current_match_urls = set(self._extract_live_urls(matches))
+                self._last_live_match_count = len(current_match_urls)
+                self.health.set_active_matches(self._last_live_match_count)
+                await self.persistent_page_pool.ensure_capacity(len(current_match_urls))
+
                 for match in matches:
                     url = None
                     if isinstance(match, dict):
                         url = match.get('url') or match.get('matchUrl')
                     elif isinstance(match, str):
                         url = match
-                    
+
                     if not url:
                         continue
-                    
-                    current_match_urls.add(url)
-                    
+
                     # Extract match ID from URL
                     match_id = self._extract_match_id(url)
                     if not match_id:
                         continue
                     
                     # Check if we already have a persistent page with interceptor
-                    if self.persistent_page_pool.is_page_active(match_id):
+                    if await self.persistent_page_pool.is_page_active(match_id):
                         # Page already active with network interceptor - no action needed
                         # sV3 updates come automatically via response listener
                         continue
                     else:
+                        # Page is dead/unhealthy — clean up old entry before recreating
+                        if match_id in self.persistent_page_pool.match_ids:
+                            logger.warning(f"[FASTPOLL] Page for {match_id} unhealthy, removing before recreate")
+                            self.fast_poll_service.detach(match_id)
+                            await self.persistent_page_pool.remove(match_id)
+
                         # Create new persistent page and attach interceptor
+                        context = None
                         try:
-                            async with self.pool.get_context() as context:
-                                page = await self.persistent_page_pool.get_or_create(
-                                    match_id=match_id,
-                                    context=context,
-                                    url=url,
-                                )
-                                # Attach network interceptor - sV3 updates flow via callback
-                                await self.fast_poll_service.attach_to_page(
-                                    page=page,
-                                    match_id=match_id,
-                                    match_url=url,
-                                    on_data=self._on_sv3_intercepted,
-                                )
-                                logger.info(f"[FASTPOLL] Attached interceptor to {match_id}")
+                            context = await self.pool.create_dedicated_context()
+                            page = await self.persistent_page_pool.get_or_create(
+                                match_id=match_id,
+                                context=context,
+                                url=url,
+                            )
+                            # Attach network interceptor - sV3 updates flow via callback
+                            await self.fast_poll_service.attach_to_page(
+                                page=page,
+                                match_id=match_id,
+                                match_url=url,
+                                on_data=self._on_sv3_intercepted,
+                            )
+                            logger.info(f"[FASTPOLL] Attached interceptor to {match_id}")
                         except Exception as e:
                             logger.error(f"[FASTPOLL] Failed to create page for {match_id}: {e}")
+                            if context:
+                                try:
+                                    await context.close()
+                                except Exception:
+                                    pass
                 
                 # Clean up pages for matches that are no longer live
                 pool_match_ids = self.persistent_page_pool.match_ids.copy()
@@ -774,9 +826,9 @@ class CrexScraperService:
         self.metrics.queue_depth.set(self.scheduler.qsize)
         return result
 
-    def _should_submit_live_task(self, match_id: str) -> bool:
+    async def _should_submit_live_task(self, match_id: str) -> bool:
         """Use the heavy full scrape path sparingly once a match is already covered by a persistent page."""
-        if not self.persistent_page_pool or not self.persistent_page_pool.is_page_active(match_id):
+        if not self.persistent_page_pool or not await self.persistent_page_pool.is_page_active(match_id):
             return True
 
         last_full_scrape = self._last_full_live_scrape_at.get(match_id)

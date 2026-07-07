@@ -49,6 +49,7 @@ class FastPollService:
         self._active_pages: Dict[str, Page] = {}
         self._last_data: Dict[str, Dict] = {}
         self._callbacks: Dict[str, Callable[[str, Dict], Awaitable[None]]] = {}
+        self._handlers: Dict[str, Callable] = {}  # Listener references for cleanup
         self._stats = {
             "total_intercepts": 0,
             "successful_intercepts": 0,
@@ -81,10 +82,12 @@ class FastPollService:
         self._active_pages[match_id] = page
         self._callbacks[match_id] = on_data
         
-        # Create response handler for this page
+        # Create named response handler for this page
         async def handle_response(response: Response):
             await self._on_response(response, match_id, match_url)
         
+        # Store handler reference so we can remove it on detach
+        self._handlers[match_id] = handle_response
         page.on("response", handle_response)
         logger.info(f"[FASTPOLL] Attached network interceptor to {match_id}")
     
@@ -92,9 +95,10 @@ class FastPollService:
         """Handle intercepted response - check for sV3 and commentary data."""
         try:
             url = response.url
+            lower_url = url.lower()
             
             # Log unknown api-v1.com endpoints for discovery
-            if "api-v1.com" in url and "sV3" not in url and "sC4" not in url:
+            if "api-v1.com" in url and "sv3" not in lower_url and "sc4" not in lower_url:
                 try:
                     body = await response.json()
                     keys = list(body.keys()) if isinstance(body, dict) else f"type={type(body).__name__}"
@@ -103,7 +107,7 @@ class FastPollService:
                     logger.info(f"[FASTPOLL-DISCOVERY] {url} status={response.status}")
             
             # Check if this is an sV3 response
-            if "sV3" not in url:
+            if "sv3" not in lower_url:
                 return
             
             start_time = time.time()
@@ -155,8 +159,8 @@ class FastPollService:
         # Quick check: compare key fields that typically change
         # This is faster than full JSON comparison
         try:
-            # Common changing fields in sV3
-            for key in ['sc', 'ov', 'bt', 'ws', 'rb']:
+            # CREX currently varies between older score keys and compact feed keys.
+            for key in ['sc', 'ov', 'bt', 'ws', 'rb', 'B', 'v', 'R', 'A', 'F']:
                 if last.get(key) != new_data.get(key):
                     return True
             return False
@@ -174,17 +178,25 @@ class FastPollService:
         self._stats["avg_latency_ms"] = (old_avg * 0.9 + latency_ms * 0.1) if total > 1 else latency_ms
     
     def detach(self, match_id: str):
-        """Stop intercepting for a match."""
+        """Stop intercepting for a match - removes the response listener from the page."""
+        page = self._active_pages.get(match_id)
+        handler = self._handlers.pop(match_id, None)
+        if page and handler:
+            try:
+                page.remove_listener("response", handler)
+            except Exception as e:
+                logger.warning(f"[FASTPOLL] Error removing listener for {match_id}: {e}")
         self._active_pages.pop(match_id, None)
         self._callbacks.pop(match_id, None)
         self._last_data.pop(match_id, None)
         logger.info(f"[FASTPOLL] Detached from {match_id}")
     
     async def stop_all(self):
-        """Stop all interception."""
+        """Stop all interception - removes all listeners and detaches."""
         match_ids = list(self._active_pages.keys())
         for match_id in match_ids:
             self.detach(match_id)
+        self._handlers.clear()
         logger.info("[FASTPOLL] All interceptors stopped")
     
     def get_stats(self) -> Dict:

@@ -2,6 +2,7 @@ package com.devglan.service.impl;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -55,8 +56,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	}
 
 	public void syncLiveMatches(String[] urls) {
-		try {
-			logger.info("Starting the sync live matches logic.");
+		logger.info("Starting the sync live matches logic.");
 
 			List<String> urlList = Arrays.stream(urls)
                     .map(this::normalizeUrl)
@@ -126,10 +126,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 				}
 			}
 
-			logger.info("Live matches saved successfully!");
-		} catch (Exception e) {
-			logger.error("Error saving live matches: ", e);
-		}
+		logger.info("Live matches saved successfully!");
 	}
 
     @Override
@@ -278,6 +275,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 		return liveMatchRepository.findByDeletionAttemptsLessThanAndIsDeletedFalse(Integer.valueOf(2))
                 .stream()
                 .filter(this::isLiveLike)
+                .map(this::enrichLiveMatchFromSnapshot)
                 .collect(Collectors.toList());
 	}
 
@@ -429,5 +427,115 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             default:
                 return 0;
         }
+    }
+
+    private LiveMatch enrichLiveMatchFromSnapshot(LiveMatch match) {
+        if (match == null || match.getUrl() == null || match.getUrl().trim().isEmpty()) {
+            return match;
+        }
+
+        boolean needsEnrichment =
+                isBlank(match.getTeam1Name())
+                || isBlank(match.getTeam2Name())
+                || isBlank(match.getVenue())
+                || isBlank(match.getLastKnownState());
+
+        if (!needsEnrichment) {
+            return match;
+        }
+
+        try {
+            CricketDataDTO snapshot = cricketDataService.getLastUpdatedData(match.getUrl());
+            if (snapshot == null) {
+                snapshot = cricketDataService.getLastUpdatedData(buildMatchDetailsUrl(match.getUrl()));
+            }
+            if (snapshot == null) {
+                return match;
+            }
+
+            if (isBlank(match.getVenue()) && !isBlank(snapshot.getVenue())) {
+                match.setVenue(snapshot.getVenue().trim());
+            }
+
+            if (isBlank(match.getLastKnownState())) {
+                String liveSummary = firstNonBlank(
+                        snapshot.getCurrentBall(),
+                        snapshot.getMatchAnnouncement(),
+                        snapshot.getFinalResultText(),
+                        snapshot.getTossInfo());
+                if (!isBlank(liveSummary)) {
+                    match.setLastKnownState(liveSummary.trim());
+                }
+            }
+
+            if (isBlank(match.getResultSummary()) && !isBlank(snapshot.getFinalResultText())) {
+                match.setResultSummary(snapshot.getFinalResultText().trim());
+            }
+
+            if (isBlank(match.getTeam1Name()) || isBlank(match.getTeam2Name())) {
+                List<String> teams = extractTeams(snapshot.getMatchName());
+                if (teams.size() >= 2) {
+                    if (isBlank(match.getTeam1Name())) {
+                        match.setTeam1Name(teams.get(0));
+                    }
+                    if (isBlank(match.getTeam2Name())) {
+                        match.setTeam2Name(teams.get(1));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.debug("Could not enrich live match feed row for {}", match.getUrl(), e);
+        }
+
+        return match;
+    }
+
+    private List<String> extractTeams(String matchName) {
+        List<String> teams = new ArrayList<>();
+        if (isBlank(matchName)) {
+            return teams;
+        }
+
+        String normalized = matchName.replaceAll("\\s+", " ").trim();
+        String[] separators = new String[] { " vs ", " v ", " VS ", " V " };
+        for (String separator : separators) {
+            int index = normalized.indexOf(separator);
+            if (index > 0) {
+                String team1 = normalized.substring(0, index).trim();
+                String team2 = normalized.substring(index + separator.length()).trim();
+                if (!isBlank(team1) && !isBlank(team2)) {
+                    teams.add(team1);
+                    teams.add(team2);
+                }
+                return teams;
+            }
+        }
+
+        return teams;
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+
+        for (String value : values) {
+            if (!isBlank(value)) {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String buildMatchDetailsUrl(String url) {
+        if (isBlank(url) || url.endsWith("/match-details")) {
+            return url;
+        }
+        return url + "/match-details";
     }
 }

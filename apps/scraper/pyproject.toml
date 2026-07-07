@@ -9,6 +9,9 @@ line_length = 100
 known_first_party = ["crex_scraper_python"]
 skip = ["storage", "__pycache__"]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.flake8]
 max-line-length = 100
 extend-ignore = ["E203", "W503"]

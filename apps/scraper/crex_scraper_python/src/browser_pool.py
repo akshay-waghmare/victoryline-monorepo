@@ -5,13 +5,45 @@ Handles lifecycle, concurrency limits, and resource cleanup.
 
 import asyncio
 import logging
+import re
 from typing import Optional, List, AsyncGenerator
 from contextlib import asynccontextmanager
-from playwright.async_api import async_playwright, Browser, BrowserContext, Playwright, Error as PlaywrightError
+from playwright.async_api import async_playwright, Browser, BrowserContext, Playwright, Page
 
 from .config import get_settings
 
 logger = logging.getLogger(__name__)
+
+_PLAYWRIGHT_FATAL_PATTERNS = re.compile(
+    r"Target (page|context|browser) .* closed"
+    r"|Connection closed"
+    r"|net::ERR_ABORTED"
+    r"|maybe frame was detached"
+    r"|Execution context was destroyed"
+    r"|Protocol error"
+    r"|Browser closed"
+    r"|Session closed"
+    r"|Unable to retrieve content because the page is gone"
+    r"|detached from frame",
+    re.IGNORECASE,
+)
+
+
+def _is_playwright_fatal_error(e: BaseException) -> bool:
+    """Check if an exception is a fatal Playwright error requiring browser invalidation."""
+    msg = str(e)
+    return bool(_PLAYWRIGHT_FATAL_PATTERNS.search(msg))
+
+
+async def _is_page_alive(page: Page, timeout: float = 2.0) -> bool:
+    """Lightweight health check — returns True if the page can evaluate JS."""
+    if page.is_closed():
+        return False
+    try:
+        await asyncio.wait_for(page.evaluate("1"), timeout=timeout)
+        return True
+    except Exception:
+        return False
 
 class AsyncBrowserPool:
     """
@@ -120,23 +152,21 @@ class AsyncBrowserPool:
                 success = True
             except Exception as e:
                 logger.warning(f"Context usage failed: {e}")
-                # If it's a critical error, we might want to recycle the whole pool
-                if "Target closed" in str(e) or "Connection closed" in str(e):
-                     logger.error("Browser connection lost, invalidating browser and playwright.")
-                     if self._browser:
-                         try:
-                             await self._browser.close()
-                         except Exception:
-                             pass
-                         self._browser = None
-                     
-                     # Restart Playwright as well to ensure driver is clean
-                     if self._playwright:
-                         try:
-                             await self._playwright.stop()
-                         except Exception:
-                             pass
-                         self._playwright = None
+                if _is_playwright_fatal_error(e):
+                    logger.error("Browser connection lost, invalidating browser and playwright.")
+                    if self._browser:
+                        try:
+                            await self._browser.close()
+                        except Exception:
+                            pass
+                    self._browser = None
+
+                    if self._playwright:
+                        try:
+                            await self._playwright.stop()
+                        except Exception:
+                            pass
+                    self._playwright = None
                 raise
             finally:
                 async with self._lock:
@@ -162,6 +192,18 @@ class AsyncBrowserPool:
                             await context.close()
                         except Exception as e:
                             logger.debug(f"Error closing context: {e}")
+
+    async def create_dedicated_context(self) -> BrowserContext:
+        """
+        Create a dedicated browser context NOT managed by the pool.
+        
+        The caller owns this context and must close it explicitly.
+        Use this for persistent pages that need the context to stay alive
+        for the entire page lifetime (unlike get_context which recycles).
+        """
+        if not self._browser:
+            await self.setup()
+        return await self._create_context()
 
     async def shutdown(self):
         """Gracefully shutdown the browser pool."""
