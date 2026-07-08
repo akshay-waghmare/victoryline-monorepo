@@ -152,4 +152,20 @@ describe('MatchSeoService canonical lifecycle', () => {
     expect(seo.series).toBe('Major League Cricket 2026');
     expect(seo.breadcrumbSeries).toBe('Major League Cricket');
   });
+
+  it('uses the canonical slug series when the feed series is polluted by live status text', () => {
+    var seo = service.build({
+      routeSlug: 'nam-vs-vid-1st-unofficial-test-2026-match-updates-11AA',
+      requestedPath: '/cric-live/nam-vs-vid-1st-unofficial-test-2026-match-updates-11AA',
+      matchInfo: {
+        team1_name: 'Namibia',
+        team2_name: 'Vidarbha',
+        match_status: 'Toss Delayed',
+        series_name: 'NAM Yet to bat Toss Delayed VID Yet to bat'
+      }
+    });
+
+    expect(seo.series).toBe('1st Unofficial Test 2026');
+    expect(seo.breadcrumbSeries).toBe('1st Unofficial Test');
+  });
 });

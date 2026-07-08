@@ -249,12 +249,38 @@ export class MatchSeoService {
       && normalizedRaw.indexOf(team2.toLowerCase()) !== -1
     );
     const looksLikeScheduleRow = /\b\d{1,2}:\d{2}\s*(am|pm)\b/i.test(cleanedRaw);
+    const looksLikeStatusRow = this.looksLikePollutedSeriesValue(cleanedRaw);
 
-    if ((containsBothTeams || looksLikeScheduleRow) && cleanedParsed) {
+    if ((containsBothTeams || looksLikeScheduleRow || looksLikeStatusRow) && cleanedParsed) {
       return cleanedParsed;
     }
 
     return cleanedRaw || cleanedParsed;
+  }
+
+  private looksLikePollutedSeriesValue(value: string): boolean {
+    var normalized = this.cleanName(value);
+    if (!normalized) {
+      return false;
+    }
+
+    if (/\byet to bat\b/i.test(normalized)) {
+      return true;
+    }
+
+    if (/\btoss delayed\b/i.test(normalized)) {
+      return true;
+    }
+
+    if (/\btoss\b/i.test(normalized) && /\b(delayed|won|elected|opted)\b/i.test(normalized)) {
+      return true;
+    }
+
+    if (/\b(stumps|innings break|drinks|day break|rain delay)\b/i.test(normalized)) {
+      return true;
+    }
+
+    return false;
   }
 
   private getBreadcrumbSeries(series: string): string {
