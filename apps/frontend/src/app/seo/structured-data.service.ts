@@ -22,6 +22,23 @@ export interface ArticleStructuredDataInput {
   datePublished?: string;
   dateModified?: string;
   authorName?: string;
+  articleSection?: string;
+  keywords?: string[];
+  isAccessibleForFree?: boolean;
+}
+
+export interface LiveBlogUpdateStructuredDataInput {
+  headline: string;
+  url: string;
+  datePublished: string;
+  articleBody?: string;
+}
+
+export interface LiveBlogPostingStructuredDataInput extends ArticleStructuredDataInput {
+  coverageStartTime?: string;
+  coverageEndTime?: string;
+  liveBlogUpdates: LiveBlogUpdateStructuredDataInput[];
+  about?: JsonLd;
 }
 
 export interface StructuredDataLinkItem {
@@ -77,14 +94,27 @@ export class StructuredDataService {
   }
 
   article(input: ArticleStructuredDataInput): JsonLd {
+    return this.buildArticleSchema('Article', input);
+  }
+
+  newsArticle(input: ArticleStructuredDataInput): JsonLd {
+    return this.buildArticleSchema('NewsArticle', input);
+  }
+
+  liveBlogPosting(input: LiveBlogPostingStructuredDataInput): JsonLd {
     return this.cleanObject({
       '@context': 'https://schema.org',
-      '@type': 'Article',
+      '@type': 'LiveBlogPosting',
       headline: input.headline,
       description: input.description,
       image: input.image ? [input.image] : undefined,
       datePublished: input.datePublished,
       dateModified: input.dateModified || input.datePublished,
+      coverageStartTime: input.coverageStartTime || input.datePublished,
+      coverageEndTime: input.coverageEndTime || input.dateModified || input.datePublished,
+      articleSection: input.articleSection,
+      keywords: input.keywords,
+      isAccessibleForFree: input.isAccessibleForFree !== false,
       author: {
         '@type': 'Organization',
         name: input.authorName || 'Crickzen'
@@ -100,7 +130,36 @@ export class StructuredDataService {
       mainEntityOfPage: {
         '@type': 'WebPage',
         '@id': input.url
-      }
+      },
+      about: input.about,
+      liveBlogUpdate: (input.liveBlogUpdates || []).map((entry) => this.cleanObject({
+        '@type': 'BlogPosting',
+        headline: entry.headline,
+        url: entry.url,
+        datePublished: entry.datePublished,
+        articleBody: entry.articleBody
+      }))
+    });
+  }
+
+  organization(input: {
+    name: string;
+    url: string;
+    logoUrl?: string;
+    description?: string;
+    sameAs?: string[];
+  }): JsonLd {
+    return this.cleanObject({
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: input.name,
+      url: input.url,
+      description: input.description,
+      logo: input.logoUrl ? {
+        '@type': 'ImageObject',
+        url: input.logoUrl
+      } : undefined,
+      sameAs: input.sameAs
     });
   }
 
@@ -229,6 +288,35 @@ export class StructuredDataService {
     });
   }
 
+  setGlobalSchemas(items: JsonLd[]): void {
+    if (!this.document || !this.document.head) {
+      return;
+    }
+
+    this.clearGlobalSchemas();
+
+    items.forEach((item) => {
+      const script = this.document.createElement('script');
+      script.setAttribute('type', 'application/ld+json');
+      script.setAttribute('data-global-schema', 'crickzen-jsonld');
+      script.text = JSON.stringify(item);
+      this.document.head.appendChild(script);
+    });
+  }
+
+  clearGlobalSchemas(): void {
+    if (!this.document || !this.document.head) {
+      return;
+    }
+
+    const nodes = this.document.head.querySelectorAll('script[data-global-schema="crickzen-jsonld"]');
+    Array.prototype.forEach.call(nodes, (node) => {
+      if (node && node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    });
+  }
+
   getPageSchemas(): JsonLd[] {
     if (!this.document || !this.document.head) {
       return [];
@@ -246,6 +334,37 @@ export class StructuredDataService {
       }
     });
     return items;
+  }
+
+  private buildArticleSchema(type: 'Article' | 'NewsArticle', input: ArticleStructuredDataInput): JsonLd {
+    return this.cleanObject({
+      '@context': 'https://schema.org',
+      '@type': type,
+      headline: input.headline,
+      description: input.description,
+      image: input.image ? [input.image] : undefined,
+      datePublished: input.datePublished,
+      dateModified: input.dateModified || input.datePublished,
+      articleSection: input.articleSection,
+      keywords: input.keywords,
+      isAccessibleForFree: input.isAccessibleForFree !== false,
+      author: {
+        '@type': 'Organization',
+        name: input.authorName || 'Crickzen'
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Crickzen',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://www.crickzen.com/assets/icons/icon-512x512.png'
+        }
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': input.url
+      }
+    });
   }
 
   private toEventStatusUrl(status: 'Scheduled' | 'LiveEvent' | 'EventCompleted'): string {

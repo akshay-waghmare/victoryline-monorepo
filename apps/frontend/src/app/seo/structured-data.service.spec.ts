@@ -14,7 +14,7 @@ describe('StructuredDataService', () => {
       ]
     });
 
-    service = TestBed.inject(StructuredDataService);
+    service = TestBed.get(StructuredDataService);
   });
 
   it('includes richer event fields when provided', () => {
@@ -45,5 +45,56 @@ describe('StructuredDataService', () => {
     expect(event.organizer.name).toBe('Crickzen');
     expect(event.offers.url).toBe('https://www.crickzen.com/cric-live/example');
     expect(event.image).toEqual(['https://www.crickzen.com/assets/og/crickzen-default-1200x630.jpg']);
+  });
+
+  it('builds NewsArticle and LiveBlogPosting schemas for freshness pages', () => {
+    const newsArticle = service.newsArticle({
+      headline: 'TSK vs SO Live Updates',
+      description: 'Rolling match-day updates and key moments.',
+      url: 'https://www.crickzen.com/cricket-live-updates/example',
+      datePublished: '2026-06-28T10:00:00.000Z',
+      dateModified: '2026-06-28T10:15:00.000Z',
+      articleSection: 'Live match updates',
+      keywords: ['tsk vs so live updates', 'today match updates']
+    });
+
+    const liveBlog = service.liveBlogPosting({
+      headline: 'TSK vs SO Live Updates',
+      description: 'Rolling match-day updates and key moments.',
+      url: 'https://www.crickzen.com/cricket-live-updates/example',
+      datePublished: '2026-06-28T10:00:00.000Z',
+      dateModified: '2026-06-28T10:15:00.000Z',
+      articleSection: 'Live match updates',
+      keywords: ['tsk vs so live updates'],
+      liveBlogUpdates: [
+        {
+          headline: 'Wicket moment',
+          url: 'https://www.crickzen.com/cricket-live-updates/example#update-1',
+          datePublished: '2026-06-28T10:12:00.000Z',
+          articleBody: 'A wicket changes the chase.'
+        }
+      ]
+    });
+
+    expect(newsArticle['@type']).toBe('NewsArticle');
+    expect(newsArticle.articleSection).toBe('Live match updates');
+    expect(newsArticle.keywords).toEqual(['tsk vs so live updates', 'today match updates']);
+    expect(liveBlog['@type']).toBe('LiveBlogPosting');
+    expect(liveBlog.liveBlogUpdate.length).toBe(1);
+    expect(liveBlog.liveBlogUpdate[0].headline).toBe('Wicket moment');
+  });
+
+  it('builds Organization schema for global trust markup', () => {
+    const organization = service.organization({
+      name: 'Crickzen',
+      url: 'https://www.crickzen.com',
+      logoUrl: 'https://www.crickzen.com/assets/icons/icon-512x512.png',
+      description: 'Live cricket coverage',
+      sameAs: ['https://x.com/crickzen']
+    });
+
+    expect(organization['@type']).toBe('Organization');
+    expect(organization.name).toBe('Crickzen');
+    expect(organization.logo.url).toContain('icon-512x512.png');
   });
 });
