@@ -37,6 +37,14 @@ TypeScript 4.9+ (Angular 15+), HTML5, CSS3 (CSS Grid, Flexbox, Custom Properties
 
 <!-- MANUAL ADDITIONS START -->
 
+## Live Match SEO Roadmap Workflow (2026-06-07)
+
+- For work derived from `docs/LIVE_MATCH_SEO_PHASE_ROADMAP.md`, create and execute one numbered Spec Kit phase at a time.
+- Keep the roadmap itself in `docs/` and reserve `specs/` folders for actual implementation phases with `spec.md`, `plan.md`, and `tasks.md`.
+- Unless a future spec explicitly changes route strategy, continue treating `/cric-live/{slug}` as the active public match URL family.
+- Do not bundle multiple roadmap phases into one spec unless the user explicitly asks for that.
+- Every completed phase should end with concrete verification evidence for SSR output, crawlability, or audit-script results before starting the next phase.
+
 ## Known Issues & Active Incidents
 
 ### ✅ RESOLVED: Scraper Thread/PID Leak (2025-11-15)

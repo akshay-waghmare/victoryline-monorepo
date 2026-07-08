@@ -117,13 +117,13 @@ describe('match-utils recent ball helpers', () => {
       { status: MatchStatus.LIVE, startTime: new Date(now + (12 * 60 * 60 * 1000)) }
     ] as any;
 
-    var filtered = filterUpcomingMatchesInHours(matches, 12, 48);
+    var filtered = filterUpcomingMatchesInHours(matches, 30, 120);
 
     expect(filtered.length).toBe(1);
-    expect(filtered[0].startTime.getTime()).toBe(matches[1].startTime.getTime());
+    expect(filtered[0].startTime.getTime()).toBe(matches[2].startTime.getTime());
   });
 
-  it('prioritizes 12-48 hour upcoming matches for discovery before same-day fixtures', () => {
+  it('prioritizes 30-120 hour upcoming matches for discovery before same-day fixtures', () => {
     var now = Date.now();
     var matches = [
       {
@@ -145,11 +145,11 @@ describe('match-utils recent ball helpers', () => {
         externalMatchKey: 'later-a-vs-later-b-101C',
         matchUrl: 'https://crex.com/cricket-live-score/later-a-vs-later-b-101C',
         status: MatchStatus.UPCOMING,
-        startTime: new Date(now + (30 * 60 * 60 * 1000))
+        startTime: new Date(now + (60 * 60 * 60 * 1000))
       }
     ] as any;
 
-    var prioritized = prioritizeUpcomingMatchesForDiscovery(matches, 12, 48);
+    var prioritized = prioritizeUpcomingMatchesForDiscovery(matches, 30, 120);
 
     expect(prioritized.map(function(match) { return match.id; })).toEqual([
       'sample-a-vs-sample-b-101B',

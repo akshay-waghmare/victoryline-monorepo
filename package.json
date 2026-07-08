@@ -18,7 +18,8 @@
     "dev:backend": "npm run backend:dev",
     "dev:scraper": "npm run scraper:dev",
     "build:all": "npm run frontend:build && npm run backend:build",
-    "test:all": "npm run frontend:test && npm run backend:test && npm run scraper:test"
+    "test:all": "npm run frontend:test && npm run backend:test && npm run scraper:test",
+    "seo:competitor-keywords": "python tools/competitor-keyword-discovery/competitor_keyword_discovery.py"
   },
   "devDependencies": {
     "@types/jasmine": "^5.1.4",

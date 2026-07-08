@@ -21,7 +21,19 @@ ssh administrator@204.12.199.137 "cd /home/administrator/victoryline-monorepo &&
 
 The tracker persists repo-local history in `ops\prod-state\history.jsonl`, updates `ops\prod-state\latest.json`, and saves a full timestamped snapshot in `ops\prod-state\snapshots\`. Its output shows previous vs current git HEAD, `.env` image pins, and running container images.
 
-If `git status --short` is not empty, stop. Never rebuild production images from a dirty server tree. Commit and push first, then pull that exact commit onto prod before any build or retag.
+If `git status --short` is not empty, stop. Never rebuild production images from a dirty server tree. The primary deployment path is to build images locally on the workstation, push them to the registry, pull those exact tags on prod, then update prod image pins and recreate services. Treat server-side builds as emergency-only exceptions.
+
+## Primary Production Deployment Rule
+
+The default production workflow is:
+
+1. build the intended image locally
+2. push it to the registry with an intentional tag
+3. pull that exact tag on prod
+4. update `.env` image pins on prod
+5. restart only the affected services with `docker compose -f docker-compose.prod.yml up -d ...`
+
+Do not treat this as a fallback. This is the preferred path because it avoids dirty-checkout drift, keeps the deploy artifact intentional, and makes rollback/replay easier.
 
 ## Issue 1: Wrong Compose Command
 
@@ -594,9 +606,11 @@ volumes:
   - ./apps/scraper/crex_scraper_python/src/crex_scraper.py:/app/crex_scraper_python/src/crex_scraper.py:ro
 ```
 
-To deploy on prod after a `git pull`:
+Emergency-only fallback if the local image transfer path is unavailable:
 
 ```bash
+git fetch origin
+git reset --hard origin/<branch-or-commit>
 docker compose -f docker-compose.prod.yml up -d --no-build scraper
 ```
 
@@ -732,4 +746,3 @@ pm2 logs ipl-signal-runner --lines 10 --nostream
 
 > **Note:** `dashboard/app/config.py` is baked into the Docker image — any `LEAGUE_CONFIGS` change requires `--build`.
 > **Note:** `dashboard/.env` changes take effect on next container restart (no rebuild needed).
-

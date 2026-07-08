@@ -89,6 +89,12 @@
 - **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-UI-001**: For user-facing page changes, the spec MUST state what content owns the
+  above-the-fold area and why.
+- **FR-UI-002**: The spec MUST identify any hero facts and confirm they are not duplicated
+  by nearby support modules.
+- **FR-UI-003**: The spec MUST mark secondary SEO/support content as either directly visible
+  because it is primary, or progressively disclosed because it is optional.
 
 *Example of marking unclear requirements:*
 
@@ -113,3 +119,5 @@
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
 - **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **SC-UI-001**: [For changed user-facing screens, users can identify the primary match/page
+  state from the first viewport without relying on duplicate summary blocks]

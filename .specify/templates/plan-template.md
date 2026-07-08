@@ -31,7 +31,13 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- Real-time data path preserves freshness, timestamps, and degraded-state behavior.
+- Service boundaries remain frontend -> backend -> scraper with contract-safe changes only.
+- Tests and verification cover the touched surfaces at the appropriate layer.
+- For frontend/live-score work: above-the-fold content serves the primary user task first.
+- Hero-owned facts are not duplicated by nearby summary or "at a glance" blocks.
+- Secondary SEO/support modules are lower on the page or intentionally progressively disclosed.
+- Planned UX changes do not trade hero clarity for SEO copy or link clusters.
 
 ## Project Structure
 

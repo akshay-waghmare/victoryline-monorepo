@@ -1,9 +1,11 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.0.0 → 1.1.0 (Added Frontend UI/UX Standards principle)
-Rationale: Learnings from Feature 001 Modern UI Redesign implementation revealed need for
-standardized frontend development practices, design system governance, and accessibility requirements.
+Version Change: 1.1.0 → 1.2.0 (Expanded Frontend UI/UX Standards with above-the-fold and progressive disclosure rules)
+Rationale: Recent live-score and SEO iterations regressed the intended above-the-fold
+hierarchy by duplicating hero facts and pushing "at a glance" support blocks too high.
+This amendment makes information hierarchy, hero ownership, and optional secondary SEO
+modules explicit repo-level constraints.
 
 Principles Established:
 - I. Real-Time Data Accuracy (UNCHANGED)
@@ -11,29 +13,28 @@ Principles Established:
 - III. REST API Design Standards (UNCHANGED)
 - IV. Testing Requirements (UNCHANGED)
 - V. Performance Standards for Live Updates (UNCHANGED)
-- VI. Frontend UI/UX Standards (NEW) - Added based on 001-modern-ui-redesign implementation
+- VI. Frontend UI/UX Standards (EXPANDED) - Added above-the-fold ownership and secondary block rules
 
-Key Learnings from Feature 001:
-- CSS custom properties enable instant theme switching without recompilation
-- Mobile-first responsive design ensures core functionality works on smallest screens first
-- Component-based architecture with clear APIs reduces code duplication
-- Comprehensive documentation (1400+ lines) critical for future developer onboarding
-- Carousel pattern significantly improved desktop UX for browsing content
-- Accessibility requirements (WCAG 2.1) must be baked in from start, not retrofitted
-- Design system with utility classes accelerates development velocity
-- Animation performance monitoring (FPS) prevents poor UX on low-end devices
+Key Learnings:
+- Hero surfaces already carry the primary match facts and must not be diluted by repeated
+  summary blocks above the fold
+- "At a glance" content is useful only when it complements the hero instead of restating it
+- Secondary SEO support modules should remain indexable but can be progressively disclosed
+  when they are not the primary user task
+- Repo-level UX law is needed because component-level choices drift during SEO iterations
 
 Templates Status:
-✅ plan-template.md - Constitution Check section now includes UI/UX standards
-✅ spec-template.md - User scenario includes accessibility and responsive requirements
-✅ tasks-template.md - Task categorization includes design system tasks
+✅ plan-template.md - Constitution Check now includes above-the-fold and hero ownership review
+✅ spec-template.md - Requirements now call out hero ownership and progressive disclosure
+✅ tasks-template.md - Task generation now requires hierarchy validation and secondary block placement
 
 Follow-up Actions:
-- Update existing feature specs to reference new UI/UX standards
-- Add design system checklist to component creation workflow
+- Apply these constraints in future homepage, /matches, live hub, and /cric-live page work
+- Use click-to-expand for key moments or similar supporting blocks when they are useful but
+  not primary above-the-fold content
 
 Commit Message Suggestion:
-docs: add Frontend UI/UX Standards principle v1.1.0 (learnings from 001-modern-ui-redesign)
+docs: amend constitution to v1.2.0 (protect above-the-fold hierarchy and hero ownership)
 -->
 
 # VictoryLine Constitution
@@ -234,6 +235,26 @@ performance leads to user frustration and churn. Performance is a feature.
 **User interfaces MUST be accessible, performant, and consistent across all devices.**
 Design decisions prioritize user experience over developer convenience.
 
+Information Hierarchy (NON-NEGOTIABLE):
+- **Above-the-Fold Discipline**: The first viewport MUST prioritize the user's primary task.
+  On live-match and hub pages, this means score, status, teams, venue, toss, and the most
+  decision-relevant state belong in the hero or immediate primary surface.
+- **Hero Ownership**: Facts already present in the hero MUST NOT be repeated in a second
+  summary block above the fold. Supporting modules may deepen context, but they cannot
+  restate the same score, toss, venue, start time, or status as a duplicate card.
+- **At-a-Glance Rule**: "At a glance" modules are allowed only when they compress missing
+  context or improve scanability. If the same information already exists clearly in the
+  hero, the module MUST be removed, moved lower, or rewritten to add distinct value.
+- **Progressive Disclosure for Secondary SEO Blocks**: Supporting content such as key
+  moments, related hubs, freshness support pages, or additional match-navigation clusters
+  SHOULD remain crawlable, but MUST be placed below the core above-the-fold experience or
+  behind an intentional expand/collapse interaction when not primary.
+- **No SEO-Led Hero Degradation**: SEO copy, internal-link clusters, schema-support
+  modules, and discovery aids MUST NOT displace live utility, readability, or hero clarity.
+- **One Primary Story Per Screen**: Each screen must have a clear first job. Homepage,
+  `/matches`, live hubs, and canonical match pages may support SEO, but the first visual
+  contract MUST remain obvious to a human user within one quick scan.
+
 Design System (REQUIRED):
 - **CSS Custom Properties**: Use for all themeable values (colors, spacing, typography)
   - Enables instant theme switching without recompilation
@@ -282,6 +303,10 @@ Component Architecture (REQUIRED):
 - **TypeScript Interfaces**: Define props with interfaces (no `any` types)
 - **Documentation**: Include JSDoc comments with usage examples
 - **Component Checklist** (verify before PR):
+  - ✅ Above-the-fold content serves the primary user task first
+  - ✅ Hero facts are not duplicated by nearby support modules
+  - ✅ "At a glance" content adds new value instead of restating hero data
+  - ✅ Secondary SEO/support content is lower on the page or progressively disclosed
   - ✅ Follows design system tokens (colors, spacing, typography)
   - ✅ Responsive on all breakpoints (test 320px, 768px, 1024px, 1440px)
   - ✅ Keyboard accessible
@@ -329,6 +354,12 @@ Documentation (REQUIRED FOR FEATURES):
 - **Update Frequency**: Update docs when adding/changing components
 
 User Experience Patterns (RECOMMENDED):
+- **Hero-First Match Layouts**: For homepage cards, `/matches`, live hubs, and
+  `/cric-live/*`, the hero or lead card should own score, status, and essential metadata.
+  Secondary summaries must be judged against the "does this say anything new?" test.
+- **Expandable Secondary Context**: Use buttons, accordions, or tabs for optional blocks
+  such as key moments in commentary when they aid users but would otherwise crowd the main
+  viewport. Hidden content should remain accessible and indexable where needed.
 - **Carousel Navigation**: Use on desktop for browsing multiple items (hide on mobile)
   - Left/right arrow buttons
   - Smooth horizontal scrolling
@@ -357,7 +388,8 @@ velocity with reusable components, ensures accessibility for all users (legal re
 in many jurisdictions), and maintains brand consistency. CSS custom properties enable
 theme switching and design token updates without code changes. Mobile-first design ensures
 core functionality works on the most constrained devices. Comprehensive documentation
-reduces onboarding time for new developers from days to hours.
+reduces onboarding time for new developers from days to hours. Explicit hierarchy rules
+also prevent SEO work from silently breaking the live-product reading order.
 
 Lessons Learned (Feature 001 - Modern UI Redesign):
 - CSS custom properties cut theme switching time from seconds to milliseconds
@@ -445,8 +477,9 @@ quality. Archive obsolete sections rather than deleting (preserve history).
 - Consult constitution before major architectural decisions
 - Link to specific principles in PR discussions when relevant
 
-**Version**: 1.1.0 | **Ratified**: 2025-11-06 | **Last Amended**: 2025-11-07
+**Version**: 1.2.0 | **Ratified**: 2025-11-06 | **Last Amended**: 2026-06-30
 
 **Amendment History**:
+- v1.2.0 (2026-06-30): Expanded Principle VI with above-the-fold discipline, hero ownership, and progressive disclosure rules for secondary SEO/support blocks
 - v1.1.0 (2025-11-07): Added Principle VI - Frontend UI/UX Standards based on Feature 001 learnings
 - v1.0.0 (2025-11-06): Initial constitution ratification with 5 core principles

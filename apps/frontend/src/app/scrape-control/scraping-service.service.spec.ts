@@ -1,12 +1,15 @@
 import { TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { ScrapingServiceService } from './scraping-service.service';
+import { ScrapingService } from './scraping-service.service';
 
-describe('ScrapingServiceService', () => {
-  beforeEach(() => TestBed.configureTestingModule({}));
+describe('ScrapingService', () => {
+  beforeEach(() => TestBed.configureTestingModule({
+    imports: [HttpClientTestingModule]
+  }));
 
   it('should be created', () => {
-    const service: ScrapingServiceService = TestBed.get(ScrapingServiceService);
+    const service: ScrapingService = TestBed.get(ScrapingService);
     expect(service).toBeTruthy();
   });
 });
