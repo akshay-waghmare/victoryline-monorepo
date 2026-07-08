@@ -115,7 +115,13 @@ If local scraper discovery should be able to recover upcoming/completed matches,
 docker compose -f docker-compose.local.yml up -d --build scraper
 ```
 
-## Reference incident
+## Related skills
+
+- **crickzen-scraper-browser-crash-loop** — when the scraper has many restarts, `/health` shows `failing` state, or `fast_updates.coverage_ratio < 1.0`
+- **crickzen-backend-scraper-prod-rollout** — deploying scraper code fixes to production
+
+## Reference incidents
 
 - `docs/INCIDENT_20260526_LIVE_HERO_WS_STALL.md`
+- `docs/INCIDENT_20260611_SCRAPER_BROWSER_CRASH_LOOP.md`
 - `docs/ROLLUP_20260602_HOME_MATCH_SURFACE_AND_LOCAL_DATA.md`

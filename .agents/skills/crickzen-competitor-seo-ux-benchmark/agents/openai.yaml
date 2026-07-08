@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crickzen Competitor SEO UX Benchmark"
+  short_description: "Benchmark Crickzen against live cricket competitors."
+  default_prompt: "Use $crickzen-competitor-seo-ux-benchmark to compare Crickzen surfaces and match-page SEO against CREX, Cricbuzz, SofaScore, or ESPN Cricinfo and turn the gaps into safe fixes."

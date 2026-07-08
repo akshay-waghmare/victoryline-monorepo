@@ -7,6 +7,23 @@ description: Start, rebuild, restart, and verify the local Crickzen Docker stack
 
 Use this skill when the local `victoryline-monorepo` stack needs to be started again, rebuilt, or verified after frontend or scraper changes.
 
+## Docker disk hygiene
+
+Before large local rebuilds, check Docker disk usage:
+
+```powershell
+docker system df
+```
+
+If unused images or build cache are piling up, reclaim space before retrying a heavy rebuild:
+
+```powershell
+docker image prune -af
+docker builder prune -af
+```
+
+Do not remove volumes unless the task explicitly allows deleting local state.
+
 ## Default stack command
 
 ```powershell
@@ -66,3 +83,4 @@ docker compose -f docker-compose.local.yml up -d --build scraper
 - If containers are healthy but no matches appear, switch to `crickzen-live-score-incident` or `crickzen-match-state-reconcile`
 - If scraper health is up but data is empty, inspect logs instead of assuming the frontend is broken
 - If the page still looks old, prove whether the issue is browser cache, SSR output, or stale container image
+- After a successful rebuild cycle, keep Docker space under control so the next rollout does not fail on local disk pressure

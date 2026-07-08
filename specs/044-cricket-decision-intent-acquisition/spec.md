@@ -18,12 +18,52 @@ This spec defines Crickzen as a cricket decision-intent platform:
 
 The goal is to align SEO, product surfaces, social hooks, and acquisition funnels around that model instead of treating them as separate efforts.
 
+The intended product flow is:
+
+- search intent
+- live match attention
+- prediction or decision intent
+- relationship capture
+- monetizable insight
+
+The guiding product questions are:
+
+- What changed?
+- Why did it change?
+- What matters next?
+- How do we keep the user after this visit?
+
 ## Current Evidence
 
 - Crickzen already owns strong match-level surfaces around `/cric-live/{slug}` and related lifecycle support pages.
 - The repo already contains work for canonical match coverage, match freshness support, query-surface authority, and above-the-fold SEO restraint.
 - Current SEO work is strong on crawlability and lifecycle coverage, but weaker on explicitly packaging prediction intent, turning-point intent, and alert capture as first-class acquisition surfaces.
 - The site already has the raw ingredients for score, commentary, match state, and SSR support, which means the next step is productized acquisition structure rather than generic keyword expansion.
+- The repo already exposes live match model outputs such as `team_odds`, `session_odds`, commentary, score, and match-info data on canonical match pages, but those outputs are still under-packaged as public decision-intelligence surfaces.
+
+## Strategic Gaps To Close
+
+- **Generic score utility gap**: live-score behavior alone is too easy to commoditize; Crickzen must compete on interpretation rather than pure score display.
+- **Intent visibility gap**: the system still needs a clear map for where user intent becomes visible and how Crickzen keeps that intent from leaking away.
+- **Relationship capture gap**: Telegram, subscription, and alert surfaces are strategically important but not yet operationalized as part of the main product loop.
+- **Transaction gap**: premium, API, widget, or partner workflows are recognized as downstream control points but not yet defined as tracked product paths.
+- **Feedback-loop gap**: outcome learning is part of the moat, but it is not yet represented as a measured event model that improves future prediction, content, and monetization decisions.
+- **Execution gap**: the operational bridge is incomplete because the match-page content template, daily SEO monitoring checklist, current SEO priorities, and intent-event model are still missing.
+
+## Product Shape
+
+Crickzen should be shaped as an intent-to-transaction system around cricket decision intent.
+
+Control points:
+
+- SEO pages capture search intent.
+- Live match pages capture match attention.
+- Prediction surfaces capture stronger decision intent.
+- Telegram, subscription, or alert surfaces capture repeat relationship.
+- Premium, API, widget, or partner workflows capture transaction.
+- Outcome data improves future prediction, content, and monetization decisions.
+
+This spec therefore treats public product work, relationship capture, and measurement as one continuous loop rather than separate SEO, product, and monetization tracks.
 
 ## User Scenarios & Testing
 
@@ -136,6 +176,44 @@ As a publisher, creator, or sports site operator, I want dedicated pages that ex
 - **FR-016**: Match pages MUST keep score and current match state primary in the first viewport; explanatory, support, or SEO-heavy modules MUST not retake the hero position.
 - **FR-017**: Prediction, turning-point, and alert surfaces MUST be built as people-first pages with real explanations, examples, and product utility rather than thin keyword capture pages.
 - **FR-018**: The first execution phase MUST identify a 30-day rollout slice with weekly deliverables and measurable checkpoints.
+- **FR-019**: The operating model MUST explicitly map the user journey from search intent to live match attention to prediction or decision intent to relationship capture to monetizable insight.
+- **FR-020**: Canonical match pages MUST answer the first three product questions in some combination: what changed, why it changed, and what matters next.
+- **FR-021**: The operating plan MUST define where the fourth product question is handled: how Crickzen keeps the user after the visit through alerts, subscriptions, or other owned channels.
+- **FR-022**: The spec MUST document the currently available public model outputs already present in the product stack, including team win-probability style data, session-odds style data, score state, commentary, and match context.
+- **FR-023**: The plan MUST distinguish internal operator or monitoring dashboards from user-facing Crickzen decision-intelligence surfaces so implementation does not confuse observability tools with product pages.
+- **FR-024**: The first operational rollout MUST produce these bridge artifacts: a match-page content template, a daily SEO monitoring checklist, current SEO priorities with live pages under review, and a defined intent plus transaction-adjacent event model.
+- **FR-025**: The measurement model MUST define both intent events and transaction-adjacent events so Crickzen can learn which search and match journeys produce relationship capture or commercial outcomes.
+- **FR-026**: Every prioritized keyword cluster MUST map to one primary search intent, one owning page family, one canonical URL policy, one primary intent event, and one owned next step.
+- **FR-027**: SEO planning MUST distinguish pre-match, live, and completed-match demand, while preserving one canonical `/cric-live/{slug}` match URL across the lifecycle unless a genuinely different reusable intent requires a separate hub or tool.
+- **FR-028**: New indexable surfaces MUST pass a value gate: unique intent, sufficient first-party data or explanation, a distinct job from the canonical match page, and an owned next step. Keyword variation alone MUST NOT justify a page.
+- **FR-029**: The intent ledger MUST preserve acquisition source, query or cluster where available, landing page, match and lifecycle context, intent events, relationship outcome, commercial outcome, and rejection or failure reason using privacy-safe identifiers.
+- **FR-030**: The initial analytics contract MUST include stable events for `match_view`, `prediction_view`, `prediction_interaction`, `explanation_expand`, `alert_cta_click`, `relationship_join`, `repeat_match_visit`, `premium_interest`, `api_interest`, and `commercial_enquiry`.
+- **FR-031**: Each event MUST define its trigger, required properties, deduplication rule, owner, destination, and validation method before implementation is considered complete.
+- **FR-032**: SEO operations MUST use Search Console query and page evidence, lifecycle discovery checks, SSR/indexability checks, engagement events, and relationship outcomes to decide whether to improve, expand, consolidate, or stop a surface.
+- **FR-033**: Model-backed claims MUST show freshness and match context, distinguish model probability from fact, and avoid unsupported certainty.
+
+## Keyword-To-Intent Operating Map
+
+| Intent family | Example query pattern | Owning surface | Primary intent event | Owned next step |
+|---|---|---|---|---|
+| Match status | `{team a} vs {team b} live score`, `scorecard`, `commentary`, `lineups` | Canonical `/cric-live/{slug}` with SSR-visible intent sections | `match_view`, then section-specific engagement | Prediction or explanation interaction |
+| Pre-match decision | `{team a} vs {team b} prediction`, `win probability`, `who will win` | Canonical match page prediction module; a hub only when it serves reusable cross-match demand | `prediction_view` or `prediction_interaction` | Match alert or follow relationship |
+| Live explanation | `why probability changed`, `required run rate`, `who is ahead` | Canonical live-page explanation module or a genuine calculator/tool | `explanation_expand` | Turning-point alert or repeat visit |
+| Post-match explanation | `where match was lost`, `turning point`, `why team lost` | Completed state of the canonical match page plus reusable analysis hubs | `explanation_expand` | Next-match or team follow |
+| Relationship | `cricket alerts`, `prediction updates` | Alert landing or in-product capture flow | `alert_cta_click`, then `relationship_join` | Repeat owned-channel visit |
+| Commercial | `cricket API`, `live score widget`, `prediction API` | Dedicated API, widget, or publisher landing page | `api_interest` or `commercial_enquiry` | Qualified demo or partner workflow |
+
+This map is a starting contract, not permission to manufacture every example as a separate URL. Search Console and product evidence decide which surfaces deserve expansion.
+
+## SEO Operating Model
+
+1. **Discover demand**: combine Search Console queries, competitor-specific match-page research, internal search or navigation behavior, and model capabilities into a prioritized keyword backlog.
+2. **Assign ownership**: map each cluster to the canonical match page, an existing hub, a reusable tool, a relationship page, or a commercial page; reject clusters with no distinct user job.
+3. **Publish by lifecycle**: expose upcoming matches early through SSR hub links and fresh sitemaps, update the same canonical page during live play, and retain useful result and explanation content after completion.
+4. **Satisfy intent**: keep score and state first, then answer what changed, why it changed, and what matters next using current model and match data.
+5. **Capture the next step**: give each surface one context-appropriate deeper action and one owned relationship action without crowding the first viewport.
+6. **Measure outcomes**: connect query cluster and landing page to engagement, relationship, repeat-use, and commercial events in the intent ledger.
+7. **Review and decide**: improve surfaces with impressions but weak clicks, strengthen pages with clicks but weak intent events, consolidate duplication, and stop pages that cannot provide unique value.
 
 ### Key Entities
 
@@ -145,6 +223,9 @@ As a publisher, creator, or sports site operator, I want dedicated pages that ex
 - **Explanation Module**: A visible page section that explains probability movement, pressure, turning points, or match-direction changes.
 - **Alert Capture Surface**: A landing page or CTA flow that converts match or prediction interest into Telegram, WhatsApp, email, or push-style relationship channels.
 - **B2B Monetization Surface**: A page for API, widget, or publisher solutions with lead capture or demo intent.
+- **Model Surface**: A user-facing Crickzen page or module that translates existing model outputs into public product value such as win probability, session pressure, turning-point explanation, or what-matters-next guidance.
+- **Intent Event Model**: The event taxonomy that marks where user intent becomes visible, deepens, converts into repeat relationship, or approaches a transaction.
+- **Outcome Loop**: The measurement and review process that uses engagement, relationship, and commercial outcomes to improve future prediction, content, and monetization decisions.
 
 ## Success Criteria
 
@@ -158,6 +239,8 @@ As a publisher, creator, or sports site operator, I want dedicated pages that ex
 - **SC-006**: The first 30-day rollout plan identifies weekly page, content, promotion, and measurement milestones.
 - **SC-007**: The information architecture keeps score-first live UX intact while still adding stronger explanation and acquisition layers.
 - **SC-UI-001**: On changed match surfaces, users can identify the current match state and the reason Crickzen is useful beyond score from the first viewport.
+- **SC-008**: The operating spec clearly documents where intent becomes visible inside Crickzen and how each important intent state can be routed into an owned next step rather than leaking away.
+- **SC-009**: The first operational execution slice produces a usable match-page content template, daily SEO monitoring checklist, current SEO priority board, and intent-event model.
 
 ## Out Of Scope
 
@@ -178,10 +261,12 @@ Work:
 1. Freeze the six core intent families.
 2. Map each family to hub, per-match, tool, alert, or B2B surfaces.
 3. Prevent overlap between canonical live pages and prediction or turning-point pages.
+4. Define the search intent -> live attention -> prediction -> relationship -> transaction loop explicitly.
 
 Exit criteria:
 
 - The team can explain which surface serves which query and why.
+- The team can explain where intent becomes visible and where it moves next.
 
 ### Phase 2 - Match-Surface Productization
 
@@ -192,10 +277,12 @@ Work:
 1. Keep live score and match state first.
 2. Add or refine probability-movement and "what changed" explanation layers.
 3. Define how prediction pages differ from canonical live coverage.
+4. Inventory the model outputs already available in the current stack and map each one to public product language.
 
 Exit criteria:
 
 - Live and prediction pages each have a distinct, testable value proposition.
+- The team knows which existing model outputs can already power public decision-intelligence surfaces.
 
 ### Phase 3 - Turning-Point And Explanation Surfaces
 
@@ -220,6 +307,7 @@ Work:
 1. Define analytics-safe alert messaging.
 2. Add alert capture pages and in-product CTAs.
 3. Decide where live pages, prediction pages, and post-match pages should route users next.
+4. Define how Telegram, subscription, email, or push surfaces become part of the owned relationship loop.
 
 Exit criteria:
 
@@ -248,10 +336,13 @@ Work:
 1. Define north-star funnel metrics.
 2. Define weekly Search Console, page, social, and conversion review points.
 3. Freeze the first 30-day delivery order.
+4. Define intent events, relationship events, and transaction-adjacent events.
+5. Produce the operational bridge artifacts for daily use.
 
 Exit criteria:
 
 - The team has a concrete short-term plan and can measure whether the strategy is working.
+- Strategy gaps are converted into visible operating artifacts, not left as abstract direction.
 
 ## Verification Checklist
 
@@ -262,6 +353,8 @@ Exit criteria:
 5. The plan includes a clear acquisition loop from discovery to repeat usage.
 6. The plan includes a first 30-day rollout slice with weekly focus areas.
 7. Above-the-fold ownership is explicitly protected on match pages.
+8. The spec distinguishes internal dashboards from public model surfaces.
+9. The operational bridge artifacts are explicitly called out.
 
 ## Risks And Mitigations
 

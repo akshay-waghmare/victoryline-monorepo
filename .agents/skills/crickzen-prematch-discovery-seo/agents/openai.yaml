@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crickzen Prematch Discovery SEO"
+  short_description: "Audit prematch discovery, lifecycle SEO, and GSC timing."
+  default_prompt: "Use $crickzen-prematch-discovery-seo to investigate why Crickzen match pages are not discovered early enough, verify lifecycle SEO across upcoming, live, and completed states, and tie sitemap, hub-link, and GSC evidence into one diagnosis."

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Crickzen Live Catalog Guard"
+  short_description: "Detect stale live catalogs and SSR risk"
+  default_prompt: "Use $crickzen-live-catalog-guard to audit Crickzen live catalog health and identify lifecycle-sync or SSR risks."
+
