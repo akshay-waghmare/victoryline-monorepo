@@ -159,7 +159,7 @@ export function filterUpcomingMatchesInHours(
 }
 
 /**
- * Order upcoming matches for SSR discovery so the 12-48 hour pre-match window
+ * Order upcoming matches for SSR discovery so the preferred early-discovery window
  * is surfaced before same-day crowding, while still keeping nearer fixtures
  * and the rest of the upcoming feed available behind it.
  */

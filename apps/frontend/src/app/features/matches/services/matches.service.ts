@@ -239,8 +239,9 @@ export class MatchesService {
     const team1 = this.parseTeamInfo(apiMatch, 'team1', 0, urlData, scorecardData);
     const team2 = this.parseTeamInfo(apiMatch, 'team2', 1, urlData, scorecardData);
 
-    // Parse venue from scorecard or URL
-    const venue = apiMatch.venue || (scorecardData && scorecardData.venue) || urlData.tournament || 'Venue TBD';
+    // Prefer explicit venue sources. Slug-derived tournament text is too noisy to
+    // reuse as venue on homepage cards when the live feed is thin.
+    const venue = this.resolveVenue(apiMatch, scorecardData);
     const startTime = this.parseStartTime(apiMatch, scorecardData);
 
     // Parse last updated timestamp
@@ -352,10 +353,14 @@ export class MatchesService {
         team2Name = this.formatTeamName(afterVs.substring(0, matchTypeIndex - 1));
         tournament = this.formatTournamentName(afterVs.substring(matchTypeIndex));
       } else {
-        // Fallback: take first word after vs as team2
-        const afterVsParts = afterVs.split('-');
-        team2Name = this.formatTeamName(afterVsParts[0]);
-        tournament = this.formatTournamentName(afterVs);
+        const splitPoint = this.findTeam2Boundary(afterVs);
+        if (splitPoint > 0) {
+          team2Name = this.formatTeamName(afterVs.substring(0, splitPoint));
+          tournament = this.formatTournamentName(afterVs.substring(splitPoint + 1));
+        } else {
+          team2Name = this.formatTeamName(afterVs);
+          tournament = 'Tournament';
+        }
       }
 
       return {
@@ -375,11 +380,18 @@ export class MatchesService {
   private formatTeamName(slug: string): string {
     if (!slug) return 'Unknown';
 
-    // Replace hyphens with spaces and title case
-    return slug
+    const cleaned = slug
+      .replace(/-(live|live-score|scorecard|commentary|match-details)$/i, '')
+      .replace(/\b(match|live|updates|scorecard|commentary)\b.*$/i, '')
+      .replace(/-\d+[a-z]{0,2}$/i, '')
+      .trim();
+
+    return cleaned
       .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .filter(Boolean)
+      .map(word => this.formatSlugWord(word))
+      .join(' ')
+      .trim();
   }
 
   /**
@@ -388,11 +400,18 @@ export class MatchesService {
   private formatTournamentName(slug: string): string {
     if (!slug) return 'Tournament';
 
-    // Replace hyphens with spaces and title case
-    return slug
+    const cleaned = slug
+      .replace(/\bmatch-updates\b.*$/i, '')
+      .replace(/\b(live-score|scorecard|commentary|live)\b.*$/i, '')
+      .replace(/-\b[A-Z0-9]{3,5}\b$/i, '')
+      .trim();
+
+    return cleaned
       .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      .filter(Boolean)
+      .map(word => this.formatSlugWord(word))
+      .join(' ')
+      .trim();
   }
 
   /**
@@ -864,5 +883,77 @@ export class MatchesService {
     return status === MatchStatus.LIVE
       || status === MatchStatus.INNINGS_BREAK
       || status === MatchStatus.RAIN_DELAY;
+  }
+
+  private resolveVenue(apiMatch: any, scorecardData?: any): string {
+    const explicitVenue = this.normalizeTeamLabel(apiMatch && apiMatch.venue);
+    if (explicitVenue) {
+      return explicitVenue;
+    }
+
+    const scorecardVenue = this.normalizeTeamLabel(scorecardData && scorecardData.venue);
+    if (scorecardVenue) {
+      return scorecardVenue;
+    }
+
+    return 'Venue TBD';
+  }
+
+  private findTeam2Boundary(value: string): number {
+    if (!value) {
+      return -1;
+    }
+
+    const segments = value.split('-').filter(Boolean);
+    if (segments.length <= 1) {
+      return -1;
+    }
+
+    const boundaryTokens = new Set([
+      'qualifier', 'eliminator', 'final', 'semi-final', 'semifinal', 'quarter-final', 'quarterfinal',
+      'test', 'odi', 't20', 't20i', 't10', 'match', 'cup', 'league', 'trophy', 'series', 'championship'
+    ]);
+
+    let tokenIndex = -1;
+    for (let index = 0; index < segments.length; index++) {
+      const token = segments[index].toLowerCase();
+      const previous = index > 0 ? segments[index - 1].toLowerCase() : '';
+
+      if (/^\d+(st|nd|rd|th)$/i.test(token) || /^\d+$/.test(token)) {
+        tokenIndex = index;
+        break;
+      }
+
+      if (boundaryTokens.has(token) || boundaryTokens.has(previous + '-' + token)) {
+        tokenIndex = index;
+        break;
+      }
+    }
+
+    if (tokenIndex <= 0) {
+      return -1;
+    }
+
+    return segments.slice(0, tokenIndex).join('-').length;
+  }
+
+  private formatSlugWord(word: string): string {
+    if (!word) {
+      return '';
+    }
+
+    if (/^[a-z]{1,4}-w$/i.test(word)) {
+      return word.toUpperCase();
+    }
+
+    if (/^[a-z]{1,4}$/i.test(word)) {
+      return word.toUpperCase();
+    }
+
+    if (/^\d+(st|nd|rd|th)$/i.test(word)) {
+      return word.toLowerCase();
+    }
+
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
   }
 }

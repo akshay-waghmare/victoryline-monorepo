@@ -58,7 +58,7 @@ describe('MatchesListComponent discovery sections', () => {
   it('keeps upcoming links crawlable even when the live tab is active', () => {
     var component = createComponentShape();
     var live = createMatch('live-a-vs-live-b-123A', MatchStatus.LIVE, -1);
-    var upcoming = createMatch('upcoming-a-vs-upcoming-b-123B', MatchStatus.UPCOMING, 24);
+    var upcoming = createMatch('upcoming-a-vs-upcoming-b-123B', MatchStatus.UPCOMING, 60);
     var result = createMatch('recent-a-vs-recent-b-123C', MatchStatus.COMPLETED, -12);
 
     component.allMatches = [live, upcoming, result];

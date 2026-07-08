@@ -25,6 +25,7 @@ import {
 import { Tab } from '../../../../shared/components/tab-nav/tab-nav.component';
 import { MetaTagsService } from '../../../../seo/meta-tags.service';
 import { StructuredDataService } from '../../../../seo/structured-data.service';
+import { MatchFreshnessLink, buildFreshnessDiscoveryLinksForMatches } from '../../../../seo/match-freshness-links';
 
 @Component({
   selector: 'app-matches-list',
@@ -58,6 +59,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   liveDiscoveryMatches: MatchCardViewModel[] = [];
   upcomingDiscoveryMatches: MatchCardViewModel[] = [];
   recentDiscoveryMatches: MatchCardViewModel[] = [];
+  freshnessDiscoveryLinks: MatchFreshnessLink[] = [];
   
   // Loading states
   isLoading = true;
@@ -163,10 +165,11 @@ export class MatchesListComponent implements OnInit, OnDestroy {
       : [];
     this.liveDiscoveryMatches = this.uniqueMatches(filterLiveMatches(this.allMatches), 8);
     this.upcomingDiscoveryMatches = this.uniqueMatches(
-      prioritizeUpcomingMatchesForDiscovery(this.allMatches, 12, 48),
+      prioritizeUpcomingMatchesForDiscovery(this.allMatches, 30, 120),
       16
     );
     this.recentDiscoveryMatches = this.uniqueMatches(filterCompletedMatches(this.allMatches), 8);
+    this.freshnessDiscoveryLinks = this.buildFreshnessDiscoveryLinks();
     this.crawlableMatches = this.uniqueMatches(([] as MatchCardViewModel[])
       .concat(this.liveDiscoveryMatches)
       .concat(this.upcomingDiscoveryMatches)
@@ -344,6 +347,10 @@ export class MatchesListComponent implements OnInit, OnDestroy {
 
   getMatchLinkLabel(match: MatchCardViewModel): string {
     return buildCanonicalMatchLinkLabel(match);
+  }
+
+  trackByFreshnessType(index: number, link: MatchFreshnessLink): string {
+    return link.type + '-' + index;
   }
 
   getStatusCardSummary(status: MatchStatus): string {
@@ -696,6 +703,19 @@ export class MatchesListComponent implements OnInit, OnDestroy {
       }));
     }
 
+    if (this.freshnessDiscoveryLinks.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: 'Freshness-support match pages from the matches list',
+        url: 'https://www.crickzen.com/matches',
+        description: 'Preview, live-update, and result support pages exposed from the matches list SSR graph.',
+        items: this.freshnessDiscoveryLinks.map((link) => ({
+          name: link.label,
+          url: 'https://www.crickzen.com' + link.href,
+          description: link.summary
+        }))
+      }));
+    }
+
     this.structuredDataService.setPageSchemas(items);
   }
 
@@ -719,5 +739,13 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     }
 
     return 'Live cricket match with commentary, scorecard, lineups, and match details' + venue + '.';
+  }
+
+  private buildFreshnessDiscoveryLinks(): MatchFreshnessLink[] {
+    return ([] as MatchFreshnessLink[])
+      .concat(buildFreshnessDiscoveryLinksForMatches(this.upcomingDiscoveryMatches.slice(0, 3), 3))
+      .concat(buildFreshnessDiscoveryLinksForMatches(this.liveDiscoveryMatches.slice(0, 3), 3))
+      .concat(buildFreshnessDiscoveryLinksForMatches(this.recentDiscoveryMatches.slice(0, 3), 3))
+      .filter((link, index, items) => items.findIndex((candidate) => candidate.href === link.href) === index);
   }
 }

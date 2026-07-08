@@ -50,16 +50,6 @@
     </div>
   </header>
 
-  <nav class="matches-list__crawl-links" aria-label="Related cricket hubs">
-    <span class="matches-list__crawl-links-label">Related cricket hubs</span>
-    <div class="matches-list__crawl-links-list">
-      <a class="matches-list__crawl-link" href="/live-score">Cricket live score today</a>
-      <a class="matches-list__crawl-link" href="/cricket-schedule/today">Cricket schedule today</a>
-      <a class="matches-list__crawl-link" href="/live-score/archive">Cricket match archive</a>
-      <a class="matches-list__crawl-link" href="/series">Cricket series</a>
-    </div>
-  </nav>
-
   <div class="matches-list__controls">
     <app-tab-nav
       [tabs]="filterTabs"
@@ -218,6 +208,28 @@
             </div>
           </article>
         </section>
+
+        <nav class="matches-list__crawl-links" aria-label="Related cricket hubs">
+          <span class="matches-list__crawl-links-label">Related cricket hubs</span>
+          <div class="matches-list__crawl-links-list">
+            <a class="matches-list__crawl-link" href="/live-score">Cricket live score today</a>
+            <a class="matches-list__crawl-link" href="/cricket-schedule/today">Cricket schedule today</a>
+            <a class="matches-list__crawl-link" href="/live-score/archive">Cricket match archive</a>
+            <a class="matches-list__crawl-link" href="/series">Cricket series</a>
+          </div>
+        </nav>
+
+        <nav class="matches-list__crawl-links" *ngIf="freshnessDiscoveryLinks.length > 0" aria-label="Freshness support pages">
+          <span class="matches-list__crawl-links-label">Freshness support pages</span>
+          <div class="matches-list__crawl-links-list">
+            <a
+              *ngFor="let link of freshnessDiscoveryLinks; trackBy: trackByFreshnessType"
+              class="matches-list__crawl-link"
+              [attr.href]="link.href">
+              {{ link.label }}
+            </a>
+          </div>
+        </nav>
 
         <nav class="matches-list__crawl-links" *ngIf="crawlableMatches.length > 0" aria-label="Direct match links">
           <span class="matches-list__crawl-links-label">Direct match links</span>

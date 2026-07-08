@@ -17,8 +17,9 @@
   position: relative;
   width: 100%;
   height: auto;
-  min-height: 0;
+  min-height: 240px;
   color: #ffffff;
+  contain: layout style;
 }
 
 /* Large screen optimizations */
@@ -40,7 +41,7 @@
 @media (max-width: 768px) {
   .live-hero {
     height: auto;
-    min-height: auto;
+    min-height: 250px;
     max-height: none;
     border-radius: 0;
     margin: 0;
@@ -1611,7 +1612,7 @@
   /* Live hero container - consistent mobile styling */
   .live-hero {
     height: auto;
-    min-height: auto;
+    min-height: 250px;
     max-height: none;
     border-radius: 0;
     margin: 0;

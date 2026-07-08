@@ -121,13 +121,13 @@
       </div>
 
       <!-- COLUMN 3: Batsman / Bowler Stats Area -->
-      <div class="live-hero__stats-area" *ngIf="shouldShowLiveOnlySections(view) && ((batsmanDataList && batsmanDataList.length > 0) || (bowlerDataList && bowlerDataList.length > 0))">
+      <div class="live-hero__stats-area" *ngIf="shouldShowLiveOnlySections(view) && (getVisibleBatters(view).length > 0 || getVisibleBowlers(view).length > 0)">
         <!-- Batsmen -->
-        <div class="stats-group" *ngIf="batsmanDataList && batsmanDataList.length > 0">
+        <div class="stats-group" *ngIf="getVisibleBatters(view).length > 0">
           <div class="stats-grid stats-grid--header">
             <span>Batter</span><span>R</span><span>B</span><span>4s</span><span>6s</span><span class="hide-mobile">SR</span>
           </div>
-          <div class="stats-grid" *ngFor="let batsman of batsmanDataList">
+          <div class="stats-grid" *ngFor="let batsman of getVisibleBatters(view)">
             <span class="stats-grid__name">
               {{ batsman.name }}
               <span *ngIf="batsman.onStrike" style="color: #10b981; font-weight: bold;">*</span>
@@ -141,11 +141,11 @@
         </div>
 
         <!-- Bowler -->
-        <div class="stats-group" style="margin-top: 12px;" *ngIf="bowlerDataList && bowlerDataList.length > 0">
+        <div class="stats-group" style="margin-top: 12px;" *ngIf="getVisibleBowlers(view).length > 0">
           <div class="stats-grid stats-grid--header">
             <span>Bowler</span><span>O</span><span>M</span><span>R</span><span>W</span><span class="hide-mobile">ECO</span>
           </div>
-          <div class="stats-grid" *ngFor="let bowler of bowlerDataList">
+          <div class="stats-grid" *ngFor="let bowler of getVisibleBowlers(view)">
             <span class="stats-grid__name">{{ bowler.name }}</span>
             <span>{{ bowler.ballsBowled }}</span>
             <span>{{ bowler.dotBalls }}</span>

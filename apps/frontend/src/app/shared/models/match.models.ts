@@ -174,6 +174,21 @@ export interface CommentaryPage {
   entries: CommentaryEntry[];
 }
 
+export type LiveMatchUpdateType = 'toss' | 'start' | 'over_summary' | 'wicket' | 'milestone' | 'innings_break' | 'chase_equation' | 'result' | 'general';
+
+export interface LiveMatchUpdate {
+  id: string;
+  type: LiveMatchUpdateType;
+  timestamp: string;
+  displayTime: string;
+  headline: string;
+  body: string;
+  innings?: number;
+  over?: string;
+  score?: string;
+  important?: boolean;
+}
+
 // Staleness tier (per Constitution)
 export enum StalenessLevel {
   LIVE = 'LIVE',       // <30s

@@ -1,9 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject, forkJoin } from 'rxjs';
+import { Subject, Subscription, forkJoin } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { CricketService, PlayerStatsSeriesDetailView } from '../../../cricket-odds/cricket-odds.service';
+import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, prioritizeUpcomingMatchesForDiscovery } from '../../../core/utils/match-utils';
+import { MatchCardViewModel, MatchStatus } from '../../matches/models/match-card.models';
+import { MatchesService } from '../../matches/services/matches.service';
 import { MetaTagsService } from '../../../seo/meta-tags.service';
 import { StructuredDataService } from '../../../seo/structured-data.service';
+import { buildFreshnessPathFromSlug } from '../../../seo/match-freshness-links';
 
 interface SeriesSummary {
   externalId: string;
@@ -12,12 +16,21 @@ interface SeriesSummary {
   seasonName?: string;
 }
 
+interface SeriesDiscoveryGroup {
+  key: string;
+  seriesName: string;
+  matches: MatchCardViewModel[];
+  totalMatches: number;
+}
+
 @Component({
   selector: 'app-series-page',
   templateUrl: './series-page.component.html',
   styleUrls: ['./series-page.component.css']
 })
 export class SeriesPageComponent implements OnInit, OnDestroy {
+  private readonly maxDiscoverySeriesGroups = 4;
+  private readonly maxDiscoveryMatchesPerSeries = 4;
   readonly seriesFaqs = [
     {
       question: 'What can I find on the Crickzen series page?',
@@ -29,15 +42,17 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     },
     {
       question: 'How does the series page connect to match discovery?',
-      answer: 'This page acts as a lightweight series-intent surface that complements live-score, schedule, and match-result pages while deeper series enrichment is still in progress.'
+      answer: 'This page surfaces upcoming canonical match links by series so Google and users can move from tournament intent into live score, scorecard, lineup, and result pages on the same match URL.'
     }
   ];
 
   seriesList: SeriesSummary[] = [];
+  upcomingDiscoveryGroups: SeriesDiscoveryGroup[] = [];
   isLoading = true;
   searchQuery = '';
   private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
+  private matchSubscription?: Subscription;
 
   selectedSeries: PlayerStatsSeriesDetailView | null = null;
   selectedStandings: PlayerStatsSeriesDetailView | null = null;
@@ -47,6 +62,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
 
   constructor(
     private cricketService: CricketService,
+    private matchesService: MatchesService,
     private metaTagsService: MetaTagsService,
     private structuredDataService: StructuredDataService
   ) {}
@@ -60,6 +76,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     });
     this.updateStructuredData();
     this.loadSeries();
+    this.loadDiscoveryMatches();
     this.searchSubject.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -71,6 +88,10 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.matchSubscription) {
+      this.matchSubscription.unsubscribe();
+    }
+    this.matchesService.stopAutoRefresh();
     this.destroy$.next();
     this.destroy$.complete();
     this.structuredDataService.clearPageSchemas();
@@ -96,6 +117,49 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
 
   onSearchChange(query: string): void {
     this.searchSubject.next(query);
+  }
+
+  getMatchHref(match: MatchCardViewModel): string {
+    return buildCanonicalMatchPath(match) || '/matches';
+  }
+
+  getMatchLinkLabel(match: MatchCardViewModel): string {
+    return buildCanonicalMatchLinkLabel(match);
+  }
+
+  getPreviewHref(match: MatchCardViewModel): string {
+    var href = this.getMatchHref(match);
+    if (!href || href === '/matches') {
+      return '/matches';
+    }
+
+    return buildFreshnessPathFromSlug(href.replace(/^\/cric-live\//, ''), 'preview');
+  }
+
+  getSeriesDiscoverySummary(group: SeriesDiscoveryGroup): string {
+    if (!group || !group.matches || !group.matches.length) {
+      return 'Canonical match links will appear here when upcoming fixtures are available.';
+    }
+
+    var firstMatch = group.matches[0];
+    var firstTime = firstMatch && firstMatch.timeDisplay ? firstMatch.timeDisplay : 'Soon';
+    if (group.totalMatches === 1) {
+      return '1 canonical match page plus its preview-support path in the current prematch discovery window. First start: ' + firstTime + '.';
+    }
+
+    return group.totalMatches + ' canonical match pages plus preview-support paths in the current prematch discovery window. First start: ' + firstTime + '.';
+  }
+
+  getSeriesDiscoveryCountLabel(group: SeriesDiscoveryGroup): string {
+    if (!group) {
+      return '';
+    }
+
+    if (group.totalMatches > group.matches.length) {
+      return group.matches.length + ' of ' + group.totalMatches + ' links';
+    }
+
+    return group.totalMatches + ' links';
   }
 
   selectSeries(series: SeriesSummary): void {
@@ -287,6 +351,14 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     return item.externalId;
   }
 
+  trackByDiscoveryGroup(index: number, group: SeriesDiscoveryGroup): string {
+    return group.key;
+  }
+
+  trackByMatchId(index: number, match: MatchCardViewModel): string {
+    return match.id;
+  }
+
   private updateStructuredData(): void {
     this.structuredDataService.setPageSchemas([
       this.structuredDataService.page({
@@ -302,8 +374,88 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       this.structuredDataService.itemList({
         name: 'Related cricket discovery links',
         url: 'https://www.crickzen.com/series',
-        description: 'Visible navigation from the series page into the main live-score and match-discovery surfaces.',
-        items: [
+        description: 'Visible navigation from the series page into the main live-score, schedule, and canonical match-discovery surfaces.',
+        items: this.buildDiscoveryStructuredItems()
+      }),
+      this.structuredDataService.faqPage(this.seriesFaqs)
+    ]);
+  }
+
+  private loadDiscoveryMatches(): void {
+    if (this.matchSubscription) {
+      this.matchSubscription.unsubscribe();
+    }
+
+    this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(
+        (matches) => {
+          this.upcomingDiscoveryGroups = this.buildSeriesDiscoveryGroups(matches || []);
+          this.updateStructuredData();
+        },
+        () => {
+          this.upcomingDiscoveryGroups = [];
+          this.updateStructuredData();
+        }
+      );
+  }
+
+  private buildSeriesDiscoveryGroups(matches: MatchCardViewModel[]): SeriesDiscoveryGroup[] {
+    var prioritizedMatches = prioritizeUpcomingMatchesForDiscovery(matches || [], 30, 120);
+    var orderedKeys: string[] = [];
+    var seenHref: { [key: string]: boolean } = {};
+    var grouped: { [key: string]: SeriesDiscoveryGroup } = {};
+
+    for (var i = 0; i < prioritizedMatches.length; i++) {
+      var match = prioritizedMatches[i];
+      if (!match || match.status !== MatchStatus.UPCOMING) {
+        continue;
+      }
+
+      var href = this.getMatchHref(match);
+      if (!href || href === '/matches' || seenHref[href]) {
+        continue;
+      }
+
+      seenHref[href] = true;
+      var seriesName = this.getSeriesDiscoveryLabel(match);
+      var key = seriesName.toLowerCase();
+
+      if (!grouped[key]) {
+        grouped[key] = {
+          key: key,
+          seriesName: seriesName,
+          matches: [],
+          totalMatches: 0
+        };
+        orderedKeys.push(key);
+      }
+
+      grouped[key].totalMatches += 1;
+      if (grouped[key].matches.length < this.maxDiscoveryMatchesPerSeries) {
+        grouped[key].matches.push(match);
+      }
+    }
+
+    return orderedKeys
+      .slice(0, this.maxDiscoverySeriesGroups)
+      .map((key) => grouped[key])
+      .filter((group) => !!group && group.matches.length > 0);
+  }
+
+  private getSeriesDiscoveryLabel(match: MatchCardViewModel): string {
+    var seriesName = ((match && match.seriesName) || '').replace(/\s+/g, ' ').trim();
+    if (seriesName) {
+      return seriesName;
+    }
+
+    var team1 = match && match.team1 ? match.team1.shortName || match.team1.name : 'Team 1';
+    var team2 = match && match.team2 ? match.team2.shortName || match.team2.name : 'Team 2';
+    return team1 + ' vs ' + team2 + ' series';
+  }
+
+  private buildDiscoveryStructuredItems(): Array<{ name: string; url: string; description: string }> {
+    var items = [
           {
             name: 'Cricket matches',
             url: 'https://www.crickzen.com/matches',
@@ -319,9 +471,25 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
             url: 'https://www.crickzen.com/cricket-schedule/today',
             description: 'Open the schedule-first hub for upcoming fixtures.'
           }
-        ]
-      }),
-      this.structuredDataService.faqPage(this.seriesFaqs)
-    ]);
+        ];
+
+    for (var i = 0; i < this.upcomingDiscoveryGroups.length; i++) {
+      var group = this.upcomingDiscoveryGroups[i];
+      for (var j = 0; j < group.matches.length; j++) {
+        var match = group.matches[j];
+        var href = this.getMatchHref(match);
+        if (!href || href === '/matches') {
+          continue;
+        }
+
+        items.push({
+          name: this.getMatchLinkLabel(match),
+          url: 'https://www.crickzen.com' + href,
+          description: group.seriesName + ' upcoming canonical match page on Crickzen.'
+        });
+      }
+    }
+
+    return items.slice(0, 20);
   }
 }

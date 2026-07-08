@@ -28,6 +28,42 @@
     </nav>
   </section>
 
+  <section *ngIf="upcomingDiscoveryGroups.length > 0" class="stats-page__discovery" aria-label="Series discovery window">
+    <div class="stats-page__discovery-header">
+      <div>
+        <p class="stats-page__discovery-kicker">Prematch discovery</p>
+        <h2>Upcoming canonical match links by series</h2>
+        <p class="stats-page__discovery-copy">
+          These grouped links give series intent a direct path into the same canonical match pages that later carry live score, scorecard, lineups, and results.
+        </p>
+      </div>
+      <a class="stats-page__discovery-hub-link" href="/cricket-schedule/today">Open full schedule</a>
+    </div>
+
+    <div class="stats-page__discovery-grid">
+      <article *ngFor="let group of upcomingDiscoveryGroups; trackBy: trackByDiscoveryGroup" class="series-discovery-card">
+        <div class="series-discovery-card__topline">
+          <span class="series-type-badge" [ngClass]="getSeriesTypeBadgeClass(group.seriesName)">
+            {{ getSeriesTypeLabel(group.seriesName) }}
+          </span>
+          <span class="series-discovery-card__count">{{ getSeriesDiscoveryCountLabel(group) }}</span>
+        </div>
+        <h3 class="series-discovery-card__title">{{ group.seriesName }}</h3>
+        <p class="series-discovery-card__summary">{{ getSeriesDiscoverySummary(group) }}</p>
+
+        <ul class="series-discovery-card__match-list">
+          <li *ngFor="let match of group.matches; trackBy: trackByMatchId" class="series-discovery-card__match-item">
+            <div class="series-discovery-card__match-links">
+              <a class="series-discovery-card__match-link" [href]="getMatchHref(match)">{{ getMatchLinkLabel(match) }}</a>
+              <a class="series-discovery-card__preview-link" [href]="getPreviewHref(match)">Preview support</a>
+            </div>
+            <span class="series-discovery-card__match-meta">{{ match.timeDisplay }}</span>
+          </li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
   <div *ngIf="isLoading" class="stats-page__loading">
     <mat-spinner diameter="36"></mat-spinner>
     <span>Loading series...</span>

@@ -181,6 +181,45 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
     return 'other';
   }
 
+  getVisibleBatters(view: LiveHeroViewModel | null): Array<any> {
+    if (this.batsmanDataList && this.batsmanDataList.length > 0) {
+      return this.batsmanDataList;
+    }
+
+    if (!view || !view.batters || view.batters.length === 0) {
+      return [];
+    }
+
+    return view.batters.map(batter => ({
+      name: batter.name,
+      score: batter.runs,
+      ballsFaced: batter.balls,
+      fours: batter.fours,
+      sixes: batter.sixes,
+      strikeRate: batter.strikeRateLabel,
+      onStrike: batter.isOnStrike
+    }));
+  }
+
+  getVisibleBowlers(view: LiveHeroViewModel | null): Array<any> {
+    if (this.bowlerDataList && this.bowlerDataList.length > 0) {
+      return this.bowlerDataList;
+    }
+
+    if (!view || !view.bowler) {
+      return [];
+    }
+
+    return [{
+      name: view.bowler.name,
+      ballsBowled: view.bowler.overs,
+      dotBalls: view.bowler.maidens != null ? view.bowler.maidens : 0,
+      score: view.bowler.runs,
+      wicketsTaken: view.bowler.wickets,
+      economyRate: this.stripEconomyLabel(view.bowler.economyLabel)
+    }];
+  }
+
   private getCurrentBallMeta(ball: string | null | undefined): {
     kind: string;
     display: string;
@@ -278,6 +317,10 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
       fullLabel: raw,
       freeHit: false
     };
+  }
+
+  private stripEconomyLabel(value: string | null | undefined): string {
+    return (value || '').replace(/^ECO\s+/i, '').trim();
   }
 
   private mapCurrentBallKind(raw: string, kind: string): string {

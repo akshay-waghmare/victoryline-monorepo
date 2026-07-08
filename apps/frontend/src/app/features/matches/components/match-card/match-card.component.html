@@ -54,7 +54,7 @@
         <span class="match-card__runs">{{ match.team1.score.runs }}/{{ match.team1.score.wickets }}</span>
         <span class="match-card__overs">({{ match.team1.score.overs }} ov)</span>
       </div>
-      <span class="match-card__no-score" *ngIf="!match.team1.score && !isUpcomingMatch()">Yet to bat</span>
+      <span class="match-card__no-score" *ngIf="shouldShowNoScore(match.team1)">Yet to bat</span>
     </div>
 
     <span class="match-card__vs">vs</span>
@@ -69,7 +69,7 @@
         <span class="match-card__runs">{{ match.team2.score.runs }}/{{ match.team2.score.wickets }}</span>
         <span class="match-card__overs">({{ match.team2.score.overs }} ov)</span>
       </div>
-      <span class="match-card__no-score" *ngIf="!match.team2.score && !isUpcomingMatch()">Yet to bat</span>
+      <span class="match-card__no-score" *ngIf="shouldShowNoScore(match.team2)">Yet to bat</span>
     </div>
   </div>
 

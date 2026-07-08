@@ -424,6 +424,18 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     return !this.isUpcomingMatch() && !this.isMatchLive();
   }
 
+  shouldShowNoScore(team: TeamInfo): boolean {
+    if (this.isUpcomingMatch() || !!team.score) {
+      return false;
+    }
+
+    if (this.isMatchLive()) {
+      return false;
+    }
+
+    return true;
+  }
+
   // ===== EVENT HANDLERS =====
   
   getMatchHref(): string {
