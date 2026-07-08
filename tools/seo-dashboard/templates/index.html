@@ -21,13 +21,42 @@
           <span class="pulse"></span>
           <span id="generated-at">Loading production signals...</span>
         </div>
-        <button id="refresh-button" type="button">Refresh evidence</button>
+        <div class="masthead-button-row">
+          <button id="refresh-button" type="button">Refresh evidence</button>
+          <button id="competitor-run-button" class="button-secondary" type="button">Run competitor discovery</button>
+        </div>
       </div>
     </header>
 
     <section id="source-strip" class="source-strip"></section>
 
     <section id="summary-grid" class="summary-grid"></section>
+    <section id="bucket-strip" class="source-strip"></section>
+
+    <section class="panel queue-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Operator queue</p>
+          <h2>Manual submission shortlist</h2>
+          <p class="lede queue-lede">Only healthy, prematch URLs that still need a human Search Console nudge should appear here.</p>
+        </div>
+        <span id="queue-summary" class="date-chip"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Match URL</th>
+              <th>Start</th>
+              <th>Priority</th>
+              <th>First seen by monitor</th>
+              <th>Recommended action</th>
+            </tr>
+          </thead>
+          <tbody id="manual-queue-table"></tbody>
+        </table>
+      </div>
+    </section>
 
     <section class="grid-two">
       <article class="panel panel-chart">
@@ -65,14 +94,61 @@
           <thead>
             <tr>
               <th>Match URL</th>
+              <th>Start</th>
               <th>Discovery</th>
-              <th>Indexing</th>
-              <th>Impressions</th>
-              <th>Position</th>
+              <th>Google</th>
               <th>Raw HTML</th>
             </tr>
           </thead>
           <tbody id="live-match-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel live-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Prematch discovery</p>
+          <h2>Upcoming 12-48 hour match links</h2>
+        </div>
+        <span id="upcoming-count" class="date-chip"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Match URL</th>
+              <th>Start</th>
+              <th>Discovery</th>
+              <th>Google</th>
+              <th>Raw HTML</th>
+            </tr>
+          </thead>
+          <tbody id="upcoming-match-table"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel live-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Recent result discovery</p>
+          <h2>Recently completed match links</h2>
+        </div>
+        <span id="recent-count" class="date-chip"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Match URL</th>
+              <th>Start</th>
+              <th>Discovery</th>
+              <th>Google</th>
+              <th>Raw HTML</th>
+            </tr>
+          </thead>
+          <tbody id="recent-match-table"></tbody>
         </table>
       </div>
     </section>
@@ -108,6 +184,43 @@
         <span id="serpbear-status" class="date-chip"></span>
       </div>
       <div id="serpbear-content"></div>
+    </section>
+
+    <section class="panel competitor-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Competitor research</p>
+          <h2>Keyword discovery tool</h2>
+          <p class="lede queue-lede">Run the Playwright-based competitor keyword discovery script and inspect the latest likely phrase targets here.</p>
+        </div>
+        <span id="competitor-status" class="date-chip">Checking tool…</span>
+      </div>
+      <div id="competitor-summary" class="source-strip"></div>
+      <div id="competitor-content" class="competitor-grid"></div>
+    </section>
+
+    <section class="panel live-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Freshness readiness</p>
+          <h2>Preview, live-update, and result support pages</h2>
+          <p class="lede queue-lede">These rows check whether the freshness pages are actually carrying timestamps, schema, key events, and canonical handoff signals.</p>
+        </div>
+        <span id="freshness-count" class="date-chip"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Freshness page</th>
+              <th>Discovery</th>
+              <th>Canonical handoff</th>
+              <th>Freshness proof</th>
+            </tr>
+          </thead>
+          <tbody id="freshness-page-table"></tbody>
+        </table>
+      </div>
     </section>
   </main>
 

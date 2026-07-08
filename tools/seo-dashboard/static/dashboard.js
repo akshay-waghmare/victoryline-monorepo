@@ -1,4 +1,5 @@
 const state = { loading: false };
+let refreshTimer = null;
 
 function formatNumber(value, digits = 0) {
   return Number(value || 0).toLocaleString(undefined, {
@@ -9,6 +10,13 @@ function formatNumber(value, digits = 0) {
 
 function formatPercent(value) {
   return `${formatNumber(Number(value || 0) * 100, 1)}%`;
+}
+
+function formatDateTime(value) {
+  if (!value) return "Not seen yet";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString();
 }
 
 function escapeHtml(value) {
@@ -24,7 +32,9 @@ function sourceLabel(name) {
     gsc: "Google Search Console",
     indexing: "Live indexing",
     sitemap: "Sitemap",
-    liveFeed: "Live feed"
+    liveFeed: "Live feed",
+    upcomingFeed: "Upcoming feed",
+    completedFeed: "Completed feed"
   }[name] || name;
 }
 
@@ -53,26 +63,91 @@ function deltaClass(metric, value) {
 function renderSummary(data) {
   const summary = data.summary || {};
   const delta = summary.delta || {};
-  const liveMatches = data.liveMatches || [];
-  const discoveredMatches = liveMatches.filter(row => row.discoveryHubCount > 0);
+  const buckets = data.bucketCounts || {};
   const metrics = [
-    ["Live URLs", liveMatches.length, 0, value => formatNumber(value)],
-    ["Hub-discovered", discoveredMatches.length, 0, value => formatNumber(value)],
-    ["Impressions", summary.impressions, delta.impressions, value => formatNumber(value)],
-    ["Clicks", summary.clicks, delta.clicks, value => formatNumber(value)],
-    ["CTR", summary.ctr, delta.ctr, value => formatPercent(value)],
-    ["Avg position", summary.position, delta.position, value => formatNumber(value, 1)]
+    ["Live URLs", buckets.liveMatches || 0, 0, value => formatNumber(value)],
+    ["Upcoming discovery window", buckets.upcomingMatches || 0, 0, value => formatNumber(value)],
+    ["Indexed", buckets.indexed || 0, 0, value => formatNumber(value)],
+    ["Discovered not indexed", buckets.discoveredButNotIndexed || 0, 0, value => formatNumber(value)],
+    ["Has impressions", buckets.hasImpressions || 0, delta.impressions, value => formatNumber(value)],
+    ["Has clicks", buckets.hasClicks || 0, delta.clicks, value => formatNumber(value)]
   ];
   document.querySelector("#summary-grid").innerHTML = metrics.map(([label, value, change, formatter]) => `
     <article class="metric-card">
       <div class="metric-label">${label}</div>
       <div class="metric-value">${formatter(value)}</div>
       <div class="metric-delta ${deltaClass(label.toLowerCase().includes("position") ? "position" : label, change)}">
-        ${label === "Live URLs" ? "Current backend LIVE catalog" : ""}
-        ${label === "Hub-discovered" ? `${discoveredMatches.length}/${liveMatches.length || 0} visible in monitored hubs` : ""}
-        ${!["Live URLs", "Hub-discovered"].includes(label) ? `${change > 0 ? "+" : ""}${label === "CTR" ? formatPercent(change) : formatNumber(change, label === "Avg position" ? 1 : 0)} vs previous period` : ""}
+        ${label === "Live URLs" ? "Rows currently monitored as live" : ""}
+        ${label === "Upcoming discovery window" ? `${data.sampleWindow?.upcomingMinHours || 30}-${data.sampleWindow?.upcomingMaxHours || 120} hour window` : ""}
+        ${label === "Indexed" ? "Known indexed or impression-earning match URLs" : ""}
+        ${label === "Discovered not indexed" ? "Found in hubs or sitemap but not yet indexed" : ""}
+        ${label === "Has impressions" ? `${change > 0 ? "+" : ""}${formatNumber(change)} GSC impression delta` : ""}
+        ${label === "Has clicks" ? `${change > 0 ? "+" : ""}${formatNumber(change)} GSC click delta` : ""}
       </div>
     </article>
+  `).join("");
+}
+
+function renderBucketStrip(data) {
+  const buckets = data.bucketCounts || {};
+  const chips = [
+    ["Unknown to Google", buckets.unknownToGoogle || 0, "bad"],
+    ["Discovered not indexed", buckets.discoveredButNotIndexed || 0, "warn"],
+    ["Indexed", buckets.indexed || 0, "good"],
+    ["Has impressions", buckets.hasImpressions || 0, "good"],
+    ["Has clicks", buckets.hasClicks || 0, "good"]
+  ];
+  document.querySelector("#bucket-strip").innerHTML = chips.map(([label, value, tone]) => `
+    <span class="status-pill ${tone}">
+      ${escapeHtml(label)}: ${formatNumber(value)}
+    </span>
+  `).join("");
+}
+
+function renderManualQueue(data) {
+  const rows = data.manualSubmissionQueue || [];
+  const summary = data.operatorActionSummary || {};
+  document.querySelector("#queue-summary").textContent =
+    `${formatNumber(rows.length)} urgent · ${formatNumber(summary.fixProduct || 0)} fix-first · ${formatNumber(summary.monitor || 0)} monitor`;
+  const target = document.querySelector("#manual-queue-table");
+  if (!rows.length) {
+    target.innerHTML = `
+      <tr>
+        <td colspan="5">
+          <div class="empty-state">No urgent manual submissions right now. Keep watching sitemap, hub, and inspection evidence.</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  target.innerHTML = rows.map(row => `
+    <tr>
+      <td>
+        <a class="match-link" href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">${escapeHtml(row.slug)}</a>
+        <div class="rank-meta">${escapeHtml(row.status)}</div>
+      </td>
+      <td>
+        <div>${escapeHtml(row.startTime || "Unknown start")}</div>
+        <div class="rank-meta">${row.hoursUntilMatch !== null && row.hoursUntilMatch !== undefined ? `${formatNumber(row.hoursUntilMatch, 1)}h until start` : "No start time"}</div>
+      </td>
+      <td>
+        <div class="queue-score">${formatNumber(row.priorityScore || 0)}</div>
+        <div class="mini-chip-list">
+          ${(row.queueReasons || []).slice(0, 3).map(reason => `<span class="mini-chip warn">${escapeHtml(reason)}</span>`).join("")}
+        </div>
+      </td>
+      <td>
+        <div class="timestamp-stack">
+          <span>Feed: ${escapeHtml(formatDateTime(row.history?.firstSeenInFeedAt))}</span>
+          <span>Sitemap: ${escapeHtml(formatDateTime(row.history?.firstSeenInSitemapAt))}</span>
+          <span>Hubs: ${escapeHtml(formatDateTime(row.history?.firstSeenInHubsAt))}</span>
+        </div>
+      </td>
+      <td>
+        <span class="status-badge good">manual submit</span>
+        <div class="rank-meta">Indexed: ${escapeHtml(formatDateTime(row.history?.firstSeenIndexedAt))}</div>
+      </td>
+    </tr>
   `).join("");
 }
 
@@ -115,7 +190,7 @@ function renderTrend(rows) {
 function renderHubHealth(rows) {
   const target = document.querySelector("#hub-health");
   target.innerHTML = (rows || []).map(row => {
-    const healthy = row.status === 200 && row.h1Count === 1 && row.canonicalMatches && !row.noindex && row.cricLiveLinks >= 80;
+    const healthy = row.status === 200 && row.h1Count >= 1 && row.canonicalMatches && !row.noindex && row.cricLiveLinks >= 8;
     return `
       <div class="health-row">
         <div>
@@ -128,35 +203,141 @@ function renderHubHealth(rows) {
   }).join("");
 }
 
-function renderLiveMatches(rows) {
-  document.querySelector("#live-count").textContent = `${rows?.length || 0} live`;
-  const target = document.querySelector("#live-match-table");
+function renderDiscoveryCell(row) {
+  const chips = [
+    ["Home", row.linkedFromHomepage],
+    ["/matches", row.linkedFromMatches],
+    ["/series", row.linkedFromSeries],
+    ["/live-score", row.linkedFromLiveScore],
+    ["/live-score/today", row.linkedFromLiveScoreToday],
+    ["/live-cricket-score", row.linkedFromLiveCricketScore],
+    ["/cricket-schedule/today", row.linkedFromScheduleToday]
+  ];
+  return `
+    <div class="cell-stack">
+      <span class="status-badge ${row.inSitemap ? "good" : "bad"}">${row.inSitemap ? "sitemap" : "missing"}</span>
+      <div class="mini-chip-list">
+        ${chips.map(([label, present]) => `<span class="mini-chip ${present ? "good" : "bad"}">${escapeHtml(label)} ${present ? "yes" : "no"}</span>`).join("")}
+      </div>
+      <div class="rank-meta">${row.discoveryHubCount} hubs · sitemap lastmod ${escapeHtml(row.sitemapLastmod || "n/a")}</div>
+      <div class="rank-meta">First seen in sitemap ${escapeHtml(formatDateTime(row.history?.firstSeenInSitemapAt))}</div>
+    </div>
+  `;
+}
+
+function renderGoogleCell(row) {
+  const label = row.hasClicks
+    ? "has clicks"
+    : row.hasImpressions
+      ? "has impressions"
+      : row.indexed
+        ? "indexed"
+        : row.discoveredButNotIndexed
+          ? "discovered"
+          : "unknown";
+  const tone = row.hasClicks || row.hasImpressions || row.indexed
+    ? "good"
+    : row.discoveredButNotIndexed
+      ? "warn"
+      : "bad";
+  const inspection = row.inspection || {};
+  const verdict = inspection.coverageState || inspection.verdict || "No inspection";
+  return `
+    <div class="cell-stack">
+      <span class="status-badge ${tone}">${escapeHtml(label)}</span>
+      <div class="rank-meta">${escapeHtml(verdict)}</div>
+      <div class="rank-meta">${formatNumber(row.impressions)} impressions · ${formatNumber(row.clicks)} clicks</div>
+      <div class="rank-meta">First seen indexed ${escapeHtml(formatDateTime(row.history?.firstSeenIndexedAt))}</div>
+    </div>
+  `;
+}
+
+function renderHtmlCell(row) {
+  const html = row.html || {};
+  const tone = row.rawHtmlHealth === "healthy" ? "good" : row.rawHtmlHealth === "thin" ? "warn" : "bad";
+  return `
+    <div class="cell-stack">
+      <span class="status-badge ${tone}">${escapeHtml(row.rawHtmlHealth || "check")}</span>
+      <div class="mini-chip-list">
+        <span class="mini-chip ${html.sportsEvent ? "good" : "bad"}">SportsEvent ${html.sportsEvent ? "yes" : "no"}</span>
+        <span class="mini-chip ${html.faqPresent ? "good" : "warn"}">FAQ ${html.faqPresent ? "yes" : "no"}</span>
+        <span class="mini-chip ${html.mentionsPlayingXI ? "good" : "warn"}">Playing XI ${html.mentionsPlayingXI ? "yes" : "no"}</span>
+        <span class="mini-chip ${html.mentionsToss ? "good" : "warn"}">Toss ${html.mentionsToss ? "yes" : "no"}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderMatchTable(rows, countSelector, targetSelector, emptyLabel, includeStart = true) {
+  document.querySelector(countSelector).textContent = `${rows?.length || 0} tracked`;
+  const target = document.querySelector(targetSelector);
   if (!rows?.length) {
-    target.innerHTML = '<tr><td colspan="6"><div class="empty-state">No matches are currently marked LIVE.</div></td></tr>';
+    target.innerHTML = `<tr><td colspan="5"><div class="empty-state">${escapeHtml(emptyLabel)}</div></td></tr>`;
     return;
   }
+  target.innerHTML = rows.map(row => `
+    <tr>
+      <td>
+        <a class="match-link" href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">${escapeHtml(row.slug)}</a>
+        <div class="rank-meta">${escapeHtml(row.status)}</div>
+      </td>
+      <td>
+        ${includeStart ? `<div>${escapeHtml(row.startTime || "Unknown start")}</div>` : "—"}
+        <div class="rank-meta">${row.hoursUntilMatch !== null && row.hoursUntilMatch !== undefined ? `${formatNumber(row.hoursUntilMatch, 1)}h until start` : "No start time"}</div>
+      </td>
+      <td>${renderDiscoveryCell(row)}</td>
+      <td>${renderGoogleCell(row)}</td>
+      <td>${renderHtmlCell(row)}</td>
+    </tr>
+  `).join("");
+}
+
+function renderFreshnessTable(rows) {
+  document.querySelector("#freshness-count").textContent = `${rows?.length || 0} tracked`;
+  const target = document.querySelector("#freshness-page-table");
+  if (!rows?.length) {
+    target.innerHTML = '<tr><td colspan="4"><div class="empty-state">No freshness pages are being monitored yet.</div></td></tr>';
+    return;
+  }
+
   target.innerHTML = rows.map(row => {
-    const inspection = row.inspection || {};
-    const verdict = inspection.coverageState || inspection.verdict || "Pending";
     const html = row.html || {};
-    const htmlGood = html.status === 200 && html.canonicalMatches && html.h1Count === 1 && !html.noindex;
+    const typeLabel = row.pageType === "preview" ? "preview" : row.pageType === "result" ? "result" : "live updates";
+    const proofTone = row.rawHtmlHealth === "healthy" ? "good" : row.rawHtmlHealth === "thin" ? "warn" : "bad";
     return `
       <tr>
         <td>
-          <a class="match-link" href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">${escapeHtml(row.slug)}</a>
-          <div class="rank-meta">${escapeHtml(row.status)}</div>
+          <a class="match-link" href="${escapeHtml(row.url)}" target="_blank" rel="noreferrer">${escapeHtml(row.slug || row.url)}</a>
+          <div class="rank-meta">${escapeHtml(typeLabel)} · ${escapeHtml(row.category || "sample")}</div>
         </td>
         <td>
-          <span class="status-badge ${row.inSitemap ? "good" : "bad"}">${row.inSitemap ? "sitemap" : "missing"}</span>
-          <div class="rank-meta">${row.discoveryHubCount} hubs</div>
+          <div class="cell-stack">
+            <span class="status-badge ${row.inSitemap ? "good" : "bad"}">${row.inSitemap ? "sitemap" : "missing"}</span>
+            <div class="mini-chip-list">
+              ${(row.discoveryHubs || []).slice(0, 3).map(path => `<span class="mini-chip good">${escapeHtml(path)}</span>`).join("")}
+            </div>
+            <div class="rank-meta">${row.discoveryHubCount || 0} hubs · lastmod ${escapeHtml(row.sitemapLastmod || "n/a")}</div>
+          </div>
         </td>
         <td>
-          <span class="status-badge ${/submitted and indexed|indexed/i.test(verdict) && !/unknown|not indexed/i.test(verdict) ? "good" : "warn"}">${escapeHtml(verdict)}</span>
-          <div class="rank-meta">${escapeHtml(inspection.lastCrawlTime || "No crawl time")}</div>
+          <div class="cell-stack">
+            <span class="status-badge ${row.linkedFromCanonical ? "good" : "bad"}">${row.linkedFromCanonical ? "linked from canonical" : "missing from canonical"}</span>
+            <div class="rank-meta"><a class="match-link" href="${escapeHtml(row.canonicalUrl)}" target="_blank" rel="noreferrer">Open canonical</a></div>
+            <div class="rank-meta">${row.retainedInArchive ? "retained in archive or series graph" : "retention not yet proven"}</div>
+          </div>
         </td>
-        <td>${formatNumber(row.impressions)}</td>
-        <td>${row.position ? formatNumber(row.position, 1) : "—"}</td>
-        <td><span class="status-badge ${htmlGood ? "good" : "bad"}">${htmlGood ? "valid" : "check"}</span></td>
+        <td>
+          <div class="cell-stack">
+            <span class="status-badge ${proofTone}">${escapeHtml(row.rawHtmlHealth || "check")}</span>
+            <div class="mini-chip-list">
+              <span class="mini-chip ${html.newsArticle ? "good" : "warn"}">NewsArticle ${html.newsArticle ? "yes" : "no"}</span>
+              <span class="mini-chip ${html.liveBlogPosting ? "good" : "warn"}">LiveBlogPosting ${html.liveBlogPosting ? "yes" : "no"}</span>
+              <span class="mini-chip ${html.keyEvents ? "good" : "warn"}">Key events ${html.keyEvents ? "yes" : "no"}</span>
+              <span class="mini-chip ${html.publishedTimestamp && html.updatedTimestamp ? "good" : "warn"}">Timestamps ${html.publishedTimestamp && html.updatedTimestamp ? "yes" : "no"}</span>
+              <span class="mini-chip ${html.keywordOwnership ? "good" : "warn"}">Ownership ${html.keywordOwnership ? "yes" : "no"}</span>
+            </div>
+          </div>
+        </td>
       </tr>
     `;
   }).join("");
@@ -205,17 +386,122 @@ function renderSerpBear(serpbear) {
   })), "query");
 }
 
+function renderCompetitorKeywords(payload) {
+  const status = document.querySelector("#competitor-status");
+  const summary = document.querySelector("#competitor-summary");
+  const content = document.querySelector("#competitor-content");
+  const competitors = payload?.competitors || [];
+
+  if (!payload?.available) {
+    status.textContent = "tool missing";
+    content.innerHTML = '<div class="empty-state">Competitor keyword discovery script is not available in this checkout.</div>';
+    summary.innerHTML = "";
+    return;
+  }
+
+  if (payload.running) {
+    status.textContent = "running";
+  } else if (payload.error) {
+    status.textContent = "attention";
+  } else if (payload.generatedAt) {
+    status.textContent = `last run ${formatDateTime(payload.generatedAt)}`;
+  } else {
+    status.textContent = "not run yet";
+  }
+
+  summary.innerHTML = [
+    `<span class="source-pill ${payload.available ? "ok" : "bad"}">Tool ${payload.available ? "available" : "missing"}</span>`,
+    `<span class="source-pill ${payload.running ? "ok" : "bad"}">Run state: ${payload.running ? "in progress" : "idle"}</span>`,
+    `<span class="source-pill ${payload.configured ? "ok" : "bad"}">Results: ${payload.configured ? `${competitors.length} competitor sets` : "no artifact yet"}</span>`
+  ].join("");
+
+  if (payload.error) {
+    content.innerHTML = `<div class="empty-state">${escapeHtml(payload.error)}</div>`;
+    return;
+  }
+
+  if (!competitors.length) {
+    content.innerHTML = '<div class="empty-state">Run competitor discovery to populate likely keyword targets from CREX, Cricbuzz, and ESPNcricinfo.</div>';
+    return;
+  }
+
+  content.innerHTML = competitors.map(entry => {
+    const keywords = (entry.keywords || []).slice(0, 10);
+    const intents = (entry.intentBreakdown || []).slice(0, 4);
+    const topPages = (entry.pageSummaries || []).slice(0, 3);
+    return `
+      <article class="competitor-card">
+        <div class="health-row">
+          <div>
+            <div class="health-path">${escapeHtml(entry.competitor || "competitor")}</div>
+            <div class="health-meta">${formatNumber(entry.pageCount || 0)} pages scanned</div>
+          </div>
+          <span class="status-badge good">${formatNumber(entry.keywordCount || keywords.length)} phrases</span>
+        </div>
+        <div class="mini-chip-list">
+          ${intents.map(intent => `<span class="mini-chip good">${escapeHtml(intent.intent)} ${formatNumber(intent.keywordCount || 0)}</span>`).join("")}
+        </div>
+        <div class="rank-list competitor-sublist">
+          ${topPages.map(page => `
+            <div class="rank-row">
+              <strong>${escapeHtml(page.pageLabel)}</strong>
+              <div>
+                <div class="rank-title">${escapeHtml(page.topPhrases?.[0] || page.url || "")}</div>
+                <div class="rank-meta">${escapeHtml(page.url || "")}</div>
+              </div>
+              <span class="status-badge warn">${formatNumber(page.signalScore || 0)}</span>
+            </div>
+          `).join("")}
+        </div>
+        <div class="rank-list">
+          ${keywords.map((keyword, index) => `
+            <div class="rank-row">
+              <strong>${index + 1}</strong>
+              <div>
+                <div class="rank-title">${escapeHtml(keyword.phrase)}</div>
+                <div class="rank-meta">${escapeHtml(keyword.intent || "general")} · ${formatNumber(keyword.sourceCount || 0)} sources · ${escapeHtml((keyword.pageLabels || []).join(", "))}</div>
+              </div>
+              <span class="status-badge ${keyword.score >= 10 ? "good" : "warn"}">${formatNumber(keyword.score || 0)}</span>
+            </div>
+          `).join("")}
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
 function render(data) {
-  document.querySelector("#generated-at").textContent = `Evidence refreshed ${new Date(data.generatedAt).toLocaleString()}`;
-  document.querySelector("#date-range").textContent = `${data.dateRange.start} → ${data.dateRange.end}`;
+  const generatedAt = data.generatedAt ? new Date(data.generatedAt).toLocaleString() : "Waiting for first refresh";
+  document.querySelector("#generated-at").textContent = data.loading
+    ? (data.loadingMessage || "Loading production signals...")
+    : `Evidence refreshed ${generatedAt}`;
+  document.querySelector("#date-range").textContent = data.dateRange?.start && data.dateRange?.end
+    ? `${data.dateRange.start} → ${data.dateRange.end}`
+    : "Loading date range...";
   renderSources(data);
   renderSummary(data);
+  renderBucketStrip(data);
+  renderManualQueue(data);
   renderTrend(data.trend);
   renderHubHealth(data.hubHealth);
-  renderLiveMatches(data.liveMatches);
+  renderMatchTable(data.liveMatches, "#live-count", "#live-match-table", "No matches are currently marked LIVE.");
+  renderMatchTable(
+    data.upcomingMatches,
+    "#upcoming-count",
+    "#upcoming-match-table",
+    "No upcoming discovery samples in the configured early window."
+  );
+  renderMatchTable(
+    data.recentMatches,
+    "#recent-count",
+    "#recent-match-table",
+    "No recently completed match samples are being monitored."
+  );
+  renderFreshnessTable(data.freshnessPages || []);
   renderRankList("#top-pages", data.topPages, "page");
   renderRankList("#top-queries", data.topQueries, "query");
   renderSerpBear(data.serpbear || {});
+  renderCompetitorKeywords(data.competitorKeywords || {});
 }
 
 async function loadDashboard(force = false) {
@@ -227,7 +513,12 @@ async function loadDashboard(force = false) {
   try {
     const response = await fetch(`/api/dashboard${force ? "?refresh=1" : ""}`);
     if (!response.ok) throw new Error(`Dashboard API returned ${response.status}`);
-    render(await response.json());
+    const data = await response.json();
+    render(data);
+    if (data.loading) {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => loadDashboard(false), 5000);
+    }
   } catch (error) {
     document.querySelector("#source-strip").innerHTML = `<span class="source-pill bad">${escapeHtml(error.message)}</span>`;
   } finally {
@@ -237,5 +528,25 @@ async function loadDashboard(force = false) {
   }
 }
 
+async function runCompetitorDiscovery() {
+  const button = document.querySelector("#competitor-run-button");
+  button.disabled = true;
+  button.textContent = "Running...";
+  try {
+    const response = await fetch("/api/competitor-keywords/run", { method: "POST" });
+    if (!response.ok) throw new Error(`Competitor API returned ${response.status}`);
+    const payload = await response.json();
+    renderCompetitorKeywords(payload);
+    if (refreshTimer) clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => loadDashboard(false), 4000);
+  } catch (error) {
+    document.querySelector("#competitor-content").innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Run competitor discovery";
+  }
+}
+
 document.querySelector("#refresh-button").addEventListener("click", () => loadDashboard(true));
+document.querySelector("#competitor-run-button").addEventListener("click", () => runCompetitorDiscovery());
 loadDashboard();

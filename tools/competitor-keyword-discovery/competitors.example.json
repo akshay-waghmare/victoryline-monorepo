@@ -1,0 +1,14 @@
+[
+  {
+    "name": "crex_live_hub",
+    "url": "https://crex.com/"
+  },
+  {
+    "name": "cricbuzz_live_scores",
+    "url": "https://www.cricbuzz.com/cricket-match/live-scores"
+  },
+  {
+    "name": "espncricinfo_live_scores",
+    "url": "https://www.espncricinfo.com/live-cricket-score"
+  }
+]
