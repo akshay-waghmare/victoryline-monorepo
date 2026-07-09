@@ -15,28 +15,32 @@
 - [ ] Confirm what remains canonical on `/cric-live/{slug}` versus what deserves a separate prediction or turning-point route.
 - [ ] Define the above-the-fold ownership rules for live match pages so score and match state stay primary.
 - [ ] Define the required explanation modules for canonical live pages, including probability movement and "what changed" summaries.
-- [ ] Inventory the existing model outputs already available in Crickzen public data flows, including `team_odds`, `session_odds`, commentary, score state, and match metadata.
-- [ ] Translate current model outputs into user-facing product language for the four core questions: what changed, why it changed, what matters next, and how to keep the user after the visit.
-- [ ] Define the per-match prediction template and clarify how it differs from the canonical live page.
-- [ ] Define the turning-point or loss-explanation template for completed matches.
-- [ ] Define the live explanation and calculator-style utility surfaces.
+- [x] Freeze the three-repo architecture split: public Crickzen surface, model/dashboard brain, and intelligence-packaging layer.
+- [x] Inventory the existing model outputs already available in Crickzen public data flows, including `team_odds`, `session_odds`, commentary, score state, and match metadata.
+- [x] Translate current model outputs into user-facing product language for the four core questions: what changed, why it changed, what matters next, and how to keep the user after the visit.
+- [x] Define the per-match prediction template and clarify how it differs from the canonical live page.
+- [x] Define the turning-point or loss-explanation template for completed matches.
+- [x] Define the live explanation and calculator-style utility surfaces.
 - [ ] Define alert capture positioning and analytics-safe CTA language for Telegram, WhatsApp, email, or push flows.
 - [ ] Define API, widget, and publisher-solution page requirements and their demo or enquiry CTAs.
 - [ ] Define the internal-link flow from live pages to prediction pages, turning-point pages, alerts, and B2B surfaces where appropriate.
-- [ ] Distinguish internal dashboards and operator tooling from user-facing Crickzen model surfaces.
+- [x] Distinguish internal dashboards and operator tooling from user-facing Crickzen model surfaces.
 
 ## Foundation Tasks
 
-- [ ] Create the keyword-to-intent-to-surface matrix with query examples, lifecycle, canonical owner, primary event, and owned next step.
-- [ ] Apply the indexable-surface value gate to every proposed prediction, explanation, alert, and commercial page.
-- [ ] Define the intent-ledger schema: privacy-safe visitor key, source, query cluster, landing page, match ID, lifecycle, event sequence, relationship outcome, commercial outcome, and failure reason.
-- [ ] Write the event dictionary for `match_view`, `prediction_view`, `prediction_interaction`, `explanation_expand`, `alert_cta_click`, `relationship_join`, `repeat_match_visit`, `premium_interest`, `api_interest`, and `commercial_enquiry`.
-- [ ] For every event, record trigger, required properties, deduplication, owner, analytics destination, and QA method.
-- [ ] Audit one upcoming, one live, and one completed canonical match page against discovery, SSR, content, intent, and next-step requirements.
+- [x] Create the keyword-to-intent-to-surface matrix with query examples, lifecycle, canonical owner, primary event, and owned next step.
+- [x] Apply the indexable-surface value gate to every proposed prediction, explanation, alert, and commercial page.
+- [x] Define the intent-ledger schema: privacy-safe visitor key, source, query cluster, landing page, match ID, lifecycle, event sequence, relationship outcome, commercial outcome, and failure reason.
+- [x] Write the event dictionary for `match_view`, `prediction_view`, `prediction_interaction`, `explanation_expand`, `alert_cta_click`, `relationship_join`, `repeat_match_visit`, `premium_interest`, `api_interest`, and `commercial_enquiry`.
+- [x] For every event, record trigger, required properties, deduplication, owner, analytics destination, and QA method.
+- [x] Audit one upcoming, one live, and one completed canonical match page against discovery, SSR, content, intent, and next-step requirements.
 - [ ] Record the current analytics baseline before product changes: organic landing sessions, prediction engagement, relationship joins, repeat visits, and commercial enquiries.
-- [ ] Confirm the public route name for match intelligence; default proposal is `/match-intelligence/{slug}`.
-- [ ] Define the match slug and match-ID resolution contract shared by `/cric-live/{slug}` and match intelligence.
-- [ ] Create the free, registered, and future-premium capability matrix; mark every initial release capability as free.
+- [x] Confirm the public route name for match intelligence; default proposal is `/match-intelligence/{slug}`.
+- [x] Define the match slug and match-ID resolution contract shared by `/cric-live/{slug}` and match intelligence.
+- [x] Create the free, registered, and future-premium capability matrix; mark every initial release capability as free.
+- [x] Define the shared public intelligence payload contract across VictoryLine, the model repo, and the intelligence-packaging repo.
+- [x] Classify each candidate field as `model-layer`, `explanation-layer`, `public-safe`, `premium-candidate`, or `operator-only`.
+- [x] Map reusable explanation inputs from `trueodds-video-studio` such as venue intelligence, player-role intelligence, reasons, and probability swings into Spec 044 modules where appropriate.
 
 ## Prediction Keyword Tasks
 
@@ -53,28 +57,29 @@
 
 ## Phase 1 - Public Intelligence Foundation
 
-- [ ] Extract a reusable model-data adapter from the existing cricket service and match feeds; do not depend on legacy dashboard-only state.
-- [ ] Create the match-specific public intelligence route and lazy-loaded component surface.
-- [ ] Add match identity, lifecycle status, model freshness, win probability, key-change explanation, and what-matters-next sections.
-- [ ] Add loading, missing-data, stale-data, model-unavailable, postponed, and completed-match states.
-- [ ] Add plain-language probability and informational disclaimers without betting or guaranteed-outcome claims.
-- [ ] Add SSR title, H1, canonical policy, Open Graph metadata, and direct-refresh support.
-- [ ] Add capability metadata for `free`, `registered`, and `premium`, with launch capabilities configured as `free`.
+- [x] Extract a reusable model-data adapter from the existing cricket service and match feeds; do not depend on legacy dashboard-only state.
+- [x] Create the match-specific public intelligence route and lazy-loaded component surface.
+- [x] Add match identity, lifecycle status, model freshness, win probability, key-change explanation, and what-matters-next sections.
+- [x] Add loading, missing-data, stale-data, model-unavailable, postponed, and completed-match states.
+- [x] Add plain-language probability and informational disclaimers without betting or guaranteed-outcome claims.
+- [x] Add SSR title, H1, canonical policy, Open Graph metadata, and direct-refresh support.
+- [x] Add capability metadata for `free`, `registered`, and `premium`, with launch capabilities configured as `free`.
 - [ ] Verify that the public surface contains no operator exposure, bet history, customer-account, or internal control UI.
+- [ ] Replace placeholder explanation blocks with shared contract fields from the model-brain and explanation-packaging layers where available.
 
 ## Phase 2 - Match Integration And Free Launch
 
-- [ ] Add a visible `Match Intelligence` link on eligible canonical match pages.
-- [ ] Define eligibility based on model availability and match lifecycle; hide or explain the CTA when intelligence is unavailable.
-- [ ] Use lifecycle-specific CTA copy for upcoming prediction, live intelligence, and completed turning-point analysis.
-- [ ] Preserve match context and provide return links to score, commentary, scorecard, lineups, and match details.
-- [ ] Track `intelligence_cta_impression`, `intelligence_cta_click`, `prediction_view`, `prediction_interaction`, and `model_unavailable` with match and lifecycle properties.
+- [x] Add a visible `Match Intelligence` link on eligible canonical match pages.
+- [x] Define eligibility based on model availability and match lifecycle; hide or explain the CTA when intelligence is unavailable.
+- [x] Use lifecycle-specific CTA copy for upcoming prediction, live intelligence, and completed turning-point analysis.
+- [x] Preserve match context and provide return links to score, commentary, scorecard, lineups, and match details.
+- [x] Track `intelligence_cta_impression`, `intelligence_cta_click`, `prediction_view`, `prediction_interaction`, and `model_unavailable` with match and lifecycle properties.
 - [ ] Verify keyboard access, screen-reader labels, mobile layout, direct navigation, refresh, and browser-back behavior.
 - [ ] Launch the approved intelligence modules free without requiring login or payment.
 
 ## Phase 3 - SEO Expansion
 
-- [ ] Create the lifecycle match-intelligence content template for what changed, why it changed, and what matters next.
+- [x] Create the lifecycle match-intelligence content template for what changed, why it changed, and what matters next.
 - [ ] Verify SSR-visible links from canonical match pages and appropriate hubs.
 - [ ] Compare rendered intelligence content with the canonical match page and document its distinct search job.
 - [ ] Keep the intelligence route out of sitemaps and non-indexable until unique-value, SSR, canonical, and data-availability gates pass.
@@ -118,13 +123,14 @@
 
 - [ ] Week 1: complete Phase 0 contracts, baseline, route decision, and capability matrix.
 - [ ] Week 1: audit the existing prediction dashboard and model feeds for reusable versus internal-only behavior.
-- [ ] Week 1: create the match-page content template.
-- [ ] Week 1: create the daily SEO monitoring checklist.
-- [ ] Week 1: create the first keyword-to-intent ownership matrix and reject unsupported page ideas.
-- [ ] Week 1: freeze the intent-event dictionary and intent-ledger contract.
+- [ ] Week 1: freeze the cross-repo public intelligence payload contract and field ownership map.
+- [x] Week 1: create the match-page content template.
+- [x] Week 1: create the daily SEO monitoring checklist.
+- [x] Week 1: create the first keyword-to-intent ownership matrix and reject unsupported page ideas.
+- [x] Week 1: freeze the intent-event dictionary and intent-ledger contract.
 - [ ] Week 1: produce the evidence-backed prediction keyword inventory and approve the three P1 clusters.
 - [ ] Week 2: build the Phase 1 intelligence shell, shared data adapter, lifecycle states, and SSR metadata.
-- [ ] Week 2: add current SEO priorities and live pages under review.
+- [x] Week 2: add current SEO priorities and live pages under review.
 - [ ] Week 3: add the match-page link, free access, return navigation, and end-to-end analytics.
 - [ ] Week 3: define the first intent-event and transaction-adjacent event taxonomy.
 - [ ] Week 4: run SEO and UX verification, establish the first relationship-capture experiment, and decide whether the intelligence route is ready for indexing.

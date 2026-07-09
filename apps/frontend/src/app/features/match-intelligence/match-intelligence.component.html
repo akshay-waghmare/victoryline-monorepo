@@ -1,0 +1,111 @@
+<section class="match-intelligence">
+  <div class="match-intelligence__shell" *ngIf="viewModel; else loadingState">
+    <nav class="match-intelligence__breadcrumb" aria-label="Breadcrumb">
+      <a href="/matches">Cricket</a>
+      <span aria-hidden="true">/</span>
+      <a href="/series">{{ viewModel.seriesLabel }}</a>
+      <span aria-hidden="true">/</span>
+      <a [attr.href]="viewModel.canonicalMatchPath">{{ viewModel.teamsLabel }}</a>
+      <span aria-hidden="true">/</span>
+      <span>Match Intelligence</span>
+    </nav>
+
+    <header class="match-intelligence__hero">
+      <div class="match-intelligence__hero-copy">
+        <p class="match-intelligence__eyebrow">Crickzen Match Intelligence</p>
+        <h1 class="match-intelligence__title">{{ viewModel.h1 }}</h1>
+        <p class="match-intelligence__summary">{{ viewModel.description }}</p>
+      </div>
+
+      <div class="match-intelligence__hero-side">
+        <div class="match-intelligence__meta">
+          <span class="match-intelligence__badge">{{ viewModel.statusLabel }}</span>
+          <span class="match-intelligence__state">{{ viewModel.stateLabel }}</span>
+          <span class="match-intelligence__note">Launch tier: {{ viewModel.capabilityTier }}</span>
+        </div>
+        <p class="match-intelligence__freshness">{{ viewModel.freshnessLabel }}</p>
+        <div class="match-intelligence__hero-actions">
+          <a class="match-intelligence__primary" [attr.href]="viewModel.canonicalMatchPath" (click)="onBackToMatchClick()">Back To Live Match</a>
+        </div>
+      </div>
+    </header>
+
+    <div class="match-intelligence__grid">
+      <article class="match-intelligence__card match-intelligence__card--probability">
+        <p class="match-intelligence__card-kicker">Win probability</p>
+        <h2>{{ viewModel.probabilityTeamLabel || 'Model direction unavailable' }}</h2>
+        <p class="match-intelligence__probability" *ngIf="viewModel.probabilityLabel; else unavailableProbability">
+          {{ viewModel.probabilityLabel }}
+        </p>
+        <ng-template #unavailableProbability>
+          <p class="match-intelligence__unavailable">No trustworthy probability is available yet for this match snapshot.</p>
+        </ng-template>
+        <p class="match-intelligence__card-copy">{{ viewModel.probabilityCardBody }}</p>
+      </article>
+
+      <article class="match-intelligence__card">
+        <p class="match-intelligence__card-kicker">What changed</p>
+        <h2>Latest visible shift</h2>
+        <p>{{ viewModel.whatChangedBody }}</p>
+      </article>
+
+      <article class="match-intelligence__card">
+        <p class="match-intelligence__card-kicker">Why it changed</p>
+        <h2>Current explanation</h2>
+        <p>{{ viewModel.whyChangedBody }}</p>
+      </article>
+    </div>
+
+    <article class="match-intelligence__card match-intelligence__card--next">
+      <p class="match-intelligence__card-kicker">What matters next</p>
+      <h2>Next watchpoint</h2>
+      <p>{{ viewModel.whatMattersNextBody }}</p>
+    </article>
+
+    <section class="match-intelligence__utility-grid" aria-label="Live explanation utility surfaces">
+      <button
+        class="match-intelligence__utility"
+        type="button"
+        *ngFor="let card of viewModel.utilityCards"
+        (click)="onUtilityCardClick(card.key)">
+        <p class="match-intelligence__card-kicker">{{ card.kicker }}</p>
+        <h2>{{ card.title }}</h2>
+        <p>{{ card.body }}</p>
+      </button>
+    </section>
+
+    <section class="match-intelligence__detail-stack" aria-label="Match intelligence explanation modules">
+      <details
+        class="match-intelligence__detail"
+        *ngFor="let module of viewModel.insightModules"
+        (toggle)="onInsightModuleToggle(module.key, $event.target && $event.target.open)">
+        <summary class="match-intelligence__detail-summary">
+          <div>
+            <p class="match-intelligence__card-kicker">{{ module.kicker }}</p>
+            <h2>{{ module.title }}</h2>
+          </div>
+        </summary>
+        <p>{{ module.body }}</p>
+        <ul class="match-intelligence__detail-list" *ngIf="module.bullets && module.bullets.length">
+          <li *ngFor="let bullet of module.bullets">{{ bullet }}</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="match-intelligence__footer-note">
+      <h2>Indexing and release note</h2>
+      <p>{{ viewModel.indexingPolicy }}</p>
+      <p>{{ viewModel.supportLabel }}</p>
+      <p>
+        This public route intentionally stays free, avoids operator-only dashboard language, and keeps the canonical
+        <code>/cric-live/{{ '{' }}slug{{ '}' }}</code> page as the main score-first entity.
+      </p>
+    </section>
+  </div>
+
+  <ng-template #loadingState>
+    <div class="match-intelligence__loading">
+      <p>Loading match intelligence...</p>
+    </div>
+  </ng-template>
+</section>

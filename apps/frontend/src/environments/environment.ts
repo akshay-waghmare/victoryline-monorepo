@@ -22,6 +22,7 @@ export const environment = {
   // All API calls go through Nginx proxy at /api
   // This works for Docker builds. For local `ng serve`, configure proxy in angular.json
   apiUrl: '/api',
+  MODEL_PUBLIC_API_URL: '/prediction-api/api/public',
   REST_API_URL: '/api/',
   REST_API_SCRAPING_URL: '/api/'
 };

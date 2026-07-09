@@ -23,6 +23,11 @@ This plan is strategy-first. It organizes the product and acquisition work into 
 - The immediate execution gap is operational: match-page template, daily SEO checklist, current pages under review, and the event model still need to exist as durable working artifacts.
 - The user-facing prediction product should reuse the existing match-data and model pipeline, but it should not expose the legacy internal `/dashboard` UI or its operator-oriented language directly.
 - The first public release should be free and reachable from each eligible match page. Its architecture must nevertheless separate free, registered, and future paid capabilities so monetization can be introduced without changing URLs or rebuilding the intelligence surface.
+- The implementation is now clearly split across three repos:
+  - `victoryline-monorepo` owns the public Crickzen surface and SEO product
+  - `machine_learning_bbl_009-odi-mc-predictor` owns the model/dashboard brain and likely public-safe prediction payload source
+  - `trueodds-video-studio` owns reusable explanation and intelligence-packaging logic that can feed match-intelligence modules beyond reels
+- Because of that split, the next key architecture step is a shared public intelligence payload contract instead of continuing to grow frontend copy in isolation.
 
 ## Product Integration Decision
 
@@ -34,6 +39,17 @@ This plan is strategy-first. It organizes the product and acquisition work into 
 - Launch all approved intelligence modules free. Add capability flags and entitlement metadata from the start, but do not show a paywall in the initial release.
 - Make the intelligence route self-canonical and indexable only after it passes the unique-value and SSR gates. Until then, keep it out of sitemaps and use the canonical match page as the search landing surface.
 - Preserve the same intelligence URL when monetization begins; access rules change by module or depth, not by replacing the route.
+
+## Cross-Repo Integration Decision
+
+- Treat `victoryline-monorepo` as the rendering and acquisition layer, not the source of truth for deeper model reasoning.
+- Treat `machine_learning_bbl_009-odi-mc-predictor` as the source of truth for public-safe probability, freshness, capability, and public-vs-private prediction boundaries.
+- Treat `trueodds-video-studio` as the first reusable source for explanation-layer modules such as venue intelligence, player-role intelligence, plain-language reasons, probability swings, and match-intelligence card shapes.
+- Before building more indexable prediction surfaces, freeze one shared payload contract that separates:
+  - model-layer fields
+  - explanation-layer fields
+  - public-safe fields
+  - future premium or operator-only fields
 
 ## Prediction SEO Keyword Plan
 
@@ -96,6 +112,7 @@ Deliverables:
 - baseline for organic match visits, intelligence engagement, repeat visits, and relationship joins
 - free-versus-future-premium capability matrix
 - prediction keyword inventory grouped by lifecycle and intent, with an owning URL decision for every P1 cluster
+- cross-repo intelligence payload contract and repo ownership map for each field
 
 Exit gate: one upcoming, one live, and one completed match can be traced from source data through the canonical page, with analytics and fallback behavior defined.
 
@@ -256,6 +273,12 @@ Exit gate: monetization decisions are supported by engagement and retention evid
 10. **30-day rollout**
    - Sequence the first month into page creation, distribution, and measurement checkpoints.
 
+11. **Cross-repo payload contract**
+   - Define the shared public intelligence payload that feeds Crickzen.
+   - Mark which fields come from the model repo directly.
+   - Mark which fields are derived by the explanation and packaging repo.
+   - Reject any fields that are dashboard-only, operator-only, or reel-only until explicitly promoted into the public contract.
+
 ## Proposed File Targets
 
 - `specs/044-cricket-decision-intent-acquisition/spec.md`
@@ -283,14 +306,15 @@ Exit gate: monetization decisions are supported by engagement and retention evid
 2. Create the keyword-to-intent-to-surface ownership matrix and value gate.
 3. Freeze the analytics event contract and intent-ledger fields.
 4. Inventory existing model outputs and audit one upcoming, one live, and one completed match journey.
-5. Create the match-page content template, SEO checklist, and current-priority board.
-6. Build the public match-intelligence route and shared model-data adapter.
-7. Link eligible canonical match pages to the free intelligence surface and validate analytics end to end.
-8. Pass the SSR and unique-value gates before making the intelligence route indexable or adding it to sitemaps.
-9. Add the first relationship-capture flow and validate attribution through a repeat visit.
-10. Introduce entitlement seams and identify premium candidates from measured behavior.
-11. Define API and widget packaging where commercial intent evidence supports it.
-12. Run the weekly improve, expand, consolidate, stop, or monetize review.
+5. Freeze the shared cross-repo intelligence payload contract and repo ownership map.
+6. Create the match-page content template, SEO checklist, and current-priority board.
+7. Build the public match-intelligence route and shared model-data adapter.
+8. Link eligible canonical match pages to the free intelligence surface and validate analytics end to end.
+9. Pass the SSR and unique-value gates before making the intelligence route indexable or adding it to sitemaps.
+10. Add the first relationship-capture flow and validate attribution through a repeat visit.
+11. Introduce entitlement seams and identify premium candidates from measured behavior.
+12. Define API and widget packaging where commercial intent evidence supports it.
+13. Run the weekly improve, expand, consolidate, stop, or monetize review.
 
 ## Delivery Gates
 

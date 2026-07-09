@@ -111,6 +111,7 @@ services:
       API_URL: http://backend:8099
       BACKEND_URL: http://backend:8099
       SCRAPER_URL: http://scraper:5000
+      MODEL_API_URL: http://host.docker.internal:8000
     depends_on:
       - backend
       - scraper

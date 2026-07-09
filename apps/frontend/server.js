@@ -17,6 +17,7 @@ const INDEX_HTML = path.join(DIST_FOLDER, 'index.html');
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 const BACKEND_URL = (process.env.BACKEND_URL || process.env.API_URL || 'http://localhost:8099').replace(/\/+$/, '');
 const SCRAPER_URL = (process.env.SCRAPER_URL || 'http://scraper:5000').replace(/\/+$/, '');
+const MODEL_API_URL = (process.env.MODEL_API_URL || 'http://host.docker.internal:8000').replace(/\/+$/, '');
 const SSR_RENDER_TIMEOUT_MS = process.env.SSR_RENDER_TIMEOUT_MS ? Number(process.env.SSR_RENDER_TIMEOUT_MS) : 8000;
 const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/$/,
@@ -53,6 +54,7 @@ const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/logout\/?$/,
   /^\/scorecard\/?$/,
   /^\/banner\/?$/,
+  /^\/match-intelligence\/.+\/?$/,
   /^\/cric-live\/.+\/?$/
 ];
 
@@ -166,6 +168,13 @@ app.use('/token', createProxyMiddleware({
 }));
 
 app.use('/api', apiProxy);
+
+app.use('/prediction-api', createProxyMiddleware({
+  target: MODEL_API_URL,
+  changeOrigin: true,
+  logLevel: process.env.PROXY_LOG_LEVEL || 'warn',
+  pathRewrite: { '^/prediction-api': '' }
+}));
 
 app.use('/scraper', createProxyMiddleware({
   target: SCRAPER_URL,

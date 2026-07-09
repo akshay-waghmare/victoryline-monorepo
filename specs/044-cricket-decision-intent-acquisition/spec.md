@@ -40,6 +40,11 @@ The guiding product questions are:
 - Current SEO work is strong on crawlability and lifecycle coverage, but weaker on explicitly packaging prediction intent, turning-point intent, and alert capture as first-class acquisition surfaces.
 - The site already has the raw ingredients for score, commentary, match state, and SSR support, which means the next step is productized acquisition structure rather than generic keyword expansion.
 - The repo already exposes live match model outputs such as `team_odds`, `session_odds`, commentary, score, and match-info data on canonical match pages, but those outputs are still under-packaged as public decision-intelligence surfaces.
+- The implementation is now clearly split across three repos:
+  - `victoryline-monorepo` owns the public Crickzen surface, canonical match pages, `/match-intelligence/{slug}`, SSR, SEO, and intent capture
+  - `machine_learning_bbl_009-odi-mc-predictor` owns the model and dashboard brain, including probability generation, public-safe payload boundaries, and premium-vs-public separation work
+  - `trueodds-video-studio` already contains reusable intelligence-packaging logic such as venue intelligence, player-role intelligence, probability reasons, match-intelligence cards, and prediction proof loops
+- Therefore, Spec 044 is not only a frontend rollout. It also needs a shared payload contract so the public Crickzen product can consume model outputs and explanation modules without leaking dashboard-only or reel-only internals.
 
 ## Strategic Gaps To Close
 
@@ -64,6 +69,20 @@ Control points:
 - Outcome data improves future prediction, content, and monetization decisions.
 
 This spec therefore treats public product work, relationship capture, and measurement as one continuous loop rather than separate SEO, product, and monetization tracks.
+
+### Repo Architecture
+
+The current implementation should be treated as a three-layer system:
+
+- `public product surface -> model brain -> intelligence packaging layer`
+
+Repo responsibilities:
+
+- `victoryline-monorepo`: public Crickzen product surface, SEO, SSR, canonical match journeys, `/match-intelligence/{slug}`, and product-event capture
+- `machine_learning_bbl_009-odi-mc-predictor`: prediction model outputs, dashboard-private logic, public-lite API candidates, freshness and capability boundaries, and entitlement-aware data policy
+- `trueodds-video-studio`: reusable explanation and packaging layer, including plain-language reasoning, venue and player-role intelligence, probability swing summaries, intelligence-card structures, and prediction tracking or proof loops
+
+Spec 044 should therefore define not just public pages, but the contract between these layers.
 
 ## User Scenarios & Testing
 
@@ -191,6 +210,10 @@ As a publisher, creator, or sports site operator, I want dedicated pages that ex
 - **FR-031**: Each event MUST define its trigger, required properties, deduplication rule, owner, destination, and validation method before implementation is considered complete.
 - **FR-032**: SEO operations MUST use Search Console query and page evidence, lifecycle discovery checks, SSR/indexability checks, engagement events, and relationship outcomes to decide whether to improve, expand, consolidate, or stop a surface.
 - **FR-033**: Model-backed claims MUST show freshness and match context, distinguish model probability from fact, and avoid unsupported certainty.
+- **FR-034**: Spec 044 MUST explicitly document the three-repo implementation split between the public Crickzen surface, the model/dashboard brain, and the intelligence-packaging layer.
+- **FR-035**: Before deeper prediction SEO expansion, the team MUST define a shared public intelligence payload contract covering probability, freshness, what changed, why it changed, what matters next, and any safe venue or player factors.
+- **FR-036**: The public intelligence payload MUST distinguish model-layer fields from explanation-layer fields so Crickzen can reuse them across web pages, alerts, content, and future API or widget surfaces.
+- **FR-037**: Reel-specific or operator-specific fields MUST NOT leak into the public match-intelligence surface unless they are deliberately promoted into the shared public contract.
 
 ## Keyword-To-Intent Operating Map
 
@@ -278,11 +301,13 @@ Work:
 2. Add or refine probability-movement and "what changed" explanation layers.
 3. Define how prediction pages differ from canonical live coverage.
 4. Inventory the model outputs already available in the current stack and map each one to public product language.
+5. Separate model-brain outputs from explanation-layer outputs and identify which repo currently owns each one.
 
 Exit criteria:
 
 - Live and prediction pages each have a distinct, testable value proposition.
 - The team knows which existing model outputs can already power public decision-intelligence surfaces.
+- The team knows which explanation modules come from the model repo versus the packaging repo and which fields still need a shared contract.
 
 ### Phase 3 - Turning-Point And Explanation Surfaces
 
@@ -355,6 +380,7 @@ Exit criteria:
 7. Above-the-fold ownership is explicitly protected on match pages.
 8. The spec distinguishes internal dashboards from public model surfaces.
 9. The operational bridge artifacts are explicitly called out.
+10. The spec documents the three-repo implementation split and the need for a shared public intelligence payload contract.
 
 ## Risks And Mitigations
 

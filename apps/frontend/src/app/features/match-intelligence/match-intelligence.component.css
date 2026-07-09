@@ -1,0 +1,238 @@
+.match-intelligence {
+  width: 100%;
+  padding: 20px 16px 40px;
+  box-sizing: border-box;
+}
+
+.match-intelligence__shell {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.match-intelligence__breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.match-intelligence__breadcrumb a {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+.match-intelligence__hero,
+.match-intelligence__card,
+.match-intelligence__footer-note,
+.match-intelligence__loading,
+.match-intelligence__utility,
+.match-intelligence__detail {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.06);
+}
+
+.match-intelligence__hero {
+  padding: 24px;
+  background: linear-gradient(180deg, rgba(219, 234, 254, 0.7) 0%, rgba(255, 255, 255, 0.98) 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1fr);
+  gap: 20px;
+}
+
+.match-intelligence__eyebrow,
+.match-intelligence__card-kicker {
+  margin: 0 0 8px;
+  color: #1d4ed8;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.match-intelligence__title {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.match-intelligence__summary {
+  margin: 0;
+  max-width: 760px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+.match-intelligence__hero-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.match-intelligence__meta,
+.match-intelligence__hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.match-intelligence__badge,
+.match-intelligence__note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.match-intelligence__freshness {
+  margin: 0;
+  color: #526277;
+  font-size: 0.88rem;
+}
+
+.match-intelligence__primary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #fff;
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.match-intelligence__grid,
+.match-intelligence__utility-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.match-intelligence__card,
+.match-intelligence__utility {
+  padding: 18px;
+}
+
+.match-intelligence__card--next {
+  background: linear-gradient(135deg, rgba(239, 246, 255, 0.8) 0%, #ffffff 100%);
+}
+
+.match-intelligence__card h2,
+.match-intelligence__utility h2,
+.match-intelligence__footer-note h2,
+.match-intelligence__detail-summary h2 {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: 1.05rem;
+}
+
+.match-intelligence__card p,
+.match-intelligence__utility p,
+.match-intelligence__footer-note p,
+.match-intelligence__detail p {
+  margin: 0;
+  color: #526277;
+  line-height: 1.6;
+}
+
+.match-intelligence__utility {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.match-intelligence__utility:hover,
+.match-intelligence__utility:focus {
+  border-color: rgba(29, 78, 216, 0.28);
+  transform: translateY(-1px);
+}
+
+.match-intelligence__probability {
+  margin: 6px 0 12px;
+  color: #0f172a;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.match-intelligence__unavailable {
+  margin: 6px 0 12px;
+  color: #b45309 !important;
+  font-weight: 700;
+}
+
+.match-intelligence__footer-note,
+.match-intelligence__loading {
+  padding: 20px;
+}
+
+.match-intelligence__state {
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.match-intelligence__detail-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.match-intelligence__detail {
+  padding: 0 18px 18px;
+}
+
+.match-intelligence__detail-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 18px 0 12px;
+}
+
+.match-intelligence__detail-summary::-webkit-details-marker {
+  display: none;
+}
+
+.match-intelligence__detail-list {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: #334155;
+  line-height: 1.6;
+}
+
+.match-intelligence__detail-list li + li {
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .match-intelligence__hero,
+  .match-intelligence__grid,
+  .match-intelligence__utility-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .match-intelligence {
+    padding: 14px 12px 28px;
+  }
+
+  .match-intelligence__hero {
+    padding: 18px;
+  }
+
+  .match-intelligence__title {
+    font-size: 1.55rem;
+  }
+}
