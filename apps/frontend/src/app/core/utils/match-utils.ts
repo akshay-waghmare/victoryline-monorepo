@@ -218,6 +218,11 @@ export function searchMatches(matches: MatchCardViewModel[], query: string): Mat
  */
 export function getMatchResultSummary(match: MatchCardViewModel): string {
   if (match.resultSummary && match.resultSummary.trim()) {
+    // Live feeds may use resultSummary for chase context, e.g.:
+    // "ZIM need 171 runs in 112 balls". Preserve that compact message.
+    if ((match.status === MatchStatus.LIVE || match.status === MatchStatus.INNINGS_BREAK) && match.resultSummary.length <= 90) {
+      return match.resultSummary.trim();
+    }
     // Extract just the "TEAM Won ..." part, stripping embedded scores
     const wonMatch = match.resultSummary.match(/([A-Za-z][A-Za-z\s&.-]*?)\s+Won[^,]*/i);
     if (wonMatch) {

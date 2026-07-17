@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface NewsItem {
@@ -26,11 +26,26 @@ export class NewsService {
   getNews(): Observable<NewsItem[]> {
     return this.http.get<NewsItem[]>(this.newsUrl).pipe(
       map(items => items || []),
+      switchMap(items => {
+        if (items.length > 0 || !this.isLocalDevelopment()) {
+          return of(items);
+        }
+
+        // Keep localhost useful when its news table has not been seeded yet.
+        return this.http.get<NewsItem[]>('https://www.crickzen.com/api/cricket-data/news').pipe(
+          map(fallbackItems => fallbackItems || []),
+          catchError(() => of(items))
+        );
+      }),
       catchError(err => {
         console.error('Failed to fetch news:', err);
         return of([]);
       })
     );
+  }
+
+  private isLocalDevelopment(): boolean {
+    return typeof window !== 'undefined' && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
   }
 
   /** Convert Unix timestamp to relative time string */

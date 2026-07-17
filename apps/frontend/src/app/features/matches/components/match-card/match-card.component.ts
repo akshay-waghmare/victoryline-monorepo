@@ -384,7 +384,7 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
       return false;
     }
 
-    if (this.variant === 'compact' && !this.isCompletedMatch()) {
+    if (this.variant === 'compact' && !this.isCompletedMatch() && !this.isMatchLive()) {
       return false;
     }
 

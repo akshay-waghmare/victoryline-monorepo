@@ -2,50 +2,27 @@
   <header class="home__hero">
     <div class="home__hero-shell">
       <div class="home__hero-copy">
-        <span class="home__hero-kicker">Cricket live scores</span>
-        <h1 class="home__title">Match centre at a glance</h1>
-        <p class="home__hero-description">
-          See what is live now, what starts next, and which result just landed before you dive into commentary, scorecards, or the full schedule.
-        </p>
+        <h1 class="home__title">Live cricket scores</h1>
       </div>
 
-      <div class="home__hero-actions">
-        <a routerLink="/live-score" class="home__hero-link">
-          Live scores
-          <i class="material-icons">north_east</i>
-        </a>
-        <a routerLink="/matches" class="home__hero-link home__hero-link--muted">
-          Full schedule
-          <i class="material-icons">chevron_right</i>
-        </a>
-      </div>
     </div>
   </header>
 
-  <section
-    class="home__glance-strip"
-    *ngIf="!isLoadingMatches && !hasMatchError && glanceCards.length > 0"
-    aria-label="Matches at a glance">
-    <div class="home__glance-intro">
-      <span class="home__section-kicker">At a glance</span>
-      <p class="home__glance-copy">Choose the match lane you want before you drop into commentary, scorecards, or the wider schedule.</p>
+  <nav class="home__series-nav home__series-nav--top" aria-label="Browse cricket series">
+    <div class="home__series-links">
+      <a
+        *ngFor="let series of getHomeSeriesLinks()"
+        href="/series"
+        class="home__series-link"
+        [class.home__series-link--active]="selectedSeries === series"
+        [attr.title]="'Filter matches for ' + series"
+        (click)="selectSeries(series, $event)">
+        {{ series }} <span aria-hidden="true">→</span>
+      </a>
+      <a routerLink="/cricket-schedule/today">Schedule <span aria-hidden="true">→</span></a>
+      <a routerLink="/matches">Matches <span aria-hidden="true">→</span></a>
     </div>
-    <button
-      type="button"
-      class="home__glance-card"
-      *ngFor="let card of glanceCards"
-      [attr.data-tone]="card.tone"
-      [class.home__glance-card--active]="activeTab === card.tab"
-      [attr.aria-label]="getGlanceCardAriaLabel(card)"
-      (click)="setActiveTab(card.tab)">
-      <span class="home__glance-kicker">{{ card.title }}</span>
-      <div class="home__glance-metric">
-        <span class="home__glance-value">{{ card.metric }}</span>
-        <span class="home__glance-label">{{ card.metricLabel }}</span>
-      </div>
-      <p class="home__glance-summary">{{ card.summary }}</p>
-    </button>
-  </section>
+  </nav>
 
   <section
     id="home-matches-section"
@@ -93,10 +70,6 @@
         </button>
       </div>
 
-      <a routerLink="/matches" class="home__view-all">
-        Full schedule
-        <i class="material-icons">chevron_right</i>
-      </a>
     </div>
 
     <div class="home__carousel-wrapper">
@@ -106,7 +79,7 @@
         (click)="scrollLeft()"
         [disabled]="!canScrollLeft"
         aria-label="Scroll left through matches">
-        <i class="material-icons">chevron_left</i>
+        <span aria-hidden="true">‹</span>
       </button>
 
       <div class="home__carousel" id="home-matches-carousel" #matchesCarouselRef>
@@ -126,13 +99,9 @@
         (click)="scrollRight()"
         [disabled]="!canScrollRight"
         aria-label="Scroll right through matches">
-        <i class="material-icons">chevron_right</i>
+        <span aria-hidden="true">›</span>
       </button>
     </div>
-
-    <p class="home__carousel-hint" *ngIf="activeMatches.length > 1">
-      Swipe the rail to move quickly across matches.
-    </p>
 
     <details
       class="home__seo-drawer"
@@ -212,6 +181,7 @@
         </nav>
       </div>
     </details>
+
   </section>
 
   <section class="home__state home__state--loading" *ngIf="isLoadingMatches">
@@ -251,60 +221,36 @@
   </section>
 
   <section class="home__news" *ngIf="!isLoadingNews && newsItems.length > 0">
-    <div class="home__news-header">
-      <div>
-        <p class="home__section-kicker">Newsroom</p>
-        <h2 class="home__news-title">The stories behind the score</h2>
-        <p class="home__news-copy">One featured story first, then the headlines worth opening when you want context beyond the scoreboard.</p>
-      </div>
-    </div>
-
-    <div class="home__news-grid">
-      <article class="news-card news-card--featured" (click)="openNewsItem(newsItems[0])">
-        <div class="news-card__image-wrap">
-          <img [src]="newsItems[0].mediaUrl" [alt]="newsItems[0].title" class="news-card__image" loading="lazy" />
-        </div>
-        <div class="news-card__body">
-          <span class="news-card__eyebrow">Featured story</span>
-          <h3 class="news-card__title">{{ newsItems[0].title }}</h3>
-          <p class="news-card__desc">{{ newsItems[0].body | slice:0:220 }}</p>
-          <div class="news-card__meta">
-            <span class="news-card__credit">{{ newsItems[0].credit }}</span>
-            <span class="news-card__time">{{ getTimeAgo(newsItems[0].createdTimestamp) }}</span>
-          </div>
-        </div>
-      </article>
-
-      <div class="news-list-panel">
-        <div class="news-list-panel__head">
-          <span class="news-list-panel__kicker">Latest headlines</span>
-        </div>
-
-        <div class="news-list">
-          <article class="news-row" *ngFor="let item of newsItems | slice:1:10; trackBy: trackByNewsId" (click)="openNewsItem(item)">
-            <img [src]="item.mediaUrl" [alt]="item.title" class="news-row__thumb" loading="lazy" />
-            <div class="news-row__body">
-              <h4 class="news-row__title">{{ item.title }}</h4>
-              <p class="news-row__desc">{{ item.body | slice:0:120 }}</p>
-              <div class="news-row__meta">
-                <span class="news-row__credit">{{ item.credit }}</span>
-                <span class="news-row__time">{{ getTimeAgo(item.createdTimestamp) }}</span>
-              </div>
+    <div class="news-list-panel news-list-panel--compact">
+      <div class="news-list">
+        <article class="news-card--lead" *ngIf="newsItems[0]" (click)="openNewsItem(newsItems[0])">
+          <img [src]="newsItems[0].mediaUrl" [alt]="newsItems[0].title" class="news-card--lead__image" loading="eager" />
+          <div class="news-card--lead__body">
+            <h3 class="news-card--lead__title">{{ newsItems[0].title }}</h3>
+            <p class="news-card--lead__summary">{{ newsItems[0].body | slice:0:180 }}</p>
+            <div class="news-row__meta">
+              <span class="news-row__credit">{{ newsItems[0].credit }}</span>
+              <span class="news-row__time">{{ getTimeAgo(newsItems[0].createdTimestamp) }}</span>
             </div>
-          </article>
-        </div>
+          </div>
+        </article>
+
+        <article class="news-row" *ngFor="let item of newsItems | slice:1:10; trackBy: trackByNewsId" (click)="openNewsItem(item)">
+          <img [src]="item.mediaUrl" [alt]="item.title" class="news-row__thumb" loading="lazy" />
+          <div class="news-row__body">
+            <h4 class="news-row__title">{{ item.title }}</h4>
+            <p class="news-row__desc">{{ item.body | slice:0:120 }}</p>
+            <div class="news-row__meta">
+              <span class="news-row__credit">{{ item.credit }}</span>
+              <span class="news-row__time">{{ getTimeAgo(item.createdTimestamp) }}</span>
+            </div>
+          </div>
+        </article>
       </div>
     </div>
   </section>
 
   <section class="home__news" *ngIf="!isLoadingNews && newsItems.length === 0 && blogPosts.length > 0">
-    <div class="home__news-header">
-      <div>
-        <p class="home__section-kicker">Latest reading</p>
-        <h2 class="home__news-title">Editorial picks from the archive</h2>
-      </div>
-    </div>
-
     <div class="news-list-panel news-list-panel--fallback">
       <div class="news-list">
         <article class="news-row" *ngFor="let blogPost of blogPosts" (click)="openNews(blogPost.link)">

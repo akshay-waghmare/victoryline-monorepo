@@ -40,7 +40,7 @@ interface HomeGlanceCard {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomeComponent implements OnInit, OnDestroy {
-  private readonly maxHomeMatchesPerTab = 12;
+  private readonly maxHomeMatchesPerTab = 6;
   private carouselElement: HTMLDivElement | null = null;
   private readonly carouselScrollListener = () => this.updateCarouselControls();
 
@@ -59,6 +59,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   upcomingDiscoveryMatches: MatchCardViewModel[] = [];
   recentDiscoveryMatches: MatchCardViewModel[] = [];
   glanceCards: HomeGlanceCard[] = [];
+  selectedSeries: string | null = null;
 
   isLoadingMatches = true;
   hasMatchError = false;
@@ -102,15 +103,23 @@ export class HomeComponent implements OnInit, OnDestroy {
       (items) => {
         this.newsItems = items;
         this.isLoadingNews = false;
+        if (!items || items.length === 0) {
+          this.loadBlogFallback();
+        }
         this.changeDetectorRef.markForCheck();
       },
       () => {
         this.newsItems = [];
         this.isLoadingNews = false;
+        this.loadBlogFallback();
         this.changeDetectorRef.markForCheck();
       }
     );
 
+    this.loadMatches();
+  }
+
+  private loadBlogFallback(): void {
     this.blogListService.getBlogPosts().subscribe(
       (data) => {
         this.blogPosts = data || [];
@@ -121,8 +130,6 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.changeDetectorRef.markForCheck();
       }
     );
-
-    this.loadMatches();
   }
 
   ngOnDestroy(): void {
@@ -202,6 +209,16 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     this.activeTab = tab;
+    this.selectedSeries = null;
+    this.syncActiveMatches();
+    this.resetMatchesCarouselPosition();
+    this.changeDetectorRef.markForCheck();
+  }
+
+  selectSeries(series: string, event: Event): void {
+    event.preventDefault();
+    this.selectedSeries = series;
+    this.activeTab = this.getSeriesTab(series);
     this.syncActiveMatches();
     this.resetMatchesCarouselPosition();
     this.changeDetectorRef.markForCheck();
@@ -245,6 +262,74 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   getMatchLinkLabel(match: MatchCardViewModel): string {
     return buildCanonicalMatchLinkLabel(match);
+  }
+
+  getHomeSeriesLinks(): string[] {
+    var seen: { [key: string]: boolean } = {};
+    var matches = ([] as MatchCardViewModel[])
+      .concat(this.liveMatches || [])
+      .concat(this.allUpcomingMatches || this.upcomingMatches || [])
+      .concat(this.recentMatches || []);
+
+    return (matches || [])
+      .map(match => this.normalizeSeriesName(match))
+      .filter(series => {
+        var key = series.toLowerCase();
+        if (!series || seen[key]) {
+          return false;
+        }
+        seen[key] = true;
+        return true;
+      })
+      .slice(0, 6);
+  }
+
+  private normalizeSeriesName(match: MatchCardViewModel | null): string {
+    var value = (match && match.seriesName || '').replace(/\s+/g, ' ').trim();
+    if (!value) {
+      return '';
+    }
+
+    // Some live feeds replace the competition with toss/score text. The
+    // canonical CREX slug remains the reliable competition source in that case.
+    var matchUrl = (match && match.matchUrl || '').toLowerCase();
+    var teams = ((match && match.team1 && (match.team1.name || match.team1.shortName) || '') + ' ' + (match && match.team2 && (match.team2.name || match.team2.shortName) || '')).toLowerCase();
+    if (/pondicherry-premier-league-2026/.test(matchUrl) || /pondicherry|villianur mohit|ruby white town|\bvmk\b.*\brwt\b|\brwt\b.*\bvmk\b/.test(matchUrl + ' ' + teams + ' ' + value.toLowerCase())) {
+      return 'PPL 2026';
+    }
+
+    // Scraper labels sometimes prepend the teams, start time, and fixture name
+    // before the actual competition after a comma.
+    if (value.indexOf(',') !== -1) {
+      var commaParts = value.split(',');
+      value = commaParts[commaParts.length - 1].trim();
+    }
+
+    // Remove a leading fixture number/format, e.g. "2nd T20 Bangladesh TOUR...".
+    value = value.replace(/^\d{1,3}(st|nd|rd|th)\s+(TEST|ODI|T20I?|T10|FOUR[- ]DAY)\s+/i, '');
+    // Also remove fixture labels that are not followed by a format, e.g.
+    // "1st Semi Final T20 Blast Women" or "19th Match Pondicherry".
+    value = value.replace(/^\d{1,3}(st|nd|rd|th)\s+(SEMI[- ]FINAL|FINAL|MATCH)\s+/i, '');
+    var team2 = match && match.team2 && (match.team2.name || match.team2.shortName);
+    if (team2) {
+      value = value.replace(new RegExp('\\s+' + this.escapeRegExp(team2) + '$', 'i'), '');
+    }
+    value = value.replace(/^(?:[A-Z]{2,5}\s+)?(?:Yet to bat|Toss Delayed)(?:\s+(?:[A-Z]{2,5})\s+(?:Yet to bat|Toss Delayed))*\s*/i, '');
+    return value.replace(/\s+TOUR\s+OF\s+/i, ' vs ').replace(/\s+/g, ' ').trim();
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  private getSeriesTab(series: string): HomeTab {
+    if ((this.liveMatches || []).some(match => this.normalizeSeriesName(match) === series)) {
+      return 'live';
+    }
+    if ((this.upcomingMatches || []).some(match => this.normalizeSeriesName(match) === series)) {
+      return 'upcoming';
+    }
+    return 'results';
   }
 
   getGlanceCardAriaLabel(card: HomeGlanceCard): string {
@@ -444,15 +529,22 @@ export class HomeComponent implements OnInit, OnDestroy {
     switch (this.activeTab) {
       case 'live':
         // Protect homepage SSR from rendering an unexpectedly inflated catalog.
-        this.activeMatches = this.liveMatches.slice(0, this.maxHomeMatchesPerTab);
+        this.activeMatches = this.filterSeries(this.liveMatches).slice(0, this.maxHomeMatchesPerTab);
         break;
       case 'upcoming':
-        this.activeMatches = this.upcomingMatches.slice(0, this.maxHomeMatchesPerTab);
+        this.activeMatches = this.filterSeries(this.upcomingMatches).slice(0, this.maxHomeMatchesPerTab);
         break;
       default:
-        this.activeMatches = this.recentMatches.slice(0, this.maxHomeMatchesPerTab);
+        this.activeMatches = this.filterSeries(this.recentMatches).slice(0, this.maxHomeMatchesPerTab);
         break;
     }
+  }
+
+  private filterSeries(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    if (!this.selectedSeries) {
+      return matches || [];
+    }
+    return (matches || []).filter(match => this.normalizeSeriesName(match) === this.selectedSeries);
   }
 
   private getBestAvailableTab(): HomeTab {

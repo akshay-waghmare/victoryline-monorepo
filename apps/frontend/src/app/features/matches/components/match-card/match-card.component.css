@@ -28,6 +28,7 @@
 
 .match-card.match-card--compact {
   touch-action: pan-x pinch-zoom;
+  min-height: 220px;
 }
 
 .match-card:hover,
@@ -290,6 +291,7 @@
 
 .match-card.match-card--compact .match-card__header {
   gap: var(--spacing-xs);
+  min-height: 42px;
 }
 
 .match-card.match-card--compact .match-card__series {
@@ -315,6 +317,18 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.35;
+}
+
+.match-card.match-card--compact .match-card__info {
+  margin-top: 8px;
+}
+
+.match-card.match-card--compact-upcoming .match-card__team-name {
+  max-height: 2.5em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .match-card.match-card--compact-upcoming {
@@ -413,6 +427,17 @@
 
 .match-card__info--single {
   justify-content: flex-start;
+}
+
+.match-card__score-pending {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 .match-card__venue,
@@ -663,6 +688,46 @@
     font-size: 0.72rem;
     line-height: 1.4;
     -webkit-line-clamp: 3;
+  }
+}
+
+/* Keep compact upcoming cards structurally identical to live/result cards on mobile. */
+@media (max-width: 640px) {
+  .match-card.match-card--compact-upcoming {
+    min-height: 210px;
+  }
+
+  .match-card.match-card--compact-upcoming .match-card__schedule {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .match-card.match-card--compact-upcoming .match-card__teams {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 10px;
+    padding: 2px 0 0;
+  }
+
+  .match-card.match-card--compact-upcoming .match-card__team {
+    width: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .match-card.match-card--compact-upcoming .match-card__team-header {
+    justify-content: flex-start;
+    gap: 6px;
+  }
+
+  .match-card.match-card--compact-upcoming .match-card__team-name,
+  .match-card.match-card--compact-upcoming .match-card__team--right .match-card__team-name {
+    text-align: left;
+    max-width: 100%;
   }
 }
 
