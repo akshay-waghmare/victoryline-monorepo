@@ -32,6 +32,7 @@ import { getCommentaryUpdateIntent, getCommentaryUpdateLabel, isMeaningfulCommen
 import { StructuredDataLocationInput, StructuredDataService } from '../seo/structured-data.service';
 import { MatchFreshnessLink, buildFreshnessLinksFromMatch, buildFreshnessLinksFromSlug } from '../seo/match-freshness-links';
 import { LiveMatchUpdate } from '../shared/models/match.models';
+import { AnalyticsService } from './analytics.service';
 
 const MATCH_INFO_KEY = makeStateKey<any>('cricket_match_info');
 const CRICKET_DATA_KEY = makeStateKey<any>('cricket_data_snapshot');
@@ -82,7 +83,7 @@ interface MatchFaqItem {
   answer: string;
 }
 
-type MatchPageTabKey = 'commentary' | 'details' | 'scorecard' | 'lineups';
+type MatchPageTabKey = 'commentary' | 'details' | 'scorecard' | 'lineups' | 'intelligence';
 
 @Component({
   selector: 'app-cricket-odds',
@@ -189,6 +190,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private isFallbackMatchInfo: boolean = false;
   matchSeo: MatchSeoViewModel | null = null;
   freshnessLinks: MatchFreshnessLink[] = [];
+  private hasTrackedIntelligenceCtaImpression: boolean = false;
 
   // Toggle to hide/show odds sections
   showOdds: boolean = true;
@@ -212,7 +214,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     commentary: 0,
     details: 1,
     scorecard: 2,
-    lineups: 3
+    lineups: 3,
+    intelligence: 4
   };
 
 
@@ -228,7 +231,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private activatedRoute: ActivatedRoute,
               private router: Router,
               private ngZone: NgZone,
-              private transferState: TransferState) { }
+              private transferState: TransferState,
+              private analyticsService: AnalyticsService) { }
 
   trackByCommentaryId(index: number, entry: any): string {
     return (entry && entry.id) || (entry && entry.overBall) || String(index);
@@ -367,6 +371,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.seriesPageUrlFallback = null;
       this.lastLiveBallEventToken = null;
       this.lastResolvedRouteSlug = match;
+      this.hasTrackedIntelligenceCtaImpression = false;
     }
 
     this.populateFallbackMatchInfo();
@@ -3147,6 +3152,69 @@ getPrimaryLifecycleHubLabel(): string {
   }
 
   return 'Cricket live score today';
+}
+
+getMatchIntelligenceHref(): string | null {
+  var slug = this.getCanonicalMatchSlug();
+  return slug ? '/match-intelligence/' + slug : null;
+}
+
+getMatchIntelligenceCtaLabel(): string {
+  var teams = this.getMatchIntentShortPair();
+
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'Open ' + teams + ' prediction';
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return 'Open ' + teams + ' turning-point view';
+  }
+
+  return 'Open ' + teams + ' match intelligence';
+}
+
+getMatchIntelligenceCtaSummary(): string {
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'See the free pre-match prediction shell with model direction, setup context, and what matters before the first ball.';
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return 'Review the free completed-match shell for turning-point framing and next-step analysis without disturbing the scorecard archive.';
+  }
+
+  return 'Use the free intelligence surface for win probability, what changed, and what matters next while the canonical match page stays score-first.';
+}
+
+isMatchIntelligenceEligible(): boolean {
+  return !!this.getCanonicalMatchSlug();
+}
+
+trackMatchIntelligenceImpression(): void {
+  if (this.hasTrackedIntelligenceCtaImpression || !this.isMatchIntelligenceEligible()) {
+    return;
+  }
+
+  this.hasTrackedIntelligenceCtaImpression = true;
+  this.analyticsService.trackIntelligenceEvent('intelligence_cta_impression', {
+    match_path: '/cric-live/' + this.getCanonicalMatchSlug(),
+    intelligence_path: this.getMatchIntelligenceHref(),
+    lifecycle: this.getResolvedMatchStatus(),
+    surface: 'cric-live'
+  });
+}
+
+onMatchIntelligenceCtaClick(): void {
+  var href = this.getMatchIntelligenceHref();
+  if (!href) {
+    return;
+  }
+
+  this.analyticsService.trackIntelligenceEvent('intelligence_cta_click', {
+    match_path: '/cric-live/' + this.getCanonicalMatchSlug(),
+    intelligence_path: href,
+    lifecycle: this.getResolvedMatchStatus(),
+    surface: 'cric-live'
+  });
 }
 
 getCanonicalIntentKicker(): string {

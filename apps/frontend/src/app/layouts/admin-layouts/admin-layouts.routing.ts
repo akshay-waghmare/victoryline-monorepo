@@ -25,6 +25,7 @@ import { BannerComponent } from 'src/app/component/banner/banner.component';
 import { PrivacyPolicyComponent } from 'src/app/privacy-policy/privacy-policy.component';
 import { TermsOfServiceComponent } from 'src/app/terms-of-service/terms-of-service.component';
 import { MatchesListComponent } from 'src/app/features/matches/pages/matches-list/matches-list.component';
+import { MatchIntelligenceComponent } from 'src/app/features/match-intelligence/match-intelligence.component';
 import { PlayersPageComponent } from 'src/app/features/stats/players-page/players-page.component';
 import { TeamsPageComponent } from 'src/app/features/stats/teams-page/teams-page.component';
 import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-page.component';
@@ -68,6 +69,7 @@ export const AdminLayoutsRoute: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'live-cricket-score', component: LiveScoreHubComponent, data: { hubType: 'liveCricketScore' } },
   { path: 'matches', component: MatchesListComponent },
+  { path: 'match-intelligence/:slug', component: MatchIntelligenceComponent },
   { path: 'live-score', component: LiveScoreHubComponent, data: { hubType: 'liveScore' } },
   { path: 'live-score/today', component: LiveScoreHubComponent, data: { hubType: 'today' } },
   { path: 'live-score/ipl', component: LiveScoreHubComponent, data: { hubType: 'ipl' } },

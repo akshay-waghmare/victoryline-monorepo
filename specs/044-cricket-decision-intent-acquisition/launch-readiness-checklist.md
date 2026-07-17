@@ -39,11 +39,11 @@ It is designed to answer one question:
 
 ## Step 1: Local Stack Start
 
-- [ ] Docker Desktop engine is running
-- [ ] `docker compose -f docker-compose.local.yml up -d --build` succeeds
-- [ ] frontend container is recreated
-- [ ] backend and scraper containers are healthy
-- [ ] `http://localhost:5000/health` responds
+- [x] Docker Desktop engine is running
+- [x] `docker compose -f docker-compose.local.yml up -d --build` succeeds
+- [x] frontend container is recreated
+- [x] backend and scraper containers are healthy
+- [x] `http://localhost:5000/health` responds
 - [ ] `http://localhost:8080/Home` responds
 
 ## Step 2: Route Verification
@@ -51,33 +51,33 @@ It is designed to answer one question:
 Check at least one eligible match per lifecycle:
 
 - [ ] upcoming sample opens `/match-intelligence/{slug}`
-- [ ] live sample opens `/match-intelligence/{slug}`
+- [x] live sample opens `/match-intelligence/{slug}`
 - [ ] completed sample opens `/match-intelligence/{slug}`
 - [ ] each sample has a valid return path to `/cric-live/{slug}`
-- [ ] direct refresh works on the intelligence route
+- [x] direct refresh works on the intelligence route
 - [ ] browser back returns correctly to the canonical match surface
 
 ## Step 3: UX And Accessibility Verification
 
 - [ ] CTA is visible and understandable on eligible canonical match pages
 - [ ] CTA is hidden or honestly explained when model data is unavailable
-- [ ] page works on mobile width without broken layout
+- [x] page works on mobile width without broken layout
 - [ ] keyboard users can reach CTA, modules, and return path
 - [ ] detail modules are usable by keyboard
 - [ ] screen-reader labels for breadcrumb, CTA, and expandable modules are acceptable
 
 ## Step 4: Public-Safe Data Verification
 
-- [ ] no operator-only dashboard controls are visible
-- [ ] no bet history or customer-account state is visible
-- [ ] no raw blend or raw model-weight language is visible
-- [ ] no raw commentary dump is used as the core explanation block
-- [ ] stale or missing data is labeled honestly
-- [ ] probability is described as informational, not certain
+- [x] no operator-only dashboard controls are visible
+- [x] no bet history or customer-account state is visible
+- [x] no raw blend or raw model-weight language is visible
+- [x] no raw commentary dump is used as the core explanation block
+- [x] stale or missing data is labeled honestly
+- [x] probability is described as informational, not certain
 
 ## Step 5: SEO Gate Verification
 
-- [ ] route is `noindex,follow`
+- [x] route is `noindex,follow`
 - [ ] route is absent from sitemaps
 - [ ] canonical page remains `/match-intelligence/{slug}` for the intelligence surface itself
 - [ ] canonical match page remains `/cric-live/{slug}`
@@ -86,13 +86,13 @@ Check at least one eligible match per lifecycle:
 
 ## Step 6: Analytics Verification
 
-- [ ] `intelligence_cta_impression` fires once per eligible view
-- [ ] `intelligence_cta_click` fires on CTA click
-- [ ] `prediction_view` fires on route view
-- [ ] `prediction_interaction` fires for module and utility interactions
-- [ ] `explanation_expand` fires on explanation module expand
-- [ ] `model_unavailable` fires only when model data is missing
-- [ ] event payload includes match path, intelligence path, lifecycle, and surface
+- [x] `intelligence_cta_impression` fires once per eligible view
+- [x] `intelligence_cta_click` fires on CTA click
+- [x] `prediction_view` fires on route view
+- [x] `prediction_interaction` fires for module and utility interactions
+- [x] `explanation_expand` fires on explanation module expand
+- [x] `model_unavailable` fires only when model data is missing
+- [x] event payload includes match path, intelligence path, lifecycle, and surface
 
 ## Step 7: Launch Decision
 

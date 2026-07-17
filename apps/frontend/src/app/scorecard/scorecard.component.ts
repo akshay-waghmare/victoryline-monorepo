@@ -378,32 +378,32 @@ export class ScorecardComponent implements OnInit, OnChanges {
     if (!bStats) { return ''; }
     const status = bStats.status;
     const dismissal_code = bStats.dismissal_code;
-    const bowler_code = bStats.bowler_code;
-    const player_caught = bStats.player_caught;
+    const bowler_code = bStats.bowler_name || '';
+    const player_caught = bStats.player_caught_name || '';
     if (status === 'currently_batting') { return 'not out'; }
     if (status === 'yet_to_bat') { return 'yet to bat'; }
     if (!dismissal_code) { return ''; }
-    const dc = dismissal_code.toLowerCase();
-    if (dc === 'c' || dc === 'caught') {
+    const dc = String(dismissal_code).toLowerCase().trim();
+    if (dc === '2' || dc === '8' || dc === 'c' || dc === 'caught' || dc === 'caught out') {
       const catcher = player_caught ? ` ${player_caught}` : '';
       const bowler = bowler_code ? ` b ${bowler_code}` : '';
-      return `c${catcher}${bowler}`;
+      return `caught${catcher}${bowler}`;
     }
     if (dc === '^3' || dc === 'c&b' || dc === 'caught and bowled' || dc === 'caughtandbowled') {
       const bowler = bowler_code || player_caught;
       return bowler ? `c & b ${bowler}` : 'c & b';
     }
-    if (dc === 'lbw') { return bowler_code ? `lbw b ${bowler_code}` : 'lbw'; }
-    if (dc === 'b' || dc === 'bowled') { return bowler_code ? `b ${bowler_code}` : 'bowled'; }
-    if (dc === 'run out') {
+    if (dc === '7' || dc === 'lbw') { return bowler_code ? `lbw b ${bowler_code}` : 'lbw'; }
+    if (dc === '1' || dc === 'b' || dc === 'bowled') { return bowler_code ? `bowled b ${bowler_code}` : 'bowled'; }
+    if (dc === '4' || dc === 'run out') {
       const fielder = player_caught ? ` (${player_caught})` : '';
       return `run out${fielder}`;
     }
-    if (dc === 'st' || dc === 'stumped') {
+    if (dc === '5' || dc === 'st' || dc === 'stumped') {
       const wk = player_caught ? ` ${player_caught}` : '';
       return bowler_code ? `st${wk} b ${bowler_code}` : `stumped${wk}`;
     }
-    if (dc === 'hit wicket') { return bowler_code ? `hit wicket b ${bowler_code}` : 'hit wicket'; }
+    if (dc === '6' || dc === 'hit wicket') { return bowler_code ? `hit wicket b ${bowler_code}` : 'hit wicket'; }
     if (dc === 'obstructed') { return 'obstructed the field'; }
     if (dc === 'handled') { return 'handled the ball'; }
     return dismissal_code;

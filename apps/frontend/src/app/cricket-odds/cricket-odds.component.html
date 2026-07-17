@@ -226,21 +226,6 @@
               [matchInfo]="matchInfo">
             </app-match-details-info>
 
-            <section class="cricket-odds__seo-summary" *ngIf="matchSeo">
-              <div class="cricket-odds__seo-copy">
-                <p class="cricket-odds__seo-eyebrow">Canonical live match coverage</p>
-                <h2 class="cricket-odds__seo-title">{{ getDetailsIntroTitle() }}</h2>
-                <p class="cricket-odds__seo-description">{{ getDetailsIntroSummary() }}</p>
-                <p class="cricket-odds__seo-series" *ngIf="matchSeo.series">{{ matchSeo.series }}</p>
-              </div>
-              <nav class="cricket-odds__seo-links" aria-label="Related cricket pages">
-                <a [attr.href]="getPrimaryLifecycleHubHref()">{{ getPrimaryLifecycleHubLabel() }}</a>
-                <a routerLink="/matches">All cricket matches</a>
-                <a [attr.href]="getSeriesSurfaceHref()">{{ getSeriesSurfaceLinkLabel() }}</a>
-                <a routerLink="/live-cricket-score">Live cricket score hub</a>
-              </nav>
-            </section>
-
             <details class="cricket-odds__seo-drawer" *ngIf="matchSeo">
               <summary class="cricket-odds__seo-drawer-summary">
                 <span class="cricket-odds__seo-drawer-title">More match detail</span>
@@ -416,21 +401,45 @@
             <ng-container *ngTemplateOutlet="statsExplorerTemplate"></ng-container>
           </section>
         </mat-tab>
+
+        <!-- Fifth Tab: Match Intelligence -->
+        <mat-tab *ngIf="isMatchIntelligenceEligible()">
+          <ng-template mat-tab-label>
+            <span class="match-page-tab-label">
+              <mat-icon>insights</mat-icon>
+              <span>Match Intelligence</span>
+            </span>
+          </ng-template>
+          <section class="match-tab-panel match-tab-panel--intelligence" id="intelligence-panel" aria-label="Match Intelligence">
+            <span class="cricket-odds__sr-only">{{ trackMatchIntelligenceImpression() }}</span>
+            <header class="match-tab-intro" *ngIf="matchSeo">
+              <p class="match-tab-intro__kicker">Free match intelligence</p>
+              <h2 class="match-tab-intro__title">{{ getMatchIntelligenceCtaLabel() }}</h2>
+              <p class="match-tab-intro__summary">{{ getMatchIntelligenceCtaSummary() }}</p>
+            </header>
+            <app-match-intelligence [matchSlug]="getCanonicalMatchSlug()"></app-match-intelligence>
+          </section>
+        </mat-tab>
       </mat-tab-group>
 
       <section class="cricket-odds__support-stack" *ngIf="matchSeo" aria-label="Secondary match support">
-        <section class="cricket-odds__freshness-links" *ngIf="getFreshnessSupportLinks().length > 0" aria-label="Related freshness support pages">
-          <div class="cricket-odds__freshness-intro">
-            <span class="cricket-odds__freshness-kicker">Freshness support pages</span>
-            <p>Use these support pages for preview, live-update, and result intent while this canonical match page keeps the stable live score, commentary, and scorecard role.</p>
-          </div>
-          <nav class="cricket-odds__freshness-nav">
+        <details class="cricket-odds__support-drawer" *ngIf="getFreshnessSupportLinks().length > 0">
+          <summary class="cricket-odds__support-drawer-summary">
+            <span>
+              <strong>More match pages</strong>
+              <small>Preview, live updates, and result follow-ups</small>
+            </span>
+            <mat-icon aria-hidden="true">expand_more</mat-icon>
+          </summary>
+          <section class="cricket-odds__freshness-links" aria-label="Related match pages">
+            <nav class="cricket-odds__freshness-nav">
             <a *ngFor="let link of getFreshnessSupportLinks()" [attr.href]="link.href">
               <strong>{{ link.label }}</strong>
               <span>{{ link.summary }}</span>
             </a>
-          </nav>
-        </section>
+            </nav>
+          </section>
+        </details>
 
         <details class="cricket-odds__intent-drawer">
           <summary class="cricket-odds__intent-drawer-summary">

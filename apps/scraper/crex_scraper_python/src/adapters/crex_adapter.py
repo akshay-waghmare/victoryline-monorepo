@@ -376,8 +376,16 @@ class CrexAdapter(SourceAdapter):
                 batsman_stats = inning_data.get("batsman_stats", {})
                 decoded_batsmen = {}
                 for code, stats in batsman_stats.items():
-                    name = local_storage.get(f"p_{code}_name", code)
+                    name = self._resolve_player_name(code, local_storage) or code
                     stats["player_name"] = name
+                    # sC4 stores dismissal participants as player codes too.
+                    # Resolve them here so the scorecard does not expose IDs.
+                    bowler_code = stats.get("bowler_code")
+                    catcher_code = stats.get("player_caught")
+                    if bowler_code:
+                        stats["bowler_name"] = self._resolve_player_name(bowler_code, local_storage)
+                    if catcher_code:
+                        stats["player_caught_name"] = self._resolve_player_name(catcher_code, local_storage)
                     decoded_batsmen[name] = stats
                 inning_data["batsman_stats"] = decoded_batsmen
                 
@@ -385,13 +393,26 @@ class CrexAdapter(SourceAdapter):
                 bowlers_stats = inning_data.get("bowlers_stats", {})
                 decoded_bowlers = {}
                 for code, stats in bowlers_stats.items():
-                    name = local_storage.get(f"p_{code}_name", code)
+                    name = self._resolve_player_name(code, local_storage) or code
                     stats["player_name"] = name
                     decoded_bowlers[name] = stats
                 inning_data["bowlers_stats"] = decoded_bowlers
                 
         except Exception as e:
             logger.error(f"Error decoding sC4 stats: {e}")
+
+    def _resolve_player_name(self, code: Any, local_storage: Dict[str, str]) -> str:
+        """Resolve CREX player IDs across the storage key variants seen in sC4."""
+        if not code:
+            return ""
+        token = str(code).strip()
+        variants = {token, token.upper(), token.lower()}
+        for value in variants:
+            for key in (f"p_{value}_name", f"p_{value}", f"player_{value}_name", f"player_{value}"):
+                name = local_storage.get(key)
+                if name and str(name).strip() and str(name).strip() != token:
+                    return str(name).strip()
+        return ""
 
     def _enrich_from_sc4(self, final_data: Dict[str, Any], sc4_stats: Dict[str, Any], local_storage: Dict[str, str]):
         """

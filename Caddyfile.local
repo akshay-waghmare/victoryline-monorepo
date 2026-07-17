@@ -43,6 +43,7 @@ http://localhost, http://localhost:80, http://localhost:8080, http://127.0.0.1:8
     header_up X-Real-IP {remote}
     header_up X-Forwarded-For {remote}
     header_up X-Forwarded-Proto {scheme}
+    flush_interval -1
   }
 
   # Optional: health endpoint

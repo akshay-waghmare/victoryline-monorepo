@@ -26,7 +26,8 @@ function createComponent(): CricketOddsComponent {
     { snapshot: { params: { path: 'team-a-vs-team-b-123A' }, queryParamMap: { get: function() { return null; } } } } as any,
     { url: '/cric-live/team-a-vs-team-b-123A' } as any,
     {} as any,
-    { get: function() { return null; }, hasKey: function() { return false; }, set: function() {}, remove: function() {} } as any
+    { get: function() { return null; }, hasKey: function() { return false; }, set: function() {}, remove: function() {} } as any,
+    {} as any
   );
 }
 

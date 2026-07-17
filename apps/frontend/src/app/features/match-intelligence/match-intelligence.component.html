@@ -23,12 +23,162 @@
           <span class="match-intelligence__state">{{ viewModel.stateLabel }}</span>
           <span class="match-intelligence__note">Launch tier: {{ viewModel.capabilityTier }}</span>
         </div>
+        <p class="match-intelligence__model-proof" *ngIf="viewModel.modelLabel">Model: {{ viewModel.modelLabel }}<span *ngIf="viewModel.modelMode"> · {{ viewModel.modelMode }}</span></p>
         <p class="match-intelligence__freshness">{{ viewModel.freshnessLabel }}</p>
         <div class="match-intelligence__hero-actions">
-          <a class="match-intelligence__primary" [attr.href]="viewModel.canonicalMatchPath" (click)="onBackToMatchClick()">Back To Live Match</a>
+          <a class="match-intelligence__primary" [attr.href]="viewModel.canonicalMatchPath" (click)="onBackToMatchClick()" aria-label="Return to the canonical live match page">Back To Live Match</a>
         </div>
       </div>
     </header>
+
+    <section class="match-intelligence__prediction-brief" aria-label="Public prediction briefing">
+      <div class="match-intelligence__prediction-main">
+        <p class="match-intelligence__card-kicker">Public model signal</p>
+        <div class="match-intelligence__prediction-row">
+          <div>
+            <h2>{{ viewModel.probabilityTeamLabel || 'Model direction' }}</h2>
+            <p class="match-intelligence__prediction-copy">{{ viewModel.publicInsight || viewModel.probabilityCardBody }}</p>
+          </div>
+          <strong class="match-intelligence__prediction-value" *ngIf="viewModel.probabilityLabel; else pendingProbability">{{ viewModel.probabilityLabel }}</strong>
+          <ng-template #pendingProbability><strong class="match-intelligence__prediction-value match-intelligence__prediction-value--pending">--</strong></ng-template>
+        </div>
+        <div class="match-intelligence__prediction-meter" aria-hidden="true">
+          <span [style.width.%]="viewModel.probabilityLabel ? +viewModel.probabilityLabel.replace('%', '') : 0"></span>
+        </div>
+      </div>
+      <div class="match-intelligence__score-context">
+        <div>
+          <span>Score</span>
+          <strong>{{ viewModel.scoreLabel || 'Awaiting score' }}</strong>
+        </div>
+        <div>
+          <span>Overs</span>
+          <strong>{{ viewModel.oversLabel || 'Not started' }}</strong>
+        </div>
+        <div>
+          <span>Expected final</span>
+          <strong>{{ viewModel.expectedFinalLabel || viewModel.projectionLabel || 'Awaiting model projection' }}</strong>
+        </div>
+        <div *ngIf="viewModel.projectedScoreLabel">
+          <span>Run-rate view</span>
+          <strong>{{ viewModel.projectedScoreLabel }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="match-intelligence__metric-panel" aria-label="Match intelligence metrics">
+      <div class="match-intelligence__metric" *ngFor="let metric of viewModel.metricCards">
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value || '--' }}</strong>
+      </div>
+    </section>
+
+    <details class="match-intelligence__metric-glossary">
+      <summary>How these metrics are calculated</summary>
+      <ul class="match-intelligence__detail-list">
+        <li><strong>CRR:</strong> current runs divided by completed overs. <strong>RRR:</strong> runs still required divided by overs remaining.</li>
+        <li><strong>Expected final:</strong> resource-calculator estimate for the completed innings. <strong>Projected score:</strong> current-rate extrapolation.</li>
+        <li><strong>Venue average:</strong> full-innings venue scoring baseline. <strong>Score vs par:</strong> current score minus resource-adjusted par.</li>
+        <li><strong>Resources:</strong> model-calculated resources remaining. <strong>Resource WP:</strong> the structural win probability from that resource state.</li>
+        <li><strong>Model probability:</strong> calibrated public win probability from the selected gender-aware T20 or ODI model.</li>
+      </ul>
+      <p class="match-intelligence__formula-note">Sources: the public-safe prediction payload and the match snapshot. Raw training features are not exposed.</p>
+    </details>
+
+    <section class="match-intelligence__visual-grid" aria-label="Match intelligence charts">
+      <article class="match-intelligence__chart-card">
+        <p class="match-intelligence__card-kicker">Probability timeline</p>
+        <h2>Manhattan &amp; worm: model movement</h2>
+        <p class="match-intelligence__formula-note">Bars show each public model update; the worm line connects win probability over time. This is not a ball-by-ball reconstruction.</p>
+        <div class="match-intelligence__analysis-chart" *ngIf="viewModel.swingPoints.length; else noTimeline">
+          <div class="match-intelligence__chart-shell">
+            <div class="match-intelligence__chart-y-axis" aria-hidden="true"><span>100%</span><span>50%</span><span>0%</span></div>
+            <svg class="match-intelligence__worm" viewBox="0 0 320 140" role="img" aria-label="Manhattan and win probability worm chart" preserveAspectRatio="none">
+              <line x1="0" y1="10" x2="320" y2="10" class="match-intelligence__chart-gridline"></line>
+              <line x1="0" y1="70" x2="320" y2="70" class="match-intelligence__chart-gridline match-intelligence__chart-gridline--mid"></line>
+              <line x1="0" y1="130" x2="320" y2="130" class="match-intelligence__chart-gridline"></line>
+              <g *ngFor="let point of viewModel.swingPoints; let i = index">
+                <rect [attr.x]="viewModel.swingPoints.length === 1 ? 157 : (i * 310 / (viewModel.swingPoints.length - 1) + 2)" [attr.y]="130 - (point.probability * 1.2)" width="5" [attr.height]="point.probability * 1.2" class="match-intelligence__manhattan-bar">
+                  <title>{{ point.over }} · {{ point.score }} · {{ point.probability }}%</title>
+                </rect>
+              </g>
+              <polyline [attr.points]="viewModel.probabilityPolyline" fill="none" class="match-intelligence__worm-line"></polyline>
+              <g *ngFor="let point of viewModel.swingPoints; let i = index">
+                <circle [attr.cx]="viewModel.swingPoints.length === 1 ? 160 : (i * 320 / (viewModel.swingPoints.length - 1))" [attr.cy]="130 - (point.probability * 1.2)" r="3.5" class="match-intelligence__worm-point">
+                  <title>{{ point.over }} · {{ point.score }} · {{ point.probability }}%</title>
+                </circle>
+              </g>
+            </svg>
+          </div>
+          <div class="match-intelligence__worm-axis"><span>{{ viewModel.swingPoints[0].over || 'Start' }}</span><span>Model updates</span><span>{{ viewModel.swingPoints[viewModel.swingPoints.length - 1].over || 'Live' }}</span></div>
+          <div class="match-intelligence__chart-legend"><span><i class="match-intelligence__legend-bar"></i> Manhattan: probability at each update</span><span><i class="match-intelligence__legend-line"></i> Worm: direction over time</span></div>
+        </div>
+        <ng-template #noTimeline><p class="match-intelligence__muted">The probability timeline will appear after the first live model updates.</p></ng-template>
+        <details class="match-intelligence__prediction-history" *ngIf="viewModel.predictionHistory.length">
+          <summary>Open prediction update log ({{ viewModel.predictionHistory.length }} updates)</summary>
+          <div class="match-intelligence__history-row" *ngFor="let point of viewModel.predictionHistory">
+            <span>{{ point.over || 'Update' }}</span>
+            <span>{{ point.score || 'Score unavailable' }}</span>
+            <strong *ngIf="point.probability !== null">{{ point.probability }}%</strong>
+            <strong *ngIf="point.expectedFinal !== null">Expected {{ point.expectedFinal }}</strong>
+          </div>
+        </details>
+      </article>
+      <article class="match-intelligence__chart-card">
+        <p class="match-intelligence__card-kicker">Expected finish</p>
+        <h2>Expected final versus venue</h2>
+        <p class="match-intelligence__formula-note">Expected final comes from the model resource calculator; venue average is the full-innings venue scoring baseline.</p>
+        <div class="match-intelligence__comparison" *ngIf="viewModel.expectedFinalLabel && viewModel.venueAverageLabel; else noComparison">
+          <div class="match-intelligence__comparison-row">
+            <span>Expected final</span><strong>{{ viewModel.expectedFinalLabel }}</strong>
+            <i aria-hidden="true"><b [style.width.%]="viewModel.expectedFinalBarWidth"></b></i>
+          </div>
+          <div class="match-intelligence__comparison-row">
+            <span>Venue average</span><strong>{{ viewModel.venueAverageLabel }}</strong>
+            <i aria-hidden="true"><b [style.width.%]="viewModel.venueAverageBarWidth"></b></i>
+          </div>
+        </div>
+        <ng-template #noComparison><p class="match-intelligence__muted">Expected-final context will appear when the model snapshot is ready.</p></ng-template>
+      </article>
+      <article class="match-intelligence__chart-card">
+        <p class="match-intelligence__card-kicker">Resource and pace</p>
+        <h2>What the innings has left</h2>
+        <p class="match-intelligence__formula-note">Par pace compares current score with resource-adjusted par. CRR is runs per over; RRR is the required chase rate.</p>
+        <div class="match-intelligence__bar-group">
+          <div><span>Resources remaining</span><strong>{{ viewModel.resourceLabel || '--' }}</strong><i [style.width.%]="viewModel.resourceLabel ? +viewModel.resourceLabel.replace('Resources ', '').replace('%', '') : 0"></i></div>
+          <div><span>CRR / RRR</span><strong>{{ viewModel.currentRunRateLabel || '--' }} · {{ viewModel.requiredRunRateLabel || '--' }}</strong><i class="match-intelligence__bar-secondary" [style.width.%]="viewModel.currentRunRateLabel ? (+viewModel.currentRunRateLabel.replace('CRR ', '') * 10) : 0"></i></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="match-intelligence__explanation-grid" aria-label="Pressure and momentum explanation">
+      <article class="match-intelligence__card"><p class="match-intelligence__card-kicker">Pressure</p><h2>Why the state feels difficult</h2><p>{{ viewModel.pressureNarrative }}</p></article>
+      <article class="match-intelligence__card"><p class="match-intelligence__card-kicker">Momentum</p><h2>How the match is moving</h2><p>{{ viewModel.momentumNarrative }}</p></article>
+      <article class="match-intelligence__card"><p class="match-intelligence__card-kicker">Confidence</p><h2>How strongly to read the signal</h2><p>{{ viewModel.confidenceNarrative }}</p></article>
+    </section>
+
+    <section class="match-intelligence__card match-intelligence__reasons" *ngIf="viewModel.modelReasons.length" aria-label="Model factors">
+      <p class="match-intelligence__card-kicker">Model factors</p>
+      <h2>Why the signal leans this way</h2>
+      <ul class="match-intelligence__detail-list">
+        <li *ngFor="let reason of viewModel.modelReasons">{{ reason }}</li>
+      </ul>
+      <p class="match-intelligence__formula-note">These are public-safe factors from the current match state; raw training features remain private.</p>
+    </section>
+
+    <section class="match-intelligence__card match-intelligence__briefing" *ngIf="viewModel.explanationPack" aria-label="Match briefing">
+      <p class="match-intelligence__card-kicker">Match briefing</p>
+      <h2>Context beyond the score</h2>
+      <div class="match-intelligence__briefing-grid">
+        <p *ngIf="viewModel.explanationPack.venue_behaviour"><strong>Venue behaviour</strong><span>{{ viewModel.explanationPack.venue_behaviour }}</span></p>
+        <p *ngIf="viewModel.explanationPack.toss_impact"><strong>Toss impact</strong><span>{{ viewModel.explanationPack.toss_impact }}</span></p>
+        <p *ngIf="viewModel.explanationPack.expected_score !== null && viewModel.explanationPack.expected_score !== undefined"><strong>Expected score</strong><span>{{ viewModel.explanationPack.expected_score }}</span></p>
+        <p *ngIf="viewModel.explanationPack.expected_wickets !== null && viewModel.explanationPack.expected_wickets !== undefined"><strong>Expected wickets</strong><span>{{ viewModel.explanationPack.expected_wickets }}</span></p>
+        <p *ngIf="viewModel.explanationPack.turning_point"><strong>Turning point</strong><span>{{ viewModel.explanationPack.turning_point.over }} · {{ viewModel.explanationPack.turning_point.score }} · {{ viewModel.explanationPack.turning_point.label }}</span></p>
+        <p *ngIf="viewModel.explanationPack.probability_swing"><strong>Latest swing</strong><span>{{ viewModel.explanationPack.probability_swing.before }}% to {{ viewModel.explanationPack.probability_swing.after }}%</span></p>
+      </div>
+      <p class="match-intelligence__formula-note">This public briefing reuses the explanation-pack pattern from the intelligence/video workflow. Player picks, market replay, and operator-only fields stay excluded.</p>
+    </section>
 
     <div class="match-intelligence__grid">
       <article class="match-intelligence__card match-intelligence__card--probability">
@@ -62,12 +212,22 @@
       <p>{{ viewModel.whatMattersNextBody }}</p>
     </article>
 
+    <section class="match-intelligence__relationship" aria-label="Match update relationship CTA">
+      <div>
+        <p class="match-intelligence__card-kicker">Keep the signal</p>
+        <h2>{{ viewModel.relationshipCtaLabel }}</h2>
+        <p>Follow the match from score context to model change without losing the live match page.</p>
+      </div>
+      <button type="button" class="match-intelligence__relationship-action" (click)="onRelationshipCtaClick()" aria-label="Join match updates from Match Intelligence">{{ viewModel.relationshipCtaLabel }}</button>
+    </section>
+
     <section class="match-intelligence__utility-grid" aria-label="Live explanation utility surfaces">
       <button
         class="match-intelligence__utility"
         type="button"
         *ngFor="let card of viewModel.utilityCards"
-        (click)="onUtilityCardClick(card.key)">
+        (click)="onUtilityCardClick(card.key)"
+        [attr.aria-label]="card.title + ': ' + card.body">
         <p class="match-intelligence__card-kicker">{{ card.kicker }}</p>
         <h2>{{ card.title }}</h2>
         <p>{{ card.body }}</p>

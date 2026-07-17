@@ -4,6 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:hot": "ng serve --host 0.0.0.0 --port 4200 --poll 1000 --proxy-config proxy.conf.json",
     "build": "ng build --prod --progress=false",
     "build:browser": "ng build --prod --progress=false",
     "build:server": "ng run id-card-app:server:production --progress=false",

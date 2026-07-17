@@ -22,6 +22,31 @@ interface PublicPredictionMatch {
   insight?: string | null;
   updated_at?: string | null;
   detail_url?: string | null;
+  format_label?: string | null;
+  model_mode?: string | null;
+  model_source?: string | null;
+  model_label?: string | null;
+  expected_final_score?: number | null;
+  projected_score?: number | null;
+  innings?: number | null;
+  current_run_rate?: number | null;
+  required_run_rate?: number | null;
+  venue_average_score?: number | null;
+  resource_pct?: number | null;
+  resource_win_probability_pct?: number | null;
+  score_vs_par?: number | null;
+  pressure_index?: number | null;
+  last_swings?: Array<{ over?: string; score?: string; win_probability_pct?: number; label?: string }>;
+  prediction_history?: Array<{ over?: string; score?: string; win_probability_pct?: number; expected_final_score?: number; projected_score?: number }>;
+  reasons?: string[];
+  explanation_pack?: {
+    venue_behaviour?: string | null;
+    toss_impact?: string | null;
+    expected_score?: number | null;
+    expected_wickets?: number | null;
+    turning_point?: { over?: string; score?: string; label?: string } | null;
+    probability_swing?: { before?: number; after?: number; delta?: number | null } | null;
+  };
 }
 
 interface PublicPredictionMatchesResponse {
@@ -40,6 +65,8 @@ export interface MatchIntelligenceSnapshot {
 
 @Injectable({ providedIn: 'root' })
 export class MatchIntelligenceDataService {
+  private readonly freshnessLimitMs = 5 * 60 * 1000;
+
   constructor(
     private http: HttpClient,
     private cricketService: CricketService,
@@ -73,8 +100,8 @@ export class MatchIntelligenceDataService {
         ]);
       }),
       map(([currentMatch, matchInfo, matchData, publicMatches]) => {
-        var lifecycle = this.resolveLifecycle(currentMatch, matchInfo);
         var publicPrediction = this.findPublicPrediction(slug, currentMatch, matchInfo, publicMatches || []);
+        var lifecycle = this.resolveLifecycle(currentMatch, matchInfo, publicPrediction);
         var mergedMatchData = this.mergePublicPrediction(matchData, publicPrediction);
         var freshnessState = this.resolveFreshnessState(mergedMatchData);
 
@@ -91,7 +118,7 @@ export class MatchIntelligenceDataService {
     );
   }
 
-  private resolveLifecycle(currentMatch: MatchCardViewModel | null, matchInfo: any): 'upcoming' | 'live' | 'completed' | 'unknown' {
+  private resolveLifecycle(currentMatch: MatchCardViewModel | null, matchInfo: any, publicPrediction?: PublicPredictionMatch | null): 'upcoming' | 'live' | 'completed' | 'unknown' {
     var status = currentMatch ? currentMatch.status : null;
     if (status === MatchStatus.COMPLETED) {
       return 'completed';
@@ -114,6 +141,17 @@ export class MatchIntelligenceDataService {
       return 'upcoming';
     }
 
+    var publicStatus = String((publicPrediction && publicPrediction.status) || '').toLowerCase();
+    if (publicStatus === 'running' || publicStatus === 'live') {
+      return 'live';
+    }
+    if (publicStatus === 'completed' || publicStatus === 'complete') {
+      return 'completed';
+    }
+    if (publicStatus === 'upcoming' || publicStatus === 'scheduled') {
+      return 'upcoming';
+    }
+
     return 'unknown';
   }
 
@@ -122,8 +160,12 @@ export class MatchIntelligenceDataService {
       return 'unavailable';
     }
 
-    if (matchData.lastUpdated || matchData.updatedAt || matchData.last_updated || matchData.updated_at) {
-      return 'fresh';
+    var timestamp = matchData.lastUpdated || matchData.updatedAt || matchData.last_updated || matchData.updated_at;
+    if (timestamp) {
+      var parsed = Date.parse(String(timestamp));
+      if (!isNaN(parsed)) {
+        return Date.now() - parsed <= this.freshnessLimitMs ? 'fresh' : 'stale';
+      }
     }
 
     return 'stale';
@@ -231,11 +273,42 @@ export class MatchIntelligenceDataService {
     if (publicPrediction.bowling_team && !merged.bowling_team) {
       merged.bowling_team = publicPrediction.bowling_team;
     }
+    if (publicPrediction.format_label) {
+      merged.format_label = publicPrediction.format_label;
+    }
+    if (publicPrediction.model_mode) {
+      merged.model_mode = publicPrediction.model_mode;
+    }
+    if (publicPrediction.model_source) {
+      merged.model_source = publicPrediction.model_source;
+    }
+    if (publicPrediction.model_label) {
+      merged.model_label = publicPrediction.model_label;
+    }
+    if (publicPrediction.expected_final_score !== undefined) {
+      merged.expected_final_score = publicPrediction.expected_final_score;
+    }
+    if (publicPrediction.projected_score !== undefined) {
+      merged.projected_score = publicPrediction.projected_score;
+    }
+    ['innings', 'current_run_rate', 'required_run_rate', 'venue_average_score', 'resource_pct',
+      'resource_win_probability_pct', 'score_vs_par', 'pressure_index', 'last_swings'].forEach((key) => {
+      if ((publicPrediction as any)[key] !== undefined) {
+        merged[key] = (publicPrediction as any)[key];
+      }
+    });
+    if (publicPrediction.reasons !== undefined) {
+      merged.reasons = publicPrediction.reasons;
+    }
+    if (publicPrediction.explanation_pack !== undefined) {
+      merged.explanation_pack = publicPrediction.explanation_pack;
+    }
     return merged;
   }
 
   private normalizeTeamName(value: string): string {
     return String(value || '')
+      .replace(/\bwomen\b/gi, '')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
@@ -262,8 +335,15 @@ export class MatchIntelligenceDataService {
       return null;
     }
 
-    var left = parts[0].split('-').filter(Boolean).pop();
-    var right = parts[1].split('-').filter(Boolean)[0];
+    var leftParts = parts[0].split('-').filter(Boolean);
+    var left = leftParts.pop();
+    if (left === 'w' && leftParts.length) {
+      left = leftParts.pop() + '-w';
+    }
+    var rightSlug = parts[1];
+    // Public model slugs use full hyphenated names (for example west-indies),
+    // while canonical match slugs often use abbreviations (wi-w).
+    var right = rightSlug.indexOf('west-indies') === 0 ? 'west-indies' : rightSlug.split('-').filter(Boolean)[0];
     if (!left || !right) {
       return null;
     }
@@ -296,13 +376,60 @@ export class MatchIntelligenceDataService {
       return null;
     }
 
-    var left = parts[0].split('-').filter(Boolean).pop();
-    var right = parts[1].split('-').filter(Boolean)[0];
+    var left = this.extractTeamToken(parts[0]);
+    var right = this.extractTeamToken(parts[1]);
     return left && right ? [left, right] : null;
   }
 
+  private extractTeamToken(value: string): string | null {
+    var token = String(value || '').toLowerCase();
+    var knownTeams = [
+      'new-zealand', 'west-indies', 'south-africa', 'sri-lanka', 'united-arab-emirates',
+      'england', 'india', 'australia', 'ireland', 'bangladesh', 'pakistan', 'afghanistan',
+      'zimbabwe', 'namibia', 'scotland', 'nepal', 'netherlands', 'wi', 'nz', 'sa', 'sl', 'uae'
+    ];
+    var match = knownTeams.find((team) => token === team || token.indexOf(team + '-') === 0);
+    if (match) {
+      return match;
+    }
+
+    var parts = token.split('-').filter(Boolean);
+    // Match routes commonly append an event label or opaque match id after
+    // the team token (for example `sur-107th-match-...-zxr`). When the
+    // complete team name is not in the known list, the leading segment is the
+    // stable team token; using the final segment would incorrectly treat the
+    // event id as the team.
+    if (parts.length > 1) {
+      return parts[0] || null;
+    }
+    var last = parts.pop();
+    if (last === 'w' && parts.length) {
+      return parts.pop() + '-w';
+    }
+    return last || null;
+  }
+
   private teamNameMatches(left: string, right: string): boolean {
-    return left === right ||
-      (left.length >= 3 && right.length >= 3 && (left.indexOf(right) === 0 || right.indexOf(left) === 0));
+    var normalizedLeft = this.normalizeTeamToken(left);
+    var normalizedRight = this.normalizeTeamToken(right);
+    return normalizedLeft === normalizedRight ||
+      (normalizedLeft.length >= 3 && normalizedRight.length >= 3 &&
+        (normalizedLeft.indexOf(normalizedRight) === 0 || normalizedRight.indexOf(normalizedLeft) === 0));
+  }
+
+  private normalizeTeamToken(value: string): string {
+    var token = String(value || '').toLowerCase().replace(/-w$/, '').replace(/-women$/, '').replace(/\s+women$/, '');
+    var aliases: { [key: string]: string } = {
+      'wi': 'west-indies',
+      'west-indies': 'west-indies',
+      'nz': 'new-zealand',
+      'new-zealand': 'new-zealand',
+      'sa': 'south-africa',
+      'sl': 'sri-lanka',
+      'uae': 'united-arab-emirates',
+      'ire': 'ireland',
+      'ireland': 'ireland'
+    };
+    return aliases[token] || token;
   }
 }

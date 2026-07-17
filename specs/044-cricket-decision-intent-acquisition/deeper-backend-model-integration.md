@@ -1,6 +1,6 @@
 # Deeper Backend And Model Integration
 
-Date: 2026-07-09 IST
+Date: 2026-07-13 IST
 Spec: `044-cricket-decision-intent-acquisition`
 Status: Cross-repo implementation backlog
 
@@ -19,9 +19,9 @@ This document defines what still has to happen beyond the current frontend shell
 
 ### Not yet true
 
-- model repo is not yet the stable source of a public intelligence payload
-- explanation repo is not yet feeding reusable plain-language modules into the public route
-- VictoryLine still derives too much explanation copy inside the component
+- model repo now exposes a stable public-safe payload, including `reasons`, capped `prediction_history`, and the explanation pack fields
+- the video-studio repo contains reusable source patterns and data for venue behavior, player roles, prediction tracking, prematch packs, and post-match proof, but it is not yet a runtime service for generic T20/ODI matches
+- VictoryLine still owns lifecycle-specific fallback wording, while contract-backed reasons and explanation-pack values take precedence when available
 
 ## Integration Target
 
@@ -35,7 +35,7 @@ VictoryLine should become a consumer of public-safe fields, not the main place w
 
 ### 1. `machine_learning_bbl_009-odi-mc-predictor`
 
-Should supply a public-safe prediction payload with:
+Supplies a public-safe prediction payload with:
 
 - `slug`
 - `title`
@@ -55,10 +55,12 @@ Should supply a public-safe prediction payload with:
 - `venue_avg_score`
 - `pressure_zones`
 - `reasons`
+- `prediction_history`
+- `explanation_pack`
 
 ### 2. `trueodds-video-studio`
 
-Should supply reusable explanation-layer enrichments with:
+Contains reusable explanation-layer patterns and source data with:
 
 - plain-language reason packs
 - venue behavior summaries
@@ -66,6 +68,11 @@ Should supply reusable explanation-layer enrichments with:
 - expected score framing
 - turning-point summaries
 - probability-swing recap structures
+- venue confidence and behavior fields in `data/intelligence/venue_intelligence.json`
+- player-role intelligence in `data/intelligence/player_role_intelligence.json`
+- prematch and post-match proof pack shapes in `inputs/packs/` and `compositions/`
+
+The video-studio artifacts are not copied into the public route as stale IPL-only facts. They are treated as schema/presentation inputs until a format- and gender-aware runtime lookup exists.
 
 ### 3. `victoryline-monorepo`
 
@@ -80,18 +87,18 @@ Should only:
 
 ### Phase A: Public payload normalization
 
-Needed next:
+Completed for the current local runtime:
 
-- define or expose one stable backend response shape for match intelligence
-- stop forcing the frontend to guess multiple field aliases
-- include freshness timestamp in a stable field
+- the public model endpoint exposes one safe response shape with a stable `updated_at`
+- the adapter normalizes current aliases before rendering
+- raw feature/debug fields remain excluded
 
 ### Phase B: Explanation-field promotion
 
-Needed next:
+Partially complete:
 
-- promote `insight`, `last_swings`, `reasons`, `pressure_zones`, `venue_avg_score`, and `venue_label` into the response wherever available
-- add completed-match fields:
+- `insight`, `last_swings`, `reasons`, `venue_avg_score`, and explanation-pack fields are promoted and rendered
+- completed-match fields are shaped but still need a real completed-match source:
   - `turning_point`
   - `probability_swing`
 
@@ -108,22 +115,23 @@ Needed next:
 
 ## VictoryLine Refactor Backlog
 
-Once the backend contract is stronger, VictoryLine should:
+Current VictoryLine behavior:
 
-1. remove fallback-first explanation logic where real fields exist
-2. centralize normalization into the data service
-3. keep the component focused on rendering, not inference
+1. contract-backed reasons and explanation-pack values render before fallback wording
+2. normalization is centralized in the match intelligence data service
+3. the component remains a rendering and lifecycle-language layer
 
 ## Video-Studio Reuse Backlog
 
 The strongest reusable modules to promote next are:
 
-1. `reasons`
-2. `venue.summary`
-3. `toss_impact`
-4. `expected_score`
-5. `turning_point`
-6. `probability_swing`
+1. `reasons` -> implemented through the public model payload
+2. `venue.summary` -> implemented as public `venue_behaviour`/venue average where available
+3. `toss_impact` -> implemented as an availability-safe explanation-pack field
+4. `expected_score` -> implemented as the public expected-final explanation field
+5. `turning_point` -> shape implemented; completed-match runtime source pending
+6. `probability_swing` -> shape implemented; completed-match runtime source pending
+7. venue confidence and player-role modules -> pending a generic T20/ODI lookup boundary
 
 These should arrive as plain-language product modules, not reel assets.
 

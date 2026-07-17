@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Component, Inject, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
+import { Component, Inject, Input, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -24,6 +24,20 @@ interface MatchUtilityCard {
   kicker: string;
   title: string;
   body: string;
+}
+
+interface MatchMetricCard {
+  label: string;
+  value: string | null;
+}
+
+interface MatchExplanationPack {
+  venue_behaviour?: string | null;
+  toss_impact?: string | null;
+  expected_score?: number | null;
+  expected_wickets?: number | null;
+  turning_point?: { over?: string; score?: string; label?: string } | null;
+  probability_swing?: { before?: number; after?: number; delta?: number | null } | null;
 }
 
 interface MatchIntelligenceViewModel {
@@ -52,6 +66,34 @@ interface MatchIntelligenceViewModel {
   indexingPolicy: string;
   insightModules: MatchInsightModule[];
   utilityCards: MatchUtilityCard[];
+  scoreLabel: string | null;
+  oversLabel: string | null;
+  projectionLabel: string | null;
+  publicInsight: string | null;
+  relationshipCtaLabel: string;
+  modelLabel: string | null;
+  modelMode: string | null;
+  expectedFinalLabel: string | null;
+  projectedScoreLabel: string | null;
+  inningsLabel: string | null;
+  currentRunRateLabel: string | null;
+  requiredRunRateLabel: string | null;
+  venueAverageLabel: string | null;
+  resourceLabel: string | null;
+  resourceWinProbabilityLabel: string | null;
+  scoreVsParLabel: string | null;
+  pressureLabel: string | null;
+  swingPoints: Array<{ over: string; score: string; probability: number; label: string }>;
+  probabilityPolyline: string;
+  predictionHistory: Array<{ over: string; score: string; probability: number | null; expectedFinal: number | null; projected: number | null }>;
+  pressureNarrative: string;
+  momentumNarrative: string;
+  confidenceNarrative: string;
+  metricCards: MatchMetricCard[];
+  modelReasons: string[];
+  explanationPack: MatchExplanationPack | null;
+  expectedFinalBarWidth: number;
+  venueAverageBarWidth: number;
 }
 
 @Component({
@@ -60,6 +102,7 @@ interface MatchIntelligenceViewModel {
   styleUrls: ['./match-intelligence.component.css']
 })
 export class MatchIntelligenceComponent implements OnInit, OnDestroy {
+  @Input() matchSlug = '';
   slug = '';
   viewModel: MatchIntelligenceViewModel | null = null;
   isLoading = true;
@@ -82,7 +125,7 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.subscriptions.add(
       this.route.paramMap.subscribe((params) => {
-        this.slug = (params.get('slug') || '').trim();
+        this.slug = (this.matchSlug || params.get('slug') || params.get('path') || '').trim();
         this.loadSurface();
       })
     );
@@ -147,6 +190,28 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       lifecycle: this.viewModel.lifecycle,
       interaction_type: 'return_to_match',
       module: 'navigation',
+      surface: 'match-intelligence'
+    });
+  }
+
+  onRelationshipCtaClick(): void {
+    if (!this.viewModel) {
+      return;
+    }
+
+    this.trackOnce('intelligence_relationship_cta', 'alert_cta_click', {
+      match_path: this.viewModel.canonicalMatchPath,
+      intelligence_path: this.viewModel.intelligencePath,
+      lifecycle: this.viewModel.lifecycle,
+      cta: 'probability_updates',
+      surface: 'match-intelligence'
+    });
+
+    this.trackOnce('intelligence_cta_click', 'intelligence_cta_click', {
+      match_path: this.viewModel.canonicalMatchPath,
+      intelligence_path: this.viewModel.intelligencePath,
+      lifecycle: this.viewModel.lifecycle,
+      cta: 'probability_updates',
       surface: 'match-intelligence'
     });
   }
@@ -229,6 +294,34 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       indexingPolicy: 'This route stays noindex until the explanation depth, freshness proof, and distinct search job clear the Spec 044 release gate.',
       insightModules: this.buildInsightModules(lifecycle, probabilityTeam, seo.teams, seo.series),
       utilityCards: this.buildUtilityCards(lifecycle)
+      ,scoreLabel: this.getScoreLabel()
+      ,oversLabel: this.getOversLabel()
+      ,projectionLabel: this.getProjectionLabel()
+      ,publicInsight: this.getPublicInsight()
+      ,relationshipCtaLabel: lifecycle === 'completed' ? 'Get the next match update' : 'Get probability updates'
+      ,modelLabel: this.getModelLabel()
+      ,modelMode: this.getModelMode()
+      ,expectedFinalLabel: this.getExpectedFinalLabel()
+      ,projectedScoreLabel: this.getProjectedScoreLabel()
+      ,inningsLabel: this.getInningsLabel()
+      ,currentRunRateLabel: this.getMetricLabel('current_run_rate', 'CRR ', 2)
+      ,requiredRunRateLabel: this.getMetricLabel('required_run_rate', 'RRR ', 2)
+      ,venueAverageLabel: this.getMetricLabel('venue_average_score', 'Venue average ', 1)
+      ,resourceLabel: this.getMetricLabel('resource_pct', 'Resources ', 1, '%')
+      ,resourceWinProbabilityLabel: this.getMetricLabel('resource_win_probability_pct', 'Resource WP ', 0, '%')
+      ,scoreVsParLabel: this.getMetricLabel('score_vs_par', 'Score vs par pace ', 1)
+      ,pressureLabel: this.getMetricLabel('pressure_index', 'Pressure ', 2)
+      ,swingPoints: this.getSwingPoints()
+      ,probabilityPolyline: this.getProbabilityPolyline()
+      ,predictionHistory: this.getPredictionHistory()
+      ,pressureNarrative: this.getPressureNarrative()
+      ,momentumNarrative: this.getMomentumNarrative()
+      ,confidenceNarrative: this.getConfidenceNarrative()
+      ,metricCards: this.getMetricCards()
+      ,modelReasons: this.getModelReasons()
+      ,explanationPack: this.getExplanationPack()
+      ,expectedFinalBarWidth: this.getComparisonBarWidth(this.getExpectedFinalNumber())
+      ,venueAverageBarWidth: this.getComparisonBarWidth(this.getVenueAverageScore())
     };
 
     this.applyMetaAndSchemas();
@@ -283,6 +376,15 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       surface: 'match-intelligence'
     });
 
+    this.trackOnce('intelligence_cta_impression', 'intelligence_cta_impression', {
+      match_path: this.viewModel.canonicalMatchPath,
+      intelligence_path: this.viewModel.intelligencePath,
+      lifecycle: this.viewModel.lifecycle,
+      cta: 'probability_updates',
+      capability_tier: this.viewModel.capabilityTier,
+      surface: 'match-intelligence'
+    });
+
     if (this.viewModel.modelUnavailable) {
       this.trackOnce('model_unavailable', 'model_unavailable', {
         match_path: this.viewModel.canonicalMatchPath,
@@ -315,7 +417,7 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       return 'Model freshness: updated from current match feed';
     }
     if (this.snapshot && this.snapshot.freshnessState === 'stale') {
-      return 'Model freshness: feed available but freshness timestamp missing';
+      return 'Model freshness: latest feed update is older than five minutes';
     }
     return 'Model freshness: unavailable';
   }
@@ -583,7 +685,9 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       return 'Pre-match context is still forming';
     }
     if (lifecycle === 'completed') {
-      return 'The result is settled, but the explanation layer is not finished yet';
+      return this.getTurningPointLabel()
+        ? 'Turning point: ' + this.getTurningPointLabel()
+        : 'The result is settled, but no contract-backed turning point is available';
     }
     return 'The live state should lead the intelligence story';
   }
@@ -594,6 +698,12 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       return teams + seriesText + ' is still in the preview window, so toss, venue cues, and lineup certainty matter more than any early model direction.';
     }
     if (lifecycle === 'completed') {
+      var turningPoint = this.getTurningPointLabel();
+      var swing = this.getLatestSwingLabel();
+      if (turningPoint) {
+        return teams + seriesText + ' finished with a recorded turning point at ' + turningPoint
+          + (swing ? '. The latest public swing was ' + swing + '.' : '.');
+      }
       return teams + seriesText + ' has moved into the archive state, so this route now needs turning-point review, pressure swings, and final-phase explanation rather than live monitoring language.';
     }
     return teams + seriesText + ' is in an active match window. The best version of this route should connect live score pressure, wickets, over phase, and commentary-backed momentum into one readable view.';
@@ -618,6 +728,12 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
     }
 
     if (lifecycle === 'completed') {
+      var completedTurningPoint = this.getTurningPointLabel();
+      var completedSwing = this.getLatestSwingLabel();
+      if (completedTurningPoint) {
+        return probabilityTeam + ' finished as the strongest side in the public signal. The recorded shift was ' + completedTurningPoint
+          + (completedSwing ? ', with the latest swing described as ' + completedSwing + '.' : '.');
+      }
       return probabilityTeam + ' finished as the strongest side in the public signal, but the completed-state product still needs proper swing explanation: where the pressure flipped, whether the model was early or late, and which phase actually settled the result.';
     }
 
@@ -705,10 +821,227 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
     return value ? String(value).trim() || null : null;
   }
 
+  private getScoreLabel(): string | null {
+    var data = this.snapshot ? this.snapshot.matchData : null;
+    var prediction = this.snapshot ? this.snapshot.publicPrediction : null;
+    return (data && (data.score || data.scoreline)) || (prediction && prediction.score) || null;
+  }
+
+  private getOversLabel(): string | null {
+    var data = this.snapshot ? this.snapshot.matchData : null;
+    var prediction = this.snapshot ? this.snapshot.publicPrediction : null;
+    var overs = (data && (data.overs || data.over)) || (prediction && prediction.overs);
+    return overs ? String(overs) + ' overs' : null;
+  }
+
   private getProjectionLabel(): string | null {
     var data = this.snapshot && this.snapshot.matchData;
     var value = data ? (data.projection_label || data.projectionLabel) : null;
     return value ? String(value).trim() || null : null;
+  }
+
+  private getModelLabel(): string | null {
+    var data = this.snapshot && this.snapshot.matchData;
+    var value = data ? (data.model_label || data.modelLabel) : null;
+    return value ? String(value).trim() || null : null;
+  }
+
+  private getModelMode(): string | null {
+    var data = this.snapshot && this.snapshot.matchData;
+    var value = data ? (data.model_mode || data.modelMode) : null;
+    return value ? String(value).trim() || null : null;
+  }
+
+  private getExpectedFinalLabel(): string | null {
+    var data = this.snapshot && this.snapshot.matchData;
+    var value = data ? data.expected_final_score : null;
+    return value === null || value === undefined ? null : 'Expected final ' + Math.round(Number(value));
+  }
+
+  private getExpectedFinalNumber(): number | null {
+    var data = this.snapshot && this.snapshot.matchData;
+    var value = data ? data.expected_final_score : null;
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    var parsed = parseFloat(String(value));
+    return isFinite(parsed) ? parsed : null;
+  }
+
+  private getComparisonBarWidth(value: number | null): number {
+    var expected = this.getExpectedFinalNumber();
+    var venue = this.getVenueAverageScore();
+    var maximum = Math.max(expected || 0, venue || 0, 1);
+    var safeValue = typeof value === 'number' && isFinite(value) ? value : 0;
+    return Math.max(0, Math.min(100, (safeValue / maximum) * 100));
+  }
+
+  private getProjectedScoreLabel(): string | null {
+    var data = this.snapshot && this.snapshot.matchData;
+    var value = data ? data.projected_score : null;
+    return value === null || value === undefined ? null : 'Run-rate projection ' + Math.round(Number(value));
+  }
+
+  private getMetricLabel(key: string, prefix: string, digits: number, suffix = ''): string | null {
+    var data = this.snapshot && this.snapshot.matchData;
+    var value = data ? data[key] : null;
+    return value === null || value === undefined ? null : prefix + Number(value).toFixed(digits) + suffix;
+  }
+
+  private getInningsLabel(): string | null {
+    var data = this.snapshot && this.snapshot.matchData;
+    var prediction = this.snapshot && this.snapshot.publicPrediction;
+    var value = data && data.innings !== undefined && data.innings !== null
+      ? data.innings
+      : prediction && prediction.innings;
+    if (value !== undefined && value !== null) {
+      return 'Innings ' + Number(value).toFixed(0);
+    }
+    // A target/required rate is only present once the chase has started.
+    if (data && (data.target !== undefined || data.required_run_rate !== undefined || data.runs_required !== undefined)) {
+      return 'Innings 2';
+    }
+    return null;
+  }
+
+  private getSwingPoints(): Array<{ over: string; score: string; probability: number; label: string }> {
+    var history = this.getPredictionHistory();
+    if (history.length) {
+      return history.filter((point) => point.probability !== null).map((point, index, points) => ({
+        over: point.over,
+        score: point.score,
+        probability: point.probability as number,
+        label: index > 0 ? ((point.probability as number) - (points[index - 1].probability as number)).toFixed(0) + '%' : 'start'
+      }));
+    }
+    var data = this.snapshot && this.snapshot.matchData;
+    var publicPrediction = this.snapshot && this.snapshot.publicPrediction;
+    var swings = (data && data.last_swings) || (publicPrediction && publicPrediction.last_swings) || [];
+    var mappedSwings = swings.filter((point: any) => point && point.win_probability_pct !== null && point.win_probability_pct !== undefined).map((point: any) => ({
+      over: String(point.over || ''),
+      score: String(point.score || ''),
+      probability: Number(point.win_probability_pct),
+      label: String(point.label || '')
+    }));
+    if (mappedSwings.length) {
+      return mappedSwings;
+    }
+    var currentProbability = publicPrediction && publicPrediction.win_probability_pct;
+    if (currentProbability === null || currentProbability === undefined) {
+      currentProbability = data && (data.win_probability_pct || data.winProbabilityPct);
+    }
+    if (typeof currentProbability === 'number') {
+      return [{
+        over: String((data && (data.overs || data.over)) || 'Now'),
+        score: String((data && data.score) || 'Current state'),
+        probability: Math.max(0, Math.min(100, Number(currentProbability))),
+        label: 'current'
+      }];
+    }
+    return [];
+  }
+
+  private getProbabilityPolyline(): string {
+    var points = this.getSwingPoints();
+    if (!points.length) {
+      return '';
+    }
+    var width = 320;
+    var height = 130;
+    var step = points.length === 1 ? width : width / (points.length - 1);
+    return points.map((point, index) => {
+      var x = Math.round(index * step);
+      var y = Math.round(height - (Math.max(0, Math.min(100, point.probability)) / 100) * height);
+      return x + ',' + y;
+    }).join(' ');
+  }
+
+  private getPredictionHistory(): Array<{ over: string; score: string; probability: number | null; expectedFinal: number | null; projected: number | null }> {
+    var history = this.snapshot && this.snapshot.publicPrediction && this.snapshot.publicPrediction.prediction_history;
+    return (history || []).map((point) => ({
+      over: point.over || '',
+      score: point.score || '',
+      probability: typeof point.win_probability_pct === 'number' ? Math.max(0, Math.min(100, point.win_probability_pct)) : null,
+      expectedFinal: typeof point.expected_final_score === 'number' ? point.expected_final_score : null,
+      projected: typeof point.projected_score === 'number' && point.projected_score > 0 ? point.projected_score : null
+    }));
+  }
+
+  private getPressureNarrative(): string {
+    var data = this.snapshot && this.snapshot.matchData;
+    var pressure = data && data.pressure_index;
+    var rrr = data && data.required_run_rate;
+    if (pressure === null || pressure === undefined) {
+      return 'Pressure commentary will appear when the model exposes a live resource snapshot.';
+    }
+    if (rrr !== null && rrr !== undefined && Number(rrr) > 8) {
+      return 'The required rate is elevated, so the current resource position is carrying meaningful chase pressure.';
+    }
+    return Number(pressure) > 0 ? 'The model sees measurable pressure against the current resource position.' : 'The current resource position is broadly balanced.';
+  }
+
+  private getMomentumNarrative(): string {
+    var points = this.getSwingPoints();
+    if (points.length < 2) {
+      return 'Momentum will become clearer after more probability updates accumulate.';
+    }
+    var delta = points[points.length - 1].probability - points[0].probability;
+    return Math.abs(delta) < 3
+      ? 'The recent probability path is relatively stable.'
+      : (delta > 0 ? 'Recent updates have moved toward the batting side.' : 'Recent updates have moved toward the bowling side.') + ' The timeline shows the direction rather than a certainty.';
+  }
+
+  private getConfidenceNarrative(): string {
+    var probability = this.resolveWinProbability();
+    var freshness = this.snapshot && this.snapshot.freshnessState;
+    if (probability === null || freshness === 'unavailable') {
+      return 'Confidence cannot be described until a current public model probability is available.';
+    }
+    if (freshness === 'stale') {
+      return 'The direction is available, but confidence is reduced because this model update is older than the freshness window.';
+    }
+    var distanceFromEven = Math.abs(probability - 50);
+    if (distanceFromEven < 8) {
+      return 'The model sees a finely balanced match; small score or resource changes can move the direction.';
+    }
+    if (distanceFromEven < 20) {
+      return 'The model has a moderate lean, but the balance can still change with the next meaningful phase.';
+    }
+    return 'The current model lean is pronounced, while the timeline and freshness label show why it should not be read as certainty.';
+  }
+
+  private getMetricCards(): MatchMetricCard[] {
+    return [
+      { label: 'Batting', value: this.getTeamMetric('batting_team') || this.resolveProbabilityTeam() },
+      { label: 'Bowling', value: this.getTeamMetric('bowling_team') },
+      { label: 'Innings', value: this.getInningsLabel() },
+      { label: 'CRR', value: this.getMetricLabel('current_run_rate', 'CRR ', 2) },
+      { label: 'RRR', value: this.getMetricLabel('required_run_rate', 'RRR ', 2) },
+      { label: 'Expected final', value: this.getExpectedFinalLabel() },
+      { label: 'Venue average', value: this.getMetricLabel('venue_average_score', 'Venue average ', 1) },
+      { label: 'Resources', value: this.getMetricLabel('resource_pct', 'Resources ', 1, '%') },
+      { label: 'Resource WP', value: this.getMetricLabel('resource_win_probability_pct', 'Resource WP ', 0, '%') },
+      { label: 'Par pace', value: this.getMetricLabel('score_vs_par', 'Score vs par pace ', 1) },
+      { label: 'Pressure', value: this.getMetricLabel('pressure_index', 'Pressure ', 2) }
+    ];
+  }
+
+  private getTeamMetric(key: string): string | null {
+    var data = this.snapshot && this.snapshot.matchData;
+    var value = data ? data[key] : null;
+    return value === null || value === undefined ? null : String(value).trim() || null;
+  }
+
+  private getModelReasons(): string[] {
+    var reasons = this.snapshot && this.snapshot.publicPrediction && this.snapshot.publicPrediction.reasons;
+    return Array.isArray(reasons)
+      ? reasons.filter((reason) => !!String(reason || '').trim()).slice(0, 3)
+      : [];
+  }
+
+  private getExplanationPack(): MatchExplanationPack | null {
+    var pack = this.snapshot && this.snapshot.publicPrediction && this.snapshot.publicPrediction.explanation_pack;
+    return pack || null;
   }
 
   private getVenueLabel(): string | null {

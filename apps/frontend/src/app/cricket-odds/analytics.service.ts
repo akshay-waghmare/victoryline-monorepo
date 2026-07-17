@@ -10,13 +10,25 @@ export class AnalyticsService {
   constructor() {}
 
   trackEvent(eventName: string, properties?: Record<string, any>) {
-    // Placeholder: integrate with backend analytics or third-party (GA, Mixpanel, etc.)
-    console.log('[Analytics]', eventName, properties || {});
-    
-    // Example integration point:
-    // if (window['gtag']) {
-    //   window['gtag']('event', eventName, properties);
-    // }
+    var payload = properties || {};
+    console.log('[Analytics]', eventName, payload);
+
+    // Use whichever provider the host page has configured, while keeping
+    // local SSR and provider-less development safe.
+    if (typeof window !== 'undefined') {
+      var host = window as any;
+      if (typeof host.gtag === 'function') {
+        host.gtag('event', eventName, payload);
+      }
+      if (Array.isArray(host.dataLayer)) {
+        host.dataLayer.push(Object.assign({ event: eventName }, payload));
+      }
+      if (typeof host.dispatchEvent === 'function' && typeof CustomEvent !== 'undefined') {
+        host.dispatchEvent(new CustomEvent('crickzen:analytics', {
+          detail: { eventName: eventName, properties: payload }
+        }));
+      }
+    }
   }
 
   // Predefined event helpers
@@ -34,6 +46,10 @@ export class AnalyticsService {
 
   trackStalenessStateChange(matchId: string, level: string, secondsSinceUpdate: number) {
     this.trackEvent('staleness_state_change', { match_id: matchId, level, seconds_since_update: secondsSinceUpdate });
+  }
+
+  trackIntelligenceEvent(eventName: string, properties?: Record<string, any>) {
+    this.trackEvent(eventName, properties || {});
   }
 
   // Performance mark helpers

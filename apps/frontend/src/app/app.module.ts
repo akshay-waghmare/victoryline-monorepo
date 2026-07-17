@@ -59,7 +59,6 @@ const stompConfig: StompConfig = {
   declarations: [
     AppComponent,
     AdminLayoutsComponent,
-    LoginComponent,
     LoaderComponent,
     ElapsedTimePipe,
     

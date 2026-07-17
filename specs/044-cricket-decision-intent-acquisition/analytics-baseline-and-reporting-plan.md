@@ -19,6 +19,8 @@ That part is still blocked on access to the live analytics destinations and Sear
 - route-level interaction events are instrumented
 - canonical CTA events are instrumented
 - intent-ledger fields are defined at the spec level
+- `AnalyticsService.trackEvent` forwards events to configured `gtag`, `dataLayer`, and a `crickzen:analytics` DOM event, while remaining safe when no provider is installed.
+- A focused bridge test covers `prediction_view` forwarding.
 
 ### What is not yet proved
 

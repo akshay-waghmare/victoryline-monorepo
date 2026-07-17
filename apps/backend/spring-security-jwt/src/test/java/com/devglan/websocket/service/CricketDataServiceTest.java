@@ -3,13 +3,16 @@ package com.devglan.websocket.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.Test;
 import org.springframework.messaging.core.MessageSendingOperations;
 import org.springframework.messaging.simp.broker.BrokerAvailabilityEvent;
 
+import com.devglan.dao.OversData;
 import com.devglan.repository.CricketDataRepository;
 import com.devglan.dao.CricketDataDTO;
 
@@ -74,5 +77,21 @@ public class CricketDataServiceTest {
         assertThat(destinationRef.get())
                 .isEqualTo("/topic/cricket.match.dc-vs-lsg-5th-match-indian-premier-league-2026-match-updates-10Y3.snapshot");
         assertThat(payloadRef.get()).isSameAs(snapshot);
+    }
+
+    @Test
+    public void copyOversDataDetachesNestedBallLists() {
+        OversData over = new OversData();
+        over.setId(12L);
+        over.setOverNumber("9");
+        over.setTotalRuns("14");
+        over.setBalls(Arrays.asList("1", "4", "W"));
+
+        List<OversData> copied = CricketDataService.copyOversData(Collections.singletonList(over));
+
+        assertThat(copied).hasSize(1);
+        assertThat(copied.get(0)).isNotSameAs(over);
+        assertThat(copied.get(0).getBalls()).containsExactly("1", "4", "W");
+        assertThat(copied.get(0).getBalls()).isNotSameAs(over.getBalls());
     }
 }

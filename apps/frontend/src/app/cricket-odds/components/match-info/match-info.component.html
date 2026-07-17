@@ -28,11 +28,14 @@
       </section>
     </header>
 
-    <section class="compact-section" *ngIf="formSections.length > 0" aria-label="Recent team form">
-      <div class="section-heading">
-        <h3 class="section-title">Recent form</h3>
-        <span class="section-kicker">Last few outings at a glance</span>
-      </div>
+    <details class="compact-section match-info-disclosure" open *ngIf="formSections.length > 0">
+      <summary class="match-info-disclosure__summary">
+        <span>
+          <strong>Recent form</strong>
+          <small>Last few outings at a glance</small>
+        </span>
+        <mat-icon aria-hidden="true">expand_more</mat-icon>
+      </summary>
 
       <div class="form-grid">
         <article class="form-card" *ngFor="let team of formSections">
@@ -84,13 +87,16 @@
           </div>
         </article>
       </div>
-    </section>
+    </details>
 
-    <section class="compact-section" *ngIf="showComparisonSection" aria-label="Team comparison">
-      <div class="section-heading">
-        <h3 class="section-title">Team comparison</h3>
-        <span class="section-kicker">Side-by-side baseline</span>
-      </div>
+    <details class="compact-section match-info-disclosure" open *ngIf="showComparisonSection">
+      <summary class="match-info-disclosure__summary">
+        <span>
+          <strong>Team comparison</strong>
+          <small>Side-by-side baseline</small>
+        </span>
+        <mat-icon aria-hidden="true">expand_more</mat-icon>
+      </summary>
 
       <div class="comparison-card">
         <div class="comparison-card__header">
@@ -105,13 +111,16 @@
           <div class="comparison-row__value comparison-row__value--right">{{ row.secondValue }}</div>
         </div>
       </div>
-    </section>
+    </details>
 
-    <section class="compact-section" *ngIf="showVenueSection" aria-label="Venue trends">
-      <div class="section-heading">
-        <h3 class="section-title">Venue snapshot</h3>
-        <span class="section-kicker">{{ venueName }}</span>
-      </div>
+    <details class="compact-section match-info-disclosure" *ngIf="showVenueSection">
+      <summary class="match-info-disclosure__summary">
+        <span>
+          <strong>Venue snapshot</strong>
+          <small>{{ venueName }}</small>
+        </span>
+        <mat-icon aria-hidden="true">expand_more</mat-icon>
+      </summary>
 
       <p class="section-copy" *ngIf="venueHeadline">{{ venueHeadline }}</p>
 
@@ -122,13 +131,16 @@
           <div class="mini-stat-card__hint" *ngIf="stat.hint">{{ stat.hint }}</div>
         </article>
       </div>
-    </section>
+    </details>
 
-    <section class="compact-section" *ngIf="officialsList.length > 0" aria-label="Match officials">
-      <div class="section-heading">
-        <h3 class="section-title">Officials</h3>
-        <span class="section-kicker">Match crew</span>
-      </div>
+    <details class="compact-section match-info-disclosure" *ngIf="officialsList.length > 0">
+      <summary class="match-info-disclosure__summary">
+        <span>
+          <strong>Officials</strong>
+          <small>Match crew</small>
+        </span>
+        <mat-icon aria-hidden="true">expand_more</mat-icon>
+      </summary>
 
       <dl class="officials-list">
         <div class="official-item" *ngFor="let official of officialsList">
@@ -136,7 +148,7 @@
           <dd>{{ official.value }}</dd>
         </div>
       </dl>
-    </section>
+    </details>
   </div>
 
   <div class="loading-state" *ngIf="isLoading" role="status" aria-live="polite">

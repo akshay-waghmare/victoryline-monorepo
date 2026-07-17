@@ -461,6 +461,12 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
         if (entity != null) {
             Hibernate.initialize(entity.getMatchOdds());
             Hibernate.initialize(entity.getTeamWiseSessionData()); // Explicitly initialize
+            Hibernate.initialize(entity.getOversData());
+            if (entity.getOversData() != null) {
+                for (OversData oversData : entity.getOversData()) {
+                    Hibernate.initialize(oversData.getBalls());
+                }
+            }
         }
         if (matchInfoEntity != null) {
             Hibernate.initialize(matchInfoEntity.getTeamComparison());
@@ -658,6 +664,12 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
     	if (entity != null) {
     		Hibernate.initialize(entity.getMatchOdds());
             Hibernate.initialize(entity.getTeamWiseSessionData()); // Explicitly initialize
+            Hibernate.initialize(entity.getOversData());
+            if (entity.getOversData() != null) {
+                for (OversData oversData : entity.getOversData()) {
+                    Hibernate.initialize(oversData.getBalls());
+                }
+            }
         }
         return convertEntityToDto(entity);
     	
@@ -764,11 +776,11 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
 		data.setFavTeam(entity.getFavTeam());
 		// Convert multiple session odds
 		if (entity.getSessionOddsSet() != null && !entity.getSessionOddsSet().isEmpty()) {
-			data.setSessionOddsList(entity.getSessionOddsSet());
+		data.setSessionOddsList(entity.getSessionOddsSet());
 		}
 		data.setCurrentRunRate(entity.getCurrentRunRate());
 		data.setFinalResultText(entity.getFinalResultText());
-		data.setOversData(entity.getOversData());
+		data.setOversData(copyOversData(entity.getOversData()));
 		data.setUpdatedTimeStamp(entity.getUpdatedTimeStamp());
 		if (entity.getLastOddsUpdatedTimeStamp() == null) {
 			data.setLastUpdated(0l);
@@ -790,5 +802,27 @@ public class CricketDataService implements ApplicationListener<BrokerAvailabilit
 		}
 		return data;
 	}
+
+    static List<OversData> copyOversData(List<OversData> source) {
+        if (source == null || source.isEmpty()) {
+            return source;
+        }
+
+        List<OversData> copy = new ArrayList<>();
+        for (OversData original : source) {
+            if (original == null) {
+                continue;
+            }
+            OversData cloned = new OversData();
+            cloned.setId(original.getId());
+            cloned.setOverNumber(original.getOverNumber());
+            cloned.setTotalRuns(original.getTotalRuns());
+            if (original.getBalls() != null) {
+                cloned.setBalls(new ArrayList<>(original.getBalls()));
+            }
+            copy.add(cloned);
+        }
+        return copy;
+    }
 
 }

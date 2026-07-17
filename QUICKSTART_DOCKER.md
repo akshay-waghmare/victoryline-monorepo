@@ -47,8 +47,12 @@ docker compose build
 
 ### Step 3: Start All Services
 ```powershell
-docker compose up -d
+.\scripts\Start-LocalStack.ps1
 ```
+
+This starts the Docker web stack together with the Match Intelligence dashboard
+and automatic T20/ODI prediction workflow. Use `-CleanStart` after an
+interrupted session, or `-BuildFrontend` after frontend source changes.
 
 ---
 
@@ -57,6 +61,9 @@ docker compose up -d
 ```powershell
 # Check all services are running
 docker compose ps
+
+# Check Match Intelligence
+Invoke-RestMethod http://127.0.0.1:8000/health
 
 # View logs
 docker compose logs -f

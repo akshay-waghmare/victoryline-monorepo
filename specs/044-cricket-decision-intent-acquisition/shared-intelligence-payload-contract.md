@@ -57,6 +57,7 @@ Key reusable public-safe fields already present there:
 - `venue`
 - `target`
 - `last_swings`
+- `prediction_history`
 - `dashboard_url`
 
 Pre-match-safe structures already present there:
@@ -137,6 +138,9 @@ Every field in the shared payload must be classified into one of these layers:
 | `bowling_team` | model-layer, public-safe | model repo | current bowling team |
 | `target` | model-layer, public-safe | model repo | chase target when available |
 | `projection_label` | model-layer, public-safe | model repo | projected score or chase pressure label |
+| `innings` | model-layer, public-safe | model repo | current innings number |
+| `current_run_rate` | model-layer, public-safe | model repo | current score divided by completed overs |
+| `required_run_rate` | model-layer, public-safe | model repo | runs required divided by overs remaining; zero outside a chase |
 
 ### C. Probability And Freshness
 
@@ -156,9 +160,31 @@ These are safe for the first public release and should power the default intelli
 |---|---|---|---|
 | `insight` | explanation-layer, public-safe | model repo | one-sentence public insight from `build_public_insight()` |
 | `last_swings` | explanation-layer, public-safe | model repo | capped recent swing points |
+| `prediction_history` | explanation-layer, public-safe | model repo | capped update-level over, score, probability, expected-final, and projected-score points for Manhattan/worm and prediction-over-time views |
+| `expected_final_score` | model-layer, public-safe | model repo | DLS/resource-calculator expected completed-innings score |
+| `projected_score` | model-layer, public-safe | model repo | run-rate projection; distinct from expected final |
+| `venue_average_score` | explanation-layer, public-safe | model repo | full-innings venue scoring baseline |
+| `resource_pct` | model-layer, public-safe | model repo | resource percentage remaining from the model calculator |
+| `resource_win_probability_pct` | model-layer, public-safe | model repo | resource-only structural win probability |
+| `score_vs_par` | model-layer, public-safe | model repo | current score minus resource-adjusted par pace |
+| `pressure_index` | explanation-layer, public-safe | model repo | normalized live pressure signal |
 | `what_changed` | explanation-layer, public-safe | derived from model repo swings + match state | human-readable change summary |
 | `why_it_changed` | explanation-layer, public-safe | victoryline initially, later hybrid | should become contract-driven |
 | `what_matters_next` | explanation-layer, public-safe | victoryline initially, later hybrid | next decisive factor |
+| `explanation_pack` | explanation-layer, public-safe | model repo, shaped by trueodds-video-studio patterns | venue behaviour, toss readiness, expected score/wickets, turning point, and probability swing; no player or market fields |
+
+### Explanation Pack Shape
+
+The public `explanation_pack` deliberately reuses the existing video-studio intelligence concepts without importing its renderer or exposing operator data:
+
+- `venue_behaviour`: descriptive above/below venue-baseline context
+- `toss_impact`: honest readiness text until toss context exists
+- `expected_score`: resource-calculator expected completed-innings score
+- `expected_wickets`: safe expected-wicket metric when supplied by inference
+- `turning_point`: latest public swing point with over, score, and label
+- `probability_swing`: before/after probability values and delta
+
+Player picks, risky/safe player lists, market replay, raw model blend, and Monte Carlo details remain excluded.
 
 ### E. Pre-Match Modules
 

@@ -46,6 +46,21 @@ describe('ScorecardComponent', () => {
     expect(component.getDismissalText('batter_1', 'inning_1')).toBe('c & b Shami');
   });
 
+  it('renders numeric caught dismissal with resolved participants', () => {
+    component.scorecardInfo = {
+      match_stats_by_innings: { innings: {
+        inning_1: { batsman_stats: {
+          batter_1: {
+            status: 'dismissed', dismissal_code: '2',
+            bowler_name: 'Kirstie Gordon', player_caught_name: 'Mady Villiers'
+          }
+        }}
+      }}
+    };
+    component.ngOnInit();
+    expect(component.getDismissalText('batter_1', 'inning_1')).toBe('caught Mady Villiers b Kirstie Gordon');
+  });
+
   it('should prefer player_name for bowler detail identity and display', () => {
     component.scorecardInfo = {
       match_stats_by_innings: {
