@@ -1018,6 +1018,36 @@
 }
 
 @media (min-width: 768px) {
+  /* Keep the normal 100% desktop view as dense as the 80% reference view,
+     without shrinking the score values users need to read. */
+  .container {
+    padding: 12px 12px 26px;
+  }
+
+  .home__hero,
+  .home__matches,
+  .home__news,
+  .home__state {
+    margin-bottom: 16px;
+  }
+
+  .home__series-nav--top {
+    margin-bottom: 14px;
+    padding: 8px 10px;
+  }
+
+  .home__series-links a {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: .72rem;
+  }
+
+  .home__section-title,
+  .home__news-title,
+  .home__state-title {
+    font-size: 1.16rem;
+  }
+
   .home__carousel > * {
     flex: 0 0 calc(50% - 8px);
   }
