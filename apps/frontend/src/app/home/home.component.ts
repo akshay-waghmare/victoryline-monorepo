@@ -297,6 +297,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     if (/pondicherry-premier-league-2026/.test(matchUrl) || /pondicherry|villianur mohit|ruby white town|\bvmk\b.*\brwt\b|\brwt\b.*\bvmk\b/.test(matchUrl + ' ' + teams + ' ' + value.toLowerCase())) {
       return 'PPL 2026';
     }
+    if (/lanka-premier-league-2026|lpl-2026/.test(matchUrl) || /galle gallants|jaffna kings|\bgg\b.*\b(?:jk|jks)\b|\b(?:jk|jks)\b.*\bgg\b/.test(matchUrl + ' ' + teams + ' ' + value.toLowerCase())) {
+      return 'LPL 2026';
+    }
 
     // Scraper labels sometimes prepend the teams, start time, and fixture name
     // before the actual competition after a comma.
