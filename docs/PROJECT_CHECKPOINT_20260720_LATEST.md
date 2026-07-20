@@ -4,6 +4,8 @@ This checkpoint consolidates the latest Git history and the current uncommitted 
 
 ## Recent committed checkpoints
 
+- `3d867d3` — `Allow public trust pages through SSR`
+- `4338286` — `Document frontend checkpoint and verification`
 - `c236119` — `Checkpoint frontend surfaces and match intelligence`
 - `535ccec` — `Checkpoint match surfaces and route SEO updates`
 - `761d9da` — `Document current Crickzen project checkpoint`
@@ -66,6 +68,22 @@ The checkpoint also includes public/admin layout routing, compact navbar styling
 - Duplicate `Live` status/state labels collapse to one badge. Model labels are humanized into public-safe labels such as `Crickzen T20 Match Model`.
 - Regression coverage includes over parsing and two-innings chart placement.
 
+### SSR route allowlist follow-up
+
+- Added `/about` and `/contact` to the Express SSR known-route allowlist in `apps/frontend/server.js` so direct production requests render these Angular routes instead of returning the SSR 404 response.
+
+## Production rollout — 2026-07-20
+
+- Pushed branch `008-match-title-seo` through commit `3d867d3`.
+- Built and pushed only the frontend image `macubex/victoryline-frontend:20260720-3d867d3`.
+- Deployed only the production `frontend` service. The backend, scraper, Caddy proxy, Redis, database/volumes, and unrelated dirty server-tree changes were left untouched.
+- Production `.env` backups were created before each frontend switch: `.env.bak.20260720-4338286` and `.env.bak.20260720-3d867d3`.
+- The running production frontend is healthy on digest `sha256:f60db45e079b6cbe0b86625b51c689daefb59967f2cbd4cd1a160e5819bfcffe`.
+- Public verification returned HTTP 200 for `/`, `/about`, `/contact`, `/privacy-policy`, `/terms-of-service`, `/robots.txt`, `/sitemap.xml`, and `/api/v1/seo/indexing/status`.
+- A production Match Intelligence route returned HTTP 200 with one H1, one canonical, and the chart shell present in SSR HTML. A sampled production match route also returned HTTP 200.
+- The read-only SEO preflight found 2,606 unique sitemap URLs, zero duplicates, 2,597 match URLs, and zero failures.
+- Local Docker cleanup reclaimed 4.156 GB of build cache. Volumes and running containers were preserved.
+
 ## Verification
 
 - `npx tsc -p src/tsconfig.app.json --noEmit` passes.
@@ -78,8 +96,8 @@ The checkpoint also includes public/admin layout routing, compact navbar styling
 
 ## Documentation gaps closed after c236119
 
-This file now records the public trust surfaces, the homepage-to-scorecard data-flow decision, the Chart.js/SSR boundary, the cricket-over conversion rule, the duplicate-status cleanup, and the exact local verification evidence that were previously only visible in source or chat.
+This file now records the public trust surfaces, the homepage-to-scorecard data-flow decision, the Chart.js/SSR boundary, the cricket-over conversion rule, the duplicate-status cleanup, the SSR allowlist follow-up, the production image/deployment boundary, and the exact verification evidence that were previously only visible in source or chat.
 
 ## Commit status
 
-The implementation checkpoint is `c236119`. This documentation update is the follow-up record for the same 2026-07-20 work session and is committed separately so the final worktree can be verified clean.
+The implementation checkpoint is `3d867d3`. This documentation update is the final follow-up record for the same 2026-07-20 work session and is committed separately so the final worktree can be verified clean.
