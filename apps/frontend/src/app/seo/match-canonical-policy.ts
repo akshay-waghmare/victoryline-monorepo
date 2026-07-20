@@ -1,4 +1,4 @@
-export type MatchRouteSurface = 'base' | 'live' | 'commentary' | 'scorecard' | 'report' | 'legacy' | 'unknown';
+export type MatchRouteSurface = 'base' | 'live' | 'commentary' | 'scorecard' | 'details' | 'lineups' | 'report' | 'legacy' | 'unknown';
 
 export type MatchLifecycleState = 'prematch' | 'live' | 'postmatch' | 'unknown';
 
@@ -27,6 +27,8 @@ export interface MatchSurfacePolicyMap {
   live: MatchCanonicalDisposition;
   commentary: MatchCanonicalDisposition;
   scorecard: MatchCanonicalDisposition;
+  details: MatchCanonicalDisposition;
+  lineups: MatchCanonicalDisposition;
   report: MatchCanonicalDisposition;
   legacy: MatchCanonicalDisposition;
   unknown: MatchCanonicalDisposition;
@@ -37,6 +39,8 @@ export const DEFAULT_MATCH_SURFACE_POLICY: MatchSurfacePolicyMap = {
   live: 'base',
   commentary: 'base',
   scorecard: 'base',
+  details: 'base',
+  lineups: 'base',
   report: 'base',
   legacy: 'base',
   unknown: 'noindex'

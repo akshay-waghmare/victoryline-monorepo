@@ -75,7 +75,6 @@
                         <mat-icon>speaker_notes</mat-icon>
                         <span>{{ getCommentarySectionTitle() }}</span>
                       </h3>
-                      <p class="commentary-subtitle">{{ getCommentaryHeaderNote() }}</p>
                     </div>
                     <div class="commentary-status" [ngClass]="{ 'commentary-status--live': isCommentaryLive() }">
                       <span class="live-dot" *ngIf="isCommentaryLive()"></span>
@@ -455,10 +454,10 @@
             </div>
 
             <nav class="cricket-odds__intent-links" aria-label="Jump to match sections">
-              <a href="#commentary" (click)="jumpToMatchSection('commentary', $event)">{{ getCommentaryJumpLabel() }}</a>
-              <a href="#scorecard" (click)="jumpToMatchSection('scorecard', $event)">{{ getScorecardJumpLabel() }}</a>
-              <a href="#lineups" (click)="jumpToMatchSection('lineups', $event)">{{ getLineupsJumpLabel() }}</a>
-              <a href="#match-info" (click)="jumpToMatchSection('details', $event)">{{ getDetailsJumpLabel() }}</a>
+              <a [attr.href]="getMatchEntityNavigationHref('commentary')">{{ getCommentaryJumpLabel() }}</a>
+              <a [attr.href]="getMatchEntityNavigationHref('scorecard')">{{ getScorecardJumpLabel() }}</a>
+              <a [attr.href]="getMatchEntityNavigationHref('lineups')">{{ getLineupsJumpLabel() }}</a>
+              <a [attr.href]="getMatchEntityNavigationHref('details')">{{ getDetailsJumpLabel() }}</a>
             </nav>
 
             <div class="cricket-odds__intent-grid">

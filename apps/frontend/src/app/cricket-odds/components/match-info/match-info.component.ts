@@ -148,7 +148,16 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
       return 'Format not available';
     }
 
-    return source.format || this.inferFormat(source.match_name) || 'Format not available';
+    return source.format
+      || source.match_format
+      || source.matchFormat
+      || source.match_type
+      || source.matchType
+      || source.game_format
+      || this.inferFormat(source.match_name)
+      || this.inferFormat(source.series_name)
+      || this.inferFormat(this.matchId)
+      || 'Format not available';
   }
 
   get matchStatus(): string {
@@ -341,10 +350,6 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
       }
 
       return 'Fixture details are filling in ahead of the start time.';
-    }
-
-    if (this.tossInfo !== 'Toss information not available') {
-      return this.tossInfo;
     }
 
     if (summary) {

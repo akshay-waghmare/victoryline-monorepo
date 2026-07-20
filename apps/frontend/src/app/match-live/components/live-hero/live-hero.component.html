@@ -76,19 +76,16 @@
             <span>{{ view.score.overs }} ov</span>
             <span>{{ view.score.runRateLabel }}</span>
           </div>
-        </div>
-
-        <div class="live-hero__pod live-hero__pod--context">
-          <ng-container *ngIf="getResultSummary(view) as resultSummary; else liveChaseSummary">
-            <div class="chase-summary">
-              {{ resultSummary }}
-            </div>
-          </ng-container>
-          <ng-template #liveChaseSummary>
-            <div class="chase-summary" *ngIf="shouldShowChaseSummary(view)">
-              {{ view.score.teamName }} need {{ view.chase.runsRemaining }} runs in {{ view.chase.ballsRemaining }} balls
-            </div>
-          </ng-template>
+          <div class="live-hero__context-line">
+            <ng-container *ngIf="getResultSummary(view) as resultSummary; else liveChaseSummary">
+              <span>{{ resultSummary }}</span>
+            </ng-container>
+            <ng-template #liveChaseSummary>
+              <span *ngIf="shouldShowChaseSummary(view)">
+                {{ view.score.teamName }} need {{ view.chase.runsRemaining }} runs in {{ view.chase.ballsRemaining }} balls
+              </span>
+            </ng-template>
+          </div>
         </div>
       </div>
       </ng-template>

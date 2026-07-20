@@ -74,7 +74,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   filterTabs: Tab[] = [
     { id: MatchStatus.LIVE, label: 'Live', icon: 'sports_cricket', count: 0 },
     { id: MatchStatus.UPCOMING, label: 'Upcoming', icon: 'schedule', count: 0 },
-    { id: MatchStatus.COMPLETED, label: 'Results', icon: 'check_circle', count: 0 }
+    { id: MatchStatus.COMPLETED, label: 'Recent', icon: 'check_circle', count: 0 }
   ];
   
   // Expose MatchStatus enum to template
@@ -185,7 +185,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     this.filterTabs = [
       { id: MatchStatus.LIVE, label: 'Live', icon: 'sports_cricket', count: this.liveMatchesCount },
       { id: MatchStatus.UPCOMING, label: 'Upcoming', icon: 'schedule', count: this.upcomingMatchesCount },
-      { id: MatchStatus.COMPLETED, label: 'Results', icon: 'check_circle', count: this.completedMatchesCount }
+      { id: MatchStatus.COMPLETED, label: 'Recent', icon: 'check_circle', count: this.completedMatchesCount }
     ];
   }
   
@@ -353,18 +353,6 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     return link.type + '-' + index;
   }
 
-  getStatusCardSummary(status: MatchStatus): string {
-    switch (status) {
-      case MatchStatus.UPCOMING:
-        return this.buildUpcomingStatusSummary();
-      case MatchStatus.COMPLETED:
-        return this.buildCompletedStatusSummary();
-      case MatchStatus.LIVE:
-      default:
-        return this.buildLiveStatusSummary();
-    }
-  }
-
   getEmptyStateMessage(): string {
     if (this.searchQuery) {
       return 'No matches found';
@@ -511,90 +499,6 @@ export class MatchesListComponent implements OnInit, OnDestroy {
       seen[href] = true;
       return true;
     }).slice(0, limit);
-  }
-
-  private buildLiveStatusSummary(): string {
-    var match = filterLiveMatches(this.allMatches)[0];
-    if (!match) {
-      return 'Open the live lane as soon as a tracked match begins.';
-    }
-
-    var scoreline = this.getCompactScoreline(match);
-    if (scoreline) {
-      return this.getCompactTeams(match) + ' is live. ' + scoreline + '.';
-    }
-
-    return this.getCompactTeams(match) + ' is live now.';
-  }
-
-  private buildUpcomingStatusSummary(): string {
-    var match = prioritizeUpcomingMatchesForDiscovery(this.allMatches, 0, 48)[0];
-    if (!match) {
-      return 'Upcoming start times and venues will show here when fixtures arrive.';
-    }
-
-    return this.getCompactTeams(match) + ' starts ' + this.getCompactStartLabel(match) + this.getCompactVenueSuffix(match) + '.';
-  }
-
-  private buildCompletedStatusSummary(): string {
-    var match = filterCompletedMatches(this.allMatches)[0];
-    if (!match) {
-      return 'Fresh results will appear here once tracked matches finish.';
-    }
-
-    if (match.resultSummary) {
-      return match.resultSummary;
-    }
-
-    return this.getCompactTeams(match) + ' has a completed scorecard ready to open.';
-  }
-
-  private getCompactTeams(match: MatchCardViewModel): string {
-    return this.getTeamLabel(match.team1 && (match.team1.shortName || match.team1.name))
-      + ' vs '
-      + this.getTeamLabel(match.team2 && (match.team2.shortName || match.team2.name));
-  }
-
-  private getTeamLabel(value: string | undefined): string {
-    return value || 'Match';
-  }
-
-  private getCompactStartLabel(match: MatchCardViewModel): string {
-    if (match.timeDisplay) {
-      return match.timeDisplay;
-    }
-
-    try {
-      return new Date(match.startTime).toLocaleString('en-IN', {
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        month: 'short'
-      });
-    } catch (error) {
-      return 'soon';
-    }
-  }
-
-  private getCompactVenueSuffix(match: MatchCardViewModel): string {
-    return match.venue ? ' at ' + match.venue : '';
-  }
-
-  private getCompactScoreline(match: MatchCardViewModel): string | null {
-    if (match.team1 && match.team1.score && match.team2 && match.team2.score) {
-      return match.team1.shortName + ' ' + match.team1.score.displayText + ' | '
-        + match.team2.shortName + ' ' + match.team2.score.displayText;
-    }
-
-    if (match.team1 && match.team1.score) {
-      return match.team1.shortName + ' ' + match.team1.score.displayText;
-    }
-
-    if (match.team2 && match.team2.score) {
-      return match.team2.shortName + ' ' + match.team2.score.displayText;
-    }
-
-    return null;
   }
 
   get canLoadMore(): boolean {

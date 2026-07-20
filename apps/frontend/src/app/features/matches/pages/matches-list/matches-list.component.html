@@ -12,42 +12,6 @@
       <p class="matches-list__subtitle">{{ getStatusDescription() }}</p>
     </div>
 
-    <div class="matches-list__summary-panel">
-      <div class="matches-list__summary-head">
-        <span class="matches-list__summary-kicker">At a glance</span>
-        <p class="matches-list__summary-copy">Pick the lane you want before you drop into previews, scorecards, or commentary.</p>
-      </div>
-
-      <div class="matches-list__summary" aria-label="Match summary">
-        <button
-          type="button"
-          class="matches-list__summary-card matches-list__summary-card--live"
-          [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.LIVE"
-          (click)="onStatusFilterChange(MatchStatus.LIVE)">
-          <span class="matches-list__summary-label">Live now</span>
-          <strong class="matches-list__summary-value">{{ liveMatchesCount }}</strong>
-          <span class="matches-list__summary-description">{{ getStatusCardSummary(MatchStatus.LIVE) }}</span>
-        </button>
-        <button
-          type="button"
-          class="matches-list__summary-card"
-          [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.UPCOMING"
-          (click)="onStatusFilterChange(MatchStatus.UPCOMING)">
-          <span class="matches-list__summary-label">Up next</span>
-          <strong class="matches-list__summary-value">{{ upcomingMatchesCount }}</strong>
-          <span class="matches-list__summary-description">{{ getStatusCardSummary(MatchStatus.UPCOMING) }}</span>
-        </button>
-        <button
-          type="button"
-          class="matches-list__summary-card"
-          [class.matches-list__summary-card--active]="selectedStatus === MatchStatus.COMPLETED"
-          (click)="onStatusFilterChange(MatchStatus.COMPLETED)">
-          <span class="matches-list__summary-label">Results</span>
-          <strong class="matches-list__summary-value">{{ completedMatchesCount }}</strong>
-          <span class="matches-list__summary-description">{{ getStatusCardSummary(MatchStatus.COMPLETED) }}</span>
-        </button>
-      </div>
-    </div>
   </header>
 
   <div class="matches-list__controls">

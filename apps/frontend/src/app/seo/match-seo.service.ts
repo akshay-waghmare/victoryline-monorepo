@@ -53,24 +53,24 @@ export class MatchSeoService {
     const canonicalDecision = evaluateMatchCanonicalPolicy(routeIntent);
     const canonicalPath = canonicalDecision.canonicalPath || normalizedRoutePath || requestedPath || '/matches';
     const isIndexable = isValidSlug && canonicalDecision.robots === 'index,follow' && !(input.isFallback && isNumericRoute);
-    const title = isIndexable
-      ? this.buildTitle(teams, shortTeams, lifecycle)
-      : 'Cricket Match Not Available | Crickzen';
     const series = this.resolveSeries(
       matchInfo.series_name || (input.currentMatch && input.currentMatch.seriesName) || '',
       parsed && parsed.series,
       team1,
       team2
     );
+    const title = isIndexable
+      ? this.buildRouteTitle(routeIntent.surface, teams, shortTeams, series, lifecycle)
+      : 'Cricket Match Not Available | Crickzen';
     const breadcrumbSeries = this.getBreadcrumbSeries(series);
     const ogImageUrl = this.host + getOgImageForMatch(sourceSlug || routeSlug || 'match');
     const description = isIndexable
-      ? this.buildDescription(teams, shortTeams, series, lifecycle)
+      ? this.buildRouteDescription(routeIntent.surface, teams, shortTeams, series, lifecycle)
       : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
     const canonicalUrl = this.host + canonicalPath;
-    const h1 = isIndexable ? this.buildH1(teams, shortTeams, lifecycle) : 'Cricket match not available';
+    const h1 = isIndexable ? this.buildRouteH1(routeIntent.surface, teams, shortTeams, lifecycle) : 'Cricket match not available';
     const summary = isIndexable
-      ? this.buildSummary(teams, shortTeams, series, lifecycle)
+      ? this.buildRouteSummary(routeIntent.surface, teams, shortTeams, series, lifecycle)
       : 'This match could not be resolved to a reliable scorecard yet. Use the match centre to find live scores, upcoming fixtures, and recent cricket results.';
 
     return {
@@ -97,6 +97,46 @@ export class MatchSeoService {
     };
   }
 
+  private buildRouteTitle(surface: MatchRouteSurface, teams: string, shortTeams: string, series: string, lifecycle: MatchLifecycleState): string {
+    switch (surface) {
+      case 'commentary': return `${teams} Live Commentary and Ball-by-Ball Updates | Crickzen`;
+      case 'scorecard': return `${teams} Full Scorecard${series ? ` | ${series}` : ''} | Crickzen`;
+      case 'details': return `${teams} Match Details${series ? ` | ${series}` : ''} | Crickzen`;
+      case 'lineups': return `${teams} Playing XI and Lineups${series ? ` | ${series}` : ''} | Crickzen`;
+      default: return this.buildTitle(teams, shortTeams, lifecycle);
+    }
+  }
+
+  private buildRouteH1(surface: MatchRouteSurface, teams: string, shortTeams: string, lifecycle: MatchLifecycleState): string {
+    switch (surface) {
+      case 'commentary': return `${teams} Live Commentary`;
+      case 'scorecard': return `${teams} Full Scorecard`;
+      case 'details': return `${teams} Match Details`;
+      case 'lineups': return `${teams} Playing XI and Lineups`;
+      default: return this.buildH1(teams, shortTeams, lifecycle);
+    }
+  }
+
+  private buildRouteDescription(surface: MatchRouteSurface, teams: string, shortTeams: string, series: string, lifecycle: MatchLifecycleState): string {
+    switch (surface) {
+      case 'commentary': return `Follow ${teams} with live ball-by-ball commentary, key moments, recent deliveries, and match updates${series ? ` in ${series}` : ''}.`;
+      case 'scorecard': return `View the ${teams} full cricket scorecard with innings scores, batting figures, bowling figures, partnerships, and match result${series ? ` in ${series}` : ''}.`;
+      case 'details': return `Explore ${teams} match details including venue, date, series context, toss, officials, playing conditions, and match status${series ? ` in ${series}` : ''}.`;
+      case 'lineups': return `See the ${teams} confirmed playing XI, squad lineups, roles, captain, wicketkeeper, substitutes, and team combination${series ? ` in ${series}` : ''}.`;
+      default: return this.buildDescription(teams, shortTeams, series, lifecycle);
+    }
+  }
+
+  private buildRouteSummary(surface: MatchRouteSurface, teams: string, shortTeams: string, series: string, lifecycle: MatchLifecycleState): string {
+    switch (surface) {
+      case 'commentary': return `Ball-by-ball ${shortTeams} commentary and live match updates.`;
+      case 'scorecard': return `${shortTeams} innings, batting, bowling, partnerships, and result scorecard.`;
+      case 'details': return `${shortTeams} venue, schedule, series, toss, officials, and match information.`;
+      case 'lineups': return `${shortTeams} playing XI, squad roles, and lineup information.`;
+      default: return this.buildSummary(teams, shortTeams, series, lifecycle);
+    }
+  }
+
   private getRequestedPath(requestedPath: string | undefined, routeSlug: string, sourceSlug: string): string {
     var fromInput = (requestedPath || '').trim();
     if (fromInput) {
@@ -119,12 +159,14 @@ export class MatchSeoService {
       case 'scorecard':
       case 'match-scorecard':
         return 'scorecard';
+      case 'match-details':
+      case 'info':
+        return 'details';
+      case 'lineups':
+        return 'lineups';
       case 'report':
       case 'match-report':
         return 'report';
-      case 'info':
-      case 'match-details':
-        return 'legacy';
       default:
         return normalizedRoutePath && requestedPath !== normalizedRoutePath ? 'unknown' : 'base';
     }

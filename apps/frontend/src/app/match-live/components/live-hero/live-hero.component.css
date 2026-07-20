@@ -267,6 +267,18 @@
   padding-left: 0;
 }
 
+.live-hero__context-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 20px;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
 /* Mobile: Stack score-main and score-meta vertically */
 .score-main {
   display: flex;
@@ -296,12 +308,7 @@
 }
 
 .live-hero__pod--context {
-  width: 100%;
-  text-align: center;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: none;
 }
 
 /* Large screen context section */
@@ -456,7 +463,8 @@
 .scoreline__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 0;
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.6);
   margin-bottom: 4px;
@@ -480,13 +488,19 @@
 }
 
 .scoreline__meta > span {
-  padding: 2px 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
   font-weight: 600;
   font-size: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 0;
   box-shadow: none;
+}
+
+.scoreline__meta > span + span::before {
+  content: '•';
+  margin: 0 8px;
+  color: rgba(255, 255, 255, 0.42);
 }
 
 /* ========================================================================
@@ -2084,6 +2098,70 @@
   100% {
     opacity: 0;
     transform: scale(1.5);
+  }
+}
+
+/* Keep the live snapshot informative but compact enough for commentary to
+   begin in the first viewport, especially on desktop match pages. */
+.current-ball {
+  margin-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .live-hero__grid {
+    gap: 14px;
+    padding: 12px 16px;
+    min-height: 0;
+  }
+
+  .live-hero__recent-area {
+    gap: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .live-hero__stats-area {
+    padding: 8px;
+  }
+
+  .stats-grid {
+    gap: 5px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .live-hero__grid {
+    gap: 16px;
+    padding: 14px 20px;
+    max-height: none;
+  }
+
+  .current-ball {
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 767px) {
+  .live-hero {
+    min-height: 0;
+  }
+
+  .live-hero__headline {
+    padding: 8px 12px;
+  }
+
+  .live-hero__grid {
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .live-hero__recent-area {
+    padding: 8px 0;
+  }
+
+  .live-hero__stats-area {
+    padding: 8px;
   }
 }
 

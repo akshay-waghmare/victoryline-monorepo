@@ -2,7 +2,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { Component, Inject, Input, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, timer } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { AnalyticsService } from '../../cricket-odds/analytics.service';
 import { MetaTagsService } from '../../seo/meta-tags.service';
 import { StructuredDataService } from '../../seo/structured-data.service';
@@ -102,12 +103,14 @@ interface MatchIntelligenceViewModel {
   styleUrls: ['./match-intelligence.component.css']
 })
 export class MatchIntelligenceComponent implements OnInit, OnDestroy {
+  private readonly refreshIntervalMs = 30 * 1000;
   @Input() matchSlug = '';
   slug = '';
   viewModel: MatchIntelligenceViewModel | null = null;
   isLoading = true;
 
   private subscriptions = new Subscription();
+  private refreshSubscription: Subscription | null = null;
   private snapshot: MatchIntelligenceSnapshot | null = null;
   private trackedEvents: { [key: string]: boolean } = {};
 
@@ -132,6 +135,10 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.refreshSubscription) {
+      this.refreshSubscription.unsubscribe();
+      this.refreshSubscription = null;
+    }
     this.subscriptions.unsubscribe();
     this.structuredDataService.clearPageSchemas();
   }
@@ -217,6 +224,11 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
   }
 
   private loadSurface(): void {
+    if (this.refreshSubscription) {
+      this.refreshSubscription.unsubscribe();
+      this.refreshSubscription = null;
+    }
+
     this.isLoading = true;
     this.snapshot = null;
     this.viewModel = null;
@@ -237,14 +249,23 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       }
     }
 
-    this.subscriptions.add(
-      this.matchIntelligenceDataService.loadSnapshot(this.slug).subscribe((snapshot) => {
+    var applySnapshot = (snapshot: MatchIntelligenceSnapshot) => {
         this.snapshot = snapshot;
         if (!isPlatformBrowser(this.platformId)) {
           this.transferState.set(this.getTransferStateKey(this.slug), snapshot);
         }
         this.rebuildViewModel();
-      })
+      };
+
+    if (isPlatformBrowser(this.platformId)) {
+      this.refreshSubscription = timer(0, this.refreshIntervalMs).pipe(
+        switchMap(() => this.matchIntelligenceDataService.loadSnapshot(this.slug))
+      ).subscribe(applySnapshot);
+      return;
+    }
+
+    this.subscriptions.add(
+      this.matchIntelligenceDataService.loadSnapshot(this.slug).subscribe(applySnapshot)
     );
   }
 
@@ -330,7 +351,11 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
   }
 
   private applyMetaAndSchemas(): void {
-    if (!this.viewModel) {
+    // The intelligence component is also embedded inside the match hub's tab
+    // panel. Only the standalone /match-intelligence/{slug} route owns the
+    // document metadata and JSON-LD; an embedded panel must not overwrite the
+    // parent match page title, canonical, or entity graph.
+    if (!this.viewModel || this.matchSlug) {
       return;
     }
 

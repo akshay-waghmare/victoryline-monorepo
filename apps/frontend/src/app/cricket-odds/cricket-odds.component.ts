@@ -1019,6 +1019,47 @@ onTabChange(event: MatTabChangeEvent) {
 
   this.hasUserSelectedTab = true;
   this.ensureDataForTab(event.index);
+
+  // The scorecard lives below the score-first hero. When a user explicitly
+  // opens that tab, bring its first content into view instead of leaving the
+  // viewport parked above the tab body with no scoreboard visible.
+  if (event.index === this.tabIndexByKey.scorecard && typeof window !== 'undefined') {
+    window.setTimeout(() => {
+      var panel = document.getElementById('scorecard-panel');
+      if (!panel) {
+        return;
+      }
+
+      var top = panel.getBoundingClientRect().top + window.scrollY - 76;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    }, 0);
+  }
+
+  // Give each primary match surface its own shareable, crawlable URL. The
+  // match SEO policy still canonicalizes these supporting routes back to the
+  // stable /cric-live/{slug} URL, so this improves intent capture without
+  // creating canonical duplicates.
+  var slug = this.getCanonicalMatchSlug();
+  var routeByIndex: { [index: number]: string } = {
+    0: 'commentary',
+    1: 'match-details',
+    2: 'scorecard',
+    3: 'lineups'
+  };
+
+  if (!slug) {
+    return;
+  }
+
+  if (event.index === this.tabIndexByKey.intelligence) {
+    this.router.navigate(['/match-intelligence', slug]);
+    return;
+  }
+
+  var suffix = routeByIndex[event.index];
+  if (suffix) {
+    this.router.navigate(['/cric-live', slug, suffix]);
+  }
 }
 
 jumpToMatchSection(target: MatchPageTabKey, event?: Event): void {
@@ -4000,6 +4041,63 @@ private titleCaseSlug(value: string): string {
       || '';
   }
 
+  getMatchEntityNavigationLinks(): Array<{ label: string; href: string; active: boolean }> {
+    var slug = this.getCanonicalMatchSlug();
+    if (!slug) {
+      return [];
+    }
+
+    var currentSurface = this.getMatchRouteSurfaceKey();
+    return [
+      { label: 'Live Match', href: '/cric-live/' + slug, active: currentSurface === 'base' || currentSurface === 'live' },
+      { label: 'Commentary', href: '/cric-live/' + slug + '/commentary', active: currentSurface === 'commentary' },
+      { label: 'Scorecard', href: '/cric-live/' + slug + '/scorecard', active: currentSurface === 'scorecard' },
+      { label: 'Match Details', href: '/cric-live/' + slug + '/match-details', active: currentSurface === 'details' },
+      { label: 'Lineups', href: '/cric-live/' + slug + '/lineups', active: currentSurface === 'lineups' },
+      { label: 'Match Intelligence', href: '/match-intelligence/' + slug, active: currentSurface === 'intelligence' }
+    ];
+  }
+
+  getMatchEntityNavigationHref(surface: 'commentary' | 'scorecard' | 'lineups' | 'details'): string {
+    var slug = this.getCanonicalMatchSlug();
+    return slug ? '/cric-live/' + slug + '/' + (surface === 'details' ? 'match-details' : surface) : '/matches';
+  }
+
+  getMatchRouteLabel(): string {
+    var labels: { [key: string]: string } = {
+      base: 'Match hub',
+      live: 'Live match',
+      commentary: 'Live commentary',
+      scorecard: 'Match scorecard',
+      details: 'Match details',
+      lineups: 'Playing XI and lineups',
+      intelligence: 'Match intelligence'
+    };
+    return labels[this.getMatchRouteSurfaceKey()] || 'Match centre';
+  }
+
+  private getMatchRouteSurfaceKey(): string {
+    var suffix = extractMatchRouteSuffix(this.currentRequestedPath || (this.router && this.router.url ? this.router.url : ''));
+    switch (suffix) {
+      case 'live': return 'live';
+      case 'commentary': return 'commentary';
+      case 'scorecard':
+      case 'match-scorecard': return 'scorecard';
+      case 'match-details':
+      case 'info': return 'details';
+      case 'lineups': return 'lineups';
+      default: return 'base';
+    }
+  }
+
+  private getAbsoluteMatchRouteUrl(): string {
+    var path = this.currentRequestedPath || (this.router && this.router.url ? this.router.url : '');
+    if (!path || path.indexOf('/cric-live/') !== 0) {
+      path = '/cric-live/' + this.getCanonicalMatchSlug();
+    }
+    return 'https://www.crickzen.com' + path.split('?')[0].split('#')[0];
+  }
+
   private isBrowser(): boolean {
     return typeof window !== 'undefined' && !(window as any).__SSR__;
   }
@@ -4052,12 +4150,24 @@ private titleCaseSlug(value: string): string {
       return null;
     }
 
+    var routeUrl = this.getAbsoluteMatchRouteUrl();
+    var matchEntityId = this.matchSeo.canonicalUrl + '#match';
     var breadcrumbs = this.structuredDataService.breadcrumbs([
       { name: 'Cricket', url: 'https://www.crickzen.com/matches' },
       { name: this.getBreadcrumbSeriesLabel(), url: 'https://www.crickzen.com' + this.getSeriesSurfaceHref() },
-      { name: this.matchSeo.teams, url: this.matchSeo.canonicalUrl }
+      { name: this.matchSeo.teams, url: this.matchSeo.canonicalUrl },
+      ...(this.getMatchRouteSurfaceKey() !== 'base' ? [{ name: this.getMatchRouteLabel(), url: routeUrl }] : [])
     ]);
-    var items: any[] = [breadcrumbs];
+    var items: any[] = [breadcrumbs, {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      '@id': routeUrl + '#webpage',
+      name: this.matchSeo.h1,
+      description: this.matchSeo.description,
+      url: routeUrl,
+      mainEntity: { '@id': matchEntityId },
+      isPartOf: { '@type': 'WebSite', name: 'Crickzen', url: 'https://www.crickzen.com' }
+    }];
     var startDate = this.getStructuredDataStartDate();
     var location = this.getStructuredDataLocation();
     var dateModified = this.getStructuredDataDateModified(startDate);
@@ -4077,6 +4187,9 @@ private titleCaseSlug(value: string): string {
       organizerName: 'Crickzen',
       organizerUrl: 'https://www.crickzen.com'
     }) : null;
+    if (sportsEventSchema) {
+      sportsEventSchema['@id'] = matchEntityId;
+    }
 
     items.unshift(this.structuredDataService.article({
       headline: this.matchSeo.title,
@@ -4618,14 +4731,6 @@ placeSessionBet() {
 
   getCommentaryStatusLabel(): string {
     return this.isCommentaryLive() ? 'Live' : 'Completed';
-  }
-
-  getCommentaryHeaderNote(): string {
-    if (this.isCommentaryLive()) {
-      return 'Latest updates first, with over breaks kept compact so big moments are easier to spot.';
-    }
-
-    return 'Recent commentary first, with over breaks separating the flow of the innings.';
   }
 
   getCommentaryEventLabel(entry: any): string {

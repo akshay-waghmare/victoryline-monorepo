@@ -1,4 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
+import { TransferState, makeStateKey } from '@angular/platform-browser';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -32,6 +33,8 @@ interface HomeGlanceCard {
   title: string;
   tone: 'live' | 'upcoming' | 'results';
 }
+
+const HOME_MATCHES_STATE_KEY = makeStateKey<MatchCardViewModel[]>('crickzen_home_matches');
 
 @Component({
   selector: 'app-home',
@@ -85,6 +88,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     private blogListService: BlogListService,
     private newsService: NewsService,
     private changeDetectorRef: ChangeDetectorRef,
+    private transferState: TransferState,
     @Inject(PLATFORM_ID) platformId: object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
@@ -99,6 +103,18 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
     this.updateStructuredData();
 
+    // News/blog content is secondary to the match rail. Keep it out of the
+    // server critical path so an empty news response cannot block first HTML.
+    if (this.isBrowser) {
+      this.loadNews();
+    } else {
+      this.isLoadingNews = false;
+    }
+
+    this.loadMatches();
+  }
+
+  private loadNews(): void {
     this.newsService.getNews().subscribe(
       (items) => {
         this.newsItems = items;
@@ -115,8 +131,6 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.changeDetectorRef.markForCheck();
       }
     );
-
-    this.loadMatches();
   }
 
   private loadBlogFallback(): void {
@@ -145,24 +159,25 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.isLoadingMatches = true;
     this.hasMatchError = false;
 
+    if (this.isBrowser) {
+      const hydratedMatches = this.transferState.get(HOME_MATCHES_STATE_KEY, null);
+      if (hydratedMatches) {
+        this.transferState.remove(HOME_MATCHES_STATE_KEY);
+        this.applyMatches(hydratedMatches);
+        return;
+      }
+    }
+
     if (this.matchSubscription) {
       this.matchSubscription.unsubscribe();
     }
 
     this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
       (matches) => {
-        this.liveMatches = filterLiveMatches(matches);
-        this.allUpcomingMatches = filterUpcomingMatches(matches);
-        this.upcomingMatches = this.allUpcomingMatches.slice(0, 6);
-        this.recentMatches = filterCompletedMatches(matches).slice(0, 6);
-
-        if (this.isLoadingMatches) {
-          this.activeTab = this.getBestAvailableTab();
+        if (!this.isBrowser) {
+          this.transferState.set(HOME_MATCHES_STATE_KEY, matches || []);
         }
-
-        this.isLoadingMatches = false;
-        this.hasMatchError = false;
-        this.refreshHomeState();
+        this.applyMatches(matches);
       },
       (error) => {
         console.error('Error loading matches:', error);
@@ -180,6 +195,21 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.changeDetectorRef.markForCheck();
       }
     );
+  }
+
+  private applyMatches(matches: MatchCardViewModel[]): void {
+    this.liveMatches = filterLiveMatches(matches);
+    this.allUpcomingMatches = filterUpcomingMatches(matches);
+    this.upcomingMatches = this.allUpcomingMatches.slice(0, 6);
+    this.recentMatches = filterCompletedMatches(matches).slice(0, 6);
+
+    if (this.isLoadingMatches) {
+      this.activeTab = this.getBestAvailableTab();
+    }
+
+    this.isLoadingMatches = false;
+    this.hasMatchError = false;
+    this.refreshHomeState();
   }
 
   onMatchClick(match: MatchCardViewModel): void {
