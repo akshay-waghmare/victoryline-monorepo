@@ -247,6 +247,22 @@
 
 .home__series-links::-webkit-scrollbar { display: none; }
 
+.home__series-nav--top { position: relative; padding: 8px 10px; }
+.home__series-links { gap: 6px; scroll-behavior: smooth; scroll-snap-type: x proximity; }
+.home__series-links a {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: .76rem;
+  scroll-snap-align: center;
+  transition: background-color 160ms ease-out, border-color 160ms ease-out, color 160ms ease-out, transform 160ms ease-out;
+}
+.home__series-links a:hover { border-color: #93c5fd; color: #1d4ed8; transform: translateY(-1px); }
+.home__series-link--active { background: #1d4ed8 !important; border-color: #1d4ed8 !important; color: #ffffff !important; box-shadow: 0 4px 10px rgba(29, 78, 216, .2); }
+
 .home__series-links a {
   display: inline-flex;
   align-items: center;

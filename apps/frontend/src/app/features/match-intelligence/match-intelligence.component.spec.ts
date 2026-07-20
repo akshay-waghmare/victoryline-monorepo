@@ -18,7 +18,7 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
     const points = (MatchIntelligenceComponent.prototype as any).getSwingPoints.call(context);
 
     expect(points.length).toBe(3);
-    expect(points[0]).toEqual({ over: '1.5', score: '11/0', probability: 76, label: 'start' });
+    expect(points[0]).toEqual({ over: '1.5', score: '11/0', probability: 76, label: 'start', innings: 1 });
     expect(points[2].probability).toBe(98);
   });
 
@@ -29,6 +29,29 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
     });
 
     expect(points).toEqual([]);
+  });
+
+  it('converts cricket over.ball notation into ball-based positions', () => {
+    const parseChartOver = (MatchIntelligenceComponent.prototype as any).parseChartOver;
+
+    expect(parseChartOver.call({}, '19.3')).toBe(19.5);
+    expect(parseChartOver.call({}, '2.4')).toBeCloseTo(2.6667, 3);
+  });
+
+  it('plots innings points on a chronological two-innings scale', () => {
+    const points = (MatchIntelligenceComponent.prototype as any).getProbabilityChartPoints.call({
+      getSwingPoints: () => [
+        { over: '2.4', score: '25/1', probability: 39, label: 'current', innings: 2 },
+        { over: '19.3', score: '170/6', probability: 71, label: 'start', innings: 1 }
+      ],
+      getChartInningsOvers: () => 20,
+      resolvePointInnings: (innings: number) => innings,
+      parseChartOver: (value: string) => (MatchIntelligenceComponent.prototype as any).parseChartOver.call({}, value)
+    });
+
+    expect(points[0].x).toBe(19.5);
+    expect(points[1].x).toBe(22.67);
+    expect(points[1].y).toBe(39);
   });
 
   it('maps public prediction history without inventing missing score views', () => {
@@ -43,7 +66,7 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
       }
     });
 
-    expect(history[0]).toEqual({ over: '10.0', score: '72/1', probability: 58, expectedFinal: 164, projected: 158 });
+    expect(history[0]).toEqual({ over: '10.0', score: '72/1', probability: 58, expectedFinal: 164, projected: 158, innings: 1 });
     expect(history[1].expectedFinal).toBeNull();
     expect(history[1].projected).toBeNull();
   });

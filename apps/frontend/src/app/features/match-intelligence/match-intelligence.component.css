@@ -561,7 +561,27 @@
 
 .match-intelligence__footer-note,
 .match-intelligence__loading {
-  padding: 20px;
+  padding: 16px 18px;
+}
+
+.match-intelligence__loading-line,
+.match-intelligence__loading-pills span {
+  display: block;
+  background: linear-gradient(90deg, #eef2f7 0%, #f8fafc 50%, #eef2f7 100%);
+  background-size: 200% 100%;
+  border-radius: 8px;
+  animation: match-intelligence-shimmer 1.5s ease-in-out infinite;
+}
+
+.match-intelligence__loading-line--wide { width: 180px; height: 12px; }
+.match-intelligence__loading-line--title { width: min(520px, 75%); height: 28px; margin-top: 12px; }
+.match-intelligence__loading-line--short { width: min(360px, 55%); height: 14px; margin-top: 10px; }
+.match-intelligence__loading-pills { display: flex; gap: 8px; margin-top: 18px; }
+.match-intelligence__loading-pills span { width: 78px; height: 30px; }
+
+@keyframes match-intelligence-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .match-intelligence__state {
@@ -906,12 +926,13 @@
 
 .match-intelligence__chart-shell {
   position: relative;
+  display: block;
   min-height: 184px;
   padding: 8px 30px 0 34px;
   overflow: hidden;
   border: 1px solid #ded8cc;
   border-radius: 10px;
-  background: #fffdf9;
+  background: linear-gradient(90deg, #f4f8f6 0%, #f4f8f6 50%, #eef5f2 50%, #eef5f2 100%);
 }
 
 .match-intelligence__worm {
@@ -919,6 +940,31 @@
   width: 100%;
   height: 172px;
   overflow: visible;
+}
+
+.match-intelligence__chart-canvas,
+.match-intelligence__chart-server-placeholder {
+  position: relative;
+  z-index: 0;
+  display: block;
+  height: 172px;
+}
+
+.match-intelligence__chart-canvas canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 172px !important;
+}
+
+.match-intelligence__chart-canvas::after,
+.match-intelligence__chart-server-placeholder::after {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  border-left: 1px dashed #6e9f92;
+  content: '';
+  pointer-events: none;
 }
 
 .match-intelligence__chart-team-axis,
@@ -979,8 +1025,29 @@
 }
 
 .match-intelligence__chart-gridline--mid {
-  stroke: #9fc2b8;
-  stroke-opacity: .88;
+  stroke: #6e9f92;
+  stroke-width: 1.35;
+  stroke-opacity: .95;
+  stroke-dasharray: 5 4;
+}
+
+.match-intelligence__chart-innings-band {
+  pointer-events: none;
+}
+
+.match-intelligence__chart-innings-band--first {
+  fill: #f4f8f6;
+}
+
+.match-intelligence__chart-innings-band--second {
+  fill: #eef5f2;
+}
+
+.match-intelligence__chart-innings-divider {
+  stroke: #6e9f92;
+  stroke-width: 1.25;
+  stroke-dasharray: 3 4;
+  stroke-opacity: .92;
 }
 
 .match-intelligence__worm-area {
@@ -990,7 +1057,7 @@
 
 .match-intelligence__worm-line {
   stroke: #087f73;
-  stroke-width: 2.7;
+  stroke-width: 3.2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -1021,6 +1088,23 @@
   text-align: center;
 }
 
+.match-intelligence__chart-phase-axis {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin: 0 30px 0 34px;
+  color: #526778;
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.match-intelligence__chart-phase-axis span + span {
+  border-left: 1px solid #a9c3bb;
+}
+
 .match-intelligence__chart-legend {
   display: flex;
   gap: 7px;
@@ -1037,9 +1121,21 @@
   background: #087f73;
 }
 
+.match-intelligence__legend-midline {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  margin-top: 1px;
+  border-top: 2px dashed #6e9f92;
+}
+
 .match-intelligence__chart-empty .match-intelligence__chart-shell {
   min-height: 150px;
   opacity: .86;
+}
+
+.match-intelligence__chart-empty .match-intelligence__chart-server-placeholder {
+  height: 138px;
 }
 
 .match-intelligence__chart-empty .match-intelligence__worm {

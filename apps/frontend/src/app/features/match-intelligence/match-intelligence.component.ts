@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Component, Inject, Input, OnDestroy, OnInit, PLATFORM_ID } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, Inject, Input, OnDestroy, OnInit, PLATFORM_ID, ViewChild } from '@angular/core';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, timer } from 'rxjs';
@@ -9,6 +9,7 @@ import { MetaTagsService } from '../../seo/meta-tags.service';
 import { StructuredDataService } from '../../seo/structured-data.service';
 import { MatchSeoService } from '../../seo/match-seo.service';
 import { MatchIntelligenceDataService, MatchIntelligenceSnapshot } from './match-intelligence-data.service';
+import * as Chart from 'chart.js';
 
 const MATCH_INTELLIGENCE_STATE_PREFIX = 'match_intelligence_snapshot_';
 
@@ -86,9 +87,11 @@ interface MatchIntelligenceViewModel {
   resourceWinProbabilityLabel: string | null;
   scoreVsParLabel: string | null;
   pressureLabel: string | null;
-  swingPoints: Array<{ over: string; score: string; probability: number; label: string }>;
-  probabilityPolyline: string;
-  predictionHistory: Array<{ over: string; score: string; probability: number | null; expectedFinal: number | null; projected: number | null }>;
+  swingPoints: Array<{ over: string; score: string; probability: number; label: string; innings: number }>;
+  probabilityPath: string;
+  probabilityAreaPath: string;
+  probabilityChartPoints: Array<{ x: number; y: number; over: string; score: string; probability: number; label: string; innings: number }>;
+  predictionHistory: Array<{ over: string; score: string; probability: number | null; expectedFinal: number | null; projected: number | null; innings: number }>;
   pressureNarrative: string;
   momentumNarrative: string;
   confidenceNarrative: string;
@@ -104,17 +107,56 @@ interface MatchIntelligenceViewModel {
   templateUrl: './match-intelligence.component.html',
   styleUrls: ['./match-intelligence.component.css']
 })
-export class MatchIntelligenceComponent implements OnInit, OnDestroy {
+export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnDestroy {
   private readonly refreshIntervalMs = 30 * 1000;
   @Input() matchSlug = '';
   slug = '';
   viewModel: MatchIntelligenceViewModel | null = null;
   isLoading = true;
+  isBrowser = false;
+  probabilityChartType = 'line';
+  probabilityChartData: any[] = [];
+  @ViewChild('probabilityChartCanvas') probabilityChartCanvas: ElementRef;
+  probabilityChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    legend: { display: false },
+    elements: {
+      line: { tension: 0.22 },
+      point: { radius: 0, hitRadius: 10, hoverRadius: 0, borderWidth: 0 }
+    },
+    scales: {
+      xAxes: [{
+        type: 'linear',
+        ticks: { min: 0, max: 40, display: false },
+        gridLines: { color: '#d7dfdc', borderDash: [2, 4], drawBorder: false }
+      }],
+      yAxes: [{
+        ticks: { min: 0, max: 100, stepSize: 50, display: false },
+        gridLines: { color: '#d7dfdc', borderDash: [2, 4], drawBorder: false }
+      }]
+    },
+    tooltips: {
+      displayColors: false,
+      callbacks: {
+        title: (items: any[], data: any) => {
+          var item = items && items.length ? items[0] : null;
+          var point = item && data && data.datasets[item.datasetIndex] && data.datasets[item.datasetIndex].data[item.index];
+          return point ? String(point.over || 'Update') + ' · ' + String(point.score || 'Score unavailable') : 'Probability update';
+        },
+        label: (item: any) => String(item.yLabel) + '%'
+      }
+    }
+  };
 
   private subscriptions = new Subscription();
   private refreshSubscription: Subscription | null = null;
   private snapshot: MatchIntelligenceSnapshot | null = null;
   private trackedEvents: { [key: string]: boolean } = {};
+  private probabilityChart: any = null;
+  private probabilityChartCanvasElement: HTMLCanvasElement | null = null;
+  private probabilityChartSignature = '';
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -128,6 +170,7 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.isBrowser = isPlatformBrowser(this.platformId);
     this.subscriptions.add(
       this.route.paramMap.subscribe((params) => {
         this.slug = (this.matchSlug || params.get('slug') || params.get('path') || '').trim();
@@ -137,12 +180,17 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroyProbabilityChart();
     if (this.refreshSubscription) {
       this.refreshSubscription.unsubscribe();
       this.refreshSubscription = null;
     }
     this.subscriptions.unsubscribe();
     this.structuredDataService.clearPageSchemas();
+  }
+
+  ngAfterViewChecked(): void {
+    this.renderProbabilityChart();
   }
 
   getCanonicalMatchHref(): string {
@@ -337,7 +385,9 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       ,scoreVsParLabel: this.getMetricLabel('score_vs_par', 'Score vs par pace ', 1)
       ,pressureLabel: this.getMetricLabel('pressure_index', 'Pressure ', 2)
       ,swingPoints: this.getSwingPoints()
-      ,probabilityPolyline: this.getProbabilityPolyline()
+      ,probabilityPath: ''
+      ,probabilityAreaPath: ''
+      ,probabilityChartPoints: this.getProbabilityChartPoints()
       ,predictionHistory: this.getPredictionHistory()
       ,pressureNarrative: this.getPressureNarrative()
       ,momentumNarrative: this.getMomentumNarrative()
@@ -348,6 +398,9 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       ,expectedFinalBarWidth: this.getComparisonBarWidth(this.getExpectedFinalNumber())
       ,venueAverageBarWidth: this.getComparisonBarWidth(this.getVenueAverageScore())
     };
+
+    this.probabilityChartData = this.getProbabilityChartData(this.viewModel.probabilityChartPoints);
+    this.probabilityChartOptions = this.buildProbabilityChartOptions();
 
     this.applyMetaAndSchemas();
     this.trackViewEvents();
@@ -438,7 +491,13 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
     if (this.snapshot && this.snapshot.matchInfo && (this.snapshot.matchInfo.match_status || this.snapshot.matchInfo.status)) {
       return String(this.snapshot.matchInfo.match_status || this.snapshot.matchInfo.status).replace(/_/g, ' ');
     }
-    return this.snapshot && this.snapshot.currentMatch ? this.snapshot.currentMatch.displayStatus : 'Match status unavailable';
+    if (this.snapshot && this.snapshot.currentMatch && this.snapshot.currentMatch.displayStatus) {
+      return this.snapshot.currentMatch.displayStatus;
+    }
+    if (this.snapshot && this.snapshot.lifecycle) {
+      return String(this.snapshot.lifecycle).replace(/^./, function(letter) { return letter.toUpperCase(); });
+    }
+    return 'Match update';
   }
 
   private resolveFreshnessLabel(): string {
@@ -507,9 +566,6 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
     }
     if (modelUnavailable && freshnessState === 'unavailable') {
       return 'Model unavailable';
-    }
-    if (freshnessState === 'stale') {
-      return 'Stale model data';
     }
     if (lifecycle === 'upcoming') {
       return 'Upcoming';
@@ -889,13 +945,30 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
   private getModelLabel(): string | null {
     var data = this.snapshot && this.snapshot.matchData;
     var value = data ? (data.model_label || data.modelLabel) : null;
-    return value ? String(value).trim() || null : null;
+    if (!value) {
+      return 'Crickzen Match Model';
+    }
+    return this.humanizeModelLabel(String(value).trim());
   }
 
   private getModelMode(): string | null {
     var data = this.snapshot && this.snapshot.matchData;
     var value = data ? (data.model_mode || data.modelMode) : null;
     return value ? String(value).trim() || null : null;
+  }
+
+  private humanizeModelLabel(value: string): string {
+    var normalized = value.toLowerCase();
+    if (normalized.indexOf('t20') !== -1) {
+      return 'Crickzen T20 Match Model';
+    }
+    if (normalized.indexOf('odi') !== -1) {
+      return 'Crickzen ODI Match Model';
+    }
+    if (normalized.indexOf('test') !== -1) {
+      return 'Crickzen Test Match Model';
+    }
+    return 'Crickzen Match Model';
   }
 
   private getExpectedFinalLabel(): string | null {
@@ -950,14 +1023,15 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
     return null;
   }
 
-  private getSwingPoints(): Array<{ over: string; score: string; probability: number; label: string }> {
+  private getSwingPoints(): Array<{ over: string; score: string; probability: number; label: string; innings: number }> {
     var history = this.getPredictionHistory();
     if (history.length) {
       return history.filter((point) => point.probability !== null).map((point, index, points) => ({
         over: point.over,
         score: point.score,
         probability: point.probability as number,
-        label: index > 0 ? ((point.probability as number) - (points[index - 1].probability as number)).toFixed(0) + '%' : 'start'
+        label: index > 0 ? ((point.probability as number) - (points[index - 1].probability as number)).toFixed(0) + '%' : 'start',
+        innings: point.innings
       }));
     }
     var data = this.snapshot && this.snapshot.matchData;
@@ -967,7 +1041,8 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       over: String(point.over || ''),
       score: String(point.score || ''),
       probability: Number(point.win_probability_pct),
-      label: String(point.label || '')
+      label: String(point.label || ''),
+      innings: this.resolvePointInnings(point.innings)
     }));
     if (mappedSwings.length) {
       return mappedSwings;
@@ -981,35 +1056,170 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
         over: String((data && (data.overs || data.over)) || 'Now'),
         score: String((data && data.score) || 'Current state'),
         probability: Math.max(0, Math.min(100, Number(currentProbability))),
-        label: 'current'
+        label: 'current',
+        innings: this.getCurrentInnings()
       }];
     }
     return [];
   }
 
-  private getProbabilityPolyline(): string {
+  private getProbabilityChartPoints(): Array<{ x: number; y: number; over: string; score: string; probability: number; label: string; innings: number }> {
     var points = this.getSwingPoints();
-    if (!points.length) {
-      return '';
-    }
-    var width = 320;
-    var height = 130;
-    var step = points.length === 1 ? width : width / (points.length - 1);
+    var inningsOvers = this.getChartInningsOvers();
     return points.map((point, index) => {
-      var x = Math.round(index * step);
-      var y = Math.round(height - (Math.max(0, Math.min(100, point.probability)) / 100) * height);
-      return x + ',' + y;
-    }).join(' ');
+      var over = this.parseChartOver(point.over);
+      if (!isFinite(over)) {
+        over = points.length > 1 ? (index / (points.length - 1)) * inningsOvers : 0;
+      }
+      var inningsPosition = (this.resolvePointInnings(point.innings) - 1) * inningsOvers + Math.max(0, Math.min(inningsOvers, over));
+      return {
+        x: Math.round(inningsPosition * 100) / 100,
+        y: Math.max(0, Math.min(100, point.probability)),
+        over: point.over,
+        score: point.score,
+        probability: point.probability,
+        label: point.label,
+        innings: this.resolvePointInnings(point.innings)
+      };
+    }).sort((left, right) => left.x - right.x);
   }
 
-  private getPredictionHistory(): Array<{ over: string; score: string; probability: number | null; expectedFinal: number | null; projected: number | null }> {
+  private getChartInningsOvers(): number {
+    var data = this.snapshot && this.snapshot.matchData;
+    var prediction = this.snapshot && this.snapshot.publicPrediction;
+    var format = String((data && (data.format_label || data.format)) || (prediction && prediction.format_label) || '').toLowerCase();
+    return format.indexOf('odi') !== -1 ? 50 : 20;
+  }
+
+  private parseChartOver(value: string): number {
+    var raw = String(value || '').trim().replace(',', '.');
+    var cricketOver = raw.match(/^(\d+)(?:\.(\d+))?/);
+    if (!cricketOver) {
+      return NaN;
+    }
+
+    var overs = Number(cricketOver[1]);
+    var balls = cricketOver[2] ? Number(cricketOver[2]) : 0;
+    if (!isFinite(overs) || !isFinite(balls)) {
+      return NaN;
+    }
+
+    // Cricket notation is overs.balls: 19.3 means 19 overs and 3 balls.
+    return balls >= 0 && balls < 6 ? overs + (balls / 6) : Number(raw);
+  }
+
+  private getProbabilityChartData(points: Array<{ x: number; y: number; over: string; score: string; probability: number; label: string; innings: number }>): any[] {
+    if (!points || points.length < 2) {
+      return [];
+    }
+    return [{
+      label: 'Model probability',
+      data: points,
+      borderColor: '#087f73',
+      backgroundColor: 'rgba(216, 238, 232, 0.42)',
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      pointHitRadius: 10,
+      fill: true,
+      showLine: true
+    }];
+  }
+
+  private renderProbabilityChart(): void {
+    if (!this.isBrowser || !this.probabilityChartData.length || !this.probabilityChartCanvas) {
+      if (!this.probabilityChartData.length) {
+        this.destroyProbabilityChart();
+      }
+      return;
+    }
+
+    var canvas = this.probabilityChartCanvas.nativeElement as HTMLCanvasElement;
+    var context = canvas && canvas.getContext ? canvas.getContext('2d') : null;
+    if (!context) {
+      return;
+    }
+
+    var signature = JSON.stringify(this.probabilityChartData.map((dataset) => dataset.data));
+    if (this.probabilityChart && this.probabilityChartCanvasElement === canvas && this.probabilityChartSignature === signature) {
+      return;
+    }
+
+    if (this.probabilityChart && this.probabilityChartCanvasElement !== canvas) {
+      this.destroyProbabilityChart();
+    }
+
+    if (!this.probabilityChart) {
+      var ChartConstructor = (Chart as any).default || (Chart as any);
+      this.probabilityChart = new ChartConstructor(context, {
+        type: this.probabilityChartType,
+        data: { datasets: this.probabilityChartData },
+        options: this.probabilityChartOptions
+      });
+      this.probabilityChartCanvasElement = canvas;
+    } else {
+      this.probabilityChart.data.datasets = this.probabilityChartData;
+      this.probabilityChart.options = this.probabilityChartOptions;
+      this.probabilityChart.update(0);
+    }
+    this.probabilityChartSignature = signature;
+  }
+
+  private destroyProbabilityChart(): void {
+    if (this.probabilityChart && this.probabilityChart.destroy) {
+      this.probabilityChart.destroy();
+    }
+    this.probabilityChart = null;
+    this.probabilityChartCanvasElement = null;
+    this.probabilityChartSignature = '';
+  }
+
+  private buildProbabilityChartOptions(): any {
+    var inningsOvers = this.getChartInningsOvers();
+    var options = Object.assign({}, this.probabilityChartOptions || {});
+    options.scales = Object.assign({}, options.scales, {
+      xAxes: [{
+        type: 'linear',
+        ticks: { min: 0, max: inningsOvers * 2, display: false },
+        gridLines: { color: '#d7dfdc', borderDash: [2, 4], drawBorder: false }
+      }],
+      yAxes: [{
+        ticks: { min: 0, max: 100, stepSize: 50, display: false },
+        gridLines: { color: '#d7dfdc', borderDash: [2, 4], drawBorder: false }
+      }]
+    });
+    return options;
+  }
+
+  private resolvePointInnings(value: any): number {
+    var innings = Number(value);
+    return innings === 2 ? 2 : (innings === 1 ? 1 : this.getCurrentInnings());
+  }
+
+  private getCurrentInnings(): number {
+    var data = this.snapshot && this.snapshot.matchData;
+    var prediction = this.snapshot && this.snapshot.publicPrediction;
+    var innings = Number((data && data.innings) || (prediction && prediction.innings));
+    if (innings === 1 || innings === 2) {
+      return innings;
+    }
+    var secondInningsSignal = data || prediction;
+    if ((data && (data.target !== undefined || data.required_run_rate !== undefined || data.runs_required !== undefined)) ||
+      (prediction && ((prediction as any).target !== undefined || prediction.required_run_rate !== undefined || (prediction as any).runs_required !== undefined)) ||
+      (secondInningsSignal && (secondInningsSignal.target !== undefined || secondInningsSignal.required_run_rate !== undefined || secondInningsSignal.runs_required !== undefined))) {
+      return 2;
+    }
+    return 1;
+  }
+
+  private getPredictionHistory(): Array<{ over: string; score: string; probability: number | null; expectedFinal: number | null; projected: number | null; innings: number }> {
     var history = this.snapshot && this.snapshot.publicPrediction && this.snapshot.publicPrediction.prediction_history;
     return (history || []).map((point) => ({
       over: point.over || '',
       score: point.score || '',
       probability: typeof point.win_probability_pct === 'number' ? Math.max(0, Math.min(100, point.win_probability_pct)) : null,
       expectedFinal: typeof point.expected_final_score === 'number' ? point.expected_final_score : null,
-      projected: typeof point.projected_score === 'number' && point.projected_score > 0 ? point.projected_score : null
+      projected: typeof point.projected_score === 'number' && point.projected_score > 0 ? point.projected_score : null,
+      innings: this.resolvePointInnings((point as any).innings)
     }));
   }
 

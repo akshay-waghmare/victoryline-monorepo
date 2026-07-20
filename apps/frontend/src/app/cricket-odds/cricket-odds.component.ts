@@ -1125,7 +1125,7 @@ fetchScorecardInfo(matchUrl:string){
 }
 
 fetchMatchInfo(matchUrl:string) {
-  if (this.matchInfo && !this.isFallbackMatchInfo) {
+  if (this.isLoadingMatchInfo || (this.matchInfo && !this.isFallbackMatchInfo)) {
     // Data already fetched, no need to fetch again
     return;
   }

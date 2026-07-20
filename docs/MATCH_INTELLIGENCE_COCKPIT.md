@@ -16,8 +16,10 @@ The first viewport should answer:
 
 - The prediction brief leads with the public model direction, probability, score, overs, expected final, and run-rate context.
 - The metric strip is reduced to batting, bowling, CRR, RRR, resources, resource win probability, par pace, and pressure.
-- The probability chart is a compact ESPN-style Match Worm: one probability line, a restrained filled area, a highlighted latest point, team labels on the left, and a 0%/50%/100% explanation scale on the right.
+- The probability chart is a compact ESPN-style Match Worm: one Chart.js probability line, a restrained filled area, team labels on the left, and a 0%/50%/100% explanation scale on the right. Persistent point markers are intentionally hidden so the line remains readable; hover hit areas preserve inspection of individual updates.
 - The chart header keeps the current team and probability visible at a glance; the bottom axis anchors the timeline to the innings and latest update rather than adding decorative chart chrome.
+- The timeline uses the prediction dashboard’s fixed two-innings geometry: innings 1 and innings 2 occupy distinct halves, with a visible innings divider, subtle phase bands, and a stronger 50% balance guide.
+- Cricket over.ball notation is converted to ball-based positions (`19.3` means 19 overs and 3 balls), and points are sorted chronologically before plotting. The chart runs only in the browser canvas so the Node SSR path remains safe.
 - The chart has a bounded no-history state, so an unavailable model timeline does not create a large blank loading-like panel.
 - Expected final versus venue average and resource/pace context sit beside the worm chart on desktop.
 - The same structure collapses to readable single-column/two-column mobile layouts.

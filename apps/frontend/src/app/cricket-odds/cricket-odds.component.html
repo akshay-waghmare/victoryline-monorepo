@@ -23,7 +23,7 @@
 
         <app-live-hero
           class="cricket-odds__hero"
-          *ngIf="matchId && (showLiveHero || heroFallbackView)"
+          *ngIf="matchId"
           [matchId]="matchId"
           [fallbackView]="heroFallbackView"
           [matchInfo]="matchInfo"

@@ -251,7 +251,20 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.activeTab = this.getSeriesTab(series);
     this.syncActiveMatches();
     this.resetMatchesCarouselPosition();
+    this.revealSelectedSeries(series);
     this.changeDetectorRef.markForCheck();
+  }
+
+  private revealSelectedSeries(series: string): void {
+    if (!this.isBrowser || typeof document === 'undefined') {
+      return;
+    }
+    setTimeout(() => {
+      var selected = document.querySelector('.home__series-link[data-series="' + series.replace(/"/g, '\\"') + '"]');
+      if (selected) {
+        (selected as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }, 0);
   }
 
   scrollLeft(): void {
@@ -311,7 +324,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         seen[key] = true;
         return true;
       })
-      .slice(0, 6);
+      .slice(0, 8);
   }
 
   private normalizeSeriesName(match: MatchCardViewModel | null): string {

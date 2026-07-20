@@ -5,13 +5,14 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, of, combineLatest, timer, merge, EMPTY } from 'rxjs';
+import { Observable, of, combineLatest, timer, merge, EMPTY, forkJoin } from 'rxjs';
 import { map, switchMap, catchError, shareReplay, timeout, debounceTime } from 'rxjs/operators';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
 import { EventListService } from '../../../component/event-list.service';
 import { getStatusDisplayText, formatTimeDisplay, calculateStaleness } from '../models/match-status';
 import { ballsToOvers, extractSlugFromUrl, sortMatchesByPriority } from '../../../core/utils/match-utils';
+import { CricketService } from '../../../cricket-odds/cricket-odds.service';
 
 interface ScheduleResponse {
   success?: boolean;
@@ -33,7 +34,8 @@ export class MatchesService {
   private readonly sharedMatches$: Observable<MatchCardViewModel[]> | null;
 
   constructor(
-    private eventListService: EventListService
+    private eventListService: EventListService,
+    private cricketOddsService: CricketService
   ) {
     // WebSocket-triggered refresh: backend pushes to /topic/live-matches on every scraper update.
     // Debounce to 3s so rapid scraper bursts don't hammer the backend with repeated fetches.
@@ -103,10 +105,16 @@ export class MatchesService {
           return of([]);
         }
 
-        // The catalog feed is intentionally metadata-only. Scorecards are
-        // loaded by the detail/scorecard surface for one selected match; they
-        // must never be fetched for every live match on every catalog refresh.
-        return of(this.transformActiveMatches(activeMatches, activeMatches.map(() => null)));
+        // The catalog feed is metadata-only, but the homepage card must still
+        // show the same live score already available on the match page.
+        return forkJoin(activeMatches.map((match: any) => {
+          return this.cricketOddsService.getScorecardInfo(match.url).pipe(
+            timeout(this.matchesRequestTimeoutMs),
+            catchError(() => of(null))
+          );
+        })).pipe(
+          map((scorecards: any[]) => this.transformActiveMatches(activeMatches, scorecards))
+        );
       }),
       catchError(() => {
         return of([]);

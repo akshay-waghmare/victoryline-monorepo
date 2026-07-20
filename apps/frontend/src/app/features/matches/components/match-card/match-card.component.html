@@ -73,19 +73,13 @@
     </div>
   </div>
 
-  <div class="match-card__score-pending" *ngIf="isMatchLive() && !match.team1.score && !match.team2.score">
+  <div class="match-card__score-pending" *ngIf="isMatchLive() && !match.team1.score && !match.team2.score && !hasResultSummary()">
     Score pending
   </div>
 
   <!-- Result summary — centered, clean -->
   <div class="match-card__result" *ngIf="shouldShowResultSummary()">
     <span class="match-card__result-text">{{ getResultSummary() }}</span>
-  </div>
-
-  <!-- Info bar: venue + time -->
-  <div class="match-card__info" [class.match-card__info--single]="!hasMeaningfulVenue() || !shouldShowCompactTime()">
-    <span class="match-card__time" *ngIf="shouldShowCompactTime()">{{ getTimeDisplay() }}</span>
-    <span class="match-card__venue">{{ hasMeaningfulVenue() ? getVenueLabel() : 'Venue not announced' }}</span>
   </div>
 
   <!-- Accessibility -->

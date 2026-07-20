@@ -14,6 +14,7 @@
         *ngFor="let series of getHomeSeriesLinks()"
         href="/series"
         class="home__series-link"
+        [attr.data-series]="series"
         [class.home__series-link--active]="selectedSeries === series"
         [attr.title]="'Filter matches for ' + series"
         (click)="selectSeries(series, $event)">

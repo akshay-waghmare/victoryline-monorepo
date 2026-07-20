@@ -18,9 +18,9 @@
       <div class="match-intelligence__hero-side">
         <div class="match-intelligence__meta">
           <span class="match-intelligence__badge">{{ viewModel.statusLabel }}</span>
-          <span class="match-intelligence__state">{{ viewModel.stateLabel }}</span>
+          <span class="match-intelligence__state" *ngIf="viewModel.stateLabel !== viewModel.statusLabel">{{ viewModel.stateLabel }}</span>
         </div>
-        <p class="match-intelligence__model-proof" *ngIf="viewModel.modelLabel">Model: {{ viewModel.modelLabel }}<span *ngIf="viewModel.modelMode"> · {{ viewModel.modelMode }}</span></p>
+        <p class="match-intelligence__model-proof" *ngIf="viewModel.modelLabel">Powered by {{ viewModel.modelLabel }}</p>
         <div class="match-intelligence__hero-actions">
           <a class="match-intelligence__primary" [attr.href]="viewModel.canonicalMatchPath" (click)="onBackToMatchClick()" aria-label="Return to the canonical live match page">Back To Live Match</a>
         </div>
@@ -104,35 +104,24 @@
               <span>{{ viewModel.probabilityTeamLabel || 'Model' }}</span>
               <span>{{ viewModel.probabilityOpponentLabel || 'Opponent' }}</span>
             </div>
-            <svg class="match-intelligence__worm" viewBox="0 0 320 140" role="img" aria-label="Win probability chart" preserveAspectRatio="none">
-              <line x1="0" y1="10" x2="320" y2="10" class="match-intelligence__chart-gridline"></line>
-              <line x1="0" y1="70" x2="320" y2="70" class="match-intelligence__chart-gridline match-intelligence__chart-gridline--mid"></line>
-              <line x1="0" y1="130" x2="320" y2="130" class="match-intelligence__chart-gridline"></line>
-              <polygon [attr.points]="'0,130 ' + viewModel.probabilityPolyline + ' 320,130'" class="match-intelligence__worm-area"></polygon>
-              <polyline [attr.points]="viewModel.probabilityPolyline" fill="none" class="match-intelligence__worm-line"></polyline>
-              <g *ngFor="let point of viewModel.swingPoints; let i = index">
-                <circle [attr.cx]="i * 320 / (viewModel.swingPoints.length - 1)" [attr.cy]="130 - (point.probability * 1.2)" [attr.r]="i === viewModel.swingPoints.length - 1 ? 5 : 3" [class.match-intelligence__worm-point--current]="i === viewModel.swingPoints.length - 1" class="match-intelligence__worm-point">
-                  <title>{{ point.over }} · {{ point.score }} · {{ point.probability }}%</title>
-                </circle>
-              </g>
-            </svg>
+            <div class="match-intelligence__chart-canvas" *ngIf="isBrowser; else chartServerFallback">
+              <canvas #probabilityChartCanvas role="img" aria-label="Win probability chart"></canvas>
+            </div>
+            <ng-template #chartServerFallback><div class="match-intelligence__chart-server-placeholder" role="img" aria-label="Win probability chart"></div></ng-template>
             <div class="match-intelligence__chart-y-axis" aria-hidden="true"><span>100%</span><span>50%</span><span>0%</span></div>
           </div>
+          <div class="match-intelligence__chart-phase-axis" aria-hidden="true"><span>1st innings</span><span>2nd innings</span></div>
           <div class="match-intelligence__worm-axis"><span>{{ viewModel.swingPoints[0].over || 'Start' }}</span><span>{{ viewModel.inningsLabel || 'Match updates' }}</span><span>{{ viewModel.swingPoints[viewModel.swingPoints.length - 1].over || 'Live' }}</span></div>
-          <div class="match-intelligence__chart-legend"><span><i class="match-intelligence__legend-line"></i> Model probability by update</span></div>
+          <div class="match-intelligence__chart-legend"><span><i class="match-intelligence__legend-line"></i> Model probability by update</span><span><i class="match-intelligence__legend-midline"></i> 50% balance</span></div>
         </div>
         <ng-template #noTimeline>
           <div class="match-intelligence__chart-empty">
             <div class="match-intelligence__chart-shell" aria-hidden="true">
               <div class="match-intelligence__chart-team-axis"><span>{{ viewModel.probabilityTeamLabel || 'Model' }}</span><span>{{ viewModel.probabilityOpponentLabel || 'Opponent' }}</span></div>
-              <svg class="match-intelligence__worm" viewBox="0 0 320 140" preserveAspectRatio="none">
-                <line x1="0" y1="10" x2="320" y2="10" class="match-intelligence__chart-gridline"></line>
-                <line x1="0" y1="70" x2="320" y2="70" class="match-intelligence__chart-gridline match-intelligence__chart-gridline--mid"></line>
-                <line x1="0" y1="130" x2="320" y2="130" class="match-intelligence__chart-gridline"></line>
-                <circle *ngIf="viewModel.swingPoints.length" cx="160" [attr.cy]="130 - (viewModel.swingPoints[0].probability * 1.2)" r="5" class="match-intelligence__worm-point match-intelligence__worm-point--current"></circle>
-              </svg>
+              <div class="match-intelligence__chart-server-placeholder"></div>
               <div class="match-intelligence__chart-y-axis"><span>100%</span><span>50%</span><span>0%</span></div>
             </div>
+            <div class="match-intelligence__chart-phase-axis" aria-hidden="true"><span>1st innings</span><span>2nd innings</span></div>
             <div class="match-intelligence__worm-axis"><span>Start</span><span>{{ viewModel.inningsLabel || 'Match updates' }}</span><span>Now</span></div>
             <p class="match-intelligence__muted">{{ viewModel.swingPoints.length ? 'Current probability is available; the trend line will appear after the next model update.' : 'The probability timeline will appear after the first live model updates.' }}</p>
           </div>
@@ -244,51 +233,16 @@
       <button type="button" class="match-intelligence__relationship-action" (click)="onRelationshipCtaClick()" aria-label="Join match updates from Match Intelligence">{{ viewModel.relationshipCtaLabel }}</button>
     </section>
 
-    <section class="match-intelligence__utility-grid" aria-label="Live explanation utility surfaces">
-      <button
-        class="match-intelligence__utility"
-        type="button"
-        *ngFor="let card of viewModel.utilityCards"
-        (click)="onUtilityCardClick(card.key)"
-        [attr.aria-label]="card.title + ': ' + card.body">
-        <p class="match-intelligence__card-kicker">{{ card.kicker }}</p>
-        <h2>{{ card.title }}</h2>
-        <p>{{ card.body }}</p>
-      </button>
-    </section>
-
-    <section class="match-intelligence__detail-stack" aria-label="Match intelligence explanation modules">
-      <details
-        class="match-intelligence__detail"
-        *ngFor="let module of viewModel.insightModules"
-        (toggle)="onInsightModuleToggle(module.key, $event.target && $event.target.open)">
-        <summary class="match-intelligence__detail-summary">
-          <div>
-            <p class="match-intelligence__card-kicker">{{ module.kicker }}</p>
-            <h2>{{ module.title }}</h2>
-          </div>
-        </summary>
-        <p>{{ module.body }}</p>
-        <ul class="match-intelligence__detail-list" *ngIf="module.bullets && module.bullets.length">
-          <li *ngFor="let bullet of module.bullets">{{ bullet }}</li>
-        </ul>
-      </details>
-    </section>
-
-    <section class="match-intelligence__footer-note">
-      <h2>Indexing and release note</h2>
-      <p>{{ viewModel.indexingPolicy }}</p>
-      <p>{{ viewModel.supportLabel }}</p>
-      <p>
-        This public route intentionally stays free, avoids operator-only dashboard language, and keeps the canonical
-        <code>/cric-live/{{ '{' }}slug{{ '}' }}</code> page as the main score-first entity.
-      </p>
-    </section>
   </div>
 
   <ng-template #loadingState>
     <div class="match-intelligence__loading">
-      <p>Loading match intelligence...</p>
+      <div class="match-intelligence__loading-line match-intelligence__loading-line--wide"></div>
+      <div class="match-intelligence__loading-line match-intelligence__loading-line--title"></div>
+      <div class="match-intelligence__loading-line match-intelligence__loading-line--short"></div>
+      <div class="match-intelligence__loading-pills">
+        <span></span><span></span><span></span>
+      </div>
     </div>
   </ng-template>
 </section>
