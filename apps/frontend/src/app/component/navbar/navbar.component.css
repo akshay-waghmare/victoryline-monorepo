@@ -23,8 +23,8 @@
   justify-content: space-between;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 4px 16px;
-  height: 48px;
+  padding: 2px 16px;
+  height: 44px;
 }
 
 /* Brand */
@@ -49,8 +49,8 @@
 }
 
 .navbar__brand-container .logo-image {
-  height: 48px !important;
-  max-height: 48px !important;
+  height: 42px !important;
+  max-height: 42px !important;
   width: auto;
   display: block;
 }
@@ -114,7 +114,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 6px 10px;
   border-radius: var(--border-radius-md);
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
@@ -122,7 +122,7 @@
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 44px;
+  min-height: 38px;
 }
 
 .navbar__nav-link:hover {
@@ -157,8 +157,8 @@
 .navbar__theme-toggle {
   color: var(--color-text-secondary);
   transition: all 0.2s ease;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 38px;
+  min-height: 38px;
 }
 
 .navbar__theme-toggle:hover {
@@ -170,8 +170,27 @@
 .navbar__mobile-toggle {
   display: flex;
   color: var(--color-text-secondary);
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 38px;
+  min-height: 38px;
+}
+
+/* Keep the compact rhythm on larger screens without shrinking touch targets on mobile. */
+@media (max-width: 767px) {
+  .navbar__container {
+    padding: 4px 16px;
+    height: 48px;
+  }
+
+  .navbar__brand-container .logo-image {
+    height: 48px !important;
+    max-height: 48px !important;
+  }
+
+  .navbar__theme-toggle,
+  .navbar__mobile-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 @media (min-width: 768px) {

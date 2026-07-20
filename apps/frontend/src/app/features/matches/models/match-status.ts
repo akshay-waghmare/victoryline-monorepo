@@ -65,8 +65,15 @@ export function isLiveMatch(status: MatchStatus): boolean {
 /**
  * Calculate staleness level based on last updated timestamp
  */
-export function calculateStaleness(lastUpdated: Date): 'fresh' | 'warning' | 'error' {
-  const secondsAgo = (Date.now() - lastUpdated.getTime()) / 1000;
+export function calculateStaleness(lastUpdated: Date | string | number): 'fresh' | 'warning' | 'error' {
+  // API/SSR data arrives as an ISO string after JSON serialization. Keep this
+  // boundary tolerant so an early card render cannot crash on `.getTime()`.
+  const updatedAt = lastUpdated instanceof Date ? lastUpdated : new Date(lastUpdated);
+  if (isNaN(updatedAt.getTime())) {
+    return 'error';
+  }
+
+  const secondsAgo = (Date.now() - updatedAt.getTime()) / 1000;
   
   if (secondsAgo < 30) {
     return 'fresh';

@@ -309,3 +309,25 @@
     transition: none !important;
   }
 }
+
+/* Match-tab compact treatment: keep team and player identity first. */
+.lineups-container { padding: 12px; min-height: 0; background: #f8fafc; }
+.role-legend { padding: 8px 10px; margin-bottom: 10px; border-radius: 10px; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: none; }
+.legend-title { display: inline; margin: 0 8px 0 0; color: #64748b; font-size: 0.72rem; }
+.legend-items { display: inline-flex; gap: 6px; }
+.legend-item { gap: 4px; padding: 3px 7px; border-radius: 999px; color: #475569; background: #f1f5f9; font-size: 0.7rem; }
+.legend-item mat-icon { font-size: 0.95rem; width: 0.95rem; height: 0.95rem; }
+.teams-grid { gap: 10px; }
+.team-card { padding: 12px; border: 1px solid #dbe4f0; border-radius: 12px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04); }
+.team-card::before { height: 3px; }
+.team-card__header { margin-bottom: 8px; }
+.team-name { font-size: 1.05rem; letter-spacing: 0; }
+.player-item { gap: 8px; padding: 7px 6px; margin-bottom: 2px; }
+.player-item::before { width: 22px; height: 22px; font-size: 0.7rem; }
+.player-role-icon { font-size: 1.1rem; width: 1.1rem; height: 1.1rem; }
+.player-main { gap: 3px; }
+.player-name { font-size: 0.84rem; }
+.player-badges { gap: 3px; }
+.player-badge { padding: 1px 5px; font-size: 0.62rem; }
+.player-role-label { padding: 3px 7px; font-size: 0.65rem; }
+.team-details-button { padding: 5px 9px; font-size: 0.68rem; }

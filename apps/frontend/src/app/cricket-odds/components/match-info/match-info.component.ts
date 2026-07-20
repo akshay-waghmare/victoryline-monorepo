@@ -59,6 +59,7 @@ interface MatchInfoComparisonRow {
 export class MatchDetailsInfoComponent implements OnInit, OnChanges {
   @Input() matchId?: string;
   @Input() matchInfo?: any;
+  @Input() currentMatch?: any;
 
   matchData: any = null;
   isLoading = false;
@@ -113,7 +114,7 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
   }
 
   get summaryEyebrow(): string {
-    return 'At a glance';
+    return 'Match Details';
   }
 
   get summaryContext(): string {
@@ -121,7 +122,7 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
       return this.seriesName;
     }
 
-    return 'Match info';
+    return '';
   }
 
   get matchTitle(): string {
@@ -130,7 +131,41 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
       return 'Match information';
     }
 
-    return source.match_name || source.series_name || 'Match information';
+    var explicitTitle = source.match_name || source.matchName;
+    if (explicitTitle && explicitTitle !== this.seriesName) {
+      return explicitTitle;
+    }
+
+    var teams = this.extractTeamNames(source);
+    if (teams.length < 2 && this.currentMatch) {
+      teams = this.extractTeamNames(this.currentMatch);
+    }
+    if (teams.length >= 2) {
+      return teams[0] + ' vs ' + teams[1];
+    }
+
+    return this.seriesName || 'Match information';
+  }
+
+  private extractTeamNames(source: any): string[] {
+    var names: string[] = [];
+    var first = source && (source.team1_name || source.team1Name || source.home_team || source.homeTeam || source.team1);
+    var second = source && (source.team2_name || source.team2Name || source.away_team || source.awayTeam || source.team2);
+
+    first = first && typeof first === 'object' ? (first.name || first.shortName || first.team_name) : first;
+    second = second && typeof second === 'object' ? (second.name || second.shortName || second.team_name) : second;
+
+    if (first) { names.push(String(first).trim()); }
+    if (second) { names.push(String(second).trim()); }
+
+    if (names.length < 2 && source && Array.isArray(source.teams)) {
+      names = source.teams
+        .map(function(team: any): string { return team && (team.team_name || team.name || team.teamName) ? String(team.team_name || team.name || team.teamName).trim() : ''; })
+        .filter(function(name: string): boolean { return !!name; })
+        .slice(0, 2);
+    }
+
+    return names;
   }
 
   get seriesName(): string {
@@ -340,32 +375,8 @@ export class MatchDetailsInfoComponent implements OnInit, OnChanges {
       return summary;
     }
 
-    if (this.isUpcomingMatch()) {
-      if (this.matchDate && this.venueName !== 'Venue not available') {
-        return 'Scheduled for ' + this.formatDateTime(this.matchDate) + ' at ' + this.venueName + '.';
-      }
-
-      if (this.matchDate) {
-        return 'Scheduled for ' + this.formatDateTime(this.matchDate) + '.';
-      }
-
-      return 'Fixture details are filling in ahead of the start time.';
-    }
-
     if (summary) {
       return summary;
-    }
-
-    if (this.matchDate && this.venueName !== 'Venue not available') {
-      return 'Starts ' + this.formatDateTime(this.matchDate) + ' at ' + this.venueName + '.';
-    }
-
-    if (this.matchDate) {
-      return 'Starts ' + this.formatDateTime(this.matchDate) + '.';
-    }
-
-    if (this.venueName !== 'Venue not available') {
-      return 'Venue: ' + this.venueName + '.';
     }
 
     return '';

@@ -5,7 +5,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, of, forkJoin, timer, merge, EMPTY } from 'rxjs';
+import { Observable, of, forkJoin, combineLatest, concat, timer, merge, EMPTY } from 'rxjs';
 import { map, switchMap, catchError, shareReplay, timeout, debounceTime } from 'rxjs/operators';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
@@ -28,7 +28,9 @@ interface ScheduleResponse {
 export class MatchesService {
 
   private readonly matchesRequestTimeoutMs = 15000;
-  private readonly scorecardRequestTimeoutMs = 8000;
+  // Scorecards enrich live cards after the first paint. Keep this bounded so a
+  // slow upstream cannot leave background requests hanging for the full page.
+  private readonly scorecardRequestTimeoutMs = 2500;
   private readonly noCacheHeaders = new HttpHeaders({
     'Cache-Control': 'no-cache',
     'Pragma': 'no-cache'
@@ -123,14 +125,21 @@ export class MatchesService {
           return of(this.transformActiveMatches(activeMatches, activeMatches.map(() => null)));
         }
 
-        // Fetch scorecard data for all active matches
+        const initialMatches = this.transformActiveMatches(activeMatches, activeMatches.map(() => null));
+
+        // Render the live rail from the lifecycle feed immediately. Scorecards
+        // are enrichment only; a slow CREX request must never block the home
+        // page's first useful state.
         const scorecardRequests = activeMatches.map((match: any) =>
           this.fetchScorecardData(match.url)
         );
 
-        // Wait for all scorecard requests to complete
-        return forkJoin(scorecardRequests).pipe(
-          map((scorecardDataArray: any[]) => this.transformActiveMatches(activeMatches, scorecardDataArray))
+        return concat(
+          of(initialMatches),
+          forkJoin(scorecardRequests).pipe(
+            map((scorecardDataArray: any[]) => this.transformActiveMatches(activeMatches, scorecardDataArray)),
+            catchError(() => of(initialMatches))
+          )
         );
       }),
       catchError((error) => {
@@ -155,7 +164,9 @@ export class MatchesService {
   }
 
   getAllMatches(): Observable<MatchCardViewModel[]> {
-    return forkJoin([
+    // combineLatest lets the initial live-feed snapshot flow through while
+    // optional scorecard enrichment is still pending.
+    return combineLatest([
       this.getLiveMatches(),
       this.getUpcomingMatches(),
       this.getCompletedMatches()

@@ -331,3 +331,17 @@
   .scorecard-table tbody tr:hover td { transform: none !important; }
   .fow-list li:hover { transform: none !important; }
 }
+
+/* Compact scorecard: surface the innings score and first rows immediately. */
+.scorecard-container { padding: 8px; border-radius: 12px; }
+.innings-tabs { gap: 6px; margin-bottom: 8px; padding-bottom: 2px; }
+.innings-tab { gap: 2px; padding: 8px 12px; border-radius: 10px 10px 0 0; }
+.innings-panel { gap: 8px; }
+.innings-summary { padding: 10px 14px; border-radius: 12px; }
+.innings-summary__eyebrow { margin-bottom: 4px; padding: 3px 8px; }
+.innings-summary h3 { font-size: 1.4rem; }
+.innings-summary__metric { padding: 8px; border-radius: 10px; }
+.batting-section, .bowling-section { padding: 12px; border-radius: 12px; }
+.batting-section h4, .bowling-section h4, .fall-of-wickets-section h4 { font-size: 1rem; margin-bottom: 8px; }
+.scorecard-table th { padding: 8px 10px; }
+.scorecard-table td { padding: 9px 10px; }

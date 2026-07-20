@@ -1,4 +1,6 @@
 import requests
+
+from .services.sv3_format import normalize_sv3_format
 import os
 import time
 from typing import Dict, Any, Optional
@@ -785,6 +787,10 @@ class CricketDataService:
             payload = {
                 "url": source_url,
             }
+
+            format_metadata = normalize_sv3_format(api_data)
+            if format_metadata:
+                payload["format_metadata"] = format_metadata
             
             # Extract over: field 'v' contains current over like "15.3"
             if api_data.get("v"):

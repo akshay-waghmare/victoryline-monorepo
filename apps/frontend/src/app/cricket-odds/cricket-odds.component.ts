@@ -171,6 +171,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   seriesPageUrlFallback: string | null = null;
   private resolvedSeriesContext: PlayerStatsSeriesView | null = null;
   private lastResolvedRouteSlug: string | null = null;
+  private lastFetchedRouteKey: string | null = null;
   private routeMatchHint: any = null;
   statsExplorerSource: 'lineups' | 'scorecard' | null = null;
   selectedStatsExplorerType: 'player' | 'team' | 'series' | null = null;
@@ -339,11 +340,6 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
     //this.loadUserBets();
 
-    // Fetch match info for hero component display
-    if (this.matchId || this.currentUrl) {
-      this.fetchMatchInfo(this.matchId || this.currentUrl);
-    }
-
   }
   
 
@@ -351,6 +347,13 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private fetchCricketData() {
     const params = this.activatedRoute.snapshot.params;
     const match = this.normalizeRouteMatchKey(params['path']); // Use 'path' instead of 'match'
+    // Initial component setup and the first NavigationEnd can both reach this
+    // method. Keep one data stream alive instead of briefly tearing down and
+    // recreating the page, which caused visible refresh/loading flashes.
+    if (match && this.lastFetchedRouteKey === match) {
+      return;
+    }
+    this.lastFetchedRouteKey = match || this.lastFetchedRouteKey;
     const isSameRouteMatch = !!(match && this.lastResolvedRouteSlug && this.lastResolvedRouteSlug === match);
 
     this.currentUrl = match || '';
@@ -2475,6 +2478,8 @@ private resolveRequestedTabKey(): MatchPageTabKey | null {
     case 'info':
     case 'match-details':
       return 'details';
+    case 'lineups':
+      return 'lineups';
     default:
       return null;
   }
@@ -2979,7 +2984,15 @@ getScorecardSectionTitle(): string {
 }
 
 getScorecardSectionSummary(): string {
-  return this.getScorecardIntentLabel();
+  if (this.scorecardData && this.scorecardData.innings && this.scorecardData.innings.length) {
+    return 'Batting, bowling, partnerships, and innings detail for this match.';
+  }
+
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    return 'The final innings tables and result details will appear here.';
+  }
+
+  return 'Batting, bowling, overs, wickets, and innings context will appear here as play progresses.';
 }
 
 getLineupsSectionKicker(): string {

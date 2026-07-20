@@ -606,6 +606,23 @@ mat-card-content {
 
 #scorecard-panel {
   scroll-margin-top: 76px;
+  gap: 8px;
+}
+
+.scorecard-context {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 8px;
+  color: #64748b;
+}
+
+.scorecard-context summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.scorecard-context .match-tab-intro--secondary {
+  margin-top: 8px;
 }
 
 .match-tab-state {
@@ -5478,4 +5495,43 @@ p {
   background: var(--color-surface, #fff);
   color: var(--color-primary, #1769aa) !important;
   box-shadow: 0 1px 3px rgba(20, 35, 50, 0.12);
+}
+.match-page-related-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 14px 0 4px;
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  color: #64748b;
+  font-size: 13px;
+}
+
+.match-page-related-nav__label {
+  margin-right: 4px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.match-page-related-nav a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 160ms ease-out;
+}
+
+.match-page-related-nav a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+@media (max-width: 767px) {
+  .match-page-related-nav {
+    gap: 8px 12px;
+  }
+
+  .match-page-related-nav__label {
+    flex-basis: 100%;
+  }
 }

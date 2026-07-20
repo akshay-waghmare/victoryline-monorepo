@@ -12,19 +12,15 @@
 
     <header class="match-intelligence__hero">
       <div class="match-intelligence__hero-copy">
-        <p class="match-intelligence__eyebrow">Crickzen Match Intelligence</p>
         <h1 class="match-intelligence__title">{{ viewModel.h1 }}</h1>
-        <p class="match-intelligence__summary">{{ viewModel.description }}</p>
       </div>
 
       <div class="match-intelligence__hero-side">
         <div class="match-intelligence__meta">
           <span class="match-intelligence__badge">{{ viewModel.statusLabel }}</span>
           <span class="match-intelligence__state">{{ viewModel.stateLabel }}</span>
-          <span class="match-intelligence__note">Launch tier: {{ viewModel.capabilityTier }}</span>
         </div>
         <p class="match-intelligence__model-proof" *ngIf="viewModel.modelLabel">Model: {{ viewModel.modelLabel }}<span *ngIf="viewModel.modelMode"> · {{ viewModel.modelMode }}</span></p>
-        <p class="match-intelligence__freshness">{{ viewModel.freshnessLabel }}</p>
         <div class="match-intelligence__hero-actions">
           <a class="match-intelligence__primary" [attr.href]="viewModel.canonicalMatchPath" (click)="onBackToMatchClick()" aria-label="Return to the canonical live match page">Back To Live Match</a>
         </div>
@@ -87,9 +83,18 @@
 
     <section class="match-intelligence__visual-grid" aria-label="Match intelligence charts">
       <article class="match-intelligence__chart-card">
-        <p class="match-intelligence__card-kicker">Probability timeline</p>
-        <h2>Manhattan &amp; worm: model movement</h2>
-        <p class="match-intelligence__formula-note">Bars show each public model update; the worm line connects win probability over time. This is not a ball-by-ball reconstruction.</p>
+        <div class="match-intelligence__probability-header">
+          <div>
+            <p class="match-intelligence__card-kicker">Win Probability</p>
+            <h2>{{ viewModel.probabilityTeamLabel || 'Model direction' }} <strong>{{ viewModel.probabilityLabel || '--' }}</strong></h2>
+          </div>
+          <span class="match-intelligence__probability-updated">Current model view</span>
+        </div>
+        <div class="match-intelligence__probability-teams" *ngIf="viewModel.probabilityOpponentLabel">
+          <span><i class="match-intelligence__team-dot match-intelligence__team-dot--primary"></i>{{ viewModel.probabilityTeamLabel }} <strong>{{ viewModel.probabilityLabel || '--' }}</strong></span>
+          <span><i class="match-intelligence__team-dot"></i>{{ viewModel.probabilityOpponentLabel }} <strong>{{ viewModel.opponentProbabilityLabel || '--' }}</strong></span>
+        </div>
+        <p class="match-intelligence__formula-note">The probability line shows how the model view changed during the match.</p>
         <div class="match-intelligence__analysis-chart" *ngIf="viewModel.swingPoints.length; else noTimeline">
           <div class="match-intelligence__chart-shell">
             <div class="match-intelligence__chart-y-axis" aria-hidden="true"><span>100%</span><span>50%</span><span>0%</span></div>

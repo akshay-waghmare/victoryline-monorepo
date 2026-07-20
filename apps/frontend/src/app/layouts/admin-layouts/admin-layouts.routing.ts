@@ -32,6 +32,8 @@ import { SeriesPageComponent } from 'src/app/features/stats/series-page/series-p
 import { LiveScoreHubComponent } from 'src/app/features/seo-hubs/live-score-hub/live-score-hub.component';
 import { Error404Component } from 'src/app/shared/components/error-404/error-404.component';
 import { normalizeMatchRoutePath } from 'src/app/core/utils/match-utils';
+import { AdminLayoutsComponent } from './admin-layouts.component';
+import { PublicLayoutComponent } from '../public-layout/public-layout.component';
 
 export function cricLiveMatcher(segments: UrlSegment[]): UrlMatchResult | null {
   if (segments.length < 2 || segments[0].path !== 'cric-live') {
@@ -63,7 +65,7 @@ export function cricLiveMatcher(segments: UrlSegment[]): UrlMatchResult | null {
   };
 }
 
-export const AdminLayoutsRoute: Routes = [
+const publicRoutes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
   { path: 'Home', component: HomeComponent },
   { path: 'login', component: LoginComponent },
@@ -77,13 +79,21 @@ export const AdminLayoutsRoute: Routes = [
   { path: 'live-score/archive/:page', component: LiveScoreHubComponent, data: { hubType: 'archive' } },
   { path: 'cricket-schedule/today', component: LiveScoreHubComponent, data: { hubType: 'scheduleToday' } },
   { path: 'cricket-schedule/ipl-2026', component: LiveScoreHubComponent, data: { hubType: 'iplSchedule' } },
+  { matcher: cricLiveMatcher, component: CricketOddsComponent },
+  { path: 'cric-live/:path', component: CricketOddsComponent },
+  { path: 'players', component: PlayersPageComponent },
+  { path: 'teams', component: TeamsPageComponent },
+  { path: 'series', component: SeriesPageComponent },
+  { path: 'privacy-policy', component: PrivacyPolicyComponent },
+  { path: 'terms-of-service', component: TermsOfServiceComponent }
+];
+
+const adminRoutes: Routes = [
   { path: 'dashboard', component: DashboardComponent },
   { path: 'add-service', component: AddServiceComponent },
   { path: 'football', component: ServiceListComponent },
   { path: 'add-customer', component: AddCustomerComponent },
   { path: 'customer-list', component: CustomerListComponent },
-  { matcher: cricLiveMatcher, component: CricketOddsComponent },
-  { path: 'cric-live/:path', component: CricketOddsComponent },
   { path: 'add-fuller', component: AddFullerComponent },
   { path: 'fuller-list', component: FullerListComponent },
   { path: 'bet-market/:id', component: BetMarketComponent },
@@ -96,12 +106,12 @@ export const AdminLayoutsRoute: Routes = [
   { path: 'logout', component: LogoutFormComponent },
   { path: 'scorecard', component: ScorecardComponent },
   { path: 'banner', component: BannerComponent},
-  { path: 'privacy-policy', component: PrivacyPolicyComponent },
-  { path: 'terms-of-service', component: TermsOfServiceComponent },
-  { path: 'players', component: PlayersPageComponent },
-  { path: 'teams', component: TeamsPageComponent },
-  { path: 'series', component: SeriesPageComponent },
   { path: '**', component: Error404Component },
+];
+
+export const AdminLayoutsRoute: Routes = [
+  { path: '', component: PublicLayoutComponent, children: publicRoutes },
+  { path: '', component: AdminLayoutsComponent, children: adminRoutes }
 ];
 
 

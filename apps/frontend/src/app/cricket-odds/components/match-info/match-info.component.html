@@ -9,17 +9,14 @@
           <p class="match-info-hero__subtitle" *ngIf="summaryNarrative">{{ summaryNarrative }}</p>
         </div>
 
-        <div class="match-info-hero__pills">
-          <span class="hero-pill" [attr.data-tone]="statusTone">{{ matchStatus }}</span>
-          <span class="hero-pill" data-tone="default">{{ matchFormat }}</span>
+        <div class="match-info-hero__meta" aria-label="Match status and format">
+          <span class="hero-meta-status" [attr.data-tone]="statusTone">{{ matchStatus }}</span>
+          <span class="hero-meta-format" *ngIf="matchFormat !== 'Format not available'">{{ matchFormat }}</span>
         </div>
       </div>
 
       <section class="summary-grid" aria-label="Essential match context">
         <article class="summary-card" *ngFor="let card of summaryCards" [attr.data-tone]="card.tone || 'default'">
-          <div class="summary-card__icon">
-            <mat-icon>{{ card.icon }}</mat-icon>
-          </div>
           <div class="summary-card__content">
             <div class="summary-card__label">{{ card.label }}</div>
             <div class="summary-card__value">{{ card.value }}</div>
@@ -28,6 +25,7 @@
       </section>
     </header>
 
+    <div class="match-info-sections-grid">
     <details class="compact-section match-info-disclosure" open *ngIf="formSections.length > 0">
       <summary class="match-info-disclosure__summary">
         <span>
@@ -149,6 +147,7 @@
         </div>
       </dl>
     </details>
+    </div>
   </div>
 
   <div class="loading-state" *ngIf="isLoading" role="status" aria-live="polite">

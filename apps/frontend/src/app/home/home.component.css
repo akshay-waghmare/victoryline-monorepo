@@ -10,7 +10,7 @@
   width: 100%;
   max-width: 1320px;
   margin: 0 auto;
-  padding: 16px 14px 32px;
+  padding: 8px 14px 32px;
   color: var(--color-text-primary);
   background:
     radial-gradient(circle at top right, rgba(14, 165, 233, 0.05), transparent 30%),

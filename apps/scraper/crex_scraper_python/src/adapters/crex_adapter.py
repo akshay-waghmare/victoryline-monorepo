@@ -26,6 +26,7 @@ from ..config import get_settings
 from ..cricket_data_service import CricketDataService
 from ..cache import ScrapeCache
 from ..crex_url_utils import extract_crex_api_key, extract_crex_match_key, get_crex_details_url, get_crex_live_url, get_crex_scorecard_url
+from ..services.sv3_format import normalize_sv3_format
 from ..crex_stats_analysis import analyze_player_page_html, analyze_standings_html
 
 logger = logging.getLogger(__name__)
@@ -1156,6 +1157,10 @@ class CrexAdapter(SourceAdapter):
         Process raw API data (sV3) into structured fields for the backend.
         """
         try:
+            format_metadata = normalize_sv3_format(api_data)
+            if format_metadata:
+                final_data["format_metadata"] = format_metadata
+
             announcement = self._clean_api_text(api_data.get("C"))
             final_data["match_announcement"] = announcement
             if announcement:

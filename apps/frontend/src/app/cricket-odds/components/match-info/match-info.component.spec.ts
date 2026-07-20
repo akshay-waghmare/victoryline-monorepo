@@ -91,11 +91,31 @@ describe('MatchDetailsInfoComponent', () => {
       series_name: 'Major League Cricket 2026'
     };
 
-    expect(component.summaryEyebrow).toBe('At a glance');
+    expect(component.summaryEyebrow).toBe('Match Details');
     expect(component.summaryContext).toBe('Major League Cricket 2026');
     expect(component.summaryCards[0].label).toBe('Starts');
     expect(component.summaryCards.some(function(card) { return card.label === 'Lineups' && card.value === 'Playing XI pending'; })).toBe(true);
     expect(component.summaryNarrative.indexOf('Scheduled for') === 0).toBe(true);
+  });
+
+  it('uses team names for the match title when the feed only provides a series name', () => {
+    component.matchInfo = {
+      series_name: 'PPL 2026',
+      teams: [{ team_name: 'VMK' }, { team_name: 'YAR' }]
+    };
+
+    expect(component.matchTitle).toBe('VMK vs YAR');
+    expect(component.summaryContext).toBe('PPL 2026');
+  });
+
+  it('falls back to the canonical match teams when match info only has series context', () => {
+    component.matchInfo = { series_name: 'PPL 2026' };
+    component.currentMatch = {
+      team1: { name: 'VMK' },
+      team2: { name: 'YAR' }
+    };
+
+    expect(component.matchTitle).toBe('VMK vs YAR');
   });
 
   it('surfaces result-first summary cards for completed matches', () => {

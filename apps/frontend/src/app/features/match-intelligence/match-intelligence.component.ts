@@ -56,6 +56,8 @@ interface MatchIntelligenceViewModel {
   freshnessState: 'fresh' | 'stale' | 'unavailable';
   probabilityLabel: string | null;
   probabilityTeamLabel: string | null;
+  probabilityOpponentLabel: string | null;
+  opponentProbabilityLabel: string | null;
   probabilityCardBody: string;
   whatChangedBody: string;
   whyChangedBody: string;
@@ -304,6 +306,8 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       freshnessState: freshnessState,
       probabilityLabel: probability !== null ? probability.toFixed(0) + '%' : null,
       probabilityTeamLabel: probabilityTeam,
+      probabilityOpponentLabel: this.resolveOpponentTeam(seo.teams, probabilityTeam),
+      opponentProbabilityLabel: probability !== null ? (100 - probability).toFixed(0) + '%' : null,
       probabilityCardBody: this.buildProbabilityCardBody(lifecycle, probabilityTeam),
       whatChangedBody: this.buildWhatChangedBody(lifecycle, probabilityTeam),
       whyChangedBody: this.buildWhyChangedBody(lifecycle, probabilityTeam),
@@ -474,6 +478,17 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
       return String(this.snapshot.matchData.team_odds.favTeam).trim();
     }
     return null;
+  }
+
+  private resolveOpponentTeam(teamsLabel: string, probabilityTeam: string | null): string | null {
+    var teams = String(teamsLabel || '').split(/\s+vs\s+/i).map(function(team) { return team.trim(); }).filter(Boolean);
+    if (teams.length < 2) {
+      return null;
+    }
+    if (probabilityTeam && teams[0].toLowerCase().indexOf(probabilityTeam.toLowerCase()) !== -1) {
+      return teams[1];
+    }
+    return teams[0];
   }
 
   private resolveStateLabel(lifecycle: 'upcoming' | 'live' | 'completed' | 'unknown', freshnessState: 'fresh' | 'stale' | 'unavailable', modelUnavailable: boolean): string {
@@ -1039,11 +1054,8 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
     return [
       { label: 'Batting', value: this.getTeamMetric('batting_team') || this.resolveProbabilityTeam() },
       { label: 'Bowling', value: this.getTeamMetric('bowling_team') },
-      { label: 'Innings', value: this.getInningsLabel() },
       { label: 'CRR', value: this.getMetricLabel('current_run_rate', 'CRR ', 2) },
       { label: 'RRR', value: this.getMetricLabel('required_run_rate', 'RRR ', 2) },
-      { label: 'Expected final', value: this.getExpectedFinalLabel() },
-      { label: 'Venue average', value: this.getMetricLabel('venue_average_score', 'Venue average ', 1) },
       { label: 'Resources', value: this.getMetricLabel('resource_pct', 'Resources ', 1, '%') },
       { label: 'Resource WP', value: this.getMetricLabel('resource_win_probability_pct', 'Resource WP ', 0, '%') },
       { label: 'Par pace', value: this.getMetricLabel('score_vs_par', 'Score vs par pace ', 1) },

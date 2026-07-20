@@ -1,21 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
 
-import {AdminLayoutsComponent} from './layouts/admin-layouts/admin-layouts.component';
-import { LoginComponent } from './login/login.component';
-import { from } from 'rxjs';
 import { RouterModule, Routes } from '@angular/router';
 
 const routes: Routes = [
   {
     path: '',
-    component: AdminLayoutsComponent,
-    children: [
-      {
-        path: '',
-        loadChildren: './layouts/admin-layouts/admin-layouts.module#AdminLayoutsModule'
-      }
-    ]
+    loadChildren: './layouts/admin-layouts/admin-layouts.module#AdminLayoutsModule'
   },
 ];
 

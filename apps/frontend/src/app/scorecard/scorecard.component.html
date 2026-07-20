@@ -93,15 +93,10 @@
 <div class="scorecard">
   <header class="scorecard__header">
     <div>
-      <span class="scorecard__eyebrow">Scorecard</span>
       <h2>Scorecard</h2>
       <p class="scorecard__subtitle" *ngIf="getSelectedInningTeamCode()">
         {{ getSelectedInningTeamCode() }} innings, batting and bowling score detail.
       </p>
-    </div>
-    <div class="scorecard__score-chip" *ngIf="getSelectedInningScore()">
-      <span>{{ getSelectedInningTeamCode() }}</span>
-      <strong>{{ getSelectedInningScore() }}</strong>
     </div>
   </header>
 
