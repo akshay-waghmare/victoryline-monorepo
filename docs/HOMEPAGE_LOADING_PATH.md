@@ -15,19 +15,19 @@ The live-match endpoint already provides the lifecycle and identity data needed 
 ## Loading contract
 
 1. Render the live rail immediately from the backend live-match feed.
-2. Treat scorecard data as optional enrichment for scores, venue, and other details.
-3. Keep scorecard enrichment bounded to 2.5 seconds per request.
-4. If enrichment fails, keep the already-rendered live cards and do not block the page.
-5. Combine live, upcoming, and completed streams so the initial live snapshot is not held behind enrichment.
+2. Keep scorecard data on the selected-match detail surface, not in the catalog refresh loop.
+3. If a detail request fails, keep the catalog cards and do not block the page.
+4. Combine live, upcoming, and completed metadata streams without per-match upstream fan-out.
+5. Match Intelligence loads its route-specific match info and snapshot directly, rather than loading the full catalog first.
 
-This keeps the first view responsive while preserving scorecard updates when the upstream responds in time.
+This keeps the first view responsive while preserving full scorecard requests for users who explicitly open a match.
 
 ## Implementation
 
 - `apps/frontend/src/app/features/matches/services/matches.service.ts`
-  - emits an initial live-card snapshot before scorecard requests complete;
-  - uses `combineLatest` for the aggregate match stream;
-  - reduces the optional scorecard timeout from 8 seconds to 2.5 seconds.
+- `apps/frontend/src/app/features/match-intelligence/match-intelligence-data.service.ts`
+  - loads route-specific match info, live data, and public prediction data in parallel;
+  - bounds optional intelligence inputs so one slow source cannot hold the surface indefinitely.
 
 ## Verification
 
@@ -35,3 +35,5 @@ This keeps the first view responsive while preserving scorecard updates when the
 - Frontend and Caddy containers force-recreated with the local Docker stack.
 - Backend, frontend, scraper, Redis, and Caddy were running; backend/frontend/scraper healthy.
 - Eight requests to `http://localhost:8080/Home` returned HTTP 200 in 0.23–0.94 seconds after startup settled.
+- Follow-up verification: `/Home` returned HTTP 200 in 0.53–1.56 seconds and Match Intelligence returned HTTP 200 in 0.42 seconds.
+- The served bundle no longer contains the catalog scorecard error or verbose score-parsing debug strings; fresh frontend logs had no scorecard timeout or unhandled-error markers.

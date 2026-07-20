@@ -1,10 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, defaultIfEmpty, map, switchMap } from 'rxjs/operators';
+import { catchError, defaultIfEmpty, map, timeout } from 'rxjs/operators';
 import { CricketService } from '../../cricket-odds/cricket-odds.service';
 import { MatchStatus, MatchCardViewModel } from '../matches/models/match-card.models';
-import { MatchesService } from '../matches/services/matches.service';
 import { extractSlugFromUrl } from '../../core/utils/match-utils';
 import { environment } from 'src/environments/environment';
 
@@ -69,37 +68,29 @@ export class MatchIntelligenceDataService {
 
   constructor(
     private http: HttpClient,
-    private cricketService: CricketService,
-    private matchesService: MatchesService
+    private cricketService: CricketService
   ) {}
 
   loadSnapshot(slug: string): Observable<MatchIntelligenceSnapshot> {
     return forkJoin([
-      this.matchesService.getAllMatches().pipe(
-        catchError(() => of([]))
-      ),
       this.loadPublicPredictionMatches().pipe(
         catchError(() => of([]))
+      ),
+      this.cricketService.getMatchInfo(slug).pipe(
+        timeout(5000),
+        defaultIfEmpty(null),
+        catchError(() => of(null))
+      ),
+      this.cricketService.getLastUpdatedData(slug).pipe(
+        timeout(5000),
+        defaultIfEmpty(null),
+        catchError(() => of(null))
       )
     ]).pipe(
-      switchMap(([matches, publicMatches]) => {
-        var currentMatch = (matches || []).find((item) => this.matchesRouteSlug(item, slug)) || null;
-        var sourceUrl = currentMatch && currentMatch.matchUrl ? currentMatch.matchUrl : slug;
-
-        return forkJoin([
-          of(currentMatch),
-          this.cricketService.getMatchInfo(sourceUrl).pipe(
-            defaultIfEmpty(null),
-            catchError(() => of(null))
-          ),
-          this.cricketService.getLastUpdatedData(sourceUrl).pipe(
-            defaultIfEmpty(null),
-            catchError(() => of(null))
-          ),
-          of(publicMatches || [])
-        ]);
-      }),
-      map(([currentMatch, matchInfo, matchData, publicMatches]) => {
+      map(([publicMatches, matchInfo, matchData]) => {
+        // The route slug is already the authoritative match key. Do not load
+        // the entire live/upcoming/completed catalog just to resolve one page.
+        var currentMatch = null;
         var publicPrediction = this.findPublicPrediction(slug, currentMatch, matchInfo, publicMatches || []);
         var lifecycle = this.resolveLifecycle(currentMatch, matchInfo, publicPrediction);
         var mergedMatchData = this.mergePublicPrediction(matchData, publicPrediction);
@@ -180,6 +171,7 @@ export class MatchIntelligenceDataService {
     }
 
     return this.http.get<PublicPredictionMatchesResponse>(publicPredictionApiUrl + '/matches').pipe(
+      timeout(4000),
       map((response) => (response && Array.isArray(response.matches)) ? response.matches : []),
       catchError(() => of([]))
     );

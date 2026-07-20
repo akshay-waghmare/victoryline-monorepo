@@ -5,15 +5,13 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Observable, of, forkJoin, combineLatest, concat, timer, merge, EMPTY } from 'rxjs';
+import { Observable, of, combineLatest, timer, merge, EMPTY } from 'rxjs';
 import { map, switchMap, catchError, shareReplay, timeout, debounceTime } from 'rxjs/operators';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
 import { EventListService } from '../../../component/event-list.service';
 import { getStatusDisplayText, formatTimeDisplay, calculateStaleness } from '../models/match-status';
 import { ballsToOvers, extractSlugFromUrl, sortMatchesByPriority } from '../../../core/utils/match-utils';
-import { environment } from '../../../../environments/environment';
 
 interface ScheduleResponse {
   success?: boolean;
@@ -27,15 +25,7 @@ interface ScheduleResponse {
 })
 export class MatchesService {
 
-  private readonly matchesRequestTimeoutMs = 15000;
-  // Scorecards enrich live cards after the first paint. Keep this bounded so a
-  // slow upstream cannot leave background requests hanging for the full page.
-  private readonly scorecardRequestTimeoutMs = 2500;
-  private readonly noCacheHeaders = new HttpHeaders({
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache'
-  });
-  private scorecardApiUrl = environment.REST_API_URL + 'cricket-data/sC4-stats/get';
+  private readonly matchesRequestTimeoutMs = 5000;
 
   // Singleton shared stream — all components subscribe to the same timer + WebSocket triggers.
   // This prevents multiple components (Home, MatchesList) from each creating their own
@@ -43,8 +33,7 @@ export class MatchesService {
   private readonly sharedMatches$: Observable<MatchCardViewModel[]> | null;
 
   constructor(
-    private eventListService: EventListService,
-    private http: HttpClient
+    private eventListService: EventListService
   ) {
     // WebSocket-triggered refresh: backend pushes to /topic/live-matches on every scraper update.
     // Debounce to 3s so rapid scraper bursts don't hammer the backend with repeated fetches.
@@ -100,8 +89,6 @@ export class MatchesService {
     return this.eventListService.getLiveMatches().pipe(
       timeout(this.matchesRequestTimeoutMs),
       switchMap((response: any) => {
-        console.log('Raw API Response:', response);
-
         if (!Array.isArray(response)) {
           return of([]);
         }
@@ -111,39 +98,17 @@ export class MatchesService {
           this.isLiveFeedStatus(this.parseMatchStatus(item))
         );
 
-        console.log('Active matches count:', activeMatches.length);
-
         // If no active matches, return empty array
         if (activeMatches.length === 0) {
           return of([]);
         }
 
-        // Listing-page SSR must finish before Express falls back to the bare app shell.
-        // The live feed already has enough metadata for crawlable match cards; browsers
-        // can continue enriching those cards with per-match scorecard requests.
-        if (!this.isBrowser()) {
-          return of(this.transformActiveMatches(activeMatches, activeMatches.map(() => null)));
-        }
-
-        const initialMatches = this.transformActiveMatches(activeMatches, activeMatches.map(() => null));
-
-        // Render the live rail from the lifecycle feed immediately. Scorecards
-        // are enrichment only; a slow CREX request must never block the home
-        // page's first useful state.
-        const scorecardRequests = activeMatches.map((match: any) =>
-          this.fetchScorecardData(match.url)
-        );
-
-        return concat(
-          of(initialMatches),
-          forkJoin(scorecardRequests).pipe(
-            map((scorecardDataArray: any[]) => this.transformActiveMatches(activeMatches, scorecardDataArray)),
-            catchError(() => of(initialMatches))
-          )
-        );
+        // The catalog feed is intentionally metadata-only. Scorecards are
+        // loaded by the detail/scorecard surface for one selected match; they
+        // must never be fetched for every live match on every catalog refresh.
+        return of(this.transformActiveMatches(activeMatches, activeMatches.map(() => null)));
       }),
-      catchError((error) => {
-        console.error('Error loading live matches:', error);
+      catchError(() => {
         return of([]);
       })
     );
@@ -164,8 +129,6 @@ export class MatchesService {
   }
 
   getAllMatches(): Observable<MatchCardViewModel[]> {
-    // combineLatest lets the initial live-feed snapshot flow through while
-    // optional scorecard enrichment is still pending.
     return combineLatest([
       this.getLiveMatches(),
       this.getUpcomingMatches(),
@@ -185,8 +148,7 @@ export class MatchesService {
     return this.eventListService.getUpcomingMatches().pipe(
       timeout(this.matchesRequestTimeoutMs),
       map((response: ScheduleResponse | any[]) => this.transformScheduleMatches(response, MatchStatus.UPCOMING)),
-      catchError((error) => {
-        console.error('Error loading upcoming matches:', error);
+      catchError(() => {
         return of([]);
       })
     );
@@ -196,38 +158,8 @@ export class MatchesService {
     return this.eventListService.getCompletedMatches().pipe(
       timeout(this.matchesRequestTimeoutMs),
       map((response: ScheduleResponse | any[]) => this.transformScheduleMatches(response, MatchStatus.COMPLETED)),
-      catchError((error) => {
-        console.error('Error loading completed matches:', error);
+      catchError(() => {
         return of([]);
-      })
-    );
-  }
-
-  /**
-   * Fetch scorecard data for a specific match URL
-   */
-  private fetchScorecardData(matchUrl: string): Observable<any> {
-    // Extract the match identifier from the full URL
-    // URL format: https://crex.com/scoreboard/.../pak-vs-sa-2nd-odi.../live
-    // We need: pak-vs-sa-2nd-odi-south-africa-tour-of-pakistan-2025
-    let matchIdentifier = extractSlugFromUrl(matchUrl) || matchUrl;
-
-    const url = `${this.scorecardApiUrl}?url=${encodeURIComponent(matchIdentifier)}`;
-    console.log('Fetching scorecard from:', url);
-    console.log('Match identifier:', matchIdentifier);
-
-    return this.http.get(url, {
-      headers: this.noCacheHeaders,
-      params: new HttpParams().set('_ts', Date.now().toString())
-    }).pipe(
-      timeout(this.scorecardRequestTimeoutMs),
-      map((data: any) => {
-        console.log('Scorecard data received for', matchIdentifier, ':', data);
-        return data;
-      }),
-      catchError((error) => {
-        console.error('Error fetching scorecard for:', matchUrl, error);
-        return of(null);
       })
     );
   }
@@ -441,7 +373,6 @@ export class MatchesService {
 
       if (inningsData && inningsData.team_code) {
         scorecardTeamCode = this.normalizeTeamLabel(inningsData.team_code);
-        console.log(`Team ${index} short code from scorecard:`, scorecardTeamCode);
       }
     }
 
@@ -474,12 +405,6 @@ export class MatchesService {
    * Parse score information from scorecard data or team data
    */
   private parseScore(teamData: any, apiMatch: any, teamIndex: number, scorecardData?: any): ScoreInfo | null {
-    console.log(`Parsing score for team ${teamIndex}:`, {
-      scorecardData,
-      teamData,
-      hasScorecardScores: scorecardData && scorecardData.scores
-    });
-
     // First try to get score from scorecard data
     if (scorecardData && scorecardData.match_stats_by_innings && scorecardData.match_stats_by_innings.innings) {
       const innings = scorecardData.match_stats_by_innings.innings;
@@ -488,12 +413,8 @@ export class MatchesService {
       const inningsKey = teamIndex === 0 ? '1st_inning' : '2nd_inning';
       const inningsData = innings[inningsKey];
 
-      console.log(`Looking for ${inningsKey}:`, inningsData);
-
       if (inningsData && inningsData.team_score) {
         const scoreStr = inningsData.team_score;
-        console.log(`Found team_score for team ${teamIndex}:`, scoreStr);
-
         // Parse score string like "243/8(291" or "243/8(50.0)"
         return this.parseScoreString(scoreStr);
       }
@@ -509,7 +430,6 @@ export class MatchesService {
       // scorecardData.scores array
       if (scorecardData.scores && Array.isArray(scorecardData.scores)) {
         const teamScore = scorecardData.scores[teamIndex];
-        console.log(`Team ${teamIndex} score from scorecard.scores:`, teamScore);
         if (teamScore) {
           return this.formatScoreInfo(teamScore);
         }
@@ -520,7 +440,6 @@ export class MatchesService {
     const scoreData = teamData.score || (apiMatch.scores && apiMatch.scores[teamIndex]);
 
     if (!scoreData) {
-      console.log(`No score data found for team ${teamIndex}`);
       return null;
     }
 
@@ -534,8 +453,6 @@ export class MatchesService {
     if (!scoreStr) {
       return null;
     }
-
-    console.log('Parsing score string:', scoreStr);
 
     // Handle formats like "243/8(291" or "243/8(50.0)" or "150/5"
     // Extract runs, wickets, and balls/overs using regex
@@ -562,8 +479,6 @@ export class MatchesService {
         : `${runs}/${wickets}`;
 
       const runRate = overs > 0 ? parseFloat((runs / overs).toFixed(2)) : 0;
-
-      console.log('Parsed score:', { runs, wickets, overs, runRate, displayText });
 
       return {
         runs,
