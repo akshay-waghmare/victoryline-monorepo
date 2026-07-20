@@ -37,6 +37,8 @@ const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/series\/?$/,
   /^\/privacy-policy\/?$/,
   /^\/terms-of-service\/?$/,
+  /^\/about\/?$/,
+  /^\/contact\/?$/,
   /^\/dashboard\/?$/,
   /^\/add-service\/?$/,
   /^\/football\/?$/,
