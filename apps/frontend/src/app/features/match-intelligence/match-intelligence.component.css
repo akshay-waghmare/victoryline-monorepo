@@ -198,18 +198,19 @@
 .match-intelligence__briefing-grid span { color: #526277; }
 
 .match-intelligence__analysis-chart { display: grid; gap: 10px; }
-.match-intelligence__chart-shell { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr); gap: 8px; min-height: 168px; padding: 10px 10px 0 0; border: 1px solid rgba(120, 144, 163, .18); border-radius: 14px; background: linear-gradient(180deg, #f8fbfa 0%, #eef5f1 100%); }
+.match-intelligence__chart-shell { display: grid; grid-template-columns: 2.2rem minmax(0, 1fr); gap: 8px; min-height: 168px; padding: 10px 10px 0 0; border: 1px solid #ded8cc; border-radius: 10px; background: #fffdf9; }
 .match-intelligence__chart-y-axis { display: flex; flex-direction: column; justify-content: space-between; padding: 0 0 17px; color: #7890a3; font-size: .68rem; text-align: right; }
 .match-intelligence__worm { width: 100%; height: 158px; overflow: visible; }
-.match-intelligence__chart-gridline { stroke: #9db4ad; stroke-opacity: .28; stroke-dasharray: 3 4; }
-.match-intelligence__chart-gridline--mid { stroke: #16847a; stroke-opacity: .38; }
-.match-intelligence__manhattan-bar { fill: #b5d7cc; opacity: .78; rx: 2; }
-.match-intelligence__worm-line { stroke: #0f766e; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 2px rgba(15, 118, 110, .18)); }
-.match-intelligence__worm-point { fill: #fff; stroke: #0f766e; stroke-width: 2; }
+.match-intelligence__chart-gridline { stroke: #d7dfdc; stroke-opacity: .7; stroke-dasharray: 2 4; }
+.match-intelligence__chart-gridline--mid { stroke: #9fc2b8; stroke-opacity: .9; }
+.match-intelligence__worm-area { fill: #d8eee8; fill-opacity: .58; }
+.match-intelligence__worm-line { stroke: #087f73; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.match-intelligence__worm-point { fill: #fffdf9; stroke: #087f73; stroke-width: 2.5; }
+.match-intelligence__worm-point--current { fill: #087f73; stroke: #ffffff; stroke-width: 2; }
 .match-intelligence__worm-axis { display: flex; justify-content: space-between; color: #7890a3; font-size: .72rem; }
 .match-intelligence__chart-legend { display: flex; flex-wrap: wrap; gap: 12px; color: #526778; font-size: .7rem; }
 .match-intelligence__chart-legend span { display: inline-flex; align-items: center; gap: 5px; }
-.match-intelligence__legend-bar, .match-intelligence__legend-line { display: inline-block; width: 12px; height: 8px; border-radius: 2px; background: #b5d7cc; }
+.match-intelligence__legend-bar, .match-intelligence__legend-line { display: inline-block; width: 14px; height: 3px; border-radius: 2px; background: #087f73; }
 .match-intelligence__legend-line { height: 3px; background: #0f766e; }
 .match-intelligence__prediction-history { margin-top: 1rem; border-top: 1px solid rgba(120, 144, 163, .2); padding-top: .75rem; }
 
@@ -892,5 +893,177 @@
 
   .match-intelligence__metric {
     min-height: 52px;
+  }
+}
+
+/* ESPN-style probability plot: compact, chart-first, and readable without a
+   second axis competing with the line. */
+.match-intelligence__analysis-chart,
+.match-intelligence__chart-empty {
+  display: grid;
+  gap: 7px;
+}
+
+.match-intelligence__chart-shell {
+  position: relative;
+  min-height: 184px;
+  padding: 8px 30px 0 34px;
+  overflow: hidden;
+  border: 1px solid #ded8cc;
+  border-radius: 10px;
+  background: #fffdf9;
+}
+
+.match-intelligence__worm {
+  display: block;
+  width: 100%;
+  height: 172px;
+  overflow: visible;
+}
+
+.match-intelligence__chart-team-axis,
+.match-intelligence__chart-y-axis {
+  position: absolute;
+  top: 10px;
+  bottom: 12px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  color: #7a8790;
+  font-size: .62rem;
+  line-height: 1;
+}
+
+.match-intelligence__chart-team-axis {
+  left: 8px;
+  align-items: center;
+}
+
+.match-intelligence__chart-team-axis span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-transform: uppercase;
+}
+
+.match-intelligence__chart-y-axis {
+  right: 7px;
+  align-items: flex-start;
+}
+
+.match-intelligence__probability-updated {
+  display: grid;
+  justify-items: end;
+  gap: 3px;
+  color: #7a8790;
+  font-size: .62rem;
+  text-align: right;
+}
+
+.match-intelligence__probability-updated small {
+  font-size: inherit;
+}
+
+.match-intelligence__probability-updated strong {
+  color: #17324d;
+  font-size: .92rem;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.match-intelligence__chart-gridline {
+  stroke: #d7dfdc;
+  stroke-opacity: .72;
+  stroke-dasharray: 2 4;
+}
+
+.match-intelligence__chart-gridline--mid {
+  stroke: #9fc2b8;
+  stroke-opacity: .88;
+}
+
+.match-intelligence__worm-area {
+  fill: #d8eee8;
+  fill-opacity: .36;
+}
+
+.match-intelligence__worm-line {
+  stroke: #087f73;
+  stroke-width: 2.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.match-intelligence__worm-point {
+  fill: #fffdf9;
+  stroke: #087f73;
+  stroke-width: 2;
+}
+
+.match-intelligence__worm-point--current {
+  fill: #087f73;
+  stroke: #ffffff;
+  stroke-width: 2;
+}
+
+.match-intelligence__worm-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 30px 0 34px;
+  color: #7a8790;
+  font-size: .65rem;
+}
+
+.match-intelligence__worm-axis span:nth-child(2) {
+  color: #526778;
+  text-align: center;
+}
+
+.match-intelligence__chart-legend {
+  display: flex;
+  gap: 7px;
+  color: #526778;
+  font-size: .66rem;
+}
+
+.match-intelligence__legend-line {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  margin-top: 1px;
+  border-radius: 2px;
+  background: #087f73;
+}
+
+.match-intelligence__chart-empty .match-intelligence__chart-shell {
+  min-height: 150px;
+  opacity: .86;
+}
+
+.match-intelligence__chart-empty .match-intelligence__worm {
+  height: 138px;
+}
+
+.match-intelligence__chart-empty .match-intelligence__muted {
+  margin: 0;
+  font-size: .72rem;
+}
+
+@media (max-width: 640px) {
+  .match-intelligence__chart-shell {
+    min-height: 164px;
+    padding-left: 30px;
+    padding-right: 28px;
+  }
+
+  .match-intelligence__worm {
+    height: 152px;
+  }
+
+  .match-intelligence__worm-axis {
+    margin-left: 30px;
+    margin-right: 28px;
   }
 }

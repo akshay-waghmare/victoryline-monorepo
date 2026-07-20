@@ -477,6 +477,12 @@ export class MatchIntelligenceComponent implements OnInit, OnDestroy {
     if (this.snapshot && this.snapshot.matchData && this.snapshot.matchData.team_odds && this.snapshot.matchData.team_odds.favTeam) {
       return String(this.snapshot.matchData.team_odds.favTeam).trim();
     }
+    if (this.snapshot && this.snapshot.matchData && this.snapshot.matchData.batting_team) {
+      return String(this.snapshot.matchData.batting_team).trim();
+    }
+    if (this.snapshot && this.snapshot.publicPrediction && this.snapshot.publicPrediction.batting_team) {
+      return String(this.snapshot.publicPrediction.batting_team).trim();
+    }
     return null;
   }
 
