@@ -1545,8 +1545,8 @@ class CrexAdapter(SourceAdapter):
                     stats.matches = document.querySelector('.match-count')?.innerText.trim() || 'No data';
                     stats.win_bat_first = document.querySelector('.win-bat-first .match-win-per')?.innerText.trim() || 'No data';
                     stats.win_bowl_first = document.querySelector('.win-bowl-first .match-win-per')?.innerText.trim() || 'No data';
-                    stats.avg_1st_inns = document.querySelector('.venue-avg-sec-inn .venue-avg-val')?.innerText.trim() || 'No data';
-                    stats.avg_2nd_inns = document.querySelector('.venue-avg-wrap .venue-avg-val')?.innerText.trim() || 'No data';
+                    stats.avg_1st_inns = document.querySelector('.venue-avg-wrap:not(.venue-avg-sec-inn) .venue-avg-val')?.innerText.trim() || 'No data';
+                    stats.avg_2nd_inns = document.querySelector('.venue-avg-sec-inn .venue-avg-val')?.innerText.trim() || 'No data';
                     return stats;
                 }''')
             except Exception as e:
@@ -1630,16 +1630,45 @@ class CrexAdapter(SourceAdapter):
             name_elem = soup.select_one('.s-name')
             match_name = name_elem.get_text(strip=True) if name_elem else 'No match name'
 
+            # A match page can contain several series links. The first link is
+            # not stable (and on upcoming fixtures it can be a fixture label),
+            # so keep the canonical series slug/code from the URL and derive the
+            # identity from that URL rather than from the match title.
             series_url = None
             series_name = None
+            series_external_id = None
+            series_candidates = []
             for anchor in soup.select('a[href]'):
                 href = (anchor.get('href') or '').strip()
-                if '/series/' not in href:
+                resolved = urljoin(url, href)
+                parsed = urlparse(resolved)
+                path_parts = [part for part in parsed.path.split('/') if part]
+                if len(path_parts) < 2 or path_parts[0].lower() != 'series':
                     continue
-                series_url = urljoin(url, href)
-                series_name = anchor.get_text(strip=True) or None
-                if series_url:
-                    break
+                slug_part = path_parts[1]
+                # CREX series URLs use a short source code suffix, e.g. -2IL.
+                # Prefer those links over generic /series or malformed fixture
+                # links, while still retaining a safe fallback.
+                is_canonical = bool(re.search(r'-[A-Z0-9]{2,5}$', slug_part))
+                series_candidates.append((is_canonical, resolved, slug_part, anchor.get_text(' ', strip=True)))
+
+            if series_candidates:
+                _, resolved, slug_part, anchor_name = max(
+                    series_candidates,
+                    key=lambda item: (item[0], len(item[2])),
+                )
+                base_path = f"/series/{slug_part}"
+                parsed = urlparse(resolved)
+                series_url = f"{parsed.scheme or 'https'}://{parsed.netloc or 'crex.com'}{base_path}"
+                slug_without_code = re.sub(r'-[A-Z0-9]{2,5}$', '', slug_part)
+                derived_name = re.sub(r'[-_]+', ' ', slug_without_code).strip()
+                # Do not persist a fixture title such as “8:30 AM 27thT20”.
+                looks_like_fixture = bool(
+                    re.search(r'\b\d{1,2}:\d{2}\s*(AM|PM)\b', anchor_name or '', re.I)
+                    or re.search(r'\b\d{1,3}(st|nd|rd|th)\b', anchor_name or '', re.I)
+                )
+                series_name = (None if looks_like_fixture else anchor_name) or derived_name or None
+                series_external_id = f"series:{slug_part}"
 
             team_links: List[Dict[str, str]] = []
             seen_team_urls = set()
@@ -1722,6 +1751,7 @@ class CrexAdapter(SourceAdapter):
                 "toss_info": toss_info,
                 "series_name": series_name,
                 "series_url": series_url,
+                "series_external_id": series_external_id,
                 "team_links": team_links,
                 "players": players,
             }

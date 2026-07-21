@@ -9,7 +9,17 @@
   </header>
 
   <nav class="home__series-nav home__series-nav--top" aria-label="Browse cricket series">
-    <div class="home__series-links">
+    <div class="home__series-rail">
+      <button
+        type="button"
+        class="home__series-scroll home__series-scroll--left"
+        (click)="scrollSeriesLeft()"
+        [disabled]="!canScrollSeriesLeft"
+        aria-label="Scroll series links left">
+        <span aria-hidden="true">‹</span>
+      </button>
+
+      <div class="home__series-links" #seriesLinksRef>
       <a
         *ngFor="let series of getHomeSeriesLinks()"
         href="/series"
@@ -22,6 +32,16 @@
       </a>
       <a routerLink="/cricket-schedule/today">Schedule <span aria-hidden="true">→</span></a>
       <a routerLink="/matches">Matches <span aria-hidden="true">→</span></a>
+      </div>
+
+      <button
+        type="button"
+        class="home__series-scroll home__series-scroll--right"
+        (click)="scrollSeriesRight()"
+        [disabled]="!canScrollSeriesRight"
+        aria-label="Scroll series links right">
+        <span aria-hidden="true">›</span>
+      </button>
     </div>
   </nav>
 
@@ -218,6 +238,16 @@
         Open full schedule
         <i class="material-icons">north_east</i>
       </a>
+    </div>
+  </section>
+
+  <section class="home__news home__news--loading" *ngIf="isLoadingNews" aria-live="polite" aria-busy="true">
+    <div class="news-list-panel news-list-panel--compact">
+      <div class="home__news-loading">
+        <span class="home__news-loading-bar home__news-loading-bar--wide"></span>
+        <span class="home__news-loading-bar"></span>
+        <span class="home__news-loading-bar home__news-loading-bar--short"></span>
+      </div>
     </div>
   </section>
 

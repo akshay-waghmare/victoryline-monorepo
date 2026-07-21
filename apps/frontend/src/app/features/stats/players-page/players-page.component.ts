@@ -1,9 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { CricketService, PlayerStatsPlayerDetailView } from '../../../cricket-odds/cricket-odds.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 interface PlayerSummary {
   externalId: string;
@@ -14,6 +16,12 @@ interface PlayerSummary {
   bowlingStyle?: string;
   country?: string;
   imageUrl?: string;
+}
+
+interface PlayerRecentFormRow {
+  match: string;
+  performance: string;
+  scorecardUrl?: string;
 }
 
 @Component({
@@ -32,14 +40,25 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
   selectedPlayerSummary: PlayerSummary | null = null;
   isDetailLoading = false;
   detailOpen = false;
+  isProfileRoute = false;
 
   constructor(
     private cricketService: CricketService,
     private router: Router,
-    private titleService: Title
+    private route: ActivatedRoute,
+    private location: Location,
+    private titleService: Title,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
+    const externalId = this.route.snapshot.paramMap.get('externalId');
+    if (externalId) {
+      this.isProfileRoute = true;
+      this.openPlayerProfile(externalId, this.route.snapshot.paramMap.get('slug') || 'player');
+      return;
+    }
+
     this.titleService.setTitle('Players | Crickzen');
     this.loadPlayers();
     this.searchSubject.pipe(
@@ -79,25 +98,72 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
 
   selectPlayer(player: PlayerSummary): void {
     if (!player.externalId) { return; }
+    this.router.navigate(['/player', player.externalId, this.toSlug(this.getPlayerDisplayName(player))]);
+  }
+
+  getPlayerHref(player: PlayerSummary): string {
+    if (!player || !player.externalId) { return '/players'; }
+    return '/player/' + encodeURIComponent(player.externalId) + '/' + this.toSlug(this.getPlayerDisplayName(player));
+  }
+
+  private openPlayerProfile(externalId: string, slug: string): void {
+    const name = this.getPlayerDisplayName({ externalId: externalId, name: slug.replace(/-/g, ' ') });
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
     this.isDetailLoading = true;
     this.detailOpen = true;
     this.selectedPlayer = null;
-    this.selectedPlayerSummary = player;
-    this.cricketService.getPlayerStatsPlayer(player.externalId, 'crex').pipe(
+    this.selectedPlayerSummary = { externalId: externalId, name: name };
+    this.titleService.setTitle(name + ' Cricket Profile | Crickzen');
+    this.cricketService.getPlayerStatsPlayer(externalId, 'crex').pipe(
       takeUntil(this.destroy$)
     ).subscribe(
       (detail) => {
         this.selectedPlayer = detail;
+        if (detail && detail.name) {
+          this.titleService.setTitle(this.getPlayerDisplayName(detail) + ' Cricket Profile | Crickzen');
+        }
+        if (!detail || !detail.stats || detail.stats.length === 0) {
+          this.notifyStatsUnavailable(this.selectedPlayerSummary && this.selectedPlayerSummary.name);
+        }
         this.isDetailLoading = false;
+        this.resetProfileViewport();
       },
       () => {
         this.selectedPlayer = null;
         this.isDetailLoading = false;
+        this.notifyStatsUnavailable(this.selectedPlayerSummary && this.selectedPlayerSummary.name);
+        this.resetProfileViewport();
       }
     );
   }
 
+  private resetProfileViewport(): void {
+    if (!this.isProfileRoute || typeof window === 'undefined') { return; }
+
+    window.setTimeout(() => {
+      window.scrollTo(0, 0);
+      const heading = document.getElementById('player-profile-heading');
+      if (heading && heading.focus) {
+        heading.focus();
+      }
+    }, 0);
+  }
+
+  private notifyStatsUnavailable(playerName?: string): void {
+    this.snackBar.open(
+      'Detailed player stats are not available for ' + (playerName || 'this player') + ' yet.',
+      'Dismiss',
+      { duration: 5000 }
+    );
+  }
+
   closeDetail(): void {
+    if (this.isProfileRoute) {
+      this.location.back();
+      return;
+    }
     this.selectedPlayer = null;
     this.selectedPlayerSummary = null;
     this.detailOpen = false;
@@ -115,7 +181,7 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
 
   getPlayerInitials(player: any): string {
     if (!player) { return '?'; }
-    const name: string = player.name || '';
+    const name: string = this.getPlayerDisplayName(player);
     if (!name) { return '?'; }
     const parts = name.trim().split(/\s+/);
     if (parts.length >= 2) { return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase(); }
@@ -201,6 +267,79 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
     return [];
   }
 
+  getRecentFormRows(discipline: 'batting' | 'bowling'): PlayerRecentFormRow[] {
+    if (!this.selectedPlayer || !this.selectedPlayer.stats) { return []; }
+    const snapshot = this.selectedPlayer.stats.find(s => s.category === 'recent_form');
+    const rows = snapshot && snapshot.payload && snapshot.payload[discipline];
+    if (!Array.isArray(rows)) { return []; }
+
+    return rows
+      .filter(row => row && !/^recent\s*form\s*>?$/i.test(String(row.match || '').trim()))
+      .map(row => this.normalizeRecentFormRow(row));
+  }
+
+  private normalizeRecentFormRow(row: any): PlayerRecentFormRow {
+    let match = String(row.match || '').trim();
+    let performance = String(row.performance || '').trim();
+
+    // Some CREX rows carry the fixture and performance in the opposite fields.
+    if (this.looksLikeFixture(performance) && !this.looksLikeFixture(match)) {
+      const originalMatch = match;
+      match = performance;
+      performance = originalMatch;
+    }
+
+    if (performance === '*' && match) {
+      performance = match + ' *';
+      match = 'Match detail unavailable';
+    }
+
+    return {
+      match: match || 'Match detail unavailable',
+      performance: performance || '—',
+      scorecardUrl: row.scorecard_url || row.scorecardUrl || undefined
+    };
+  }
+
+  private looksLikeFixture(value: string): boolean {
+    return /\bvs\b|,\s*(?:test|odi|t20)\b/i.test(value || '');
+  }
+
+  getPlayerDisplayName(player: any): string {
+    if (!player || !player.name) { return ''; }
+    const rolePattern = /\s*(?:batter|bowler|all\s*rounder|wicket[-\s]*keeper)\s*$/i;
+    return String(player.name)
+      .replace(/\r?\n/g, ' ')
+      .replace(rolePattern, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  getActivePlayerRole(): string {
+    const profile = this.getActivePlayerProfile();
+    return (profile && profile.role)
+      || (this.selectedPlayer && this.selectedPlayer.role)
+      || (this.selectedPlayerSummary && this.selectedPlayerSummary.role)
+      || '';
+  }
+
+  getActivePlayerProfile(): any {
+    return this.selectedPlayer ? this.getStatProfile(this.selectedPlayer.stats) : null;
+  }
+
+  getProfileFact(key: string, fallback?: string): string {
+    const profile = this.getActivePlayerProfile();
+    return (profile && profile[key]) || fallback || '';
+  }
+
+  formatPlayerAttribute(value: string | null | undefined): string {
+    return String(value || '')
+      .replace(/\s*\.\s*/g, ' · ')
+      .replace(/\s+/g, ' ')
+      .replace(/(^|\s)([a-z])/g, (match, prefix, letter) => prefix + letter.toUpperCase())
+      .trim();
+  }
+
   getStatProfile(stats: any[]): any {
     if (!stats) { return null; }
     const snap = stats.find(s => s.category === 'player_profile');
@@ -210,5 +349,11 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
 
   trackByExternalId(index: number, item: PlayerSummary): string {
     return item.externalId;
+  }
+
+  private toSlug(value: string): string {
+    return String(value || 'player').toLowerCase().trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'player';
   }
 }

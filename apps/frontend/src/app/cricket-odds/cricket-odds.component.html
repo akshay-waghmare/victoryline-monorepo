@@ -404,7 +404,8 @@
         <a [attr.href]="getMatchEntityNavigationHref('scorecard')">Scorecard</a>
         <a [attr.href]="getMatchEntityNavigationHref('lineups')">Lineups</a>
         <a [attr.href]="getMatchEntityNavigationHref('details')">Match Details</a>
-        <a [attr.href]="'/match-intelligence/' + getCanonicalMatchSlug()">Match Intelligence</a>
+        <a [attr.href]="getSeriesSurfaceHref()">Tournament table &amp; stats</a>
+        <a *ngIf="isMatchIntelligenceEligible()" [attr.href]="getMatchIntelligenceHref()">Match Intelligence</a>
       </nav>
 
       <ng-template #statsExplorerTemplate>
@@ -419,7 +420,7 @@
             <span class="stats-explorer__status" *ngIf="isLoadingPlayerStats && !hasPlayerStatsData()">Refreshing CREX snapshot...</span>
           </div>
 
-          <div class="stats-explorer__quick-actions" *ngIf="hasPlayerStatsData()">
+          <div class="stats-explorer__quick-actions" *ngIf="hasPlayerStatsData() || hasSeriesStatsContext()">
             <button
               type="button"
               class="stats-explorer__action"

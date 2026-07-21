@@ -1,43 +1,54 @@
-<div class="stats-page">
-  <nav class="stats-page__breadcrumb" aria-label="Breadcrumb">
+<div class="stats-page" [class.stats-page--profile]="isProfileRoute">
+  <nav *ngIf="!isProfileRoute" class="stats-page__breadcrumb" aria-label="Breadcrumb">
     <a href="/">Home</a>
     <span aria-hidden="true">/</span>
     <span>Series</span>
   </nav>
 
-  <div class="stats-page__header">
-    <h1 class="stats-page__title">
-      <mat-icon class="stats-page__title-icon">emoji_events</mat-icon>
-      Series
-    </h1>
+  <section *ngIf="!isProfileRoute" class="series-page__hero">
+    <div class="series-page__hero-copy">
+      <span class="series-page__eyebrow">Series centre</span>
+      <h1>Series &amp; tournaments</h1>
+      <p>Choose a competition to see its fixtures, table and stats in one place.</p>
+    </div>
     <div class="stats-page__search">
       <mat-icon class="stats-page__search-icon">search</mat-icon>
-      <input type="text" class="stats-page__search-input" placeholder="Search series..."
+      <input type="text" class="stats-page__search-input" placeholder="Search competitions"
         [value]="searchQuery" (input)="onSearchChange($event.target.value)" />
     </div>
-  </div>
-
-  <section class="stats-page__intro">
-    <p>
-      Browse current cricket series and tournaments, then open available points tables, standings, and summary data while the deeper series surface continues to grow.
-    </p>
-    <nav class="stats-page__related-links" aria-label="Related cricket links">
-      <a href="/matches">Cricket matches</a>
-      <a href="/live-score">Cricket live score today</a>
-      <a href="/cricket-schedule/today">Cricket schedule today</a>
-    </nav>
+    <div class="series-page__hero-stats" *ngIf="!isLoading">
+      <div><strong>{{ currentSeriesGroups.length }}</strong><span>active series</span></div>
+      <div><strong>{{ upcomingDiscoveryGroups.length }}</strong><span>next fixtures</span></div>
+      <a href="/matches"><strong>All</strong><span>matches</span></a>
+    </div>
   </section>
 
-  <section *ngIf="upcomingDiscoveryGroups.length > 0" class="stats-page__discovery" aria-label="Series discovery window">
+  <section *ngIf="!isProfileRoute && currentSeriesGroups.length > 0" class="stats-page__current-series" aria-label="Current series">
+    <div class="stats-page__current-series-heading">
+      <div>
+        <p>Live catalogue</p>
+        <h2>Active series</h2>
+      </div>
+      <span>{{ currentSeriesGroups.length }} competitions</span>
+    </div>
+    <div class="stats-page__current-series-grid">
+      <a *ngFor="let group of currentSeriesGroups; trackBy: trackByDiscoveryGroup" class="current-series-card" [href]="getCurrentSeriesHref(group)">
+        <span class="series-type-badge" [ngClass]="getSeriesTypeBadgeClass(group.seriesName)">{{ getSeriesTypeLabel(group.seriesName) }}</span>
+        <strong>{{ group.seriesName }}</strong>
+        <span>{{ group.totalMatches }} match{{ group.totalMatches === 1 ? '' : 'es' }} available</span>
+        <mat-icon>arrow_forward</mat-icon>
+      </a>
+    </div>
+  </section>
+
+  <section *ngIf="!isProfileRoute && upcomingDiscoveryGroups.length > 0" class="stats-page__discovery" aria-label="Next fixtures">
     <div class="stats-page__discovery-header">
       <div>
-        <p class="stats-page__discovery-kicker">Prematch discovery</p>
-        <h2>Upcoming canonical match links by series</h2>
-        <p class="stats-page__discovery-copy">
-          These grouped links give series intent a direct path into the same canonical match pages that later carry live score, scorecard, lineups, and results.
-        </p>
+        <p class="stats-page__discovery-kicker">Coming up</p>
+        <h2>Next fixtures</h2>
+        <p class="stats-page__discovery-copy">The next scheduled matches across the active competitions.</p>
       </div>
-      <a class="stats-page__discovery-hub-link" href="/cricket-schedule/today">Open full schedule</a>
+      <a class="stats-page__discovery-hub-link" href="/cricket-schedule/today">Full schedule</a>
     </div>
 
     <div class="stats-page__discovery-grid">
@@ -49,13 +60,12 @@
           <span class="series-discovery-card__count">{{ getSeriesDiscoveryCountLabel(group) }}</span>
         </div>
         <h3 class="series-discovery-card__title">{{ group.seriesName }}</h3>
-        <p class="series-discovery-card__summary">{{ getSeriesDiscoverySummary(group) }}</p>
+        <p class="series-discovery-card__summary">Next match in {{ group.matches[0].timeDisplay }}.</p>
 
         <ul class="series-discovery-card__match-list">
           <li *ngFor="let match of group.matches; trackBy: trackByMatchId" class="series-discovery-card__match-item">
             <div class="series-discovery-card__match-links">
               <a class="series-discovery-card__match-link" [href]="getMatchHref(match)">{{ getMatchLinkLabel(match) }}</a>
-              <a class="series-discovery-card__preview-link" [href]="getPreviewHref(match)">Preview support</a>
             </div>
             <span class="series-discovery-card__match-meta">{{ match.timeDisplay }}</span>
           </li>
@@ -64,19 +74,26 @@
     </div>
   </section>
 
-  <div *ngIf="isLoading" class="stats-page__loading">
+  <div *ngIf="!isProfileRoute && isLoading" class="stats-page__loading">
     <mat-spinner diameter="36"></mat-spinner>
     <span>Loading series...</span>
   </div>
 
-  <div *ngIf="!isLoading && seriesList.length === 0" class="stats-page__empty">
+  <div *ngIf="!isProfileRoute && !isLoading && seriesList.length === 0" class="stats-page__empty">
     <mat-icon class="stats-page__empty-icon">event_busy</mat-icon>
     <p>No series found</p>
     <span *ngIf="searchQuery">Try adjusting your search</span>
   </div>
 
-  <div *ngIf="!isLoading && seriesList.length > 0" class="stats-page__grid">
-    <div *ngFor="let series of seriesList; trackBy: trackByExternalId" class="stats-card series-card" (click)="selectSeries(series)">
+  <div *ngIf="!isProfileRoute && !isLoading && seriesList.length > 0" class="stats-page__grid">
+    <div class="stats-page__list-heading">
+      <div>
+        <span class="series-page__eyebrow">Browse</span>
+        <h2>All series</h2>
+      </div>
+      <span>{{ seriesList.length }} competitions</span>
+    </div>
+    <a *ngFor="let series of seriesList; trackBy: trackByExternalId" class="stats-card series-card" [attr.href]="getSeriesHref(series)">
       <div class="series-icon-wrap">
         <mat-icon>emoji_events</mat-icon>
       </div>
@@ -90,21 +107,18 @@
         </div>
       </div>
       <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
-    </div>
+    </a>
   </div>
 
-  <section class="stats-page__faq" aria-label="Series FAQ">
-    <h2>Series FAQ</h2>
-    <article *ngFor="let faq of seriesFaqs">
-      <h3>{{ faq.question }}</h3>
-      <p>{{ faq.answer }}</p>
-    </article>
-  </section>
+  <button *ngIf="isProfileRoute" class="series-profile__back" type="button" (click)="closeDetail()">
+    <mat-icon>arrow_back</mat-icon>
+    All series
+  </button>
 
-  <!-- Detail overlay -->
-  <div *ngIf="detailOpen" class="stats-detail-overlay" (click)="closeDetail()">
+  <!-- Profile panel on its own route; overlay only for legacy in-page use. -->
+  <div *ngIf="detailOpen" class="stats-detail-overlay" [class.stats-detail-overlay--profile]="isProfileRoute" (click)="!isProfileRoute && closeDetail()">
     <div class="stats-detail-panel" (click)="$event.stopPropagation()">
-      <button class="stats-detail-panel__close" (click)="closeDetail()">
+      <button *ngIf="!isProfileRoute" class="stats-detail-panel__close" (click)="closeDetail()">
         <mat-icon>close</mat-icon>
       </button>
 
@@ -119,9 +133,13 @@
             <mat-icon>emoji_events</mat-icon>
           </div>
           <div class="series-detail-header-info">
-            <h2 class="stats-detail-panel__name">
+            <span *ngIf="isProfileRoute" class="series-profile__eyebrow">Crickzen series centre</span>
+            <h1 *ngIf="isProfileRoute; else seriesDetailName" class="stats-detail-panel__name" tabindex="-1">
+              {{ selectedSeries?.series?.name || selectedSeriesSummary?.name || 'Series details' }}
+            </h1>
+            <ng-template #seriesDetailName><h2 class="stats-detail-panel__name">
               {{ selectedSeries?.series?.name || selectedSeriesSummary?.name || 'Series Details' }}
-            </h2>
+            </h2></ng-template>
             <div class="series-detail-meta-row">
               <span class="series-type-badge"
                     [ngClass]="getSeriesTypeBadgeClass(selectedSeries?.series?.name || selectedSeriesSummary?.name)">
@@ -134,8 +152,49 @@
           </div>
         </div>
 
+        <nav *ngIf="isProfileRoute" class="series-profile__tabs" aria-label="Series sections">
+          <a [routerLink]="['/series', selectedSeriesSummary?.externalId, toSlug(selectedSeriesSummary?.name || 'series')]"
+             [class.series-profile__tab--active]="activeSection === 'matches'">Matches</a>
+          <a [routerLink]="['/series', selectedSeriesSummary?.externalId, toSlug(selectedSeriesSummary?.name || 'series'), 'table']"
+             [class.series-profile__tab--active]="activeSection === 'table'">Points table</a>
+          <a [routerLink]="['/series', selectedSeriesSummary?.externalId, toSlug(selectedSeriesSummary?.name || 'series'), 'stats']"
+             [class.series-profile__tab--active]="activeSection === 'stats'">Team stats</a>
+        </nav>
+
+        <section *ngIf="isProfileRoute && activeSection === 'matches'" class="series-profile__matches" aria-label="Series matches">
+          <div class="series-profile__section-heading">
+            <div>
+              <span class="series-profile__eyebrow">Match centre</span>
+              <h2>Matches</h2>
+            </div>
+            <a href="/matches">All matches</a>
+          </div>
+
+          <div *ngIf="getSeriesLiveMatches().length > 0" class="series-profile__lane">
+            <h3><span class="series-profile__live-dot"></span>Live now</h3>
+            <a *ngFor="let match of getSeriesLiveMatches(); trackBy: trackByMatchId" class="series-profile__match" [href]="getMatchHref(match)">
+              <span>{{ getMatchLinkLabel(match) }}</span><strong>{{ match.timeDisplay }}</strong>
+            </a>
+          </div>
+          <div *ngIf="getSeriesUpcomingMatches().length > 0" class="series-profile__lane">
+            <h3>Upcoming</h3>
+            <a *ngFor="let match of getSeriesUpcomingMatches(); trackBy: trackByMatchId" class="series-profile__match" [href]="getMatchHref(match)">
+              <span>{{ getMatchLinkLabel(match) }}</span><strong>{{ match.timeDisplay }}</strong>
+            </a>
+          </div>
+          <div *ngIf="getSeriesRecentMatches().length > 0" class="series-profile__lane">
+            <h3>Recent results</h3>
+            <a *ngFor="let match of getSeriesRecentMatches(); trackBy: trackByMatchId" class="series-profile__match" [href]="getMatchHref(match)">
+              <span>{{ getMatchLinkLabel(match) }}</span><strong>{{ match.resultSummary || match.timeDisplay }}</strong>
+            </a>
+          </div>
+          <p *ngIf="getSeriesLiveMatches().length === 0 && getSeriesUpcomingMatches().length === 0 && getSeriesRecentMatches().length === 0" class="series-profile__empty-matches">
+            Match fixtures will appear here as they enter the live catalogue.
+          </p>
+        </section>
+
         <!-- Series summary -->
-        <div *ngIf="getSeriesSummary()" class="stats-detail-panel__section">
+        <div *ngIf="activeSection === 'matches' && getSeriesSummary()" class="stats-detail-panel__section">
           <h3>About</h3>
           <p class="series-summary" [class.series-summary--collapsed]="!summaryExpanded">{{ getSeriesSummary() }}</p>
           <button *ngIf="getSeriesSummary().length > 220" class="series-summary-toggle" (click)="toggleSummary()">
@@ -144,7 +203,7 @@
         </div>
 
         <!-- Points Table -->
-        <div *ngIf="getSeriesStandingsRows().length > 0" class="stats-detail-panel__section">
+        <div *ngIf="activeSection === 'table' && getSeriesStandingsRows().length > 0" class="stats-detail-panel__section">
           <h3>Points Table</h3>
           <div class="points-table-wrapper">
             <table class="points-table">
@@ -167,7 +226,8 @@
                   <td class="pt-col-team">
                     <div class="pt-team-cell">
                       <span class="pt-team-badge">{{ (row.teamCode || row.Team || '?').substring(0,3) }}</span>
-                      <span class="pt-team-name">{{ row.teamName || row.Team }}</span>
+                      <a *ngIf="getTeamHref(row) as teamHref" class="pt-team-name pt-team-link" [href]="teamHref">{{ row.teamName || row.Team }}</a>
+                      <span *ngIf="!getTeamHref(row)" class="pt-team-name">{{ row.teamName || row.Team }}</span>
                     </div>
                   </td>
                   <td class="pt-col-num">{{ row.P }}</td>
@@ -185,9 +245,14 @@
           </div>
         </div>
 
+        <div *ngIf="activeSection === 'table' && getSeriesStandingsRows().length === 0" class="series-profile__empty-state">
+          <h2>Points table unavailable</h2>
+          <p>The table has not been received from the source yet. We will show it here once the series data is available.</p>
+        </div>
+
         <!-- All other stat sections -->
         <ng-container *ngFor="let stat of getSeriesOtherStats()">
-          <div class="stats-detail-panel__section">
+          <div *ngIf="activeSection === 'stats'" class="stats-detail-panel__section">
             <h3>{{ stat.label || formatStatLabel(stat.category) }}</h3>
 
             <!-- Array / rows → table -->
@@ -213,6 +278,10 @@
             </div>
           </div>
         </ng-container>
+        <div *ngIf="activeSection === 'stats' && getSeriesOtherStats().length === 0" class="series-profile__empty-state">
+          <h2>Team stats unavailable</h2>
+          <p>Team-level series stats have not been received from the source yet. Check back after the next data refresh.</p>
+        </div>
 
         <!-- Empty state -->
         <div *ngIf="getSeriesStandingsRows().length === 0 && getSeriesOtherStats().length === 0 && !getSeriesSummary()"

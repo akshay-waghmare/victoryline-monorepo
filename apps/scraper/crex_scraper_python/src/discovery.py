@@ -14,6 +14,7 @@ from .config import get_settings
 from .browser_pool import AsyncBrowserPool
 from .crex_url_utils import normalize_crex_url
 from .cricket_data_service import CricketDataService
+from .live_match_selection import select_live_matches
 from .parsers.crex_schedule_parser import extract_schedule_matches
 
 logger = logging.getLogger(__name__)
@@ -231,10 +232,17 @@ class LiveMatchDiscoverer:
                 valid_urls.append(normalize_crex_url(url))
         
         # Remove duplicates
-        valid_urls = list(set(valid_urls))
-        
-        logger.info(f"Discovered {len(valid_urls)} live matches: {valid_urls}")
-        print(f"[DISCOVERY] Found {len(valid_urls)} matches: {valid_urls}", flush=True)
+        valid_urls = list(dict.fromkeys(valid_urls))
+
+        selected_urls = select_live_matches(valid_urls, self.settings.max_live_matches)
+        valid_urls = [str(url) for url in selected_urls]
+
+        logger.info(
+            "Discovered live matches selected=%s policy=international-first,series-cap-3: %s",
+            len(valid_urls),
+            valid_urls,
+        )
+        print(f"[DISCOVERY] Selected {len(valid_urls)} matches: {valid_urls}", flush=True)
 
         if self._on_match_catalog_updated:
             callback_result = self._on_match_catalog_updated(valid_urls, schedule_matches)

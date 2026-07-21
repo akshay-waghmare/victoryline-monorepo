@@ -335,7 +335,13 @@
 /* Compact scorecard: surface the innings score and first rows immediately. */
 .scorecard-container { padding: 8px; border-radius: 12px; }
 .innings-tabs { gap: 6px; margin-bottom: 8px; padding-bottom: 2px; }
-.innings-tab { gap: 2px; padding: 8px 12px; border-radius: 10px 10px 0 0; }
+.innings-tabs {
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pinch-zoom;
+}
+.innings-tab { gap: 2px; min-height: 44px; padding: 8px 12px; border-radius: 10px 10px 0 0; scroll-snap-align: start; }
 .innings-panel { gap: 8px; }
 .innings-summary { padding: 10px 14px; border-radius: 12px; }
 .innings-summary__eyebrow { margin-bottom: 4px; padding: 3px 8px; }
@@ -345,3 +351,18 @@
 .batting-section h4, .bowling-section h4, .fall-of-wickets-section h4 { font-size: 1rem; margin-bottom: 8px; }
 .scorecard-table th { padding: 8px 10px; }
 .scorecard-table td { padding: 9px 10px; }
+
+@media (max-width: 767px) {
+  .batting-section,
+  .bowling-section {
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y pinch-zoom;
+  }
+
+  .scorecard-table {
+    min-width: 620px;
+  }
+}
+
+.innings-tab:active { transform: scale(0.98); }

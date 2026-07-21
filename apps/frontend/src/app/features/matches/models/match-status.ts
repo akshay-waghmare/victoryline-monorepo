@@ -87,7 +87,17 @@ export function calculateStaleness(lastUpdated: Date | string | number): 'fresh'
 /**
  * Format time display relative to now
  */
-export function formatTimeDisplay(date: Date): string {
+function toValidDate(value: Date | string | number): Date | null {
+  const date = value instanceof Date ? value : new Date(value);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+export function formatTimeDisplay(value: Date | string | number): string {
+  const date = toValidDate(value);
+  if (!date) {
+    return 'Time unavailable';
+  }
+
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
   const diffSeconds = Math.floor(Math.abs(diffMs) / 1000);
@@ -121,15 +131,24 @@ export function formatTimeDisplay(date: Date): string {
   }
 }
 
-export function formatAbsoluteTime(date: Date): string {
+export function formatAbsoluteTime(value: Date | string | number): string {
+  const date = toValidDate(value);
+  if (!date) {
+    return '';
+  }
+
   return new Intl.DateTimeFormat(undefined, {
     hour: 'numeric',
     minute: '2-digit'
   }).format(date);
 }
 
-export function formatCalendarDate(date: Date): string {
-  const target = new Date(date);
+export function formatCalendarDate(value: Date | string | number): string {
+  const target = toValidDate(value);
+  if (!target) {
+    return 'Date unavailable';
+  }
+
   const today = new Date();
   const tomorrow = new Date();
   tomorrow.setDate(today.getDate() + 1);

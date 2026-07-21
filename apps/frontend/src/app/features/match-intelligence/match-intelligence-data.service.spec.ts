@@ -70,4 +70,16 @@ describe('MatchIntelligenceDataService freshness and public metric mapping', () 
       .toEqual(['ireland', 'west-indies']);
     expect((service as any).teamNameMatches('wi', 'west-indies')).toBe(true);
   });
+
+  it('matches womens abbreviated routes to full-name model slugs', () => {
+    const routeTeams = (service as any).extractRouteTeams(
+      'hk-w-vs-ugn-w-1st-match-womens-t20i-quadrangular-series-in-namibia-2026-match-updates-1319'
+    );
+    const predictionTeams = (service as any).extractRouteTeams('hong-kong-vs-ugn-t20-win-probability');
+
+    expect(routeTeams).toEqual(['hk', 'ugn']);
+    expect(predictionTeams).toEqual(['hong-kong', 'ugn']);
+    expect((service as any).teamNameMatches(routeTeams[0], predictionTeams[0])).toBe(true);
+    expect((service as any).teamNameMatches(routeTeams[1], predictionTeams[1])).toBe(true);
+  });
 });

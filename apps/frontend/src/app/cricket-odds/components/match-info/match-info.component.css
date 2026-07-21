@@ -683,7 +683,16 @@
   .match-info-sections-grid {
     grid-template-columns: 1fr 1fr;
   }
+
+  .match-info-disclosure__summary,
+  .form-card__toggle {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
 }
+
+.match-info-disclosure__summary:active,
+.form-card__toggle:active { transform: scale(0.99); }
 
 @media (hover: hover) and (pointer: fine) {
   .summary-card:hover {

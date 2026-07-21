@@ -156,17 +156,17 @@ export function buildCanonicalUrl(path: string, host: string = 'https://www.cric
  * Validates if a URL matches the expected pattern
  */
 export function isValidMatchUrl(url: string): boolean {
-  const matchPattern = /^\/match\/[a-z0-9-]+\/[a-z0-9-]+\/[a-z0-9-]+-vs-[a-z0-9-]+\/[a-z0-9]+\/\d{4}-\d{2}-\d{2}$/;
+  const matchPattern = /^\/cric-live\/[a-z0-9-]+(?:\/(?:commentary|scorecard|lineups|match-details))?\/?$/;
   return matchPattern.test(url);
 }
 
 export function isValidTeamUrl(url: string): boolean {
-  const teamPattern = /^\/team\/[a-z0-9-]+$/;
+  const teamPattern = /^\/teams\/[a-z0-9-]+\/[a-z0-9-]+\/?$/;
   return teamPattern.test(url);
 }
 
 export function isValidPlayerUrl(url: string): boolean {
-  const playerPattern = /^\/player\/[a-z0-9-]+$/;
+  const playerPattern = /^\/player\/[a-z0-9-]+\/[a-z0-9-]+\/?$/;
   return playerPattern.test(url);
 }
 

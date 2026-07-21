@@ -14,7 +14,9 @@ const routes: Routes = [
   imports: [
     CommonModule,
     RouterModule.forRoot(routes, {
-      scrollPositionRestoration: 'enabled', // T085: Restore scroll position on navigation
+      // Restore the user to their previous place when they use Back. Direct
+      // player routes also reset themselves after their async data renders.
+      scrollPositionRestoration: 'enabled',
       anchorScrolling: 'enabled',
       scrollOffset: [0, 64], // Offset for fixed navbar (64px height)
       enableTracing: false, // Set to true for debugging router events

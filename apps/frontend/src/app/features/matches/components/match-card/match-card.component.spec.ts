@@ -218,6 +218,18 @@ describe('MatchCardComponent', () => {
     expect(component.getStatusTextColor()).toBe('#0f172a');
   });
 
+  it('renders hydrated match dates that arrived as serialized strings', () => {
+    component.variant = 'compact';
+    component.match = buildMatch(MatchStatus.UPCOMING, {
+      startTime: '2026-03-12T18:30:00.000Z' as unknown as Date,
+      lastUpdated: '2026-03-12T10:30:00.000Z' as unknown as Date
+    });
+
+    expect(() => fixture.detectChanges()).not.toThrow();
+    expect(component.getTimeDisplay()).not.toBe('');
+    expect(component.getUpcomingDateDisplay()).not.toBe('');
+  });
+
   it('emits swipe events and suppresses click after a horizontal drag', () => {
     component.enableSwipeGesture = true;
     component.match = buildMatch(MatchStatus.LIVE);

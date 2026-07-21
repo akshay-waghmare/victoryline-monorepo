@@ -31,7 +31,7 @@ export class LineupsComponent implements OnInit, OnChanges {
   @Input() matchId?: string;
   @Input() playingXIData?: any; // Existing lineup data from parent
   @Input() playerStatsMatch?: PlayerStatsMatchView | null;
-  @Output() playerSelected = new EventEmitter<{ playerName: string; externalId?: string; teamName?: string; teamExternalId?: string }>();
+  @Output() playerSelected = new EventEmitter<{ playerName: string; externalId?: string; teamName?: string; teamExternalId?: string; role?: string }>();
   @Output() teamSelected = new EventEmitter<{ teamName: string; externalId?: string }>();
 
   teams: LineupTeamView[] = [];
@@ -184,13 +184,43 @@ export class LineupsComponent implements OnInit, OnChanges {
     return !!(player && player.externalId);
   }
 
+  getPlayerHref(player: LineupPlayerView): string {
+    if (!player || !player.externalId) { return ''; }
+    return '/player/' + encodeURIComponent(player.externalId) + '/' + this.toSlug(player.name);
+  }
+
+  getTeamHref(team: LineupTeamView): string {
+    if (!team || !team.externalId) { return ''; }
+    return '/teams/' + encodeURIComponent(team.externalId) + '/' + this.toSlug(team.name);
+  }
+
   selectPlayer(team: LineupTeamView, player: LineupPlayerView): void {
     this.playerSelected.emit({
       playerName: player.name,
       externalId: player.externalId,
       teamName: team.name,
-      teamExternalId: team.externalId
+      teamExternalId: team.externalId,
+      role: this.getRoleShortLabel(player)
     });
+  }
+
+  private getRoleShortLabel(player: LineupPlayerView): string | undefined {
+    if (!player) {
+      return undefined;
+    }
+    if (player.wicketKeeper || player.role === PlayerRole.WICKET_KEEPER) {
+      return 'WK';
+    }
+    if (player.role === PlayerRole.BATSMAN) {
+      return 'BAT';
+    }
+    if (player.role === PlayerRole.BOWLER) {
+      return 'BOWL';
+    }
+    if (player.role === PlayerRole.ALL_ROUNDER) {
+      return 'AR';
+    }
+    return undefined;
   }
 
   selectTeam(team: LineupTeamView): void {
@@ -210,6 +240,10 @@ export class LineupsComponent implements OnInit, OnChanges {
 
   trackByPlayer(index: number, player: LineupPlayerView): string {
     return player && (player.externalId || player.name) ? String(player.externalId || player.name) : 'player-' + index;
+  }
+
+  private toSlug(value: string): string {
+    return (value || 'player').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'player';
   }
 
   private mapSnapshotPlayer(player: PlayerStatsSquadPlayerView, index: number): LineupPlayerView {

@@ -35,6 +35,7 @@ interface HomeGlanceCard {
 }
 
 const HOME_MATCHES_STATE_KEY = makeStateKey<MatchCardViewModel[]>('crickzen_home_matches');
+const HOME_NEWS_STATE_KEY = makeStateKey<NewsItem[]>('crickzen_home_news');
 
 @Component({
   selector: 'app-home',
@@ -46,10 +47,17 @@ export class HomeComponent implements OnInit, OnDestroy {
   private readonly maxHomeMatchesPerTab = 6;
   private carouselElement: HTMLDivElement | null = null;
   private readonly carouselScrollListener = () => this.updateCarouselControls();
+  private seriesLinksElement: HTMLDivElement | null = null;
+  private readonly seriesScrollListener = () => this.updateSeriesControls();
 
   @ViewChild('matchesCarouselRef', { read: ElementRef })
   set matchesCarouselRef(ref: ElementRef<HTMLDivElement> | undefined) {
     this.bindCarousel(ref ? ref.nativeElement : null);
+  }
+
+  @ViewChild('seriesLinksRef', { read: ElementRef })
+  set seriesLinksRef(ref: ElementRef<HTMLDivElement> | undefined) {
+    this.bindSeriesLinks(ref ? ref.nativeElement : null);
   }
 
   liveMatches: MatchCardViewModel[] = [];
@@ -70,6 +78,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   totalTrackedMatches = 0;
   canScrollLeft = false;
   canScrollRight = false;
+  canScrollSeriesLeft = false;
+  canScrollSeriesRight = false;
 
   newsItems: NewsItem[] = [];
   isLoadingNews = true;
@@ -103,34 +113,49 @@ export class HomeComponent implements OnInit, OnDestroy {
     });
     this.updateStructuredData();
 
-    // News/blog content is secondary to the match rail. Keep it out of the
-    // server critical path so an empty news response cannot block first HTML.
     if (this.isBrowser) {
-      this.loadNews();
+      // The SSR transfer-state script is emitted after the browser bundles.
+      // Wait one task so it exists before the first client hydration read.
+      setTimeout(() => {
+        const hydratedNews = this.getHydratedState<NewsItem[]>(HOME_NEWS_STATE_KEY);
+        if (hydratedNews) {
+          this.transferState.remove(HOME_NEWS_STATE_KEY);
+          this.applyNews(hydratedNews);
+        } else {
+          this.loadNews();
+        }
+        this.loadMatches();
+      }, 0);
     } else {
-      this.isLoadingNews = false;
+      this.loadNews();
+      this.loadMatches();
     }
-
-    this.loadMatches();
   }
 
   private loadNews(): void {
     this.newsService.getNews().subscribe(
       (items) => {
-        this.newsItems = items;
-        this.isLoadingNews = false;
-        if (!items || items.length === 0) {
-          this.loadBlogFallback();
+        if (!this.isBrowser) {
+          this.transferState.set(HOME_NEWS_STATE_KEY, items || []);
         }
-        this.changeDetectorRef.markForCheck();
+        this.applyNews(items);
       },
       () => {
-        this.newsItems = [];
-        this.isLoadingNews = false;
-        this.loadBlogFallback();
-        this.changeDetectorRef.markForCheck();
+        if (!this.isBrowser) {
+          this.transferState.set(HOME_NEWS_STATE_KEY, []);
+        }
+        this.applyNews([]);
       }
     );
+  }
+
+  private applyNews(items: NewsItem[]): void {
+    this.newsItems = items || [];
+    this.isLoadingNews = false;
+    if (this.newsItems.length === 0) {
+      this.loadBlogFallback();
+    }
+    this.changeDetectorRef.markForCheck();
   }
 
   private loadBlogFallback(): void {
@@ -152,6 +177,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
     this.matchesService.stopAutoRefresh();
     this.bindCarousel(null);
+    this.bindSeriesLinks(null);
     this.structuredDataService.clearPageSchemas();
   }
 
@@ -160,11 +186,20 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.hasMatchError = false;
 
     if (this.isBrowser) {
-      const hydratedMatches = this.transferState.get(HOME_MATCHES_STATE_KEY, null);
-      if (hydratedMatches) {
+      const hydratedMatches = this.normalizeHydratedMatches(
+        this.getHydratedState<MatchCardViewModel[]>(HOME_MATCHES_STATE_KEY)
+      );
+      // An empty SSR payload can happen while the server-side match request is
+      // still warming up. Do not let it suppress the browser's first real
+      // request, otherwise cards only appear after a manual refresh.
+      if (hydratedMatches && hydratedMatches.length > 0) {
         this.transferState.remove(HOME_MATCHES_STATE_KEY);
         this.applyMatches(hydratedMatches);
         return;
+      }
+
+      if (hydratedMatches !== null) {
+        this.transferState.remove(HOME_MATCHES_STATE_KEY);
       }
     }
 
@@ -176,6 +211,15 @@ export class HomeComponent implements OnInit, OnDestroy {
       (matches) => {
         if (!this.isBrowser) {
           this.transferState.set(HOME_MATCHES_STATE_KEY, matches || []);
+        }
+        // Keep the SSR/hydrated cards visible when the first browser refresh
+        // briefly returns an empty snapshot while the backend is warming up.
+        // A later non-empty refresh can still replace them normally.
+        if ((!matches || matches.length === 0) && this.totalTrackedMatches > 0) {
+          this.isLoadingMatches = false;
+          this.hasMatchError = false;
+          this.changeDetectorRef.markForCheck();
+          return;
         }
         this.applyMatches(matches);
       },
@@ -195,6 +239,55 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.changeDetectorRef.markForCheck();
       }
     );
+  }
+
+  private getHydratedState<T>(key: any): T | null {
+    var hydrated: T | null = null;
+    try {
+      hydrated = this.transferState.get<T | null>(key, null);
+    } catch (error) {
+      console.warn('[HomeComponent] Could not read Angular transfer state:', error);
+    }
+    if (hydrated !== null && hydrated !== undefined && (!Array.isArray(hydrated) || hydrated.length > 0)) {
+      return hydrated;
+    }
+
+    if (!this.isBrowser || typeof document === 'undefined') {
+      return hydrated;
+    }
+
+    var stateElement = document.getElementById('crickzen-app-state');
+    var encodedState = stateElement && stateElement.textContent;
+    if (!encodedState) {
+      return hydrated;
+    }
+
+    try {
+      // Some SSR responses HTML-encode the JSON quotes as &q;. Decode only
+      // this known wrapper format, then reuse the same TransferState payload.
+      var decodedState = encodedState.replace(/&q;/g, '"');
+      var state = JSON.parse(decodedState);
+      var fallback = state && state[String(key)];
+      if (fallback !== null && fallback !== undefined) {
+        return fallback as T;
+      }
+    } catch (error) {
+      console.warn('[HomeComponent] Could not decode SSR homepage state:', error);
+    }
+
+    return hydrated;
+  }
+
+  private normalizeHydratedMatches(matches: MatchCardViewModel[] | null): MatchCardViewModel[] | null {
+    if (!Array.isArray(matches)) {
+      return matches;
+    }
+
+    return matches.map((match) => ({
+      ...match,
+      startTime: match.startTime ? new Date(match.startTime as any) : match.startTime,
+      lastUpdated: match.lastUpdated ? new Date(match.lastUpdated as any) : match.lastUpdated
+    }));
   }
 
   private applyMatches(matches: MatchCardViewModel[]): void {
@@ -264,7 +357,16 @@ export class HomeComponent implements OnInit, OnDestroy {
       if (selected) {
         (selected as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
+      this.updateSeriesControls();
     }, 0);
+  }
+
+  scrollSeriesLeft(): void {
+    this.scrollSeriesLinks(-1);
+  }
+
+  scrollSeriesRight(): void {
+    this.scrollSeriesLinks(1);
   }
 
   scrollLeft(): void {
@@ -324,7 +426,7 @@ export class HomeComponent implements OnInit, OnDestroy {
         seen[key] = true;
         return true;
       })
-      .slice(0, 8);
+      .slice(0, 6);
   }
 
   private normalizeSeriesName(match: MatchCardViewModel | null): string {
@@ -805,6 +907,44 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     this.updateCarouselControls();
+  }
+
+  private bindSeriesLinks(element: HTMLDivElement | null): void {
+    if (this.seriesLinksElement) {
+      this.seriesLinksElement.removeEventListener('scroll', this.seriesScrollListener);
+    }
+
+    this.seriesLinksElement = element;
+
+    if (this.seriesLinksElement && this.isBrowser) {
+      this.seriesLinksElement.addEventListener('scroll', this.seriesScrollListener, { passive: true });
+    }
+
+    this.updateSeriesControls();
+  }
+
+  private scrollSeriesLinks(direction: number): void {
+    if (!this.seriesLinksElement) {
+      return;
+    }
+
+    this.seriesLinksElement.scrollBy({
+      left: direction * Math.max(160, this.seriesLinksElement.clientWidth * 0.8),
+      behavior: 'smooth'
+    });
+  }
+
+  private updateSeriesControls(): void {
+    if (!this.seriesLinksElement) {
+      this.canScrollSeriesLeft = false;
+      this.canScrollSeriesRight = false;
+      this.changeDetectorRef.markForCheck();
+      return;
+    }
+
+    this.canScrollSeriesLeft = this.seriesLinksElement.scrollLeft > 4;
+    this.canScrollSeriesRight = this.seriesLinksElement.scrollLeft < (this.seriesLinksElement.scrollWidth - this.seriesLinksElement.clientWidth - 4);
+    this.changeDetectorRef.markForCheck();
   }
 
   private updateCarouselControlsSoon(): void {

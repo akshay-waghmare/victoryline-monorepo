@@ -7,7 +7,7 @@ COPY package*.json ./
 RUN npm install --legacy-peer-deps
 
 # Force source-layer refresh when local frontend edits are made.
-ARG FRONTEND_SOURCE_REV=20260717-news-fallback
+ARG FRONTEND_SOURCE_REV=20260721-seo-hub-lifecycle
 RUN echo "$FRONTEND_SOURCE_REV"
 COPY . .
 RUN npm run build:ssr

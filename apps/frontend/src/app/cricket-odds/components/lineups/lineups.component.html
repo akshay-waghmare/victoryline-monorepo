@@ -15,35 +15,56 @@
     <div *ngFor="let team of teams; trackBy: trackByTeam" class="team-card">
       <div class="team-card__header">
         <h3 class="team-name">{{ team.name }}</h3>
-        <button
-          type="button"
+        <a
           class="team-details-button"
           *ngIf="team.externalId"
-          (click)="selectTeam(team)">
+          [href]="getTeamHref(team)">
           Team stats
-        </button>
+        </a>
       </div>
       
       <ol class="players-list">
-        <li *ngFor="let player of team.players; trackBy: trackByPlayer" 
+        <li *ngFor="let player of team.players; trackBy: trackByPlayer"
             [ngClass]="getRoleClass(player.role)"
             class="player-item player-item--clickable"
-            (click)="selectPlayer(team, player)">
-          <mat-icon class="player-role-icon" [attr.aria-label]="getRoleLabel(player.role)">
-            {{ getRoleIcon(player.role) }}
-          </mat-icon>
-          <div class="player-main">
-            <span class="player-name">{{ player.name }}</span>
-            <div class="player-badges" *ngIf="player.captain || player.wicketKeeper || player.probable">
-              <span class="player-badge" *ngIf="player.captain">C</span>
-              <span class="player-badge" *ngIf="player.wicketKeeper">WK</span>
-              <span class="player-badge" *ngIf="player.probable">Probable</span>
+            >
+          <a *ngIf="player.externalId; else unavailablePlayerLink"
+             class="player-item__link"
+             [href]="getPlayerHref(player)"
+             [attr.aria-label]="'View details for ' + player.name">
+            <mat-icon class="player-role-icon" [attr.aria-label]="getRoleLabel(player.role)">
+              {{ getRoleIcon(player.role) }}
+            </mat-icon>
+            <div class="player-main">
+              <span class="player-name">{{ player.name }}</span>
+              <div class="player-badges" *ngIf="player.captain || player.wicketKeeper || player.probable">
+                <span class="player-badge" *ngIf="player.captain">C</span>
+                <span class="player-badge" *ngIf="player.wicketKeeper">WK</span>
+                <span class="player-badge" *ngIf="player.probable">Probable</span>
+              </div>
             </div>
-          </div>
-          <span class="player-role-label">{{ getRoleLabel(player.role) }}</span>
-          <span class="player-details-hint">
-            <mat-icon class="player-details-icon">chevron_right</mat-icon>
-          </span>
+            <span class="player-role-label">{{ getRoleLabel(player.role) }}</span>
+            <span class="player-details-hint"><mat-icon class="player-details-icon">chevron_right</mat-icon></span>
+          </a>
+          <ng-template #unavailablePlayerLink>
+            <span class="player-item__link" role="button" tabindex="0"
+              [attr.aria-label]="'View details for ' + player.name"
+              (click)="selectPlayer(team, player)"
+              (keydown.enter)="selectPlayer(team, player)"
+              (keydown.space)="selectPlayer(team, player); $event.preventDefault()">
+              <mat-icon class="player-role-icon" [attr.aria-label]="getRoleLabel(player.role)">{{ getRoleIcon(player.role) }}</mat-icon>
+              <div class="player-main">
+                <span class="player-name">{{ player.name }}</span>
+                <div class="player-badges" *ngIf="player.captain || player.wicketKeeper || player.probable">
+                  <span class="player-badge" *ngIf="player.captain">C</span>
+                  <span class="player-badge" *ngIf="player.wicketKeeper">WK</span>
+                  <span class="player-badge" *ngIf="player.probable">Probable</span>
+                </div>
+              </div>
+              <span class="player-role-label">{{ getRoleLabel(player.role) }}</span>
+              <span class="player-details-hint"><mat-icon class="player-details-icon">chevron_right</mat-icon></span>
+            </span>
+          </ng-template>
         </li>
       </ol>
     </div>

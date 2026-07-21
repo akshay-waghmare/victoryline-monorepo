@@ -1,10 +1,10 @@
-<div class="stats-page">
-  <div class="stats-page__header">
+<div class="stats-page" [class.stats-page--profile]="isProfileRoute">
+  <div class="stats-page__header" *ngIf="!isProfileRoute">
     <h1 class="stats-page__title">
       <mat-icon class="stats-page__title-icon">person</mat-icon>
-      Players
+      {{ isProfileRoute ? (selectedPlayer?.name || selectedPlayerSummary?.name || 'Player profile') : 'Players' }}
     </h1>
-    <div class="stats-page__search">
+    <div class="stats-page__search" *ngIf="!isProfileRoute">
       <mat-icon class="stats-page__search-icon">search</mat-icon>
       <input
         type="text"
@@ -17,78 +17,92 @@
   </div>
 
   <!-- Loading -->
-  <div *ngIf="isLoading" class="stats-page__loading">
+  <div *ngIf="isLoading && !isProfileRoute" class="stats-page__loading">
     <mat-spinner diameter="36"></mat-spinner>
     <span>Loading players...</span>
   </div>
 
   <!-- Empty state -->
-  <div *ngIf="!isLoading && players.length === 0" class="stats-page__empty">
+  <div *ngIf="!isProfileRoute && !isLoading && players.length === 0" class="stats-page__empty">
     <mat-icon class="stats-page__empty-icon">person_off</mat-icon>
     <p>No players found</p>
     <span *ngIf="searchQuery">Try adjusting your search</span>
   </div>
 
   <!-- Player grid -->
-  <div *ngIf="!isLoading && players.length > 0" class="stats-page__grid">
-    <div
+  <div *ngIf="!isProfileRoute && !isLoading && players.length > 0" class="stats-page__grid">
+    <a
       *ngFor="let player of players; trackBy: trackByExternalId"
       class="stats-card"
-      (click)="selectPlayer(player)"
+      [attr.href]="getPlayerHref(player)"
     >
       <div class="stats-card__avatar player-initials-badge"
            [style.background]="getPlayerBadgeColor(player.role)">
         {{ getPlayerInitials(player) }}
       </div>
       <div class="stats-card__info">
-        <span class="stats-card__name">{{ player.name }}</span>
+        <span class="stats-card__name">{{ getPlayerDisplayName(player) }}</span>
         <span *ngIf="player.role" class="stats-card__role" [ngClass]="getRoleBadgeClass(player.role)">
           {{ player.role }}
         </span>
         <span *ngIf="player.country" class="stats-card__meta">{{ player.country }}</span>
       </div>
       <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
-    </div>
+    </a>
   </div>
 
+  <button *ngIf="isProfileRoute" class="player-profile__back" type="button" (click)="closeDetail()">
+    <mat-icon>arrow_back</mat-icon>
+    Back
+  </button>
+
   <!-- Detail panel (overlay) -->
-  <div *ngIf="detailOpen" class="stats-detail-overlay" (click)="closeDetail()">
+  <div *ngIf="detailOpen" class="stats-detail-overlay" [class.stats-detail-overlay--profile]="isProfileRoute" (click)="!isProfileRoute && closeDetail()">
     <div class="stats-detail-panel" (click)="$event.stopPropagation()">
-      <button class="stats-detail-panel__close" (click)="closeDetail()">
+      <button *ngIf="!isProfileRoute" class="stats-detail-panel__close" (click)="closeDetail()">
         <mat-icon>close</mat-icon>
       </button>
 
       <div *ngIf="isDetailLoading" class="stats-detail-panel__loading">
         <mat-spinner diameter="32"></mat-spinner>
+        <span *ngIf="isProfileRoute">Loading player profile</span>
       </div>
 
       <ng-container *ngIf="!isDetailLoading">
-        <div class="stats-detail-panel__header">
+        <div class="stats-detail-panel__header" [class.player-profile__hero]="isProfileRoute">
           <div class="player-initials-badge player-initials-badge--lg"
-               [style.background]="getPlayerBadgeColor((selectedPlayer ? selectedPlayer.role : selectedPlayerSummary?.role) || '')">
+               [style.background]="getPlayerBadgeColor(getActivePlayerRole())">
             {{ getPlayerInitials(selectedPlayer || selectedPlayerSummary) }}
           </div>
           <div>
-            <h2 class="stats-detail-panel__name">{{ selectedPlayer ? selectedPlayer.name : selectedPlayerSummary?.name }}</h2>
-            <span *ngIf="(selectedPlayer ? selectedPlayer.role : selectedPlayerSummary?.role) as role" class="stats-card__role" [ngClass]="getRoleBadgeClass(role)">
+            <span *ngIf="isProfileRoute" class="player-profile__eyebrow">Crickzen player profile</span>
+            <h1 *ngIf="isProfileRoute; else detailName" id="player-profile-heading" class="stats-detail-panel__name" tabindex="-1">{{ getPlayerDisplayName(selectedPlayer || selectedPlayerSummary) }}</h1>
+            <ng-template #detailName>
+              <h2 class="stats-detail-panel__name">{{ getPlayerDisplayName(selectedPlayer || selectedPlayerSummary) }}</h2>
+            </ng-template>
+            <span *ngIf="getActivePlayerRole() as role" class="stats-card__role" [ngClass]="getRoleBadgeClass(role)">
               {{ role }}
             </span>
           </div>
         </div>
 
-        <div class="stats-detail-panel__meta">
-          <ng-container *ngIf="selectedPlayer && getStatProfile(selectedPlayer.stats) as profile">
-            <div *ngIf="profile.nationality"><strong>Nationality:</strong> {{ profile.nationality }}</div>
-            <div *ngIf="profile.birth"><strong>Born:</strong> {{ profile.birth }}</div>
-            <div *ngIf="profile.role"><strong>Role:</strong> {{ profile.role }}</div>
-            <div *ngIf="profile.bats"><strong>Batting:</strong> {{ profile.bats }}</div>
-            <div *ngIf="profile.bowls"><strong>Bowling:</strong> {{ profile.bowls }}</div>
-          </ng-container>
-          <ng-container *ngIf="!selectedPlayer || !getStatProfile(selectedPlayer.stats)">
-            <div *ngIf="selectedPlayer?.country || selectedPlayerSummary?.country"><strong>Country:</strong> {{ selectedPlayer ? selectedPlayer.country : selectedPlayerSummary?.country }}</div>
-            <div *ngIf="selectedPlayer?.battingStyle || selectedPlayerSummary?.battingStyle"><strong>Batting:</strong> {{ selectedPlayer ? selectedPlayer.battingStyle : selectedPlayerSummary?.battingStyle }}</div>
-            <div *ngIf="selectedPlayer?.bowlingStyle || selectedPlayerSummary?.bowlingStyle"><strong>Bowling:</strong> {{ selectedPlayer ? selectedPlayer.bowlingStyle : selectedPlayerSummary?.bowlingStyle }}</div>
-          </ng-container>
+        <div class="stats-detail-panel__meta" [class.player-profile__facts]="isProfileRoute">
+          <div *ngIf="getProfileFact('nationality', selectedPlayer?.country || selectedPlayerSummary?.country) as country">
+            <span class="player-profile__fact-label">Country</span>
+            <span>{{ country }}</span>
+          </div>
+          <div *ngIf="getProfileFact('birth') as birth">
+            <span class="player-profile__fact-label">Born</span>
+            <span>{{ birth }}</span>
+          </div>
+          <div *ngIf="getProfileFact('bats', selectedPlayer?.battingStyle || selectedPlayerSummary?.battingStyle) as batting">
+            <span class="player-profile__fact-label">Batting</span>
+            <span>{{ formatPlayerAttribute(batting) }}</span>
+          </div>
+          <div *ngIf="getProfileFact('bowls', selectedPlayer?.bowlingStyle || selectedPlayerSummary?.bowlingStyle) as bowling">
+            <span class="player-profile__fact-label">Bowling</span>
+            <span>{{ formatPlayerAttribute(bowling) }}</span>
+          </div>
         </div>
 
         <!-- Career Batting -->
@@ -126,9 +140,44 @@
         </div>
 
         <!-- Recent Form -->
-        <div *ngIf="selectedPlayer && getStatPayload(selectedPlayer.stats, 'recent_form').length > 0" class="stats-detail-panel__section">
+        <div *ngIf="selectedPlayer && (getRecentFormRows('batting').length > 0 || getRecentFormRows('bowling').length > 0 || getStatPayload(selectedPlayer.stats, 'recent_form').length > 0)" class="stats-detail-panel__section">
           <h3>Recent Form</h3>
-          <div class="stats-table-wrapper">
+          <div class="recent-form-grid">
+            <div *ngIf="getRecentFormRows('batting').length > 0" class="recent-form-card">
+              <h4>Batting</h4>
+              <div class="stats-table-wrapper">
+                <table class="stats-table">
+                  <thead>
+                    <tr><th>Match</th><th>Runs</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of getRecentFormRows('batting')">
+                      <td>{{ row.match }}</td>
+                      <td>{{ row.performance }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div *ngIf="getRecentFormRows('bowling').length > 0" class="recent-form-card">
+              <h4>Bowling</h4>
+              <div class="stats-table-wrapper">
+                <table class="stats-table">
+                  <thead>
+                    <tr><th>Match</th><th>Wickets</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of getRecentFormRows('bowling')">
+                      <td>{{ row.match }}</td>
+                      <td>{{ row.performance }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <!-- Keep the normal table renderer for legacy flat recent-form payloads. -->
+          <div *ngIf="getStatPayload(selectedPlayer.stats, 'recent_form').length > 0" class="stats-table-wrapper">
             <table class="stats-table">
               <thead>
                 <tr><th *ngFor="let h of getTableHeaders(getStatPayload(selectedPlayer.stats, 'recent_form'))">{{ h }}</th></tr>
@@ -169,8 +218,8 @@
 
         <div *ngIf="!selectedPlayer || !selectedPlayer.stats || selectedPlayer.stats.length === 0" class="stats-detail-panel__empty">
           <mat-icon>info_outline</mat-icon>
-          <p>Career stats not yet available for this player</p>
-          <span>Stats are populated when the crawler processes this player's CREX profile</span>
+          <p>Career stats are not available yet</p>
+          <span>Player details will appear here as they become available.</span>
         </div>
       </ng-container>
     </div>

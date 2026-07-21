@@ -1,4 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -27,10 +29,23 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
   selectedTeamSummary: TeamSummary | null = null;
   isDetailLoading = false;
   detailOpen = false;
+  isProfileRoute = false;
 
-  constructor(private cricketService: CricketService, private titleService: Title) {}
+  constructor(
+    private cricketService: CricketService,
+    private titleService: Title,
+    private route: ActivatedRoute,
+    private router: Router,
+    private location: Location
+  ) {}
 
   ngOnInit(): void {
+    const externalId = this.route.snapshot.paramMap.get('externalId');
+    if (externalId) {
+      this.isProfileRoute = true;
+      this.openTeamProfile(externalId, this.route.snapshot.paramMap.get('slug') || 'team');
+      return;
+    }
     this.titleService.setTitle('Teams | Crickzen');
     this.loadTeams();
     this.searchSubject.pipe(
@@ -64,19 +79,38 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
 
   selectTeam(team: TeamSummary): void {
     if (!team.externalId) { return; }
+    this.router.navigate(['/teams', team.externalId, this.toSlug(team.name)]);
+  }
+
+  getTeamHref(team: TeamSummary): string {
+    if (!team || !team.externalId) { return '/teams'; }
+    return '/teams/' + encodeURIComponent(team.externalId) + '/' + this.toSlug(team.name);
+  }
+
+  private openTeamProfile(externalId: string, slug: string): void {
+    const name = slug.replace(/-/g, ' ');
     this.isDetailLoading = true;
     this.detailOpen = true;
     this.selectedTeam = null;
-    this.selectedTeamSummary = team;
-    this.cricketService.getPlayerStatsTeam(team.externalId, 'crex').pipe(
+    this.selectedTeamSummary = { externalId: externalId, name: name };
+    this.titleService.setTitle(name + ' Team Stats | Crickzen');
+    this.cricketService.getPlayerStatsTeam(externalId, 'crex').pipe(
       takeUntil(this.destroy$)
     ).subscribe(
-      (detail) => { this.selectedTeam = detail; this.isDetailLoading = false; },
+      (detail) => {
+        this.selectedTeam = detail;
+        if (detail && detail.name) { this.titleService.setTitle(detail.name + ' Team Stats | Crickzen'); }
+        this.isDetailLoading = false;
+      },
       () => { this.selectedTeam = null; this.isDetailLoading = false; }
     );
   }
 
   closeDetail(): void {
+    if (this.isProfileRoute) {
+      this.location.back();
+      return;
+    }
     this.selectedTeam = null;
     this.selectedTeamSummary = null;
     this.detailOpen = false;
@@ -205,5 +239,9 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
 
   trackByExternalId(index: number, item: TeamSummary): string {
     return item.externalId;
+  }
+
+  private toSlug(value: string): string {
+    return (value || 'team').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'team';
   }
 }

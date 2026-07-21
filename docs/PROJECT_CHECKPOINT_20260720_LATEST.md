@@ -101,3 +101,28 @@ This file now records the public trust surfaces, the homepage-to-scorecard data-
 ## Commit status
 
 The implementation checkpoint is `3d867d3`. This documentation update is the final follow-up record for the same 2026-07-20 work session and is committed separately so the final worktree can be verified clean.
+
+## Live-match resource selection — 2026-07-21
+
+The local live catalog reached 9 matches. The scraper was healthy but the previous design fully scraped 5 matches while the fast-update loop could still create persistent pages for all 9, producing roughly 600% CPU usage and 277 PIDs. The safe operating boundary is therefore enforced before both browser paths.
+
+### Decision
+
+- Select international matches first using format/series markers such as T20I, ODI, Test, CWC League, World Cup, and Champions Trophy.
+- Allow at most 3 matches from one series.
+- Keep `MAX_LIVE_MATCHES=5` as the total selected-match budget.
+- Ignore non-selected matches fully: do not lifecycle-sync them into the backend live catalog, schedule full scrape tasks for them, create persistent fast-update pages, or include them as live player-stat candidates.
+
+### Implementation
+
+- Added shared selection policy in `apps/scraper/crex_scraper_python/src/live_match_selection.py`.
+- Applied it to discovery/lifecycle sync, the normal poll loop, the persistent fast-update loop, and the legacy scraper path.
+- Added focused policy tests in `apps/scraper/crex_scraper_python/tests/unit/test_live_match_selection.py`.
+
+### Verification
+
+- Focused scraper tests: 6 passed.
+- Local backend live catalog: 5 matches after discovery reconciliation.
+- Scraper health: healthy, 5 active matches, 5 fast interceptors, 0 pool errors, restart not recommended.
+- Resource sample after the change: 248 PIDs and approximately 1.23 GB memory.
+- Production live-catalog guard audit before the change: 9 live matches, no duplicate URLs, healthy homepage SSR, no warnings or failures.

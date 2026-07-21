@@ -378,7 +378,8 @@ export class MatchIntelligenceDataService {
     var knownTeams = [
       'new-zealand', 'west-indies', 'south-africa', 'sri-lanka', 'united-arab-emirates',
       'england', 'india', 'australia', 'ireland', 'bangladesh', 'pakistan', 'afghanistan',
-      'zimbabwe', 'namibia', 'scotland', 'nepal', 'netherlands', 'wi', 'nz', 'sa', 'sl', 'uae'
+      'zimbabwe', 'namibia', 'scotland', 'nepal', 'netherlands', 'hong-kong', 'uganda',
+      'wi', 'nz', 'sa', 'sl', 'uae', 'hk', 'ugn'
     ];
     var match = knownTeams.find((team) => token === team || token.indexOf(team + '-') === 0);
     if (match) {
@@ -392,6 +393,9 @@ export class MatchIntelligenceDataService {
     // stable team token; using the final segment would incorrectly treat the
     // event id as the team.
     if (parts.length > 1) {
+      if (parts[1] === 'w' || parts[1] === 'women') {
+        return (parts[0] || '') + '-w';
+      }
       return parts[0] || null;
     }
     var last = parts.pop();
@@ -417,7 +421,13 @@ export class MatchIntelligenceDataService {
       'nz': 'new-zealand',
       'new-zealand': 'new-zealand',
       'sa': 'south-africa',
+      'south-africa': 'south-africa',
       'sl': 'sri-lanka',
+      'sri-lanka': 'sri-lanka',
+      'hk': 'hong-kong',
+      'hong-kong': 'hong-kong',
+      'ugn': 'uganda',
+      'uganda': 'uganda',
       'uae': 'united-arab-emirates',
       'ire': 'ireland',
       'ireland': 'ireland'

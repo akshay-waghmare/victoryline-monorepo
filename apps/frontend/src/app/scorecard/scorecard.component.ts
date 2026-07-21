@@ -378,8 +378,8 @@ export class ScorecardComponent implements OnInit, OnChanges {
     if (!bStats) { return ''; }
     const status = bStats.status;
     const dismissal_code = bStats.dismissal_code;
-    const bowler_code = bStats.bowler_name || '';
-    const player_caught = bStats.player_caught_name || '';
+    const bowler_code = this.cleanParticipantName(bStats.bowler_name || bStats.bowler_code || '');
+    const player_caught = this.cleanParticipantName(bStats.player_caught_name || bStats.player_caught || '');
     if (status === 'currently_batting') { return 'not out'; }
     if (status === 'yet_to_bat') { return 'yet to bat'; }
     if (!dismissal_code) { return ''; }
@@ -456,10 +456,14 @@ export class ScorecardComponent implements OnInit, OnChanges {
   }
 
   private getResolvedPlayerName(playerKey: string, stats: any): string {
-    if (stats && typeof stats.player_name === 'string' && stats.player_name.trim()) {
-      return stats.player_name.trim();
-    }
+    return this.cleanParticipantName((stats && (stats.player_name || stats.playerName || stats.name)) || playerKey);
+  }
 
-    return playerKey;
+  private cleanParticipantName(value: any): string {
+    return String(value || '')
+      .replace(/^\d+\s*/, '')
+      .replace(/\s+(?:[A-Z]{2,4})$/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 }

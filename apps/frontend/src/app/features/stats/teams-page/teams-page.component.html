@@ -1,5 +1,5 @@
-<div class="stats-page">
-  <div class="stats-page__header">
+<div class="stats-page" [class.stats-page--profile]="isProfileRoute">
+  <div *ngIf="!isProfileRoute" class="stats-page__header">
     <h1 class="stats-page__title">
       <mat-icon class="stats-page__title-icon">groups</mat-icon>
       Teams
@@ -11,19 +11,19 @@
     </div>
   </div>
 
-  <div *ngIf="isLoading" class="stats-page__loading">
+  <div *ngIf="!isProfileRoute && isLoading" class="stats-page__loading">
     <mat-spinner diameter="36"></mat-spinner>
     <span>Loading teams...</span>
   </div>
 
-  <div *ngIf="!isLoading && teams.length === 0" class="stats-page__empty">
+  <div *ngIf="!isProfileRoute && !isLoading && teams.length === 0" class="stats-page__empty">
     <mat-icon class="stats-page__empty-icon">group_off</mat-icon>
     <p>No teams found</p>
     <span *ngIf="searchQuery">Try adjusting your search</span>
   </div>
 
-  <div *ngIf="!isLoading && teams.length > 0" class="stats-page__grid">
-    <div *ngFor="let team of teams; trackBy: trackByExternalId" class="stats-card" (click)="selectTeam(team)">
+  <div *ngIf="!isProfileRoute && !isLoading && teams.length > 0" class="stats-page__grid">
+    <a *ngFor="let team of teams; trackBy: trackByExternalId" class="stats-card" [attr.href]="getTeamHref(team)">
       <div class="team-badge" [style.background]="getTeamBadgeColor(team.teamCode)">
         {{ getTeamInitials(team) }}
       </div>
@@ -32,13 +32,18 @@
         <span *ngIf="team.teamCode" class="team-code-pill">{{ team.teamCode }}</span>
       </div>
       <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
-    </div>
+    </a>
   </div>
 
-  <!-- Detail overlay -->
-  <div *ngIf="detailOpen" class="stats-detail-overlay" (click)="closeDetail()">
+  <button *ngIf="isProfileRoute" class="team-profile__back" type="button" (click)="closeDetail()">
+    <mat-icon>arrow_back</mat-icon>
+    All teams
+  </button>
+
+  <!-- Team stats get a canonical page; overlay remains only for legacy list use. -->
+  <div *ngIf="detailOpen" class="stats-detail-overlay" [class.stats-detail-overlay--profile]="isProfileRoute" (click)="!isProfileRoute && closeDetail()">
     <div class="stats-detail-panel" (click)="$event.stopPropagation()">
-      <button class="stats-detail-panel__close" (click)="closeDetail()">
+      <button *ngIf="!isProfileRoute" class="stats-detail-panel__close" (click)="closeDetail()">
         <mat-icon>close</mat-icon>
       </button>
 
@@ -54,7 +59,9 @@
             {{ getTeamInitials(selectedTeam || selectedTeamSummary) }}
           </div>
           <div class="team-detail-header-info">
-            <h2 class="stats-detail-panel__name">{{ selectedTeam?.name || selectedTeamSummary?.name }}</h2>
+            <span *ngIf="isProfileRoute" class="team-profile__eyebrow">Crickzen team stats</span>
+            <h1 *ngIf="isProfileRoute; else teamDetailName" class="stats-detail-panel__name">{{ selectedTeam?.name || selectedTeamSummary?.name }}</h1>
+            <ng-template #teamDetailName><h2 class="stats-detail-panel__name">{{ selectedTeam?.name || selectedTeamSummary?.name }}</h2></ng-template>
             <div class="team-detail-meta-row">
               <span *ngIf="selectedTeam?.teamCode || selectedTeamSummary?.teamCode" class="team-code-pill">
                 {{ selectedTeam?.teamCode || selectedTeamSummary?.teamCode }}

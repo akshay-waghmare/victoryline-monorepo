@@ -392,7 +392,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
 
   private getMatchesForHub(type: SeoHubType): MatchCardViewModel[] {
     if (type === 'archive') {
-      var canonicalMatches = this.limitUnique(this.allMatches, 1000);
+      var canonicalMatches = this.limitUnique(filterCompletedMatches(this.allMatches), 1000);
       var start = Math.max(0, (this.archivePage - 1) * this.archivePageSize);
       return canonicalMatches.slice(start, start + this.archivePageSize);
     }
@@ -448,7 +448,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
 
   private shouldUseSitemapFallback(): boolean {
     if (this.config.type === 'archive') {
-      return true;
+      return false;
     }
 
     return this.sitemapLinks.length > 0
@@ -507,9 +507,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private buildArchivePageLinks(): number[] {
-    var total = this.sitemapLinks && this.sitemapLinks.length > 0
-      ? this.sitemapLinks.length
-      : this.limitUnique(this.allMatches, 1000).length;
+    var total = this.limitUnique(filterCompletedMatches(this.allMatches), 1000).length;
     var pages = Math.max(1, Math.ceil(total / this.archivePageSize));
     var capped = Math.min(pages, 10);
     var result: number[] = [];

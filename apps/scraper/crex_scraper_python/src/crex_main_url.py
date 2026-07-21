@@ -8,6 +8,7 @@ from flask_cors import CORS
 from playwright.sync_api import sync_playwright
 import requests
 from .cricket_data_service import CricketDataService
+from .live_match_selection import select_live_matches
 import threading
 import time
 import sqlite3
@@ -703,6 +704,9 @@ def scrape(page, url):
         # Convert relative URLs to absolute URLs
         urls = ['https://crex.com' + url for url in urls]
         logging.info(f"Full URLs: {urls}")
+
+        urls = [str(url) for url in select_live_matches(urls, SETTINGS.max_live_matches)]
+        logging.info("Selected live URLs: %s", urls)
         
         previous_urls = load_previous_urls()
         added_urls, deleted_urls = get_changes(urls)    

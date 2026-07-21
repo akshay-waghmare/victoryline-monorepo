@@ -1,6 +1,11 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformServer } from '@angular/common';
+import { Location } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Title } from '@angular/platform-browser';
 import { Subject, Subscription, forkJoin } from 'rxjs';
-import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { takeUntil, debounceTime, distinctUntilChanged, take } from 'rxjs/operators';
+import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { CricketService, PlayerStatsSeriesDetailView } from '../../../cricket-odds/cricket-odds.service';
 import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, prioritizeUpcomingMatchesForDiscovery } from '../../../core/utils/match-utils';
 import { MatchCardViewModel, MatchStatus } from '../../matches/models/match-card.models';
@@ -23,6 +28,13 @@ interface SeriesDiscoveryGroup {
   totalMatches: number;
 }
 
+interface TeamSummary {
+  externalId: string;
+  name: string;
+  shortName?: string;
+  teamCode?: string;
+}
+
 @Component({
   selector: 'app-series-page',
   templateUrl: './series-page.component.html',
@@ -31,23 +43,10 @@ interface SeriesDiscoveryGroup {
 export class SeriesPageComponent implements OnInit, OnDestroy {
   private readonly maxDiscoverySeriesGroups = 4;
   private readonly maxDiscoveryMatchesPerSeries = 4;
-  readonly seriesFaqs = [
-    {
-      question: 'What can I find on the Crickzen series page?',
-      answer: 'The series page lists current cricket series and tournaments, then opens available tables, standings, and summary data inside the current series surface.'
-    },
-    {
-      question: 'Does the series page include points tables and standings?',
-      answer: 'Yes. When standings data is available for a series, Crickzen shows the points table and supporting series stats inside the detail view.'
-    },
-    {
-      question: 'How does the series page connect to match discovery?',
-      answer: 'This page surfaces upcoming canonical match links by series so Google and users can move from tournament intent into live score, scorecard, lineup, and result pages on the same match URL.'
-    }
-  ];
-
   seriesList: SeriesSummary[] = [];
   upcomingDiscoveryGroups: SeriesDiscoveryGroup[] = [];
+  currentSeriesGroups: SeriesDiscoveryGroup[] = [];
+  teamDirectory: TeamSummary[] = [];
   isLoading = true;
   searchQuery = '';
   private searchSubject = new Subject<string>();
@@ -59,15 +58,34 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   selectedSeriesSummary: SeriesSummary | null = null;
   isDetailLoading = false;
   detailOpen = false;
+  isProfileRoute = false;
+  activeSection: 'matches' | 'table' | 'stats' = 'matches';
+  profileMatches: MatchCardViewModel[] = [];
+  private catalogueMatches: MatchCardViewModel[] = [];
 
   constructor(
     private cricketService: CricketService,
     private matchesService: MatchesService,
     private metaTagsService: MetaTagsService,
-    private structuredDataService: StructuredDataService
+    private structuredDataService: StructuredDataService,
+    private route: ActivatedRoute,
+    private router: Router,
+    private location: Location,
+    private titleService: Title,
+    private transferState: TransferState,
+    @Inject(PLATFORM_ID) private platformId: object
   ) {}
 
   ngOnInit(): void {
+    const externalId = this.route.snapshot.paramMap.get('externalId');
+    if (externalId) {
+      this.isProfileRoute = true;
+      this.activeSection = (this.route.snapshot.data['section'] || 'matches') as 'matches' | 'table' | 'stats';
+      this.openSeriesProfile(externalId, this.route.snapshot.paramMap.get('slug') || 'series');
+      this.loadDiscoveryMatches();
+      return;
+    }
+
     this.metaTagsService.setPageMeta('/series', {
       title: 'Cricket Series, Tournaments, Tables & Standings | Crickzen',
       description: 'Browse current cricket series and tournaments, then open available points tables, standings, and series summaries on Crickzen.',
@@ -103,7 +121,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(
       (data) => {
-        this.seriesList = data || [];
+        this.seriesList = (data || []).filter(series => this.isUsableSeriesEntry(series));
         this.isLoading = false;
         this.updateStructuredData();
       },
@@ -117,6 +135,15 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
 
   onSearchChange(query: string): void {
     this.searchSubject.next(query);
+  }
+
+  private isUsableSeriesEntry(series: SeriesSummary): boolean {
+    const name = String(series && (series.name || series.shortName) || '').trim();
+    if (!name) { return false; }
+    // The crawler currently exposes some upcoming fixtures through the series
+    // list endpoint. They belong in Next fixtures, not in the competition list.
+    return !/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i.test(name)
+      && !/\b\d{1,3}(st|nd|rd|th)\s*(T20I?|ODI|Test|One Day|100B)\b/i.test(name);
   }
 
   getMatchHref(match: MatchCardViewModel): string {
@@ -164,20 +191,49 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
 
   selectSeries(series: SeriesSummary): void {
     if (!series.externalId) { return; }
+    this.router.navigate(['/series', series.externalId, this.toSlug(series.name)]);
+  }
+
+  private openSeriesProfile(externalId: string, slug: string): void {
+    const name = slug.replace(/-/g, ' ');
     this.isDetailLoading = true;
     this.detailOpen = true;
     this.selectedSeries = null;
     this.selectedStandings = null;
-    this.selectedSeriesSummary = series;
+    this.selectedSeriesSummary = { externalId: externalId, name: name };
+    this.titleService.setTitle(name + ' Fixtures, Table & Stats | Crickzen');
+    this.metaTagsService.setPageMeta('/series/' + encodeURIComponent(externalId) + '/' + encodeURIComponent(slug), {
+      title: name + ' Fixtures, Table & Stats | Crickzen',
+      description: 'Live, upcoming and recent ' + name + ' matches, points table and team statistics on Crickzen.',
+      canonicalUrl: 'https://www.crickzen.com/series/' + encodeURIComponent(externalId) + '/' + encodeURIComponent(slug),
+      robots: 'index,follow'
+    });
 
+    if (externalId === 'current') {
+      this.profileMatches = this.filterProfileMatches(this.catalogueMatches);
+      this.isDetailLoading = false;
+      return;
+    }
+
+    this.isDetailLoading = true;
+    const profileKey = makeStateKey<any>('series-profile:' + externalId);
+    const hydrated = !isPlatformServer(this.platformId) ? this.transferState.get(profileKey, null) : null;
+    if (hydrated) {
+      this.applySeriesProfileBundle(hydrated, name);
+      this.transferState.remove(profileKey);
+      return;
+    }
     forkJoin([
-      this.cricketService.getPlayerStatsSeries(series.externalId, 'crex'),
-      this.cricketService.getPlayerStatsSeriesStandings(series.externalId, 'crex')
+      this.cricketService.getPlayerStatsSeries(externalId, 'crex'),
+      this.cricketService.getPlayerStatsSeriesStandings(externalId, 'crex'),
+      this.cricketService.listTeams('crex')
     ]).pipe(takeUntil(this.destroy$)).subscribe(
-      ([seriesDetail, standings]) => {
-        this.selectedSeries = seriesDetail;
-        this.selectedStandings = standings;
-        this.isDetailLoading = false;
+      ([seriesDetail, standings, teams]) => {
+        const bundle = { seriesDetail, standings, teams: teams || [] };
+        this.applySeriesProfileBundle(bundle, name);
+        if (isPlatformServer(this.platformId)) {
+          this.transferState.set(profileKey, bundle);
+        }
       },
       () => {
         this.selectedSeries = null;
@@ -187,7 +243,26 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     );
   }
 
+  private applySeriesProfileBundle(bundle: any, fallbackName: string): void {
+    this.selectedSeries = bundle && bundle.seriesDetail || null;
+    this.selectedStandings = bundle && bundle.standings || null;
+    this.teamDirectory = bundle && bundle.teams || [];
+    const resolvedName = (this.selectedSeries && this.selectedSeries.series && this.selectedSeries.series.name) || fallbackName;
+    this.selectedSeriesSummary = {
+      externalId: this.selectedSeries && this.selectedSeries.series && this.selectedSeries.series.externalId || this.selectedSeriesSummary!.externalId,
+      name: resolvedName,
+      seasonName: this.selectedSeries && this.selectedSeries.series && this.selectedSeries.series.seasonName
+    };
+    this.titleService.setTitle(resolvedName + ' Fixtures, Table & Stats | Crickzen');
+    this.profileMatches = this.filterProfileMatches(this.catalogueMatches);
+    this.isDetailLoading = false;
+  }
+
   closeDetail(): void {
+    if (this.isProfileRoute) {
+      this.location.back();
+      return;
+    }
     this.selectedSeries = null;
     this.selectedStandings = null;
     this.selectedSeriesSummary = null;
@@ -359,6 +434,46 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     return match.id;
   }
 
+  getSeriesHref(series: SeriesSummary): string {
+    return '/series/' + encodeURIComponent(series.externalId) + '/' + this.toSlug(series.name);
+  }
+
+  getCurrentSeriesHref(group: SeriesDiscoveryGroup): string {
+    return '/series/current/' + this.toSlug(group.seriesName);
+  }
+
+  getSeriesLiveMatches(): MatchCardViewModel[] {
+    return this.getProfileMatchesByStatus(MatchStatus.LIVE);
+  }
+
+  getSeriesUpcomingMatches(): MatchCardViewModel[] {
+    return this.getProfileMatchesByStatus(MatchStatus.UPCOMING);
+  }
+
+  getSeriesRecentMatches(): MatchCardViewModel[] {
+    return this.getProfileMatchesByStatus(MatchStatus.COMPLETED);
+  }
+
+  private getProfileMatchesByStatus(status: MatchStatus): MatchCardViewModel[] {
+    return this.profileMatches.filter(match => match.status === status).slice(0, 8);
+  }
+
+  getTeamHref(row: any): string | null {
+    const name = (row && (row.teamName || row.Team || row.teamCode)) || '';
+    if (!name) { return null; }
+    const normalizedName = this.normaliseForMatch(name);
+    const team = this.teamDirectory.find(item => {
+      return this.normaliseForMatch(item.name) === normalizedName ||
+        this.normaliseForMatch(item.shortName || '') === normalizedName ||
+        this.normaliseForMatch(item.teamCode || '') === normalizedName;
+    });
+    return team ? '/teams/' + encodeURIComponent(team.externalId) + '/' + this.toSlug(team.name) : null;
+  }
+
+  toSlug(value: string): string {
+    return (value || 'series').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'series';
+  }
+
   private updateStructuredData(): void {
     this.structuredDataService.setPageSchemas([
       this.structuredDataService.page({
@@ -372,12 +487,11 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
         { name: 'Series', url: 'https://www.crickzen.com/series' }
       ]),
       this.structuredDataService.itemList({
-        name: 'Related cricket discovery links',
+        name: 'Upcoming series matches',
         url: 'https://www.crickzen.com/series',
-        description: 'Visible navigation from the series page into the main live-score, schedule, and canonical match-discovery surfaces.',
+        description: 'Upcoming matches grouped by competition.',
         items: this.buildDiscoveryStructuredItems()
-      }),
-      this.structuredDataService.faqPage(this.seriesFaqs)
+      })
     ]);
   }
 
@@ -386,18 +500,56 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       this.matchSubscription.unsubscribe();
     }
 
-    this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh()
+    const discoveryKey = makeStateKey<any>('series-discovery-catalogue');
+    const hydrated = !isPlatformServer(this.platformId) ? this.transferState.get(discoveryKey, null) : null;
+    if (hydrated) {
+      this.applyDiscoveryMatches(hydrated);
+      this.transferState.remove(discoveryKey);
+      return;
+    }
+
+    let stream = this.matchesService.getLiveMatchesWithAutoRefresh();
+    if (isPlatformServer(this.platformId)) {
+      stream = stream.pipe(take(1));
+    }
+    this.matchSubscription = stream
       .pipe(takeUntil(this.destroy$))
       .subscribe(
         (matches) => {
-          this.upcomingDiscoveryGroups = this.buildSeriesDiscoveryGroups(matches || []);
-          this.updateStructuredData();
+          this.applyDiscoveryMatches(matches || []);
+          if (isPlatformServer(this.platformId)) {
+            this.transferState.set(discoveryKey, matches || []);
+          }
         },
         () => {
           this.upcomingDiscoveryGroups = [];
+          this.currentSeriesGroups = [];
+          this.catalogueMatches = [];
+          this.profileMatches = [];
           this.updateStructuredData();
         }
       );
+  }
+
+  private applyDiscoveryMatches(matches: MatchCardViewModel[]): void {
+    this.catalogueMatches = matches || [];
+    this.upcomingDiscoveryGroups = this.buildSeriesDiscoveryGroups(this.catalogueMatches);
+    this.currentSeriesGroups = this.buildCurrentSeriesGroups(this.catalogueMatches);
+    this.profileMatches = this.isProfileRoute ? this.filterProfileMatches(this.catalogueMatches) : [];
+    this.updateStructuredData();
+  }
+
+  private filterProfileMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    const seriesName = this.normaliseForMatch((this.selectedSeries && this.selectedSeries.series && this.selectedSeries.series.name) || (this.selectedSeriesSummary && this.selectedSeriesSummary.name) || '');
+    if (!seriesName) { return []; }
+    return (matches || []).filter(match => {
+      const candidate = this.normaliseForMatch(this.getCurrentSeriesLabel(match));
+      return candidate === seriesName || candidate.indexOf(seriesName) >= 0 || seriesName.indexOf(candidate) >= 0;
+    });
+  }
+
+  private normaliseForMatch(value: string): string {
+    return (value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   }
 
   private buildSeriesDiscoveryGroups(matches: MatchCardViewModel[]): SeriesDiscoveryGroup[] {
@@ -418,7 +570,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       }
 
       seenHref[href] = true;
-      var seriesName = this.getSeriesDiscoveryLabel(match);
+      var seriesName = this.getCurrentSeriesLabel(match) || this.getSeriesDiscoveryLabel(match);
       var key = seriesName.toLowerCase();
 
       if (!grouped[key]) {
@@ -441,6 +593,51 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       .slice(0, this.maxDiscoverySeriesGroups)
       .map((key) => grouped[key])
       .filter((group) => !!group && group.matches.length > 0);
+  }
+
+  private buildCurrentSeriesGroups(matches: MatchCardViewModel[]): SeriesDiscoveryGroup[] {
+    const grouped: { [key: string]: SeriesDiscoveryGroup } = {};
+    const orderedKeys: string[] = [];
+    const seenMatch: { [key: string]: boolean } = {};
+
+    (matches || []).forEach(match => {
+      const href = this.getMatchHref(match);
+      if (!match || !href || href === '/matches' || seenMatch[href]) { return; }
+      seenMatch[href] = true;
+      const seriesName = this.getCurrentSeriesLabel(match);
+      const key = this.normaliseForMatch(seriesName);
+      if (!key) { return; }
+      if (!grouped[key]) {
+        grouped[key] = { key: key, seriesName: seriesName, matches: [], totalMatches: 0 };
+        orderedKeys.push(key);
+      }
+      grouped[key].totalMatches += 1;
+      if (grouped[key].matches.length < this.maxDiscoveryMatchesPerSeries) {
+        grouped[key].matches.push(match);
+      }
+    });
+
+    return orderedKeys.slice(0, 6).map(key => grouped[key]);
+  }
+
+  private getCurrentSeriesLabel(match: MatchCardViewModel): string {
+    let value = ((match && match.seriesName) || '').replace(/\s+/g, ' ').trim();
+    if (!value) { return ''; }
+    const matchUrl = ((match && match.matchUrl) || '').toLowerCase();
+    const teams = (((match && match.team1 && (match.team1.name || match.team1.shortName)) || '') + ' ' + ((match && match.team2 && (match.team2.name || match.team2.shortName)) || '')).toLowerCase();
+    const haystack = (matchUrl + ' ' + teams + ' ' + value.toLowerCase());
+    if (/pondicherry-premier-league-2026/.test(matchUrl) || /pondicherry|villianur mohit|ruby white town|\bvmk\b.*\brwt\b|\brwt\b.*\bvmk\b/.test(haystack)) { return 'PPL 2026'; }
+    if (/lanka-premier-league-2026|lpl-2026/.test(matchUrl) || /galle gallants|jaffna kings|\bgg\b.*\b(?:jk|jks)\b|\b(?:jk|jks)\b.*\bgg\b/.test(haystack)) { return 'LPL 2026'; }
+    if (value.indexOf(',') !== -1) { value = value.split(',').pop()!.trim(); }
+    value = value.replace(/^\d{1,3}(st|nd|rd|th)\s+(TEST|ODI|T20I?|T10|FOUR[- ]DAY)\s+/i, '');
+    value = value.replace(/^\d{1,3}(st|nd|rd|th)\s+(SEMI[- ]FINAL|FINAL|MATCH)\s+/i, '');
+    const team2 = match && match.team2 && (match.team2.name || match.team2.shortName);
+    if (team2) { value = value.replace(new RegExp('\\s+' + this.escapeRegExp(team2) + '$', 'i'), ''); }
+    return value.replace(/\s+TOUR\s+OF\s+/i, ' vs ').replace(/\s+/g, ' ').trim();
+  }
+
+  private escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private getSeriesDiscoveryLabel(match: MatchCardViewModel): string {

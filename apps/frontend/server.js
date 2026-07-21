@@ -33,8 +33,12 @@ const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/cricket-schedule\/today\/?$/,
   /^\/cricket-schedule\/ipl-2026\/?$/,
   /^\/players\/?$/,
+  /^\/player\/[^/]+\/[^/]+\/?$/,
   /^\/teams\/?$/,
+  /^\/teams\/[^/]+\/[^/]+\/?$/,
   /^\/series\/?$/,
+  /^\/series\/[^/]+\/[^/]+\/?$/,
+  /^\/series\/[^/]+\/[^/]+\/table\/?$/,
   /^\/privacy-policy\/?$/,
   /^\/terms-of-service\/?$/,
   /^\/about\/?$/,
@@ -133,6 +137,23 @@ function applyRouteCacheHeaders(req, res) {
   }
 
   res.setHeader('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+}
+
+function moveTransferStateBeforeBundles(html) {
+  const statePattern = /<script id="crickzen-app-state"[^>]*>[\s\S]*?<\/script>/i;
+  const stateMatch = html.match(statePattern);
+  if (!stateMatch) {
+    return html;
+  }
+
+  const withoutState = html.replace(stateMatch[0], '');
+  const bundlePattern = /<script[^>]+src="runtime\.[^"]+"[^>]*><\/script>/i;
+  const bundleMatch = bundlePattern.exec(withoutState);
+  if (!bundleMatch || bundleMatch.index === undefined) {
+    return html;
+  }
+
+  return withoutState.slice(0, bundleMatch.index) + stateMatch[0] + withoutState.slice(bundleMatch.index);
 }
 
 function isKnownFrontendRoute(pathname) {
@@ -250,7 +271,7 @@ app.get('*', (req, res) => {
       res.status(routeStatus).sendFile(INDEX_HTML);
       return;
     }
-    res.status(routeStatus).send(html);
+    res.status(routeStatus).send(moveTransferStateBeforeBundles(html));
   });
 });
 

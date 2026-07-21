@@ -91,4 +91,22 @@ describe('LiveScoreHubComponent discovery priorities', () => {
     expect(component.resultSupportLinks.length).toBe(2);
     expect(component.resultSupportLinks.every(function(link) { return link.href.indexOf('/cricket-match-report/') === 0; })).toBe(true);
   });
+
+  it('does not expose live or upcoming matches from the archive hub', () => {
+    var component = createComponentShape();
+    var live = createMatch('live-a-vs-live-b-123C', MatchStatus.LIVE, -1);
+    var upcoming = createMatch('upcoming-a-vs-upcoming-b-123D', MatchStatus.UPCOMING, 24);
+    var completed = createMatch('completed-a-vs-completed-b-123E', MatchStatus.COMPLETED, -24);
+
+    component.config = { type: 'archive' } as any;
+    component.allMatches = [live, upcoming, completed];
+    component.sitemapLinks = [{ href: '/cric-live/live-a-vs-live-b-123C', label: 'Live match' }] as any;
+
+    (component as any).applyMatches();
+
+    expect(component.liveSectionMatches.length).toBe(0);
+    expect(component.upcomingSectionMatches.length).toBe(0);
+    expect(component.recentSectionMatches.length).toBe(1);
+    expect(component.fallbackSitemapMatches.length).toBe(0);
+  });
 });

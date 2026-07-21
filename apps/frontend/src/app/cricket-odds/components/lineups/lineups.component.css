@@ -232,6 +232,8 @@
 }
 
 .team-details-button {
+  display: inline-flex;
+  align-items: center;
   border: 1px solid rgba(37, 99, 235, 0.2);
   background: rgba(37, 99, 235, 0.08);
   color: #1d4ed8;
@@ -240,6 +242,7 @@
   font-weight: 700;
   padding: 8px 12px;
   cursor: pointer;
+  text-decoration: none;
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
@@ -310,6 +313,15 @@
   }
 }
 
+.player-item__link {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
 /* Match-tab compact treatment: keep team and player identity first. */
 .lineups-container { padding: 12px; min-height: 0; background: #f8fafc; }
 .role-legend { padding: 8px 10px; margin-bottom: 10px; border-radius: 10px; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: none; }
@@ -322,7 +334,7 @@
 .team-card::before { height: 3px; }
 .team-card__header { margin-bottom: 8px; }
 .team-name { font-size: 1.05rem; letter-spacing: 0; }
-.player-item { gap: 8px; padding: 7px 6px; margin-bottom: 2px; }
+.player-item { gap: 8px; min-height: 44px; padding: 7px 6px; margin-bottom: 2px; }
 .player-item::before { width: 22px; height: 22px; font-size: 0.7rem; }
 .player-role-icon { font-size: 1.1rem; width: 1.1rem; height: 1.1rem; }
 .player-main { gap: 3px; }
@@ -330,4 +342,49 @@
 .player-badges { gap: 3px; }
 .player-badge { padding: 1px 5px; font-size: 0.62rem; }
 .player-role-label { padding: 3px 7px; font-size: 0.65rem; }
-.team-details-button { padding: 5px 9px; font-size: 0.68rem; }
+.team-details-button { min-height: 40px; padding: 5px 9px; font-size: 0.68rem; }
+
+.player-item:focus-visible,
+.team-details-button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.player-item:active,
+.team-details-button:active { transform: scale(0.98); }
+
+@media (max-width: 767px) {
+  .lineups-container { padding: 8px; }
+  .role-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    margin-bottom: 8px;
+  }
+  .legend-title {
+    flex: 0 0 auto;
+    margin-right: 2px;
+    font-size: 0.66rem;
+  }
+  .legend-items {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+  }
+  .legend-item {
+    flex: 0 1 auto;
+    gap: 3px;
+    padding: 2px 5px;
+    font-size: 0.64rem;
+    line-height: 1.2;
+  }
+  .legend-item mat-icon {
+    font-size: 0.82rem;
+    width: 0.82rem;
+    height: 0.82rem;
+  }
+}

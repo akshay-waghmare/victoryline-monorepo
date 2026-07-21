@@ -1,7 +1,7 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { RxStompService } from '@stomp/ng2-stompjs';
-import { forkJoin, merge, Subject } from 'rxjs';
+import { merge, Subject } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
@@ -66,6 +66,7 @@ interface PlayerStatsSelectionEvent {
   externalId?: string;
   teamName?: string;
   teamExternalId?: string;
+  role?: string;
 }
 
 interface TeamStatsSelectionEvent {
@@ -172,6 +173,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private resolvedSeriesContext: PlayerStatsSeriesView | null = null;
   private lastResolvedRouteSlug: string | null = null;
   private lastFetchedRouteKey: string | null = null;
+  private playerStatsRetryAttempt: number = 0;
+  private playerStatsRetryTimer: any = null;
   private routeMatchHint: any = null;
   statsExplorerSource: 'lineups' | 'scorecard' | null = null;
   selectedStatsExplorerType: 'player' | 'team' | 'series' | null = null;
@@ -269,6 +272,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Phase 7 (T036): Hide odds by default on mobile viewports
     this.showOdds = this.isBrowser() ? window.innerWidth > 768 : true;
+    this.resetMatchPageScroll();
 
     const routeMatchKey = this.normalizeRouteMatchKey(this.activatedRoute.snapshot.params['path']
       || this.activatedRoute.snapshot.params['url']
@@ -294,6 +298,19 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       switchMap(() => this.activatedRoute.params),
       takeUntil(this.destroy$)
     ).subscribe(() => {
+      this.resetMatchPageScroll();
+      const nextMatchKey = this.normalizeRouteMatchKey(this.activatedRoute.snapshot.params['path']
+        || this.activatedRoute.snapshot.params['url']
+        || '');
+
+      // Supporting routes such as scorecard and lineups belong to the same
+      // match entity. Keep the active socket and rendered match surface in
+      // place instead of treating each tab as a fresh match-page load.
+      if (nextMatchKey && nextMatchKey === this.lastFetchedRouteKey) {
+        this.syncMatchTabSelection(true);
+        return;
+      }
+
       // Unsubscribe from WebSocket subscription when the route changes
       if (this.cricetTopicSubscription) {
         this.cricetTopicSubscription.unsubscribe();
@@ -366,6 +383,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     this.syncMatchTabSelection(true);
 
     if (!isSameRouteMatch) {
+      this.playerStatsRetryAttempt = 0;
+      if (this.playerStatsRetryTimer) {
+        clearTimeout(this.playerStatsRetryTimer);
+        this.playerStatsRetryTimer = null;
+      }
       this.resetStatsExplorerState();
       this.playerStatsMatch = null;
       this.playerStatsError = false;
@@ -1023,21 +1045,6 @@ onTabChange(event: MatTabChangeEvent) {
   this.hasUserSelectedTab = true;
   this.ensureDataForTab(event.index);
 
-  // The scorecard lives below the score-first hero. When a user explicitly
-  // opens that tab, bring its first content into view instead of leaving the
-  // viewport parked above the tab body with no scoreboard visible.
-  if (event.index === this.tabIndexByKey.scorecard && typeof window !== 'undefined') {
-    window.setTimeout(() => {
-      var panel = document.getElementById('scorecard-panel');
-      if (!panel) {
-        return;
-      }
-
-      var top = panel.getBoundingClientRect().top + window.scrollY - 76;
-      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
-    }, 0);
-  }
-
   // Give each primary match surface its own shareable, crawlable URL. The
   // match SEO policy still canonicalizes these supporting routes back to the
   // stable /cric-live/{slug} URL, so this improves intent capture without
@@ -1136,7 +1143,19 @@ fetchMatchInfo(matchUrl:string) {
       this.matchInfo = data;
       this.isFallbackMatchInfo = false;
       this.isLoadingMatchInfo = false;
+      var resolvedStatus = data && (data.match_status || data.status);
+      if (resolvedStatus) {
+        this.currentMatch = Object.assign({}, this.currentMatch || {}, {
+          status: resolvedStatus,
+          url: data.url || (this.currentMatch && (this.currentMatch.url || this.currentMatch.matchUrl)) || matchUrl
+        });
+        this.showLiveHero = this.isLiveLikeStatus(resolvedStatus);
+        this.heroFallbackView = this.buildHeroFallbackView(this.currentMatch);
+      }
       this.syncMatchTabSelection();
+      // Supporting routes are lazy: only load their data after the match
+      // metadata has established the lifecycle (especially upcoming vs live).
+      this.ensureDataForTab(this.selectedTabIndex);
       console.log('Match Info:', this.matchInfo);
 
       // Store in TransferState on the server for client hydration
@@ -1172,88 +1191,23 @@ private resolveRouteMatch(matchSlug: string): void {
     return;
   }
 
-  var directMatchUrl = this.matchUrl && this.matchUrl.indexOf('/scoreboard/') !== -1 ? this.matchUrl : null;
-  if (directMatchUrl && directMatchUrl.indexOf('/scoreboard/') !== -1) {
-    var directMatch = {
-      url: directMatchUrl,
-      externalMatchKey: this.matchId || matchSlug,
-      seriesName: this.currentMatch && this.currentMatch.seriesName ? this.currentMatch.seriesName : null,
-      status: this.currentMatch && this.currentMatch.status ? this.currentMatch.status : null,
-      team1: this.currentMatch && this.currentMatch.team1 ? this.currentMatch.team1 : null,
-      team2: this.currentMatch && this.currentMatch.team2 ? this.currentMatch.team2 : null
-    };
+  // The route slug is already a complete match identity. The old resolver
+  // refetched live + upcoming + completed catalogs just to find that same
+  // match, which caused three disruptive requests on every match surface.
+  // Navigation state may provide richer card metadata; direct URLs use this
+  // lightweight identity until match-info responds.
+  var routeMatch = this.currentMatch && this.routeSlugMatches(matchSlug, this.currentMatch)
+    ? this.currentMatch
+    : {
+        url: this.matchUrl || matchSlug,
+        externalMatchKey: this.matchId || matchSlug,
+        status: null
+      };
 
-    this.currentMatch = directMatch;
-    this.updateSeriesFallbackContext(directMatch);
-    this.updatePageTitle();
-    this.fetchPlayerStatsForMatch(directMatch, matchSlug);
-    this.fetchMatchInfo(matchSlug);
-    this.fetchScorecardInfo(matchSlug);
-    return;
-  }
-
-  forkJoin([
-    this.eventListService.getLiveMatches(),
-    this.eventListService.getUpcomingMatches(),
-    this.eventListService.getCompletedMatches()
-  ]).subscribe(
-    (payloads: any[]) => {
-      var liveMatches = this.extractMatchCollection(payloads[0]);
-      var upcomingMatches = this.extractMatchCollection(payloads[1]);
-      var completedMatches = this.extractMatchCollection(payloads[2]);
-      var resolvedMatch = liveMatches
-        .concat(upcomingMatches)
-        .concat(completedMatches)
-        .find(match => this.routeSlugMatches(matchSlug, match));
-
-      if (!resolvedMatch) {
-        this.fetchPlayerStatsForMatch(null, matchSlug);
-        return;
-      }
-
-      this.currentMatch = resolvedMatch;
-      this.showLiveHero = this.isLiveLikeStatus(resolvedMatch.status);
-      this.heroFallbackView = this.buildHeroFallbackView(resolvedMatch);
-      this.updateSeriesFallbackContext(resolvedMatch);
-
-      var resolvedUrl = resolvedMatch.url || matchSlug;
-      if (resolvedUrl && resolvedUrl !== this.matchUrl) {
-        this.matchUrl = resolvedUrl;
-      }
-
-      this.updatePageTitle();
-      this.fetchPlayerStatsForMatch(resolvedMatch, matchSlug);
-
-      if (!this.showLiveHero) {
-        this.populateFallbackMatchInfo(resolvedMatch);
-      }
-
-      if (matchSlug) {
-        this.fetchMatchInfo(matchSlug);
-        if (this.isLiveLikeStatus(resolvedMatch.status) || this.isCompletedStatus(resolvedMatch.status)) {
-          this.fetchScorecardInfo(matchSlug);
-        } else {
-          this.isLoadingScorecard = false;
-          this.scorecardData = null;
-        }
-      }
-    },
-    error => {
-      console.error('Error resolving route match details:', error);
-    }
-  );
-}
-
-  private extractMatchCollection(payload: any): any[] {
-    if (Array.isArray(payload)) {
-      return payload;
-    }
-
-  if (payload && Array.isArray(payload.data)) {
-    return payload.data;
-  }
-
-  return [];
+  this.currentMatch = routeMatch;
+  this.updateSeriesFallbackContext(routeMatch);
+  this.updatePageTitle();
+  this.fetchPlayerStatsForMatch(routeMatch, matchSlug);
 }
 
 private getNavigationMatchHint(routeMatchKey: string): any {
@@ -1328,6 +1282,11 @@ private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): voi
     return;
   }
 
+  if (this.playerStatsRetryTimer) {
+    clearTimeout(this.playerStatsRetryTimer);
+    this.playerStatsRetryTimer = null;
+  }
+
   this.isLoadingPlayerStats = !hasFreshCachedSnapshot && !this.hasPlayerStatsData();
   this.playerStatsError = false;
 
@@ -1339,10 +1298,12 @@ private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): voi
         if (data && data.teams && data.teams.length > 0) {
           this.playerStatsMatch = this.mergeSeriesFallbackIntoMatch(data);
           this.playerStatsError = false;
+          this.playerStatsRetryAttempt = 0;
           return;
         }
         if (!this.playerStatsMatch) {
           this.playerStatsError = true;
+          this.schedulePlayerStatsRetry(match, fallbackExternalKey);
         }
       },
       error => {
@@ -1351,6 +1312,17 @@ private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): voi
         this.playerStatsError = true;
       }
     );
+}
+
+private schedulePlayerStatsRetry(match?: any, fallbackExternalKey?: string): void {
+  if (this.playerStatsRetryAttempt >= 3) {
+    return;
+  }
+  this.playerStatsRetryAttempt += 1;
+  this.playerStatsRetryTimer = setTimeout(() => {
+    this.playerStatsRetryTimer = null;
+    this.fetchPlayerStatsForMatch(match || this.currentMatch, fallbackExternalKey || this.matchId || undefined);
+  }, 3000 * this.playerStatsRetryAttempt);
 }
 
 private stripLegacyMatchUrlParam(matchSlug: string): void {
@@ -1532,7 +1504,13 @@ resetStatsExplorerState(): void {
 }
 
 shouldShowStatsExplorer(): boolean {
-  return !!(this.matchId && (this.hasPlayerStatsData() || this.isLoadingPlayerStats || this.playerStatsError || this.hasSelectedStatsExplorer()));
+  return !!(this.matchId && (
+    this.hasPlayerStatsData() ||
+    this.hasSeriesStatsContext() ||
+    this.isLoadingPlayerStats ||
+    this.playerStatsError ||
+    this.hasSelectedStatsExplorer()
+  ));
 }
 
 hasSelectedStatsExplorer(): boolean {
@@ -1561,7 +1539,10 @@ openPlayerStatsFromLineups(selection: PlayerStatsSelectionEvent): void {
   }
 
   if (!player || !player.externalId) {
-    this.showToast('Detailed player stats are not available yet for ' + selection.playerName + '.', 'Dismiss');
+    // Upcoming lineups commonly arrive before the match-level player snapshot.
+    // Resolve the selected player from the player catalog only when requested,
+    // instead of making the click depend on background match ingestion.
+    this.loadPlayerStatsDetailFromGlobalSearch(selection.playerName, 'lineups', selection.role);
     return;
   }
 
@@ -1690,6 +1671,7 @@ private updateSeriesFallbackContext(match: any): void {
 
   this.seriesPageUrlFallback = this.buildSeriesPageUrl(seriesName, seriesCode);
   this.resolvedSeriesContext = seriesName ? {
+    externalId: seriesCode || undefined,
     name: seriesName,
     shortName: seriesName
   } : null;
@@ -2058,9 +2040,12 @@ private loadPlayerStatsDetail(
   source: 'lineups' | 'scorecard'
 ): void {
   if (!player || !player.externalId) {
-    this.showToast('Detailed player stats are not available yet.', 'Dismiss');
+    this.notifyPlayerStatsUnavailable(player && player.name, player && player.role, player && player.wicketKeeper);
     return;
   }
+
+  this.router.navigate(['/player', player.externalId, this.slugifyPlayerName(player.name)]);
+  return;
 
   this.statsExplorerSource = source;
   this.selectedStatsExplorerType = 'player';
@@ -2091,14 +2076,18 @@ private loadPlayerStatsDetail(
     );
 }
 
-private loadPlayerStatsDetailFromGlobalSearch(playerName: string): void {
+private loadPlayerStatsDetailFromGlobalSearch(
+  playerName: string,
+  source: 'lineups' | 'scorecard' = 'scorecard',
+  role?: string
+): void {
   var normalizedName = this.normalizeComparableText(playerName);
   if (!normalizedName) {
-    this.showToast('Detailed player stats are not available for this player.', 'Dismiss');
+    this.notifyPlayerStatsUnavailable(undefined, role);
     return;
   }
 
-  this.statsExplorerSource = 'scorecard';
+  this.statsExplorerSource = source;
   this.selectedStatsExplorerType = 'player';
   this.selectedStatsExplorerPlayer = {
     name: playerName
@@ -2118,17 +2107,45 @@ private loadPlayerStatsDetailFromGlobalSearch(playerName: string): void {
         if (!player || !player.externalId) {
           this.isLoadingStatsExplorer = false;
           this.statsExplorerErrorMessage = 'Detailed player stats are not available for ' + playerName + '.';
+          this.notifyPlayerStatsUnavailable(playerName, role);
           return;
         }
 
-        this.loadPlayerStatsDetail(player, null, 'scorecard');
+        this.loadPlayerStatsDetail(player, null, source);
       },
       error => {
         console.error('Error searching player details:', error);
         this.isLoadingStatsExplorer = false;
         this.statsExplorerErrorMessage = 'Detailed player stats could not be loaded right now.';
+        this.showToast('Detailed player stats could not be loaded for ' + playerName + ' right now.', 'Dismiss', 5000);
       }
     );
+}
+
+private notifyPlayerStatsUnavailable(playerName?: string, role?: string, wicketKeeper?: boolean): void {
+  var name = String(playerName || 'this player').trim();
+  var roleLabel = this.getPlayerRoleShortLabel(role, wicketKeeper);
+  var suffix = roleLabel && name.toUpperCase().indexOf('(' + roleLabel + ')') === -1
+    ? ' (' + roleLabel + ')'
+    : '';
+  this.showToast('Detailed player stats are not available for ' + name + suffix + ' yet.', 'Dismiss', 5000);
+}
+
+private getPlayerRoleShortLabel(role?: string, wicketKeeper?: boolean): string | undefined {
+  var normalized = String(role || '').toUpperCase();
+  if (wicketKeeper || normalized.indexOf('KEEP') >= 0 || normalized === 'WK') {
+    return 'WK';
+  }
+  if (normalized.indexOf('BAT') >= 0) {
+    return 'BAT';
+  }
+  if (normalized.indexOf('BOWL') >= 0) {
+    return 'BOWL';
+  }
+  if (normalized.indexOf('ALL') >= 0 || normalized.indexOf('ROUND') >= 0) {
+    return 'AR';
+  }
+  return undefined;
 }
 
 private findBestGlobalPlayerMatch(players: PlayerStatsSquadPlayerView[], playerName: string): PlayerStatsSquadPlayerView | null {
@@ -2463,6 +2480,12 @@ private syncMatchTabSelection(force: boolean = false): void {
 
   var key = this.resolveRequestedTabKey() || this.resolveLifecycleDefaultTab();
   this.selectedTabIndex = this.tabIndexByKey[key];
+}
+
+private slugifyPlayerName(value: string | null | undefined): string {
+  return String(value || 'player').toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'player';
 }
 
 private resolveRequestedTabKey(): MatchPageTabKey | null {
@@ -3064,7 +3087,19 @@ getBreadcrumbSeriesLabel(): string {
 }
 
 getSeriesSurfaceHref(): string {
-  return '/series';
+  var series = this.getPlayerStatsSeries();
+  var externalId = series && series.externalId
+    ? String(series.externalId).trim()
+    : this.extractSeriesCodeFromUrl(this.matchUrl || this.currentUrl || '');
+  var seriesName = series && (series.name || series.shortName)
+    ? (series.name || series.shortName || '')
+    : this.getBreadcrumbSeriesLabel();
+
+  if (!externalId || !seriesName || seriesName === 'Series') {
+    return '/series';
+  }
+
+  return '/series/' + encodeURIComponent(externalId) + '/' + this.slugifySeriesName(seriesName);
 }
 
 getSeriesSurfaceLinkLabel(): string {
@@ -3208,9 +3243,9 @@ getPrimaryLifecycleHubLabel(): string {
   return 'Cricket live score today';
 }
 
-getMatchIntelligenceHref(): string | null {
-  var slug = this.getCanonicalMatchSlug();
-  return slug ? '/match-intelligence/' + slug : null;
+  getMatchIntelligenceHref(): string | null {
+    var slug = this.getCanonicalMatchSlug();
+    return slug && this.isMatchIntelligenceEligible() ? '/match-intelligence/' + slug : null;
 }
 
 getMatchIntelligenceCtaLabel(): string {
@@ -3239,8 +3274,8 @@ getMatchIntelligenceCtaSummary(): string {
   return 'Use the free intelligence surface for win probability, what changed, and what matters next while the canonical match page stays score-first.';
 }
 
-isMatchIntelligenceEligible(): boolean {
-  return !!this.getCanonicalMatchSlug();
+  isMatchIntelligenceEligible(): boolean {
+    return !!this.getCanonicalMatchSlug();
 }
 
 trackMatchIntelligenceImpression(): void {
@@ -4061,14 +4096,19 @@ private titleCaseSlug(value: string): string {
     }
 
     var currentSurface = this.getMatchRouteSurfaceKey();
-    return [
+    var links: Array<{ label: string; href: string; active: boolean }> = [
       { label: 'Live Match', href: '/cric-live/' + slug, active: currentSurface === 'base' || currentSurface === 'live' },
       { label: 'Commentary', href: '/cric-live/' + slug + '/commentary', active: currentSurface === 'commentary' },
       { label: 'Scorecard', href: '/cric-live/' + slug + '/scorecard', active: currentSurface === 'scorecard' },
       { label: 'Match Details', href: '/cric-live/' + slug + '/match-details', active: currentSurface === 'details' },
-      { label: 'Lineups', href: '/cric-live/' + slug + '/lineups', active: currentSurface === 'lineups' },
-      { label: 'Match Intelligence', href: '/match-intelligence/' + slug, active: currentSurface === 'intelligence' }
+      { label: 'Lineups', href: '/cric-live/' + slug + '/lineups', active: currentSurface === 'lineups' }
     ];
+
+    if (this.isMatchIntelligenceEligible()) {
+      links.push({ label: 'Match Intelligence', href: '/match-intelligence/' + slug, active: currentSurface === 'intelligence' });
+    }
+
+    return links;
   }
 
   getMatchEntityNavigationHref(surface: 'commentary' | 'scorecard' | 'lineups' | 'details'): string {
@@ -4113,6 +4153,19 @@ private titleCaseSlug(value: string): string {
 
   private isBrowser(): boolean {
     return typeof window !== 'undefined' && !(window as any).__SSR__;
+  }
+
+  private resetMatchPageScroll(): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    const reset = () => window.scrollTo(0, 0);
+    reset();
+    // Router scroll restoration can run after component creation on mobile.
+    // Re-assert the match page's top position once the new surface is mounted.
+    setTimeout(reset, 0);
+    setTimeout(reset, 100);
   }
 
   private updateStructuredData(): void {

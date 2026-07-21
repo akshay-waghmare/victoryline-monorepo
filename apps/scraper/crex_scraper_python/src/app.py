@@ -5,6 +5,7 @@ Exposes API endpoints and manages scraper lifecycle.
 
 import asyncio
 import logging
+import re
 import threading
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from typing import Optional, Dict, Any
@@ -23,6 +24,7 @@ from .crex_url_utils import (
 )
 from .cricket_data_service import CricketDataService
 from .health import HealthState
+from .live_match_selection import select_live_matches
 from .loggers.adapters import configure_logging
 
 # Configure logging immediately
@@ -36,6 +38,7 @@ scraper_service = CrexScraperService()
 
 # Global event loop for the scraper service
 scraper_loop: Optional[asyncio.AbstractEventLoop] = None
+
 
 async def _hydrate_match_details(url: str) -> Dict[str, Any]:
     adapter = scraper_service.registry.get_adapter("crex")
@@ -170,9 +173,24 @@ def health_check():
 def prediction_candidates():
     """Expose the scraper's selected live slate to the model scheduler."""
     urls = list(getattr(scraper_service, "_last_managed_live_urls", []) or [])
+    source = "scraper:selected"
+
+    # The scraper lifecycle and Flask endpoint may run in different workers,
+    # so the in-memory slate is not guaranteed to be visible here. Rehydrate
+    # it from the backend catalog rather than returning a false empty slate.
+    if not urls:
+        try:
+            token = scraper_service._auth_token or CricketDataService.get_bearer_token()
+            matches = CricketDataService.get_live_matches(token)
+            selected_matches = select_live_matches(matches, settings.max_live_matches)
+            urls = scraper_service._extract_live_urls(selected_matches)
+            source = "backend:fallback"
+        except Exception as exc:
+            logger.warning("prediction_candidates.fallback_error", extra={"error": str(exc)})
+
     return jsonify({
         "status": "success",
-        "matches": [{"url": url, "is_live": True, "source": "scraper:selected"} for url in urls],
+        "matches": [{"url": url, "is_live": True, "source": source} for url in urls],
         "count": len(urls),
     })
 

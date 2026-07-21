@@ -300,7 +300,13 @@ class PlayerStatsCrawlerService:
                             scheduled_start_time=candidate.scheduled_start_time,
                             metadata=dict(candidate.metadata),
                         )
-                        enqueued = await self.scheduler.enqueue(task)
+                        # A first-time standings candidate must not be dropped
+                        # by the general reference token bucket. It is the
+                        # data source for the series page's primary table.
+                        enqueued = await self.scheduler.enqueue(
+                            task,
+                            bypass_rate_limit=task.priority == 0,
+                        )
                         if enqueued:
                             await self._mark_candidate_enqueued(candidate.match_id)
                 await asyncio.sleep(min(30.0, max(5.0, self.settings.player_stats_polling_interval_seconds / 4)))
@@ -576,6 +582,7 @@ class PlayerStatsCrawlerService:
         venue_code = iv4.get("v", "")
         venue_name = local_storage.get(f"v_{venue_code}_name", "")
         series_url = self._build_crex_entity_url("series", series_name, series_code) if series_name and series_code else None
+        series_slug = re.sub(r"[^a-z0-9]+", "-", series_name.lower()).strip("-")
 
         return {
             "match_name": None,
@@ -585,7 +592,7 @@ class PlayerStatsCrawlerService:
             "toss_info": None,
             "series_name": series_name or None,
             "series_url": series_url,
-            "series_external_id": self._build_external_id("series", series_name) if series_name else None,
+            "series_external_id": f"series:{series_slug}-{series_code}" if series_slug and series_code else None,
             "team_links": team_links,
             "players": players,
         }
@@ -843,9 +850,11 @@ class PlayerStatsCrawlerService:
         if task_type == "SERIES_STANDINGS":
             source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
             if source_type == "LIVE":
-                return 1  # Live tournament standings are critical UX
+                return 0  # Standings are the primary series surface
             if source_type == "UPCOMING":
-                return 2
+                return 0
+            if source_type == "COMPLETED" and not candidate.last_success_at:
+                return 0
             return 5
         if task_type == "TEAM_RANKINGS":
             source_type = str(candidate.metadata.get("sourceMatchTaskType") or "").upper()
@@ -991,11 +1000,12 @@ class PlayerStatsCrawlerService:
                     "sourceMatchUrl": task.match_url,
                 },
             )
-            if task.task_type.upper() == "LIVE":
+            if task.task_type.upper() in {"LIVE", "UPCOMING"}:
                 await self._enqueue_candidate_now(series_candidate_id, bypass_rate_limit=True)
 
+            standings_candidate_id = f"reference:{series_payload['externalId']}:standings"
             await self._upsert_reference_candidate(
-                candidate_id=f"reference:{series_payload['externalId']}:standings",
+                candidate_id=standings_candidate_id,
                 match_url=self._build_series_standings_url(series_url),
                 task_type="SERIES_STANDINGS",
                 metadata={
@@ -1006,6 +1016,11 @@ class PlayerStatsCrawlerService:
                     "sourceMatchUrl": task.match_url,
                 },
             )
+            # The table is the primary series surface. Schedule its first
+            # scrape immediately; previously it waited behind player/team refs
+            # and was frequently rate-limited out of the queue.
+            if task.task_type.upper() in {"LIVE", "UPCOMING", "COMPLETED"}:
+                await self._enqueue_candidate_now(standings_candidate_id, bypass_rate_limit=True)
 
         rankings_url = self._build_team_rankings_url(task.metadata, seed_payload)
         if rankings_url and teams:
@@ -1478,10 +1493,10 @@ class PlayerStatsCrawlerService:
         source = seed_payload or {}
         existing_series = metadata.get("series") if isinstance(metadata.get("series"), dict) else {}
         series_name = str(
-            metadata.get("seriesName")
+            source.get("series_name")
+            or metadata.get("seriesName")
             or metadata.get("competitionName")
             or existing_series.get("name")
-            or source.get("series_name")
             or ""
         ).strip()
         if not series_name:

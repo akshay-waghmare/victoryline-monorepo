@@ -5439,6 +5439,69 @@ p {
   }
 }
 
+/* Mobile interaction pass: tabs and expandable match sections remain easy to
+   use while keeping the page itself as the only vertical scroll surface. */
+@media (max-width: 767px) {
+  .match-page-shell {
+    margin-top: 0;
+  }
+
+  .match-page-card {
+    border-radius: 12px !important;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-header {
+    overflow: visible;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label-container {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pinch-zoom;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-labels {
+    min-width: max-content;
+    padding: 2px;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label {
+    min-height: 44px;
+    padding: 0 14px;
+    scroll-snap-align: start;
+  }
+
+  .cricket-odds__intent-drawer-summary,
+  .cricket-odds__seo-drawer-summary,
+  .cricket-odds__support-drawer-summary,
+  .live-updates-section__header,
+  .scorecard-context summary {
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .commentary-list {
+    overflow: visible;
+    max-height: none;
+    touch-action: pan-y pinch-zoom;
+  }
+}
+
+.cricket-odds__intent-links a:active,
+.cricket-odds__seo-links a:active,
+.cricket-odds__section-support a:active,
+.match-entity-navigation a:active,
+:host ::ng-deep .match-page-tabs .mat-tab-label:active {
+  transform: scale(0.98);
+}
+
 .cricket-odds__support-drawer {
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.22);

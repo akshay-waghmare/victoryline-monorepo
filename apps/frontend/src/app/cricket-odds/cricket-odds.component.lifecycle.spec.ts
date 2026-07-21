@@ -97,6 +97,45 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(component.selectedTabIndex).toBe(2);
   });
 
+  it('does not refetch the three match catalogs when resolving a route slug', () => {
+    var component = createComponent();
+    var catalogs = {
+      getLiveMatches: jasmine.createSpy('getLiveMatches'),
+      getUpcomingMatches: jasmine.createSpy('getUpcomingMatches'),
+      getCompletedMatches: jasmine.createSpy('getCompletedMatches')
+    };
+    (component as any).eventListService = catalogs;
+    spyOn<any>(component, 'updateSeriesFallbackContext');
+    spyOn<any>(component, 'updatePageTitle');
+    spyOn<any>(component, 'fetchPlayerStatsForMatch');
+
+    (component as any).resolveRouteMatch('team-a-vs-team-b-123A');
+
+    expect(catalogs.getLiveMatches).not.toHaveBeenCalled();
+    expect(catalogs.getUpcomingMatches).not.toHaveBeenCalled();
+    expect(catalogs.getCompletedMatches).not.toHaveBeenCalled();
+    expect((component as any).fetchPlayerStatsForMatch).toHaveBeenCalled();
+  });
+
+  it('loads scorecard only when the scorecard tab is active after metadata arrives', () => {
+    var component = createComponent();
+    component.selectedTabIndex = (component as any).tabIndexByKey.scorecard;
+    spyOn<any>(component, 'ensureDataForTab');
+    spyOn<any>(component, 'updatePageTitle');
+    (component as any).cricketService.getMatchInfo = jasmine.createSpy('getMatchInfo').and.returnValue({
+      subscribe: function(next: Function) {
+        next({ match_status: 'LIVE' });
+        return { unsubscribe: function() {} };
+      }
+    });
+
+    component.fetchMatchInfo('team-a-vs-team-b-123A');
+
+    expect((component as any).ensureDataForTab).toHaveBeenCalledWith(
+      (component as any).tabIndexByKey.scorecard
+    );
+  });
+
   it('does not try to load scorecard data for upcoming matches', () => {
     var component = createComponent();
     component.matchInfo = { match_status: 'UPCOMING' };

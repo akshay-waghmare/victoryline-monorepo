@@ -1,4 +1,5 @@
 import { MatchIntelligenceComponent } from './match-intelligence.component';
+import { isHundredMatch } from './prediction-format-eligibility';
 
 describe('MatchIntelligenceComponent chart and lifecycle language', () => {
   it('maps public swings into bounded chart points', () => {
@@ -150,5 +151,11 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
     expect(title).toContain('Turning point: over 42.3 at 238/6');
     expect(body).toContain('recorded turning point');
     expect(body).toContain('probability moved 58% to 71%');
+  });
+
+  it('recognizes The Hundred as held out from prediction surfaces', () => {
+    expect(isHundredMatch(
+      'https://crex.com/cricket-live-score/mil-vs-srl-1st-match-the-hundred-2026-men-match-updates-ZK5'
+    )).toBe(true);
   });
 });
