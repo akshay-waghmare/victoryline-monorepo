@@ -45,4 +45,11 @@ describe('MatchesService', () => {
     expect(team.name).toBe('Ireland');
     expect(team.shortName).toBe('IRE');
   });
+
+  it('keeps global catalog polling off canonical match routes', () => {
+    expect((service as any).isCatalogSurface('/cric-live/team-a-vs-team-b-123A')).toBe(false);
+    expect((service as any).isCatalogSurface('/cric-live/team-a-vs-team-b-123A/scorecard')).toBe(false);
+    expect((service as any).isCatalogSurface('/matches')).toBe(true);
+    expect((service as any).isCatalogSurface('/live-score/today')).toBe(true);
+  });
 });

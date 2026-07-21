@@ -4,9 +4,10 @@
  * Created: 2025-11-06
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, Optional } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
 import { Observable, of, combineLatest, timer, merge, EMPTY, forkJoin } from 'rxjs';
-import { map, switchMap, catchError, shareReplay, timeout, debounceTime } from 'rxjs/operators';
+import { map, switchMap, catchError, shareReplay, timeout, debounceTime, filter, startWith, distinctUntilChanged } from 'rxjs/operators';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
 import { EventListService } from '../../../component/event-list.service';
@@ -35,7 +36,8 @@ export class MatchesService {
 
   constructor(
     private eventListService: EventListService,
-    private cricketOddsService: CricketService
+    private cricketOddsService: CricketService,
+    @Optional() private router?: Router
   ) {
     // WebSocket-triggered refresh: backend pushes to /topic/live-matches on every scraper update.
     // Debounce to 3s so rapid scraper bursts don't hammer the backend with repeated fetches.
@@ -49,7 +51,23 @@ export class MatchesService {
     if (this.isBrowser()) {
       const refresh$ = merge(timer(0, 30000), wsRefresh$);
 
-      this.sharedMatches$ = refresh$.pipe(
+      // Catalog data belongs to discovery surfaces (home, /matches, hubs, and
+      // series pages). A canonical /cric-live/{slug} page owns one match and
+      // must not keep the global catalog fan-out alive in the background.
+      // Route-gating the shared stream also tears down its timer and socket
+      // trigger when navigation enters a match page.
+      const catalogSurface$ = this.router
+        ? this.router.events.pipe(
+            filter(event => event instanceof NavigationEnd),
+            map(event => (event as NavigationEnd).urlAfterRedirects || ''),
+            startWith(this.router.url || ''),
+            map(url => this.isCatalogSurface(url)),
+            distinctUntilChanged()
+          )
+        : of(true);
+
+      this.sharedMatches$ = catalogSurface$.pipe(
+        switchMap(isCatalogSurface => isCatalogSurface ? refresh$ : EMPTY),
         switchMap(() => this.getAllMatches()),
         shareReplay(1)
       );
@@ -81,6 +99,17 @@ export class MatchesService {
 
   private isBrowser(): boolean {
     return typeof window !== 'undefined' && !(window as any).__SSR__;
+  }
+
+  private isCatalogSurface(url: string): boolean {
+    const path = (url || '').split('?')[0].split('#')[0].replace(/\/$/, '') || '/';
+
+    return path === '/'
+      || path === '/matches'
+      || path.startsWith('/live-score')
+      || path.startsWith('/cricket-schedule')
+      || path === '/series'
+      || path.startsWith('/series/');
   }
 
   /**
