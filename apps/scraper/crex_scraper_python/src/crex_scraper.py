@@ -13,6 +13,7 @@ from typing import Optional, Dict, Any
 
 from .config import get_settings
 from .browser_pool import AsyncBrowserPool
+from .live_match_selection import select_live_matches
 from .scheduler import AsyncScheduler, ScrapeTask
 from .cache import ScrapeCache
 from .metrics import MetricsCollector
@@ -48,6 +49,7 @@ class CrexScraperService:
         self._container_restart_scheduled = False
         self._last_live_match_count = 0
         self._last_managed_live_match_count = 0
+        self._last_managed_live_urls: list[str] = []
         self._restart_condition_consecutive_count: int = 0
         
         # Persistent page pool and fast poll service (Feature 007 - Phase 2)
@@ -357,21 +359,17 @@ class CrexScraperService:
                 self._last_live_match_count = len(catalog_live_urls)
                 self.health.set_active_matches(self._last_live_match_count)
 
-                # Sort priority leagues (IPL) first so they are never dropped by the cap
-                _PRIORITY = ('indian-premier-league',)
-                def _url_of(m):
-                    if isinstance(m, dict):
-                        return (m.get('url') or m.get('matchUrl') or '').lower()
-                    return m.lower() if isinstance(m, str) else ''
-                matches = sorted(matches, key=lambda m: 0 if any(p in _url_of(m) for p in _PRIORITY) else 1)
-
-                # Cap to top N matches to avoid PID exhaustion with many concurrent Chrome tabs
-                if self.settings.max_live_matches > 0:
-                    matches = matches[:self.settings.max_live_matches]
-                    logger.info(f"poll.matches_capped count={len(matches)} limit={self.settings.max_live_matches}")
+                matches = select_live_matches(matches, self.settings.max_live_matches)
+                logger.info(
+                    "poll.matches_selected count=%s limit=%s policy=international-first,series-cap-3",
+                    len(matches),
+                    self.settings.max_live_matches,
+                )
+                self.health.set_active_matches(len(matches))
 
                 live_urls = self._extract_live_urls(matches)
                 self._last_managed_live_match_count = len(live_urls)
+                self._last_managed_live_urls = list(live_urls)
 
                 for url in live_urls:
                     if url:
@@ -434,9 +432,11 @@ class CrexScraperService:
                     self._auth_token
                 )
 
+                matches = select_live_matches(matches, self.settings.max_live_matches)
                 current_match_urls = set(self._extract_live_urls(matches))
-                self._last_live_match_count = len(current_match_urls)
-                self.health.set_active_matches(self._last_live_match_count)
+                self._last_managed_live_match_count = len(current_match_urls)
+                self._last_managed_live_urls = sorted(current_match_urls)
+                self.health.set_active_matches(self._last_managed_live_match_count)
                 await self.persistent_page_pool.ensure_capacity(len(current_match_urls))
 
                 for match in matches:

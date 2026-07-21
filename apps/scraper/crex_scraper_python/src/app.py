@@ -166,6 +166,16 @@ def health_check():
         }
     }), status_code
 
+@app.route("/prediction-candidates")
+def prediction_candidates():
+    """Expose the scraper's selected live slate to the model scheduler."""
+    urls = list(getattr(scraper_service, "_last_managed_live_urls", []) or [])
+    return jsonify({
+        "status": "success",
+        "matches": [{"url": url, "is_live": True, "source": "scraper:selected"} for url in urls],
+        "count": len(urls),
+    })
+
 @app.route("/metrics")
 def metrics():
     """
