@@ -108,8 +108,11 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 } else {
                     liveMatch.setUrl(normalizedUrl);
                     if (liveMatch.getStatus() != null && liveMatch.getStatus().isTerminal()) {
-                        logger.info("Skipping live-state overwrite for terminal match {}", normalizedUrl);
-                        continue;
+                        // CREX live discovery is the authoritative signal for the active
+                        // catalog. A schedule scrape can occasionally classify a live
+                        // match as terminal from stale result text; do not let that stale
+                        // terminal row permanently hide a match that CREX now lists live.
+                        logger.warn("Reviving terminal match from authoritative live catalog: {}", normalizedUrl);
                     }
                 }
 
