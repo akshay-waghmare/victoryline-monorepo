@@ -4,7 +4,7 @@ import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { Subject, Subscription, forkJoin } from 'rxjs';
-import { takeUntil, debounceTime, distinctUntilChanged, take } from 'rxjs/operators';
+import { takeUntil, take } from 'rxjs/operators';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { CricketService, PlayerStatsSeriesDetailView } from '../../../cricket-odds/cricket-odds.service';
 import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, prioritizeUpcomingMatchesForDiscovery } from '../../../core/utils/match-utils';
@@ -43,13 +43,10 @@ interface TeamSummary {
 export class SeriesPageComponent implements OnInit, OnDestroy {
   private readonly maxDiscoverySeriesGroups = 4;
   private readonly maxDiscoveryMatchesPerSeries = 4;
-  seriesList: SeriesSummary[] = [];
   upcomingDiscoveryGroups: SeriesDiscoveryGroup[] = [];
   currentSeriesGroups: SeriesDiscoveryGroup[] = [];
   teamDirectory: TeamSummary[] = [];
   isLoading = true;
-  searchQuery = '';
-  private searchSubject = new Subject<string>();
   private destroy$ = new Subject<void>();
   private matchSubscription?: Subscription;
 
@@ -93,16 +90,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       robots: 'index,follow'
     });
     this.updateStructuredData();
-    this.loadSeries();
     this.loadDiscoveryMatches();
-    this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      takeUntil(this.destroy$)
-    ).subscribe(query => {
-      this.searchQuery = query;
-      this.loadSeries(query);
-    });
   }
 
   ngOnDestroy(): void {
@@ -113,37 +101,6 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.structuredDataService.clearPageSchemas();
-  }
-
-  loadSeries(query?: string): void {
-    this.isLoading = true;
-    this.cricketService.listSeries('crex', query).pipe(
-      takeUntil(this.destroy$)
-    ).subscribe(
-      (data) => {
-        this.seriesList = (data || []).filter(series => this.isUsableSeriesEntry(series));
-        this.isLoading = false;
-        this.updateStructuredData();
-      },
-      () => {
-        this.seriesList = [];
-        this.isLoading = false;
-        this.updateStructuredData();
-      }
-    );
-  }
-
-  onSearchChange(query: string): void {
-    this.searchSubject.next(query);
-  }
-
-  private isUsableSeriesEntry(series: SeriesSummary): boolean {
-    const name = String(series && (series.name || series.shortName) || '').trim();
-    if (!name) { return false; }
-    // The crawler currently exposes some upcoming fixtures through the series
-    // list endpoint. They belong in Next fixtures, not in the competition list.
-    return !/\b\d{1,2}:\d{2}\s*(AM|PM)\b/i.test(name)
-      && !/\b\d{1,3}(st|nd|rd|th)\s*(T20I?|ODI|Test|One Day|100B)\b/i.test(name);
   }
 
   getMatchHref(match: MatchCardViewModel): string {
@@ -526,6 +483,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
           this.currentSeriesGroups = [];
           this.catalogueMatches = [];
           this.profileMatches = [];
+          this.isLoading = false;
           this.updateStructuredData();
         }
       );
@@ -536,6 +494,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     this.upcomingDiscoveryGroups = this.buildSeriesDiscoveryGroups(this.catalogueMatches);
     this.currentSeriesGroups = this.buildCurrentSeriesGroups(this.catalogueMatches);
     this.profileMatches = this.isProfileRoute ? this.filterProfileMatches(this.catalogueMatches) : [];
+    this.isLoading = false;
     this.updateStructuredData();
   }
 

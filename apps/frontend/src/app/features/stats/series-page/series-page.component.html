@@ -11,11 +11,6 @@
       <h1>Series &amp; tournaments</h1>
       <p>Choose a competition to see its fixtures, table and stats in one place.</p>
     </div>
-    <div class="stats-page__search">
-      <mat-icon class="stats-page__search-icon">search</mat-icon>
-      <input type="text" class="stats-page__search-input" placeholder="Search competitions"
-        [value]="searchQuery" (input)="onSearchChange($event.target.value)" />
-    </div>
     <div class="series-page__hero-stats" *ngIf="!isLoading">
       <div><strong>{{ currentSeriesGroups.length }}</strong><span>active series</span></div>
       <div><strong>{{ upcomingDiscoveryGroups.length }}</strong><span>next fixtures</span></div>
@@ -79,40 +74,14 @@
     <span>Loading series...</span>
   </div>
 
-  <div *ngIf="!isProfileRoute && !isLoading && seriesList.length === 0" class="stats-page__empty">
+  <div *ngIf="!isProfileRoute && !isLoading && currentSeriesGroups.length === 0 && upcomingDiscoveryGroups.length === 0" class="stats-page__empty">
     <mat-icon class="stats-page__empty-icon">event_busy</mat-icon>
-    <p>No series found</p>
-    <span *ngIf="searchQuery">Try adjusting your search</span>
-  </div>
-
-  <div *ngIf="!isProfileRoute && !isLoading && seriesList.length > 0" class="stats-page__grid">
-    <div class="stats-page__list-heading">
-      <div>
-        <span class="series-page__eyebrow">Browse</span>
-        <h2>All series</h2>
-      </div>
-      <span>{{ seriesList.length }} competitions</span>
-    </div>
-    <a *ngFor="let series of seriesList; trackBy: trackByExternalId" class="stats-card series-card" [attr.href]="getSeriesHref(series)">
-      <div class="series-icon-wrap">
-        <mat-icon>emoji_events</mat-icon>
-      </div>
-      <div class="stats-card__info">
-        <span class="stats-card__name">{{ series.name }}</span>
-        <div class="series-card-meta">
-          <span class="series-type-badge" [ngClass]="getSeriesTypeBadgeClass(series.name)">
-            {{ getSeriesTypeLabel(series.name) }}
-          </span>
-          <span *ngIf="series.seasonName" class="stats-card__meta">{{ series.seasonName }}</span>
-        </div>
-      </div>
-      <mat-icon class="stats-card__chevron">chevron_right</mat-icon>
-    </a>
+    <p>No current series or upcoming fixtures found</p>
   </div>
 
   <button *ngIf="isProfileRoute" class="series-profile__back" type="button" (click)="closeDetail()">
     <mat-icon>arrow_back</mat-icon>
-    All series
+    Back to series
   </button>
 
   <!-- Profile panel on its own route; overlay only for legacy in-page use. -->

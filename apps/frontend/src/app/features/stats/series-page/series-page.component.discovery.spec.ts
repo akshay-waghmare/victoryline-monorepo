@@ -40,7 +40,6 @@ function createMatch(id: string, seriesName: string, hoursAhead: number): MatchC
 
 function createComponentShape(): SeriesPageComponent {
   var component = Object.create(SeriesPageComponent.prototype) as SeriesPageComponent;
-  component.seriesList = [];
   component.upcomingDiscoveryGroups = [];
   (component as any).maxDiscoverySeriesGroups = 4;
   (component as any).maxDiscoveryMatchesPerSeries = 4;
