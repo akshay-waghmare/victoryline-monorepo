@@ -127,20 +127,46 @@ def extract_result_summary(text: str) -> Optional[str]:
     return None
 
 
-def extract_series_name(text: str) -> Optional[str]:
-    lines = [normalize_text(line) for line in re.split(r"[\r\n]+", text or "") if normalize_text(line)]
-    for line in lines:
-        lower = line.lower()
-        if " vs " in lower:
+def extract_series_name(*texts: Optional[str]) -> Optional[str]:
+    """Extract only a competition name, never a score/status card label."""
+    for text in texts:
+        normalized = normalize_text(text)
+        if not normalized:
             continue
-        if _COMPLETED_PATTERN.search(lower):
-            continue
-        if _SCORE_PATTERN.search(lower):
-            continue
-        if "schedule" in lower or "fixtures" in lower:
-            continue
-        if len(line) > 4:
-            return line
+
+        # JSON-LD event names retain the series after the match descriptor:
+        # ``India U19 vs Sri Lanka U19, 2nd Test, India U19 Tour..., 2026``.
+        # Prefer this structured fragment over the rendered card, which joins
+        # teams, score and toss text into a single misleading string.
+        parts = [normalize_text(part) for part in normalized.split(",") if normalize_text(part)]
+        for index, part in enumerate(parts):
+            if not _FORMAT_PATTERN.search(part) or index + 1 >= len(parts):
+                continue
+            series = normalize_text(", ".join(parts[index + 1:]))
+            lower = series.lower()
+            if (
+                len(series) > 4
+                and " vs " not in lower
+                and not _COMPLETED_PATTERN.search(lower)
+                and not _SCORE_PATTERN.search(lower)
+                and "toss delayed" not in lower
+                and "yet to bat" not in lower
+            ):
+                return series
+
+        lines = [normalize_text(line) for line in re.split(r"[\r\n]+", normalized) if normalize_text(line)]
+        for line in lines:
+            lower = line.lower()
+            if " vs " in lower:
+                continue
+            if _COMPLETED_PATTERN.search(lower):
+                continue
+            if _SCORE_PATTERN.search(lower):
+                continue
+            if "schedule" in lower or "fixtures" in lower or "toss delayed" in lower or "yet to bat" in lower:
+                continue
+            if len(line) > 4:
+                return line
     return None
 
 
@@ -452,7 +478,7 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
             "scheduledStartTime": scheduled_start_time,
             "team1Name": team_names["team1Name"],
             "team2Name": team_names["team2Name"],
-            "seriesName": extract_series_name(card.get("text") or ""),
+            "seriesName": extract_series_name(card.get("eventName"), card.get("text")),
             "matchFormat": extract_match_format(combined_text),
             "resultSummary": extract_result_summary(card.get("text") or ""),
             "lastStateUpdatedAt": int(datetime.utcnow().timestamp() * 1000),

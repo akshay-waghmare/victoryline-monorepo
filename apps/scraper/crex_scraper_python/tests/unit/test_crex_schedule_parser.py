@@ -3,6 +3,7 @@ from src.parsers.crex_schedule_parser import (
     build_team_name_lookup,
     expand_team_names,
     extract_external_match_key,
+    extract_series_name,
     extract_team_names,
 )
 
@@ -55,6 +56,15 @@ def test_expand_team_names_uses_local_storage_full_names_for_short_labels():
 def test_extract_external_match_key_supports_new_crex_live_score_urls():
     url = "https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC"
     assert extract_external_match_key(url) == "abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC"
+
+
+def test_extract_series_name_prefers_json_ld_series_over_toss_card_text():
+    series = extract_series_name(
+        "India U19 vs Sri Lanka U19, 2nd Test, India U19 Tour of Sri Lanka, 2026",
+        "SL U19 Yet to bat Toss Delayed IND U19 Yet to bat",
+    )
+
+    assert series == "India U19 Tour of Sri Lanka, 2026"
 
 
 def test_match_page_candidates_support_new_crex_live_score_variants():
