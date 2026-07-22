@@ -18,6 +18,25 @@ Use this skill when the change is frontend-only and you want the safest producti
 7. Do not rebuild from the server repo checkout unless the task explicitly says to use an emergency fallback.
 8. Check Docker disk pressure before local builds and prune unused images/build cache after a verified rollout.
 
+## SSR hydration and build-cache gates
+
+For SSR catalogue or route changes, treat the server HTML and browser hydration as separate acceptance surfaces:
+
+1. Assume JSON dates in `TransferState` are strings after SSR serialization. Normalize fields such as `startTime` and `lastUpdated` back to `Date` objects before calling match utilities that use `getTime()`.
+2. If the SSR wrapper can contain `&q;`-encoded quotes, add a narrow browser fallback that decodes `crickzen-app-state` and reads the required state key when Angular `TransferState` is empty.
+3. Verify a cache-busted `/series` response contains the expected catalogue markup, no loading shell, and a non-empty parsed `series-discovery-catalogue`. A successful SSR response alone does not prove a hard refresh works.
+
+Legacy Angular SSR builds can take 10–20 minutes and may be silent while compiling browser and server bundles. Do not treat a returned image as fresh merely because `--cache-from` completes quickly: when source changes are expected, use the cached production image only for dependencies and force the `build` stage to refresh:
+
+```powershell
+docker build --progress=plain --no-cache-filter build `
+  --cache-from macubex/victoryline-frontend:<known-good-tag> `
+  --build-arg FRONTEND_SOURCE_REV=<commit-or-revision> `
+  -t macubex/victoryline-frontend:<tag> apps/frontend
+```
+
+Confirm the browser/server bundle hashes or build timestamps differ from the known-good image before pushing. If the host is low on space, inspect `docker system df` first; `apps/frontend/node_modules` is disposable and excluded by the frontend `.dockerignore`, while unrelated project directories must be preserved unless explicitly in scope.
+
 ## SEO preflight before rollout
 
 If the frontend change touches SEO, discovery hubs, metadata, schema, route handling, or prerender output, do this before building the image:
@@ -52,6 +71,8 @@ git status --short
 docker system df
 git push origin 008-match-title-seo
 ```
+
+Keep unrelated dirty files out of the commit. In particular, do not include scraper/model changes while rolling out a frontend-only fix.
 
 Prod frontend-only rollout pattern:
 
