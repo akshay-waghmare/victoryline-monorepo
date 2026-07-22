@@ -527,12 +527,24 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   }
 
   private applyDiscoveryMatches(matches: MatchCardViewModel[]): void {
-    this.catalogueMatches = matches || [];
+    this.catalogueMatches = this.normalizeCatalogueMatches(matches || []);
     this.upcomingDiscoveryGroups = this.buildSeriesDiscoveryGroups(this.catalogueMatches);
     this.currentSeriesGroups = this.buildCurrentSeriesGroups(this.catalogueMatches);
     this.profileMatches = this.isProfileRoute ? this.filterProfileMatches(this.catalogueMatches) : [];
     this.isLoading = false;
     this.updateStructuredData();
+  }
+
+  private normalizeCatalogueMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    if (!Array.isArray(matches)) {
+      return [];
+    }
+
+    return matches.map((match) => ({
+      ...match,
+      startTime: match.startTime ? new Date(match.startTime as any) : match.startTime,
+      lastUpdated: match.lastUpdated ? new Date(match.lastUpdated as any) : match.lastUpdated
+    }));
   }
 
   private filterProfileMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
