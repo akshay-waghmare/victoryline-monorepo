@@ -78,6 +78,9 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     if (externalId) {
       this.isProfileRoute = true;
       this.activeSection = (this.route.snapshot.data['section'] || 'matches') as 'matches' | 'table' | 'stats';
+      this.route.data.pipe(takeUntil(this.destroy$)).subscribe(data => {
+        this.activeSection = (data['section'] || 'matches') as 'matches' | 'table' | 'stats';
+      });
       this.openSeriesProfile(externalId, this.route.snapshot.paramMap.get('slug') || 'series');
       this.loadDiscoveryMatches();
       return;
