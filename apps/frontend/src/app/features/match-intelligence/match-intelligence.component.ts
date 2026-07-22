@@ -1018,11 +1018,10 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
     if (value !== undefined && value !== null) {
       return 'Innings ' + Number(value).toFixed(0);
     }
-    // A target/required rate is only present once the chase has started.
-    if (data && (data.target !== undefined || data.required_run_rate !== undefined || data.runs_required !== undefined)) {
+    if (this.hasSecondInningsSignal()) {
       return 'Innings 2';
     }
-    return null;
+    return data || prediction ? 'Innings 1' : null;
   }
 
   private getSwingPoints(): Array<{ over: string; score: string; probability: number; label: string; innings: number }> {
