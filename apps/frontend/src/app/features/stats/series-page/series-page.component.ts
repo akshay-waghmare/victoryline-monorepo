@@ -4,7 +4,7 @@ import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
 import { Subject, Subscription, forkJoin } from 'rxjs';
-import { takeUntil, take } from 'rxjs/operators';
+import { takeUntil, take, timeout } from 'rxjs/operators';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { CricketService, PlayerStatsSeriesDetailView } from '../../../cricket-odds/cricket-odds.service';
 import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, prioritizeUpcomingMatchesForDiscovery } from '../../../core/utils/match-utils';
@@ -177,7 +177,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
 
     this.isDetailLoading = true;
     const profileKey = makeStateKey<any>('series-profile:' + externalId);
-    const hydrated = !isPlatformServer(this.platformId) ? this.transferState.get(profileKey, null) : null;
+    const hydrated = !isPlatformServer(this.platformId) ? this.getHydratedState<any>(profileKey) : null;
     if (hydrated) {
       this.applySeriesProfileBundle(hydrated, name);
       this.transferState.remove(profileKey);
@@ -187,7 +187,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       this.cricketService.getPlayerStatsSeries(externalId, 'crex'),
       this.cricketService.getPlayerStatsSeriesStandings(externalId, 'crex'),
       this.cricketService.listTeams('crex')
-    ]).pipe(takeUntil(this.destroy$)).subscribe(
+    ]).pipe(timeout(15000), takeUntil(this.destroy$)).subscribe(
       ([seriesDetail, standings, teams]) => {
         const bundle = { seriesDetail, standings, teams: teams || [] };
         this.applySeriesProfileBundle(bundle, name);
@@ -461,7 +461,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     }
 
     const discoveryKey = makeStateKey<any>('series-discovery-catalogue');
-    const hydrated = !isPlatformServer(this.platformId) ? this.transferState.get(discoveryKey, null) : null;
+    const hydrated = !isPlatformServer(this.platformId) ? this.getHydratedState<any>(discoveryKey) : null;
     if (hydrated) {
       this.applyDiscoveryMatches(hydrated);
       this.transferState.remove(discoveryKey);
@@ -490,6 +490,40 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
           this.updateStructuredData();
         }
       );
+  }
+
+  private getHydratedState<T>(key: any): T | null {
+    let hydrated: T | null = null;
+    try {
+      hydrated = this.transferState.get<T | null>(key, null);
+    } catch (error) {
+      console.warn('[SeriesPageComponent] Could not read Angular transfer state:', error);
+    }
+    if (hydrated !== null && hydrated !== undefined && (!Array.isArray(hydrated) || hydrated.length > 0)) {
+      return hydrated;
+    }
+
+    if (isPlatformServer(this.platformId) || typeof document === 'undefined') {
+      return hydrated;
+    }
+
+    const stateElement = document.getElementById('crickzen-app-state');
+    const encodedState = stateElement && stateElement.textContent;
+    if (!encodedState) {
+      return hydrated;
+    }
+
+    try {
+      const state = JSON.parse(encodedState.replace(/&q;/g, '"'));
+      const fallback = state && state[String(key)];
+      if (fallback !== null && fallback !== undefined) {
+        return fallback as T;
+      }
+    } catch (error) {
+      console.warn('[SeriesPageComponent] Could not decode SSR series state:', error);
+    }
+
+    return hydrated;
   }
 
   private applyDiscoveryMatches(matches: MatchCardViewModel[]): void {
