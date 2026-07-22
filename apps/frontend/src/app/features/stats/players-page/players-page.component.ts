@@ -1,7 +1,8 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Location } from '@angular/common';
+import { Component, OnInit, OnDestroy, Inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser, isPlatformServer, Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Title } from '@angular/platform-browser';
+import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { Subject } from 'rxjs';
 import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { CricketService, PlayerStatsPlayerDetailView } from '../../../cricket-odds/cricket-odds.service';
@@ -48,7 +49,9 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private location: Location,
     private titleService: Title,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private transferState: TransferState,
+    @Inject(PLATFORM_ID) private platformId: object
   ) {}
 
   ngOnInit(): void {
@@ -108,7 +111,7 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
 
   private openPlayerProfile(externalId: string, slug: string): void {
     const name = this.getPlayerDisplayName({ externalId: externalId, name: slug.replace(/-/g, ' ') });
-    if (typeof window !== 'undefined') {
+    if (isPlatformBrowser(this.platformId)) {
       window.scrollTo(0, 0);
     }
     this.isDetailLoading = true;
@@ -116,19 +119,22 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
     this.selectedPlayer = null;
     this.selectedPlayerSummary = { externalId: externalId, name: name };
     this.titleService.setTitle(name + ' Cricket Profile | Crickzen');
+    const profileKey = makeStateKey<PlayerStatsPlayerDetailView | null>('player-profile:' + externalId);
+    const hydrated = isPlatformBrowser(this.platformId) ? this.transferState.get(profileKey, null) : null;
+    if (hydrated) {
+      this.applyPlayerProfile(hydrated);
+      this.transferState.remove(profileKey);
+      return;
+    }
+
     this.cricketService.getPlayerStatsPlayer(externalId, 'crex').pipe(
       takeUntil(this.destroy$)
     ).subscribe(
       (detail) => {
-        this.selectedPlayer = detail;
-        if (detail && detail.name) {
-          this.titleService.setTitle(this.getPlayerDisplayName(detail) + ' Cricket Profile | Crickzen');
+        this.applyPlayerProfile(detail);
+        if (isPlatformServer(this.platformId)) {
+          this.transferState.set(profileKey, detail);
         }
-        if (!detail || !detail.stats || detail.stats.length === 0) {
-          this.notifyStatsUnavailable(this.selectedPlayerSummary && this.selectedPlayerSummary.name);
-        }
-        this.isDetailLoading = false;
-        this.resetProfileViewport();
       },
       () => {
         this.selectedPlayer = null;
@@ -140,7 +146,7 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
   }
 
   private resetProfileViewport(): void {
-    if (!this.isProfileRoute || typeof window === 'undefined') { return; }
+    if (!this.isProfileRoute || !isPlatformBrowser(this.platformId)) { return; }
 
     window.setTimeout(() => {
       window.scrollTo(0, 0);
@@ -149,6 +155,27 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
         heading.focus();
       }
     }, 0);
+  }
+
+  private applyPlayerProfile(detail: PlayerStatsPlayerDetailView | null): void {
+    this.selectedPlayer = detail;
+    if (detail && detail.name) {
+      this.selectedPlayerSummary = {
+        externalId: detail.externalId || this.selectedPlayerSummary!.externalId,
+        name: this.getPlayerDisplayName(detail),
+        role: detail.role,
+        battingStyle: detail.battingStyle,
+        bowlingStyle: detail.bowlingStyle,
+        country: detail.country,
+        imageUrl: detail.imageUrl
+      };
+      this.titleService.setTitle(this.getPlayerDisplayName(detail) + ' Cricket Profile | Crickzen');
+    }
+    if (!detail || !detail.stats || detail.stats.length === 0) {
+      this.notifyStatsUnavailable(this.selectedPlayerSummary && this.selectedPlayerSummary.name);
+    }
+    this.isDetailLoading = false;
+    this.resetProfileViewport();
   }
 
   private notifyStatsUnavailable(playerName?: string): void {
