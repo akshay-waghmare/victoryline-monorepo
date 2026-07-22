@@ -92,6 +92,7 @@ interface MatchIntelligenceViewModel {
   probabilityAreaPath: string;
   probabilityChartPoints: Array<{ x: number; y: number; over: string; score: string; probability: number; label: string; innings: number }>;
   predictionHistory: Array<{ over: string; score: string; probability: number | null; expectedFinal: number | null; projected: number | null; innings: number }>;
+  showSecondInnings: boolean;
   pressureNarrative: string;
   momentumNarrative: string;
   confidenceNarrative: string;
@@ -389,6 +390,7 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
       ,probabilityAreaPath: ''
       ,probabilityChartPoints: this.getProbabilityChartPoints()
       ,predictionHistory: this.getPredictionHistory()
+      ,showSecondInnings: this.shouldShowSecondInnings()
       ,pressureNarrative: this.getPressureNarrative()
       ,momentumNarrative: this.getMomentumNarrative()
       ,confidenceNarrative: this.getConfidenceNarrative()
@@ -1045,6 +1047,19 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
       innings: this.resolvePointInnings(point.innings)
     }));
     if (mappedSwings.length) {
+      // The card is the current public model state. When the feed emits the
+      // same ball in `last_swings` with an older probability, keep the chart
+      // endpoint honest by replacing that stale final sample.
+      var latestProbability = this.resolveWinProbability();
+      var latestOver = String((data && (data.overs || data.over)) || (publicPrediction && publicPrediction.overs) || '');
+      var latestScore = String((data && (data.score || data.scoreline)) || (publicPrediction && publicPrediction.score) || '');
+      var finalPoint = mappedSwings[mappedSwings.length - 1];
+      if (latestProbability !== null && finalPoint &&
+          (!latestOver || finalPoint.over === latestOver) &&
+          (!latestScore || finalPoint.score === latestScore)) {
+        finalPoint.probability = latestProbability;
+        finalPoint.label = 'current model';
+      }
       return mappedSwings;
     }
     var currentProbability = publicPrediction && publicPrediction.win_probability_pct;
@@ -1179,7 +1194,7 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
     options.scales = Object.assign({}, options.scales, {
       xAxes: [{
         type: 'linear',
-        ticks: { min: 0, max: inningsOvers * 2, display: false },
+        ticks: { min: 0, max: inningsOvers * (this.shouldShowSecondInnings() ? 2 : 1), display: false },
         gridLines: { color: '#d7dfdc', borderDash: [2, 4], drawBorder: false }
       }],
       yAxes: [{
@@ -1202,13 +1217,36 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
     if (innings === 1 || innings === 2) {
       return innings;
     }
-    var secondInningsSignal = data || prediction;
-    if ((data && (data.target !== undefined || data.required_run_rate !== undefined || data.runs_required !== undefined)) ||
-      (prediction && ((prediction as any).target !== undefined || prediction.required_run_rate !== undefined || (prediction as any).runs_required !== undefined)) ||
-      (secondInningsSignal && (secondInningsSignal.target !== undefined || secondInningsSignal.required_run_rate !== undefined || secondInningsSignal.runs_required !== undefined))) {
-      return 2;
-    }
-    return 1;
+    return this.hasSecondInningsSignal() ? 2 : 1;
+  }
+
+  private hasSecondInningsSignal(): boolean {
+    var sources = [
+      this.snapshot && this.snapshot.matchData,
+      this.snapshot && this.snapshot.publicPrediction
+    ];
+    return sources.some((source: any) => {
+      if (!source) {
+        return false;
+      }
+      // A zero RRR occurs in innings one in the current public feed. Only an
+      // explicit innings value, a positive target, runs still required, or a
+      // positive RRR establishes a chase.
+      return this.isPositiveNumber(source.target)
+        || this.isPositiveNumber(source.runs_required)
+        || this.isPositiveNumber(source.runsRequired)
+        || this.isPositiveNumber(source.required_run_rate)
+        || this.isPositiveNumber(source.requiredRunRate);
+    });
+  }
+
+  private isPositiveNumber(value: any): boolean {
+    var parsed = Number(value);
+    return isFinite(parsed) && parsed > 0;
+  }
+
+  private shouldShowSecondInnings(): boolean {
+    return this.getCurrentInnings() === 2 || this.getSwingPoints().some((point) => point.innings === 2);
   }
 
   private getPredictionHistory(): Array<{ over: string; score: string; probability: number | null; expectedFinal: number | null; projected: number | null; innings: number }> {
@@ -1271,12 +1309,12 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
       { label: 'Batting', value: this.getTeamMetric('batting_team') || this.resolveProbabilityTeam() },
       { label: 'Bowling', value: this.getTeamMetric('bowling_team') },
       { label: 'CRR', value: this.getMetricLabel('current_run_rate', 'CRR ', 2) },
-      { label: 'RRR', value: this.getMetricLabel('required_run_rate', 'RRR ', 2) },
+      { label: 'RRR', value: this.getCurrentInnings() === 2 ? this.getMetricLabel('required_run_rate', 'RRR ', 2) : null },
       { label: 'Resources', value: this.getMetricLabel('resource_pct', 'Resources ', 1, '%') },
       { label: 'Resource WP', value: this.getMetricLabel('resource_win_probability_pct', 'Resource WP ', 0, '%') },
       { label: 'Par pace', value: this.getMetricLabel('score_vs_par', 'Score vs par pace ', 1) },
       { label: 'Pressure', value: this.getMetricLabel('pressure_index', 'Pressure ', 2) }
-    ];
+    ].filter((metric) => !!metric.value);
   }
 
   private getTeamMetric(key: string): string | null {

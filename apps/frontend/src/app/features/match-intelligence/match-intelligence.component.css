@@ -1105,6 +1105,10 @@
   border-left: 1px solid #a9c3bb;
 }
 
+.match-intelligence__chart-phase-axis--single {
+  grid-template-columns: 1fr;
+}
+
 .match-intelligence__chart-legend {
   display: flex;
   gap: 7px;

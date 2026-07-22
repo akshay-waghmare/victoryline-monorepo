@@ -86,12 +86,8 @@
         <div class="match-intelligence__probability-header">
           <div>
             <p class="match-intelligence__card-kicker">Win Probability</p>
-            <h2>{{ viewModel.probabilityTeamLabel || 'Model direction' }} <strong>{{ viewModel.probabilityLabel || '--' }}</strong></h2>
+            <h2>Current model probability</h2>
           </div>
-          <span class="match-intelligence__probability-updated">
-            <small>Current model view</small>
-            <strong>{{ viewModel.probabilityTeamLabel || 'Model' }} {{ viewModel.probabilityLabel || '--' }}</strong>
-          </span>
         </div>
         <div class="match-intelligence__probability-teams" *ngIf="viewModel.probabilityOpponentLabel">
           <span><i class="match-intelligence__team-dot match-intelligence__team-dot--primary"></i>{{ viewModel.probabilityTeamLabel }} <strong>{{ viewModel.probabilityLabel || '--' }}</strong></span>
@@ -110,7 +106,7 @@
             <ng-template #chartServerFallback><div class="match-intelligence__chart-server-placeholder" role="img" aria-label="Win probability chart"></div></ng-template>
             <div class="match-intelligence__chart-y-axis" aria-hidden="true"><span>100%</span><span>50%</span><span>0%</span></div>
           </div>
-          <div class="match-intelligence__chart-phase-axis" aria-hidden="true"><span>1st innings</span><span>2nd innings</span></div>
+          <div class="match-intelligence__chart-phase-axis" [class.match-intelligence__chart-phase-axis--single]="!viewModel.showSecondInnings" aria-hidden="true"><span>{{ viewModel.showSecondInnings ? '1st innings' : 'Innings 1' }}</span><span *ngIf="viewModel.showSecondInnings">2nd innings</span></div>
           <div class="match-intelligence__worm-axis"><span>{{ viewModel.swingPoints[0].over || 'Start' }}</span><span>{{ viewModel.inningsLabel || 'Match updates' }}</span><span>{{ viewModel.swingPoints[viewModel.swingPoints.length - 1].over || 'Live' }}</span></div>
           <div class="match-intelligence__chart-legend"><span><i class="match-intelligence__legend-line"></i> Model probability by update</span><span><i class="match-intelligence__legend-midline"></i> 50% balance</span></div>
         </div>
@@ -121,7 +117,7 @@
               <div class="match-intelligence__chart-server-placeholder"></div>
               <div class="match-intelligence__chart-y-axis"><span>100%</span><span>50%</span><span>0%</span></div>
             </div>
-            <div class="match-intelligence__chart-phase-axis" aria-hidden="true"><span>1st innings</span><span>2nd innings</span></div>
+            <div class="match-intelligence__chart-phase-axis" [class.match-intelligence__chart-phase-axis--single]="!viewModel.showSecondInnings" aria-hidden="true"><span>{{ viewModel.showSecondInnings ? '1st innings' : 'Innings 1' }}</span><span *ngIf="viewModel.showSecondInnings">2nd innings</span></div>
             <div class="match-intelligence__worm-axis"><span>Start</span><span>{{ viewModel.inningsLabel || 'Match updates' }}</span><span>Now</span></div>
             <p class="match-intelligence__muted">{{ viewModel.swingPoints.length ? 'Current probability is available; the trend line will appear after the next model update.' : 'The probability timeline will appear after the first live model updates.' }}</p>
           </div>

@@ -35,8 +35,8 @@ interface PublicPredictionMatch {
   resource_win_probability_pct?: number | null;
   score_vs_par?: number | null;
   pressure_index?: number | null;
-  last_swings?: Array<{ over?: string; score?: string; win_probability_pct?: number; label?: string }>;
-  prediction_history?: Array<{ over?: string; score?: string; win_probability_pct?: number; expected_final_score?: number; projected_score?: number }>;
+  last_swings?: Array<{ over?: string; score?: string; win_probability_pct?: number; label?: string; innings?: number }>;
+  prediction_history?: Array<{ over?: string; score?: string; win_probability_pct?: number; expected_final_score?: number; projected_score?: number; innings?: number }>;
   reasons?: string[];
   explanation_pack?: {
     venue_behaviour?: string | null;

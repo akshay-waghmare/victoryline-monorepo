@@ -13,7 +13,9 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
           ]
         }
       },
-      getPredictionHistory: () => []
+      getPredictionHistory: () => [],
+      resolvePointInnings: () => 1,
+      resolveWinProbability: () => null
     };
 
     const points = (MatchIntelligenceComponent.prototype as any).getSwingPoints.call(context);
@@ -64,7 +66,8 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
             { over: '12.0', score: '91/2', win_probability_pct: 54 }
           ]
         }
-      }
+      },
+      resolvePointInnings: () => 1
     });
 
     expect(history[0]).toEqual({ over: '10.0', score: '72/1', probability: 58, expectedFinal: 164, projected: 158, innings: 1 });
@@ -130,13 +133,42 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
       },
       resolveProbabilityTeam: () => null,
       getTeamMetric: (key: string) => key === 'batting_team' ? 'Nepal' : 'JSY',
-      getInningsLabel: () => null,
+      getCurrentInnings: () => 1,
       getMetricLabel: () => null,
       getExpectedFinalLabel: () => null
     });
 
     expect(cards[0]).toEqual({ label: 'Batting', value: 'Nepal' });
     expect(cards[1]).toEqual({ label: 'Bowling', value: 'JSY' });
+  });
+
+  it('keeps zero RRR in the first innings out of the chase and chart state', () => {
+    const hasSecondInningsSignal = (MatchIntelligenceComponent.prototype as any).hasSecondInningsSignal;
+    const isPositiveNumber = (MatchIntelligenceComponent.prototype as any).isPositiveNumber;
+    const context: any = {
+      snapshot: {
+        matchData: { required_run_rate: 0 },
+        publicPrediction: { required_run_rate: 0 }
+      },
+      isPositiveNumber: (value: any) => isPositiveNumber.call({}, value)
+    };
+
+    expect(hasSecondInningsSignal.call(context)).toBe(false);
+  });
+
+  it('hides unavailable first-innings metrics instead of showing placeholders', () => {
+    const cards = (MatchIntelligenceComponent.prototype as any).getMetricCards.call({
+      resolveProbabilityTeam: () => 'KAK',
+      getTeamMetric: (key: string) => key === 'batting_team' ? 'KAK' : 'RWT',
+      getCurrentInnings: () => 1,
+      getMetricLabel: (key: string) => key === 'current_run_rate' ? 'CRR 6.73' : null
+    });
+
+    expect(cards).toEqual([
+      { label: 'Batting', value: 'KAK' },
+      { label: 'Bowling', value: 'RWT' },
+      { label: 'CRR', value: 'CRR 6.73' }
+    ]);
   });
 
   it('uses contract-backed turning-point data for completed-state copy', () => {

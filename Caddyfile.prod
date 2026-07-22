@@ -198,8 +198,8 @@ newsdemo.crickzen.com {
   }
 }
 
-# --- CrickZen dashboard ---
-app.crickzen.com {
+# --- CrickZen prediction dashboard ---
+app.crickzen.com, prediction.crickzen.com {
   encode zstd gzip
 
   # Telegram operator UI (Streamlit, host port 8502)
