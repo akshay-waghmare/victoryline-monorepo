@@ -52,7 +52,7 @@
         <!-- First Tab: Live Match -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <span class="match-page-tab-label">
+            <span class="match-page-tab-label" aria-label="Live Match">
               <mat-icon>radio_button_checked</mat-icon>
               <span>Live Match</span>
             </span>
@@ -214,7 +214,7 @@
         <!-- Second Tab: Match Details -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <span class="match-page-tab-label">
+            <span class="match-page-tab-label" aria-label="Match Details">
               <mat-icon>info</mat-icon>
               <span>Match Details</span>
             </span>
@@ -318,7 +318,7 @@
         <!-- Third Tab: Scorecard -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <span class="match-page-tab-label">
+            <span class="match-page-tab-label" aria-label="Scorecard">
               <mat-icon>table_chart</mat-icon>
               <span>Scorecard</span>
               <span class="match-page-tab-badge" *ngIf="scorecardData?.innings?.length">{{ scorecardData.innings.length }}</span>
@@ -350,7 +350,7 @@
         <!-- Fourth Tab: Lineups (NEW - T032-T035) -->
         <mat-tab>
           <ng-template mat-tab-label>
-            <span class="match-page-tab-label">
+            <span class="match-page-tab-label" aria-label="Lineups">
               <mat-icon>groups</mat-icon>
               <span>Lineups</span>
             </span>
@@ -381,19 +381,14 @@
         <!-- Fifth Tab: Match Intelligence -->
         <mat-tab *ngIf="isMatchIntelligenceEligible()">
           <ng-template mat-tab-label>
-            <span class="match-page-tab-label">
+            <span class="match-page-tab-label" aria-label="Match Intelligence">
               <mat-icon>insights</mat-icon>
               <span>Match Intelligence</span>
             </span>
           </ng-template>
           <section class="match-tab-panel match-tab-panel--intelligence" id="intelligence-panel" aria-label="Match Intelligence">
             <span class="cricket-odds__sr-only">{{ trackMatchIntelligenceImpression() }}</span>
-            <header class="match-tab-intro" *ngIf="matchSeo">
-              <p class="match-tab-intro__kicker">Free match intelligence</p>
-              <h2 class="match-tab-intro__title">{{ getMatchIntelligenceCtaLabel() }}</h2>
-              <p class="match-tab-intro__summary">{{ getMatchIntelligenceCtaSummary() }}</p>
-            </header>
-            <app-match-intelligence [matchSlug]="getCanonicalMatchSlug()"></app-match-intelligence>
+            <app-match-intelligence [matchSlug]="getCanonicalMatchSlug()" [embedded]="true"></app-match-intelligence>
           </section>
         </mat-tab>
       </mat-tab-group>

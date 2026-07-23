@@ -4,6 +4,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { LayoutModule } from '@angular/cdk/layout';
 import { AdminLayoutsRoute } from './admin-layouts.routing';
+import { AdminLayoutsComponent } from './admin-layouts.component';
 import { DashboardComponent } from '../../dashboard/dashboard.component';
 import { AddServiceComponent } from '../../add-service/add-service.component';
 import { ServiceListComponent } from '../../service-list/service-list.component';
@@ -150,6 +151,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
   
   ],
   declarations: [
+    AdminLayoutsComponent,
     DashboardComponent,
     AddServiceComponent,
     ServiceListComponent,

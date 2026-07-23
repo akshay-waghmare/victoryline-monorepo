@@ -603,6 +603,25 @@ class PlayerStatsCrawlerService:
         return extract_crex_api_key(match_url)
 
     async def _process_player_reference_task(self, task: PlayerStatsTask) -> None:
+        # A match-level squad record is deliberately not enough to satisfy this
+        # check: it is written before the player page has been visited.  The
+        # player_profile snapshot is the durable completion marker for an
+        # on-demand scorecard/lineup profile request.
+        player_external_id = str((task.metadata.get("player") or {}).get("externalId") or "").strip()
+        if player_external_id:
+            persisted_player = await asyncio.to_thread(
+                CricketDataService.get_player_stats_player,
+                player_external_id,
+                self._auth_token_provider(),
+            )
+            if self._has_persisted_player_profile(persisted_player):
+                logger.debug(
+                    "player_stats.reference.player.already_persisted",
+                    extra={"player_external_id": player_external_id},
+                )
+                await self._record_candidate_result(task.match_id, success=True)
+                return
+
         adapter = self.registry.get_adapter("crex")
         if adapter is None or not hasattr(adapter, "fetch_player_reference"):
             logger.warning("Player reference task skipped because CREX adapter reference extraction is unavailable.")
@@ -643,6 +662,22 @@ class PlayerStatsCrawlerService:
             await self._record_candidate_result(task.match_id, success=True)
         else:
             await self._record_candidate_result(task.match_id, success=False, error="push_reference_failed")
+
+    @staticmethod
+    def _has_persisted_player_profile(player_view: Optional[Dict[str, Any]]) -> bool:
+        """Return true only after the detailed CREX profile has reached the DB.
+
+        Match ingestion also creates player rows and seed/live snapshots.  Those
+        rows must continue through the CREX profile fetch; otherwise scorecard
+        and lineup clicks can permanently resolve to an empty detail panel.
+        """
+        if not isinstance(player_view, dict):
+            return False
+
+        for snapshot in player_view.get("stats") or []:
+            if isinstance(snapshot, dict) and str(snapshot.get("category") or "").strip().lower() == "player_profile":
+                return True
+        return False
 
     async def _process_team_reference_task(self, task: PlayerStatsTask) -> None:
         adapter = self.registry.get_adapter("crex")

@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { AfterViewChecked, Component, ElementRef, Inject, Input, OnDestroy, OnInit, PLATFORM_ID, ViewChild } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, Inject, Input, OnChanges, OnDestroy, OnInit, PLATFORM_ID, SimpleChanges, ViewChild } from '@angular/core';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription, timer } from 'rxjs';
@@ -108,9 +108,10 @@ interface MatchIntelligenceViewModel {
   templateUrl: './match-intelligence.component.html',
   styleUrls: ['./match-intelligence.component.css']
 })
-export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnDestroy {
+export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, OnInit, OnDestroy {
   private readonly refreshIntervalMs = 30 * 1000;
   @Input() matchSlug = '';
+  @Input() embedded = false;
   slug = '';
   viewModel: MatchIntelligenceViewModel | null = null;
   isLoading = true;
@@ -158,6 +159,7 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
   private probabilityChart: any = null;
   private probabilityChartCanvasElement: HTMLCanvasElement | null = null;
   private probabilityChartSignature = '';
+  private initialized = false;
 
   constructor(
     @Inject(PLATFORM_ID) private platformId: Object,
@@ -172,12 +174,23 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
 
   ngOnInit(): void {
     this.isBrowser = isPlatformBrowser(this.platformId);
+    this.initialized = true;
     this.subscriptions.add(
       this.route.paramMap.subscribe((params) => {
-        this.slug = (this.matchSlug || params.get('slug') || params.get('path') || '').trim();
-        this.loadSurface();
+        this.refreshSlug(params.get('slug') || params.get('path') || '', true);
       })
     );
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (!this.initialized || !changes.matchSlug) {
+      return;
+    }
+
+    // The embedded tab is created before the parent match hub has always
+    // resolved its canonical slug. Reload once that input arrives so a valid
+    // public prediction is not permanently missed on the first tab visit.
+    this.refreshSlug('', false);
   }
 
   ngOnDestroy(): void {
@@ -192,6 +205,16 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
 
   ngAfterViewChecked(): void {
     this.renderProbabilityChart();
+  }
+
+  private refreshSlug(routeSlug: string, force: boolean): void {
+    var nextSlug = (this.matchSlug || routeSlug || '').trim();
+    if (!nextSlug || (!force && nextSlug === this.slug)) {
+      return;
+    }
+
+    this.slug = nextSlug;
+    this.loadSurface();
   }
 
   getCanonicalMatchHref(): string {
@@ -1078,24 +1101,41 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
   }
 
   private getProbabilityChartPoints(): Array<{ x: number; y: number; over: string; score: string; probability: number; label: string; innings: number }> {
-    var points = this.getSwingPoints();
     var inningsOvers = this.getChartInningsOvers();
-    return points.map((point, index) => {
-      var over = this.parseChartOver(point.over);
+    var activeInnings = this.getCurrentInnings();
+    var candidates = this.getSwingPoints()
+      .map((point, index) => ({ point: point, index: index, innings: this.resolvePointInnings(point.innings) }))
+      .filter((entry) => entry.innings === activeInnings);
+
+    // A current-innings chart should not start halfway across a two-innings
+    // canvas. The dashboard uses cricket-over positions; retain that model
+    // here and discard superseded duplicate ball snapshots before Chart.js
+    // draws the line.
+    if (!candidates.length) {
+      candidates = this.getSwingPoints().map((point, index) => ({ point: point, index: index, innings: this.resolvePointInnings(point.innings) }));
+    }
+
+    var byBall: { [key: string]: any } = {};
+    candidates.forEach((entry) => {
+      var over = this.parseChartOver(entry.point.over);
       if (!isFinite(over)) {
-        over = points.length > 1 ? (index / (points.length - 1)) * inningsOvers : 0;
+        over = candidates.length > 1 ? (entry.index / (candidates.length - 1)) * inningsOvers : 0;
       }
-      var inningsPosition = (this.resolvePointInnings(point.innings) - 1) * inningsOvers + Math.max(0, Math.min(inningsOvers, over));
-      return {
-        x: Math.round(inningsPosition * 100) / 100,
-        y: Math.max(0, Math.min(100, point.probability)),
-        over: point.over,
-        score: point.score,
-        probability: point.probability,
-        label: point.label,
-        innings: this.resolvePointInnings(point.innings)
-      };
-    }).sort((left, right) => left.x - right.x);
+      over = Math.max(0, Math.min(inningsOvers, over));
+      // Keep the newest snapshot for a ball; feeds can resend a corrected
+      // probability for the same over/ball out of chronological order.
+      byBall[String(Math.round(over * 6))] = { entry: entry, over: over };
+    });
+
+    return Object.keys(byBall).map((key) => byBall[key]).map((item) => ({
+      x: Math.round(item.over * 100) / 100,
+      y: Math.max(0, Math.min(100, item.entry.point.probability)),
+      over: item.entry.point.over,
+      score: item.entry.point.score,
+      probability: item.entry.point.probability,
+      label: item.entry.point.label,
+      innings: item.entry.innings
+    })).sort((left, right) => left.x - right.x);
   }
 
   private getChartInningsOvers(): number {
@@ -1131,9 +1171,14 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
       data: points,
       borderColor: '#087f73',
       backgroundColor: 'rgba(216, 238, 232, 0.42)',
-      pointRadius: 0,
-      pointHoverRadius: 0,
+      borderWidth: 2.5,
+      pointRadius: 2.5,
+      pointHoverRadius: 4,
+      pointBackgroundColor: '#ffffff',
+      pointBorderColor: '#087f73',
+      pointBorderWidth: 2,
       pointHitRadius: 10,
+      lineTension: 0.22,
       fill: true,
       showLine: true
     }];
@@ -1193,12 +1238,18 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnInit, OnD
     options.scales = Object.assign({}, options.scales, {
       xAxes: [{
         type: 'linear',
-        ticks: { min: 0, max: inningsOvers * (this.shouldShowSecondInnings() ? 2 : 1), display: false },
-        gridLines: { color: '#d7dfdc', borderDash: [2, 4], drawBorder: false }
+        ticks: {
+          min: 0,
+          max: inningsOvers,
+          stepSize: inningsOvers === 50 ? 10 : 5,
+          fontColor: '#637083',
+          callback: (value: number) => value + ' ov'
+        },
+        gridLines: { color: 'rgba(148, 163, 184, 0.24)', borderDash: [3, 4], drawBorder: false }
       }],
       yAxes: [{
-        ticks: { min: 0, max: 100, stepSize: 50, display: false },
-        gridLines: { color: '#d7dfdc', borderDash: [2, 4], drawBorder: false }
+        ticks: { min: 0, max: 100, stepSize: 25, fontColor: '#637083', callback: (value: number) => value + '%' },
+        gridLines: { color: 'rgba(148, 163, 184, 0.24)', borderDash: [3, 4], drawBorder: false }
       }]
     });
     return options;

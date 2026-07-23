@@ -4,7 +4,6 @@ import { NgModule, APP_INITIALIZER } from '@angular/core';
 
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from '../app/app.routing';
-import { AdminLayoutsComponent } from './layouts/admin-layouts/admin-layouts.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { SidebarComponent } from './component/sidebar/sidebar.component';
 import {ComponentsModule} from '../app/component/components.module';
@@ -58,7 +57,6 @@ const stompConfig: StompConfig = {
 @NgModule({
   declarations: [
     AppComponent,
-    AdminLayoutsComponent,
     LoaderComponent,
     ElapsedTimePipe,
     

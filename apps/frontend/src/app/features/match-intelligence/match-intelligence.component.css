@@ -5,6 +5,10 @@
   overflow-x: hidden;
 }
 
+.match-intelligence--embedded {
+  padding: 0 0 24px;
+}
+
 .match-intelligence__shell {
   max-width: 1040px;
   margin: 0 auto;
@@ -651,6 +655,10 @@
 @media (max-width: 640px) {
   .match-intelligence {
     padding: 14px 12px 28px;
+  }
+
+  .match-intelligence--embedded {
+    padding: 0 0 18px;
   }
 
   .match-intelligence__hero {

@@ -5,5 +5,12 @@
     "changeOrigin": true,
     "pathRewrite": { "^/api": "" },
     "logLevel": "warn"
+  },
+  "/prediction-api": {
+    "target": "http://host.docker.internal:8000",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/prediction-api": "" },
+    "logLevel": "warn"
   }
 }

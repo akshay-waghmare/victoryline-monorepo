@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-07-22T12:12:01.8322731Z",
+  "baseUrl": "https://www.crickzen.com",
+  "liveCatalog": {
+    "status": 200,
+    "elapsedMs": 1148,
+    "count": 5,
+    "maxExpected": 20,
+    "duplicateUrls": []
+  },
+  "homepageChecks": [
+    {
+      "attempt": 1,
+      "status": 200,
+      "elapsedMs": 3074,
+      "bytes": 2430856,
+      "h1Count": 1,
+      "matchLinkCount": 46,
+      "error": null
+    },
+    {
+      "attempt": 2,
+      "status": 200,
+      "elapsedMs": 3109,
+      "bytes": 2430856,
+      "h1Count": 1,
+      "matchLinkCount": 46,
+      "error": null
+    },
+    {
+      "attempt": 3,
+      "status": 200,
+      "elapsedMs": 3097,
+      "bytes": 2430856,
+      "h1Count": 1,
+      "matchLinkCount": 46,
+      "error": null
+    }
+  ],
+  "productionEvidence": [
+    "victoryline-frontend|Up 50 minutes (healthy)|macubex/victoryline-frontend:series-hydration-622c53b",
+    "victoryline-proxy|Up 2 hours|caddy:2",
+    "victoryline-scraper|Up 5 hours (healthy)|macubex/victoryline-scraper:20260722-d73f105",
+    "victoryline-backend|Up 5 hours (healthy)|macubex/victoryline-backend:20260722-631a861",
+    "crickzen-dashboard|Up 18 hours (healthy)|machine_learning_bbl-dashboard",
+    "punepulse-news-demo|Up 11 days (healthy)|macubex/punepulse-news-demo:v20260618-1850",
+    "punepulse-news-demo-db|Up 11 days (healthy)|postgres:16-alpine",
+    "victoryline-redis|Up 11 days (healthy)|redis:7-alpine",
+    "cricket-ledger-mongodb|Up 11 days|mongo:6",
+    "LOGS"
+  ],
+  "warnings": [],
+  "failures": [],
+  "passed": true
+}

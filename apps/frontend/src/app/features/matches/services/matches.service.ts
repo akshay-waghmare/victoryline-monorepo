@@ -27,7 +27,11 @@ interface ScheduleResponse {
 })
 export class MatchesService {
 
-  private readonly matchesRequestTimeoutMs = 5000;
+  // The discovery catalogue feeds /series as well as home and /matches. The
+  // local proxy can take longer than five seconds while a scraper refresh is
+  // in flight; timing out one lane made the series centre look empty despite
+  // the backend already having fixtures.
+  private readonly matchesRequestTimeoutMs = 12000;
 
   // Singleton shared stream — all components subscribe to the same timer + WebSocket triggers.
   // This prevents multiple components (Home, MatchesList) from each creating their own

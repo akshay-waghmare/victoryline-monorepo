@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-07-21T12:30:56.6802284Z",
+  "baseUrl": "https://www.crickzen.com",
+  "liveCatalog": {
+    "status": 200,
+    "elapsedMs": 1144,
+    "count": 9,
+    "maxExpected": 20,
+    "duplicateUrls": []
+  },
+  "homepageChecks": [
+    {
+      "attempt": 1,
+      "status": 200,
+      "elapsedMs": 7084,
+      "bytes": 2381969,
+      "h1Count": 1,
+      "matchLinkCount": 44,
+      "error": null
+    },
+    {
+      "attempt": 2,
+      "status": 200,
+      "elapsedMs": 7140,
+      "bytes": 2381969,
+      "h1Count": 1,
+      "matchLinkCount": 44,
+      "error": null
+    },
+    {
+      "attempt": 3,
+      "status": 200,
+      "elapsedMs": 7104,
+      "bytes": 2381969,
+      "h1Count": 1,
+      "matchLinkCount": 44,
+      "error": null
+    }
+  ],
+  "productionEvidence": null,
+  "warnings": [],
+  "failures": [],
+  "passed": true
+}

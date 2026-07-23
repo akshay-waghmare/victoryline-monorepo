@@ -299,6 +299,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(() => {
       this.resetMatchPageScroll();
+      // The component instance is intentionally retained while users move
+      // between match tabs, so refresh the requested path before deriving
+      // the selected tab from the route.
+      this.currentRequestedPath = this.getRequestedMatchPath();
       const nextMatchKey = this.normalizeRouteMatchKey(this.activatedRoute.snapshot.params['path']
         || this.activatedRoute.snapshot.params['url']
         || '');
@@ -1035,15 +1039,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 }
 
 onTabChange(event: MatTabChangeEvent) {
-  var isProgrammaticSelection = event.index === this.selectedTabIndex;
   this.selectedTabIndex = event.index;
-
-  if (isProgrammaticSelection) {
-    return;
-  }
-
-  this.hasUserSelectedTab = true;
-  this.ensureDataForTab(event.index);
+  this.resetMatchPageScroll();
 
   // Give each primary match surface its own shareable, crawlable URL. The
   // match SEO policy still canonicalizes these supporting routes back to the
@@ -1054,15 +1051,28 @@ onTabChange(event: MatTabChangeEvent) {
     0: 'commentary',
     1: 'match-details',
     2: 'scorecard',
-    3: 'lineups'
+    3: 'lineups',
+    4: 'match-intelligence'
+  };
+  var keyByIndex: { [index: number]: MatchPageTabKey } = {
+    0: 'commentary',
+    1: 'details',
+    2: 'scorecard',
+    3: 'lineups',
+    4: 'intelligence'
   };
 
-  if (!slug) {
+  // MatTabGroup also emits when its selected index is updated from the route.
+  // Compare against that route, not a potentially stale previous index, so a
+  // real user tap is never discarded after moving between child routes.
+  if (this.resolveRequestedTabKey() === keyByIndex[event.index]) {
     return;
   }
 
-  if (event.index === this.tabIndexByKey.intelligence) {
-    this.router.navigate(['/match-intelligence', slug]);
+  this.hasUserSelectedTab = true;
+  this.ensureDataForTab(event.index);
+
+  if (!slug) {
     return;
   }
 
@@ -2503,6 +2513,9 @@ private resolveRequestedTabKey(): MatchPageTabKey | null {
       return 'details';
     case 'lineups':
       return 'lineups';
+    case 'intelligence':
+    case 'match-intelligence':
+      return 'intelligence';
     default:
       return null;
   }
@@ -4162,10 +4175,15 @@ private titleCaseSlug(value: string): string {
 
     const reset = () => window.scrollTo(0, 0);
     reset();
-    // Router scroll restoration can run after component creation on mobile.
-    // Re-assert the match page's top position once the new surface is mounted.
+    // Route reuse keeps this component mounted between tabs. Angular Material
+    // and router restoration can otherwise reapply the old (often footer)
+    // viewport after the new panel renders, especially on mobile.
+    if (window.requestAnimationFrame) {
+      window.requestAnimationFrame(reset);
+    }
     setTimeout(reset, 0);
     setTimeout(reset, 100);
+    setTimeout(reset, 350);
   }
 
   private updateStructuredData(): void {

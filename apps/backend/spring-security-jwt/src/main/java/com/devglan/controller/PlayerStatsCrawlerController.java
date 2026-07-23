@@ -25,6 +25,7 @@ import com.devglan.dao.PlayerStatsReferenceIngestionResponseDTO;
 import com.devglan.dao.PlayerStatsSeriesDetailViewDTO;
 import com.devglan.dao.PlayerStatsTeamDetailViewDTO;
 import com.devglan.service.PlayerStatsCrawlerService;
+import com.devglan.service.PlayerProfileHydrationService;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -32,12 +33,15 @@ import com.devglan.service.PlayerStatsCrawlerService;
 public class PlayerStatsCrawlerController {
 
     private final PlayerStatsCrawlerService playerStatsCrawlerService;
+    private final PlayerProfileHydrationService playerProfileHydrationService;
 
     @Value("${crawler.player-stats.enabled:true}")
     private boolean crawlerPlayerStatsEnabled;
 
-    public PlayerStatsCrawlerController(PlayerStatsCrawlerService playerStatsCrawlerService) {
+    public PlayerStatsCrawlerController(PlayerStatsCrawlerService playerStatsCrawlerService,
+            PlayerProfileHydrationService playerProfileHydrationService) {
         this.playerStatsCrawlerService = playerStatsCrawlerService;
+        this.playerProfileHydrationService = playerProfileHydrationService;
     }
 
     @PostMapping("/ingest")
@@ -104,6 +108,9 @@ public class PlayerStatsCrawlerController {
         }
         try {
             PlayerStatsPlayerDetailViewDTO response = playerStatsCrawlerService.getPlayerView(externalId, source);
+            if (!hasPlayerProfile(response) && playerProfileHydrationService.hydrate(externalId)) {
+                response = playerStatsCrawlerService.getPlayerView(externalId, source);
+            }
             if (response == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No player stats found for the given player.");
             }
@@ -114,6 +121,14 @@ public class PlayerStatsCrawlerController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error retrieving player stats data.");
         }
+    }
+
+    private boolean hasPlayerProfile(PlayerStatsPlayerDetailViewDTO response) {
+        if (response == null || response.getStats() == null) {
+            return false;
+        }
+        return response.getStats().stream().anyMatch(snapshot ->
+                snapshot != null && "player_profile".equalsIgnoreCase(snapshot.getCategory()));
     }
 
     @GetMapping("/team")

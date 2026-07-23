@@ -1,6 +1,6 @@
-<section class="match-intelligence">
+<section class="match-intelligence" [class.match-intelligence--embedded]="embedded">
   <div class="match-intelligence__shell" *ngIf="viewModel; else loadingState">
-    <nav class="match-intelligence__breadcrumb" aria-label="Breadcrumb">
+    <nav class="match-intelligence__breadcrumb" *ngIf="!embedded" aria-label="Breadcrumb">
       <a href="/matches">Cricket</a>
       <span aria-hidden="true">/</span>
       <a href="/series">{{ viewModel.seriesLabel }}</a>
@@ -21,7 +21,7 @@
           <span class="match-intelligence__state" *ngIf="viewModel.stateLabel !== viewModel.statusLabel">{{ viewModel.stateLabel }}</span>
         </div>
         <p class="match-intelligence__model-proof" *ngIf="viewModel.modelLabel">Powered by {{ viewModel.modelLabel }}</p>
-        <div class="match-intelligence__hero-actions">
+        <div class="match-intelligence__hero-actions" *ngIf="!embedded">
           <a class="match-intelligence__primary" [attr.href]="viewModel.canonicalMatchPath" (click)="onBackToMatchClick()" aria-label="Return to the canonical live match page">Back To Live Match</a>
         </div>
       </div>

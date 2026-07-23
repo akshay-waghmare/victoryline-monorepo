@@ -1,11 +1,16 @@
 import asyncio
+from unittest.mock import AsyncMock, Mock, patch
 
 from src.config import reload_settings
 from src.player_stats_crawler import PlayerStatsCandidate, PlayerStatsCrawlerService, PlayerStatsTask
 
 
 class _DummyCache:
-    pass
+    async def get_player_stats_seed(self, resource_id):
+        return None
+
+    async def set_player_stats_seed(self, resource_id, payload, ttl=None):
+        return None
 
 
 class _DummyRegistry:
@@ -193,6 +198,87 @@ def test_build_player_reference_request_from_player_page_analysis():
     ]
 
 
+def test_player_reference_reuses_persisted_profile_without_fetching_crex():
+    reload_settings({})
+    adapter = Mock()
+    service = PlayerStatsCrawlerService(
+        pool=Mock(),
+        cache=_DummyCache(),
+        registry=Mock(get_adapter=Mock(return_value=adapter)),
+        auth_token_provider=lambda: "token",
+    )
+    service._record_candidate_result = AsyncMock()
+    task = PlayerStatsTask(
+        priority=1,
+        match_id="reference:player:virat-kohli",
+        match_url="https://crex.com/player/virat-kohli",
+        task_type="PLAYER_REFERENCE",
+        metadata={"player": {"externalId": "player:virat-kohli", "name": "Virat Kohli"}},
+    )
+
+    with patch(
+        "src.player_stats_crawler.CricketDataService.get_player_stats_player",
+        return_value={"stats": [{"category": "player_profile", "payload": {"profile": {"name": "Virat Kohli"}}}]},
+    ) as get_player, patch("src.player_stats_crawler.CricketDataService.push_player_stats_reference") as push:
+        asyncio.run(service._process_player_reference_task(task))
+
+    get_player.assert_called_once_with("player:virat-kohli", "token")
+    adapter.fetch_player_reference.assert_not_called()
+    push.assert_not_called()
+    service._record_candidate_result.assert_awaited_once_with(task.match_id, success=True)
+
+
+def test_player_reference_fetches_and_persists_when_only_match_seed_exists():
+    reload_settings({})
+
+    class _ContextManager:
+        async def __aenter__(self):
+            return Mock()
+
+        async def __aexit__(self, exc_type, exc, traceback):
+            return False
+
+    adapter = Mock()
+    adapter.fetch_player_reference = AsyncMock(return_value={
+        "url": "https://crex.com/player/virat-kohli",
+        "player_name": "Virat Kohli",
+        "profile": {"name": "Virat Kohli", "nationality": "India"},
+    })
+    pool = Mock()
+    pool.get_context.return_value = _ContextManager()
+    service = PlayerStatsCrawlerService(
+        pool=pool,
+        cache=_DummyCache(),
+        registry=Mock(get_adapter=Mock(return_value=adapter)),
+        auth_token_provider=lambda: "token",
+    )
+    service._record_candidate_result = AsyncMock()
+    task = PlayerStatsTask(
+        priority=1,
+        match_id="reference:player:virat-kohli",
+        match_url="https://crex.com/player/virat-kohli",
+        task_type="PLAYER_REFERENCE",
+        metadata={"player": {"externalId": "player:virat-kohli", "name": "Virat Kohli"}},
+    )
+
+    with patch(
+        "src.player_stats_crawler.CricketDataService.get_player_stats_player",
+        return_value={"stats": [{"category": "seed_context"}]},
+    ), patch(
+        "src.player_stats_crawler.CricketDataService.push_player_stats_reference",
+        return_value=True,
+    ) as push:
+        asyncio.run(service._process_player_reference_task(task))
+
+    adapter.fetch_player_reference.assert_awaited_once()
+    pushed_request, pushed_token, pushed_url = push.call_args.args
+    assert pushed_request["player"]["externalId"] == "player:virat-kohli"
+    assert any(snapshot["category"] == "player_profile" for snapshot in pushed_request["snapshots"])
+    assert pushed_token == "token"
+    assert pushed_url == task.match_url
+    service._record_candidate_result.assert_awaited_once_with(task.match_id, success=True)
+
+
 def test_build_series_reference_requests_fan_out_series_and_team_payloads():
     reload_settings({})
     service = PlayerStatsCrawlerService(
@@ -335,13 +421,13 @@ class TestPriorityForCandidate:
         svc = _make_service()
         assert svc._priority_for_candidate(_candidate("PLAYER_REFERENCE", source_match="LIVE")) == 1
 
-    def test_series_standings_from_live_is_priority_1(self):
+    def test_series_standings_from_live_is_primary_priority(self):
         svc = _make_service()
-        assert svc._priority_for_candidate(_candidate("SERIES_STANDINGS", source_match="LIVE")) == 1
+        assert svc._priority_for_candidate(_candidate("SERIES_STANDINGS", source_match="LIVE")) == 0
 
-    def test_series_standings_from_upcoming_is_priority_2(self):
+    def test_series_standings_from_upcoming_is_primary_priority(self):
         svc = _make_service()
-        assert svc._priority_for_candidate(_candidate("SERIES_STANDINGS", source_match="UPCOMING")) == 2
+        assert svc._priority_for_candidate(_candidate("SERIES_STANDINGS", source_match="UPCOMING")) == 0
 
     def test_team_rankings_from_live_is_priority_2(self):
         svc = _make_service()
@@ -453,7 +539,8 @@ def test_discover_reference_candidates_enqueues_player_series_and_rankings_resou
     assert "reference:series:champions-trophy:profile" in service._candidates
     assert "reference:series:champions-trophy:standings" in service._candidates
     assert "reference:team-rankings:men" in service._candidates
-    assert service.scheduler.qsize == 2
+    # Live player, series profile, and primary standings are all queued now.
+    assert service.scheduler.qsize == 3
 
 
 def test_discover_reference_candidates_does_not_immediately_queue_upcoming_player_refs():

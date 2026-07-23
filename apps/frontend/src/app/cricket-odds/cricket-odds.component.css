@@ -604,6 +604,17 @@ mat-card-content {
   gap: 12px;
 }
 
+.match-tab-panel--intelligence {
+  gap: 0;
+  min-width: 0;
+}
+
+.match-tab-panel--intelligence ::ng-deep app-match-intelligence {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
 #scorecard-panel {
   scroll-margin-top: 76px;
   gap: 8px;
@@ -5491,6 +5502,58 @@ p {
     overflow: visible;
     max-height: none;
     touch-action: pan-y pinch-zoom;
+  }
+}
+
+/* Keep every primary match tab reachable at once on narrow phones. The full
+   labels remain in the DOM for assistive technology; only the visual labels
+   are shortened below the smallest mobile breakpoint. */
+@media (max-width: 480px) {
+  :host ::ng-deep .match-page-tabs .mat-tab-label-container {
+    overflow: hidden;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-labels {
+    width: 100%;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 4px;
+  }
+
+  :host ::ng-deep .match-page-tabs .match-page-tab-label > span:last-child {
+    font-size: 0;
+    white-space: nowrap;
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label:nth-child(1) .match-page-tab-label > span:last-child::after {
+    content: 'Live';
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label:nth-child(2) .match-page-tab-label > span:last-child::after {
+    content: 'Details';
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label:nth-child(3) .match-page-tab-label > span:last-child::after {
+    content: 'Score';
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label:nth-child(4) .match-page-tab-label > span:last-child::after {
+    content: 'XI';
+  }
+
+  :host ::ng-deep .match-page-tabs .mat-tab-label:nth-child(5) .match-page-tab-label > span:last-child::after {
+    content: 'Intel';
+  }
+
+  :host ::ng-deep .match-page-tabs .match-page-tab-label > span:last-child::after {
+    font-size: 0.68rem;
+    font-weight: 700;
   }
 }
 

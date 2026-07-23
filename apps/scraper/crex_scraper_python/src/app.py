@@ -23,6 +23,7 @@ from .crex_url_utils import (
     get_crex_live_url,
 )
 from .cricket_data_service import CricketDataService
+from .player_stats_crawler import PlayerStatsCrawlerService, PlayerStatsTask
 from .health import HealthState
 from .live_match_selection import select_live_matches
 from .loggers.adapters import configure_logging
@@ -111,6 +112,40 @@ async def _hydrate_match_details(url: str) -> Dict[str, Any]:
 
     result["success"] = bool(result["match_info_saved"] or result["scorecard_saved"])
     return result
+
+
+async def _hydrate_player_profile(external_id: str) -> Dict[str, Any]:
+    """Fetch a CREX player page on demand and persist it before responding."""
+    normalized_id = str(external_id or "").strip().lower()
+    if not re.match(r"^player:[a-z0-9][a-z0-9-]*$", normalized_id):
+        raise ValueError("externalId must be a CREX player identifier")
+
+    slug = normalized_id.split(":", 1)[1]
+    player_url = "https://crex.com/player/" + slug
+    crawler = scraper_service.player_stats_crawler or PlayerStatsCrawlerService(
+        pool=scraper_service.pool,
+        cache=scraper_service.cache,
+        registry=scraper_service.registry,
+        auth_token_provider=lambda: scraper_service._auth_token,
+    )
+    task = PlayerStatsTask(
+        priority=0,
+        match_id="demand:" + normalized_id,
+        match_url=player_url,
+        task_type="PLAYER_REFERENCE",
+        metadata={"player": {"externalId": normalized_id, "name": slug.replace("-", " ")}},
+    )
+    await crawler._process_player_reference_task(task)
+    persisted = await asyncio.to_thread(
+        CricketDataService.get_player_stats_player,
+        normalized_id,
+        scraper_service._auth_token,
+    )
+    has_profile = any(
+        isinstance(snapshot, dict) and str(snapshot.get("category") or "").lower() == "player_profile"
+        for snapshot in (persisted or {}).get("stats") or []
+    )
+    return {"externalId": normalized_id, "fetched": has_profile}
 
 def start_scraper_background():
     """Start the scraper service in a background thread."""
@@ -245,6 +280,29 @@ def hydrate_match_details():
     except Exception as exc:
         logger.error("Hydration failed for %s: %s", url, exc, exc_info=True)
         return jsonify({"status": "error", "message": str(exc)}), 500
+
+
+@app.route("/hydrate-player-profile", methods=["POST"])
+def hydrate_player_profile():
+    payload = request.get_json(silent=True) or {}
+    external_id = payload.get("externalId")
+    if not external_id:
+        return jsonify({"status": "error", "message": "externalId is required"}), 400
+    if scraper_loop is None or scraper_loop.is_closed() or not scraper_service._running:
+        return jsonify({"status": "error", "message": "scraper service is not ready"}), 503
+    try:
+        future = asyncio.run_coroutine_threadsafe(_hydrate_player_profile(external_id), scraper_loop)
+        result = future.result(timeout=60)
+        if result.get("fetched"):
+            return jsonify({"status": "success", "data": result})
+        return jsonify({"status": "unavailable", "data": result}), 404
+    except ValueError as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
+    except FutureTimeoutError:
+        return jsonify({"status": "error", "message": "player profile hydration timed out"}), 504
+    except Exception as exc:
+        logger.error("Player profile hydration failed for %s: %s", external_id, exc, exc_info=True)
+        return jsonify({"status": "error", "message": "player profile hydration failed"}), 502
 
 # Start scraper on app startup (if not running in a separate worker process manager that handles this)
 # For simple deployment, we start it here.

@@ -3,12 +3,12 @@
 
 services:
   frontend:
-    image: node:14.21.3-alpine
+    image: node:12.22.12-alpine
     build: null
     working_dir: /app
     command: >-
-      sh -c "npm install --legacy-peer-deps &&
-      npm run start:hot -- --port 4000 --disable-host-check --proxy-config proxy.docker-dev.conf.json"
+      sh -c "if [ ! -x node_modules/.bin/ng ]; then npm ci --legacy-peer-deps --no-audit --prefer-offline; fi
+      && npm run start:hot -- --port 4000 --disable-host-check --proxy-config proxy.docker-dev.conf.json"
     ports:
       - "4200:4000"
     environment:
@@ -27,6 +27,12 @@ services:
       - scraper
     networks:
       - victoryline-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:4000/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 volumes:
   frontend_dev_node_modules:

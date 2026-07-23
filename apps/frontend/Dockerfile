@@ -1,14 +1,19 @@
-ARG NODE_VERSION=14.21.3
-FROM node:${NODE_VERSION}-alpine AS build
+# syntax=docker/dockerfile:1.7
+# node-sass 4.13 is part of this Angular 7 toolchain and supports Node 12's
+# ABI. Node 14 Alpine falls back to a missing native build toolchain, making
+# every cold Docker build slow and unreliable.
+ARG NODE_VERSION=12.22.12
 
+# Keep dependency installation in a layer that changes only when the lockfile
+# changes. The npm cache mount prevents repeated registry downloads if Docker
+# needs to rebuild that layer after an interrupted build.
+FROM node:${NODE_VERSION}-alpine AS dependencies
 WORKDIR /app
-
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps --no-audit --prefer-offline
 
-# Force source-layer refresh when local frontend edits are made.
-ARG FRONTEND_SOURCE_REV=20260721-seo-hub-lifecycle
-RUN echo "$FRONTEND_SOURCE_REV"
+FROM dependencies AS build
 COPY . .
 RUN npm run build:ssr
 
@@ -19,7 +24,8 @@ ENV NODE_ENV=production
 ENV PORT=4000
 
 COPY package*.json ./
-RUN npm install --legacy-peer-deps --only=production
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps --only=production --no-audit --prefer-offline
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/server.js ./server.js
