@@ -5311,7 +5311,10 @@ p {
 /* Match Details lives beside the live surface instead of in a lazily attached
    tab body. Keep the legacy tab content for its SSR support copy, but remove
    the unreachable label from the interactive tab strip. */
-:host ::ng-deep .match-page-tabs .mat-tab-label:nth-child(2) {
+/* Scope this to the outer match tab header.  The scorecard contains its own
+   nested Material tab group; a descendant selector would otherwise hide its
+   second innings tab as well. */
+:host ::ng-deep .match-page-tabs > .mat-tab-header .mat-tab-label:nth-child(2) {
   display: none;
 }
 
