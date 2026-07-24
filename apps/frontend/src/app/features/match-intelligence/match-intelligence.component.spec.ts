@@ -75,6 +75,30 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
     expect(history[1].projected).toBeNull();
   });
 
+  it('keeps prediction-history innings so a chase chart excludes first-innings points', () => {
+    const history = (MatchIntelligenceComponent.prototype as any).getPredictionHistory.call({
+      snapshot: {
+        publicPrediction: {
+          prediction_history: [
+            { over: '20.0', score: '132/6', win_probability_pct: 54, innings: 1 },
+            { over: '1.2', score: '8/0', win_probability_pct: 78, innings: 2 }
+          ]
+        }
+      },
+      resolvePointInnings: (innings: number) => innings
+    });
+
+    expect(history.map((point: any) => point.innings)).toEqual([1, 2]);
+  });
+
+  it('selects the real opponent when CREX and display team labels differ only by punctuation', () => {
+    const opponent = (MatchIntelligenceComponent.prototype as any).resolveOpponentTeam.call({
+      normalizeTeamIdentity: (value: string) => (MatchIntelligenceComponent.prototype as any).normalizeTeamIdentity.call({}, value)
+    }, 'TAN W vs UGN W', 'TAN-W');
+
+    expect(opponent).toBe('UGN W');
+  });
+
   it('keeps expected-finish comparison bars bounded to the shared maximum', () => {
     const context: any = {
       snapshot: {

@@ -575,10 +575,18 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
     if (teams.length < 2) {
       return null;
     }
-    if (probabilityTeam && teams[0].toLowerCase().indexOf(probabilityTeam.toLowerCase()) !== -1) {
-      return teams[1];
+    var probabilityIdentity = this.normalizeTeamIdentity(probabilityTeam);
+    if (probabilityIdentity) {
+      var matchedTeamIndex = teams.findIndex((team) => this.normalizeTeamIdentity(team) === probabilityIdentity);
+      if (matchedTeamIndex !== -1) {
+        return teams[matchedTeamIndex === 0 ? 1 : 0];
+      }
     }
     return teams[0];
+  }
+
+  private normalizeTeamIdentity(value: string | null | undefined): string {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   }
 
   private resolveStateLabel(lifecycle: 'upcoming' | 'live' | 'completed' | 'unknown', freshnessState: 'fresh' | 'stale' | 'unavailable', modelUnavailable: boolean): string {
