@@ -5308,6 +5308,104 @@ p {
   margin-top: 12px;
 }
 
+/* Match Details lives beside the live surface instead of in a lazily attached
+   tab body. Keep the legacy tab content for its SSR support copy, but remove
+   the unreachable label from the interactive tab strip. */
+:host ::ng-deep .match-page-tabs .mat-tab-label:nth-child(2) {
+  display: none;
+}
+
+.match-details-inline {
+  margin: 14px 0 16px;
+  border: 1px solid #dbe5ef;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.match-details-inline__summary {
+  min-height: 64px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+  color: #172033;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.match-details-inline__summary::-webkit-details-marker {
+  display: none;
+}
+
+.match-details-inline__icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  background: #eef5ff;
+  color: #2563eb;
+}
+
+.match-details-inline__copy {
+  min-width: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.match-details-inline__copy strong {
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.match-details-inline__copy small {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-details-inline__chevron {
+  flex: 0 0 auto;
+  color: #64748b;
+  transition: transform 160ms ease;
+}
+
+.match-details-inline[open] .match-details-inline__chevron {
+  transform: rotate(180deg);
+}
+
+.match-details-inline__content {
+  padding: 0 14px 16px;
+  border-top: 1px solid #edf2f7;
+}
+
+@media (max-width: 600px) {
+  .match-details-inline {
+    margin: 10px 0 12px;
+    border-radius: 12px;
+  }
+
+  .match-details-inline__summary {
+    min-height: 58px;
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .match-details-inline__content {
+    padding: 0 8px 12px;
+  }
+}
+
 /* Match-page density pass: keep the live score first and bring commentary
    into the first reading layer without changing the underlying data/SEO DOM. */
 .match-page-shell {

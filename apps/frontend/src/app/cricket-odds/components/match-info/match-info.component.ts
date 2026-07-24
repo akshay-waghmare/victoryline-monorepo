@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { MatchApiService } from '../../match-api.service';
 
 type MatchInfoTone = 'default' | 'accent' | 'warning' | 'success' | 'danger' | 'neutral';
@@ -54,7 +54,8 @@ interface MatchInfoComparisonRow {
 @Component({
   selector: 'app-match-details-info',
   templateUrl: './match-info.component.html',
-  styleUrls: ['./match-info.component.css']
+  styleUrls: ['./match-info.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MatchDetailsInfoComponent implements OnInit, OnChanges {
   @Input() matchId?: string;

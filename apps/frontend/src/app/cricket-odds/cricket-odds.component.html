@@ -48,6 +48,42 @@
           <p class="cricket-odds__summary-result" *ngIf="getFallbackResultSummary()">{{ getFallbackResultSummary() }}</p>
         </section>
 
+        <details
+          class="match-details-inline"
+          id="match-info"
+          [open]="matchDetailsOpen"
+          (toggle)="onMatchDetailsToggle($event)">
+          <summary class="match-details-inline__summary">
+            <span class="match-details-inline__icon" aria-hidden="true">
+              <mat-icon>info</mat-icon>
+            </span>
+            <span class="match-details-inline__copy">
+              <strong>Match Details</strong>
+              <small>Venue, toss, officials, team form and comparison</small>
+            </span>
+            <mat-icon class="match-details-inline__chevron" aria-hidden="true">expand_more</mat-icon>
+          </summary>
+
+          <section class="match-details-inline__content" aria-label="Match Details">
+            <app-match-details-info
+              *ngIf="matchInfo"
+              [matchInfo]="matchInfo"
+              [currentMatch]="currentMatch">
+            </app-match-details-info>
+
+            <div class="loading-indicator match-tab-state" *ngIf="!matchInfo && isLoadingMatchInfo">
+              <mat-spinner></mat-spinner>
+              <p>Loading match details...</p>
+            </div>
+
+            <div class="match-tab-state" *ngIf="!matchInfo && !isLoadingMatchInfo">
+              <mat-icon>info_outline</mat-icon>
+              <p>Match details are temporarily unavailable.</p>
+              <button type="button" class="match-tab-state__retry" (click)="fetchMatchInfo(matchId || currentUrl)">Try again</button>
+            </div>
+          </section>
+        </details>
+
       <mat-tab-group class="match-page-tabs" [selectedIndex]="selectedTabIndex" (selectedTabChange)="onTabChange($event)">
         <!-- First Tab: Live Match -->
         <mat-tab>
@@ -220,12 +256,6 @@
             </span>
           </ng-template>
           <section class="match-tab-panel" id="match-info-panel">
-            <app-match-details-info 
-              *ngIf="matchInfo"
-              [matchInfo]="matchInfo"
-              [currentMatch]="currentMatch">
-            </app-match-details-info>
-
             <details class="cricket-odds__seo-drawer" *ngIf="matchSeo">
               <summary class="cricket-odds__seo-drawer-summary">
                 <span class="cricket-odds__seo-drawer-title">More match detail</span>
@@ -308,16 +338,6 @@
               </section>
             </details>
 
-            <div class="loading-indicator match-tab-state" *ngIf="!matchInfo && isLoadingMatchInfo">
-              <mat-spinner></mat-spinner>
-              <p>Loading match details...</p>
-            </div>
-
-            <div class="match-tab-state" *ngIf="!matchInfo && !isLoadingMatchInfo">
-              <mat-icon>info_outline</mat-icon>
-              <p>Match details are temporarily unavailable.</p>
-              <button type="button" class="match-tab-state__retry" (click)="fetchMatchInfo(matchId || currentUrl)">Try again</button>
-            </div>
           </section>
         </mat-tab>
 

@@ -213,10 +213,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   winBowlFirstPercentage: number;
   scorecardInfo: any;
   selectedTabIndex: number = 0;
+  matchDetailsOpen: boolean = false;
   private hasUserSelectedTab: boolean = false;
   private readonly tabIndexByKey: { [key in MatchPageTabKey]: number } = {
     commentary: 0,
-    details: 1,
+    details: 0,
     scorecard: 2,
     lineups: 3,
     intelligence: 4
@@ -280,6 +281,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     const legacyMatchUrl = this.activatedRoute.snapshot.queryParamMap.get('url');
     this.currentUrl = routeMatchKey;
     this.currentRequestedPath = this.getRequestedMatchPath();
+    this.matchDetailsOpen = this.resolveRequestedTabKey() === 'details';
     this.routeMatchHint = this.getNavigationMatchHint(routeMatchKey);
     if (this.routeMatchHint) {
       this.applyRouteMatchHint(this.routeMatchHint);
@@ -302,6 +304,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       // between match tabs, so refresh the requested path before deriving
       // the selected tab from the route.
       this.currentRequestedPath = this.getRequestedMatchPath();
+      this.matchDetailsOpen = this.resolveRequestedTabKey() === 'details';
       const nextMatchKey = this.normalizeRouteMatchKey(this.activatedRoute.snapshot.params['path']
         || this.activatedRoute.snapshot.params['url']
         || '');
@@ -311,12 +314,14 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       // place instead of treating each tab as a fresh match-page load.
       if (nextMatchKey && nextMatchKey === this.lastFetchedRouteKey) {
         this.syncMatchTabSelection(true);
+        this.ensureDataForTab(this.selectedTabIndex);
+        this.resetMatchPageScroll(true);
         return;
       }
 
-      // Reset only when the match entity changes. Repeated scroll resets
-      // during a Material tab transition race mobile browser restoration.
-      this.resetMatchPageScroll();
+      // A different match starts a fresh surface and should receive the same
+      // deterministic content focus as child-route navigation.
+      this.resetMatchPageScroll(true);
 
       // Unsubscribe from WebSocket subscription when the route changes
       if (this.cricetTopicSubscription) {
@@ -1067,7 +1072,8 @@ onTabChange(event: MatTabChangeEvent) {
   // MatTabGroup also emits when its selected index is updated from the route.
   // Compare against that route, not a potentially stale previous index, so a
   // real user tap is never discarded after moving between child routes.
-  if (this.resolveRequestedTabKey() === keyByIndex[event.index]) {
+  var requestedKey = this.resolveRequestedTabKey();
+  if (requestedKey && this.tabIndexByKey[requestedKey] === event.index) {
     // A direct child URL (especially after mobile browser restoration) can
     // select Material's tab before the component's first fetch settles.
     // Re-run the tab's lightweight loader; it is internally de-duplicated.
@@ -1100,6 +1106,10 @@ jumpToMatchSection(target: MatchPageTabKey, event?: Event): void {
 
   this.selectedTabIndex = index;
   this.hasUserSelectedTab = true;
+  if (target === 'details') {
+    this.matchDetailsOpen = true;
+    this.fetchMatchInfo(this.matchId || this.currentUrl);
+  }
   this.ensureDataForTab(index);
 
   if (!this.isBrowser()) {
@@ -1117,6 +1127,15 @@ jumpToMatchSection(target: MatchPageTabKey, event?: Event): void {
       window.history.replaceState(null, '', '#' + targetId);
     }
   }, 30);
+}
+
+onMatchDetailsToggle(event: Event): void {
+  var disclosure = event.target as HTMLDetailsElement;
+  this.matchDetailsOpen = !!(disclosure && disclosure.open);
+
+  if (this.matchDetailsOpen && !this.matchInfo && !this.isLoadingMatchInfo) {
+    this.fetchMatchInfo(this.matchId || this.currentUrl);
+  }
 }
 
 fetchScorecardInfo(matchUrl:string){
@@ -2575,11 +2594,6 @@ private resolveLifecycleDefaultTab(): MatchPageTabKey {
 private ensureDataForTab(index: number): void {
   var match = this.matchId || this.activatedRoute.snapshot.params['path'];
   if (!match) {
-    return;
-  }
-
-  if (index === this.tabIndexByKey.details) {
-    this.fetchMatchInfo(match);
     return;
   }
 
@@ -4210,16 +4224,32 @@ private titleCaseSlug(value: string): string {
     return typeof window !== 'undefined' && !(window as any).__SSR__;
   }
 
-  private resetMatchPageScroll(): void {
+  private resetMatchPageScroll(focusContent: boolean = false): void {
     if (!this.isBrowser()) {
       return;
     }
 
-    const reset = () => window.scrollTo(0, 0);
+    var hasFocusedContent = false;
+    const reset = () => {
+      if (focusContent && !hasFocusedContent) {
+        var content = document.querySelector('.match-page-content') as HTMLElement;
+        if (content) {
+          content.setAttribute('tabindex', '-1');
+          try {
+            content.focus({ preventScroll: true } as any);
+          } catch (_error) {
+            content.focus();
+          }
+          hasFocusedContent = true;
+        }
+      }
+      window.scrollTo(0, 0);
+    };
     reset();
-    // Route reuse keeps this component mounted between tabs. Angular Material
-    // and router restoration can otherwise reapply the old (often footer)
-    // viewport after the new panel renders, especially on mobile.
+    // Route reuse keeps this component mounted between child URLs. Explicitly
+    // reset after the tab body and browser restoration settle, and move focus
+    // away from links near the footer so mobile Chrome/Safari cannot pull the
+    // viewport back down to the previously focused element.
     if (window.requestAnimationFrame) {
       window.requestAnimationFrame(reset);
     }
