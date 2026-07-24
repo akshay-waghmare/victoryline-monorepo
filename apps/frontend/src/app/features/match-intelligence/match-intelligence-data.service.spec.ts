@@ -82,4 +82,16 @@ describe('MatchIntelligenceDataService freshness and public metric mapping', () 
     expect((service as any).teamNameMatches(routeTeams[0], predictionTeams[0])).toBe(true);
     expect((service as any).teamNameMatches(routeTeams[1], predictionTeams[1])).toBe(true);
   });
+
+  it('matches a public prediction by canonical URL when its CREX key uses uppercase letters', () => {
+    const routeSlug = 'tan-w-vs-ugn-w-5th-match-womens-t20i-quadrangular-series-in-namibia-2026-match-updates-131d';
+    const prediction = {
+      slug: 'w-vs-ugn-t20-win-probability',
+      title: 'W vs UGN',
+      match_url: 'https://crex.com/cricket-live-score/tan-w-vs-ugn-w-5th-match-womens-t20i-quadrangular-series-in-namibia-2026-match-updates-131D',
+      win_probability_pct: 43
+    };
+
+    expect((service as any).findPublicPrediction(routeSlug, null, null, [prediction])).toBe(prediction);
+  });
 });

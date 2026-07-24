@@ -190,10 +190,14 @@ export class MatchIntelligenceDataService {
     // The prediction service retains the exact CREX source URL. Prefer this
     // over display-name matching: live states can abbreviate a team label
     // (for example TAN-W becoming W), but the canonical route remains stable.
-    var routeSlug = extractSlugFromUrl(slug) || String(slug || '').trim().toLowerCase();
+    // CREX match identifiers can contain uppercase suffixes (for example
+    // `...-131D`).  Angular routes preserve that spelling while a browser or
+    // an earlier normalization step may lowercase it, so canonical matching
+    // must be explicitly case-insensitive.
+    var routeSlug = (extractSlugFromUrl(slug) || String(slug || '').trim()).toLowerCase();
     if (routeSlug) {
       var urlMatch = publicMatches.find((item) =>
-        extractSlugFromUrl(String(item && item.match_url || '')) === routeSlug
+        String(extractSlugFromUrl(String(item && item.match_url || '')) || '').toLowerCase() === routeSlug
       );
       if (urlMatch) {
         return urlMatch;
