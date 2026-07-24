@@ -30,6 +30,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       SCRAPER_HYDRATE_URL: http://scraper:5000/hydrate-match-details
+      SCRAPER_PLAYER_PROFILE_HYDRATE_URL: http://scraper:5000/hydrate-player-profile
       RAPIDAPI_KEY: "${RAPIDAPI_KEY:-}"
       GSC_ENABLED: "false"
       CRAWLER_PLAYER_STATS_ENABLED: "true"

@@ -298,7 +298,6 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       switchMap(() => this.activatedRoute.params),
       takeUntil(this.destroy$)
     ).subscribe(() => {
-      this.resetMatchPageScroll();
       // The component instance is intentionally retained while users move
       // between match tabs, so refresh the requested path before deriving
       // the selected tab from the route.
@@ -314,6 +313,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         this.syncMatchTabSelection(true);
         return;
       }
+
+      // Reset only when the match entity changes. Repeated scroll resets
+      // during a Material tab transition race mobile browser restoration.
+      this.resetMatchPageScroll();
 
       // Unsubscribe from WebSocket subscription when the route changes
       if (this.cricetTopicSubscription) {
@@ -1040,7 +1043,6 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
 onTabChange(event: MatTabChangeEvent) {
   this.selectedTabIndex = event.index;
-  this.resetMatchPageScroll();
 
   // Give each primary match surface its own shareable, crawlable URL. The
   // match SEO policy still canonicalizes these supporting routes back to the
@@ -1215,6 +1217,10 @@ private resolveRouteMatch(matchSlug: string): void {
       };
 
   this.currentMatch = routeMatch;
+  // A direct mobile URL has no navigation-state card.  Seed the hero with a
+  // non-blocking fallback immediately so a failed live-snapshot request can
+  // never leave the first screen on an infinite loader.
+  this.heroFallbackView = this.buildHeroFallbackView(routeMatch);
   this.updateSeriesFallbackContext(routeMatch);
   this.updatePageTitle();
   this.fetchPlayerStatsForMatch(routeMatch, matchSlug);
@@ -1410,8 +1416,11 @@ getDeduplicatedSquadTeams(): PlayerStatsTeamView[] {
 }
 
 openSquadPlayer(player: PlayerStatsSquadPlayerView, team: PlayerStatsTeamView): void {
-  if (!player || !player.externalId) {
-    this.showToast('Detailed player stats are not available yet for ' + (player && player.name || 'this player') + '.', 'Dismiss');
+  if (!player) {
+    return;
+  }
+  if (!player.externalId) {
+    this.loadPlayerStatsDetailFromGlobalSearch(player.name, 'lineups', player.role);
     return;
   }
   this.loadPlayerStatsDetail(player, team, 'lineups');
@@ -2115,9 +2124,14 @@ private loadPlayerStatsDetailFromGlobalSearch(
       (players: PlayerStatsSquadPlayerView[]) => {
         var player = this.findBestGlobalPlayerMatch(players, playerName);
         if (!player || !player.externalId) {
-          this.isLoadingStatsExplorer = false;
-          this.statsExplorerErrorMessage = 'Detailed player stats are not available for ' + playerName + '.';
-          this.notifyPlayerStatsUnavailable(playerName, role);
+          // Match seeds can expose a player name before their asynchronous
+          // roster task writes the CREX id. Let the profile endpoint hydrate
+          // and persist this deterministic CREX slug on the user's click.
+          this.loadPlayerStatsDetail({
+            externalId: 'player:' + this.slugifyPlayerName(playerName),
+            name: playerName,
+            role: role
+          } as PlayerStatsSquadPlayerView, null, source);
           return;
         }
 
@@ -2609,7 +2623,12 @@ private buildHeroFallbackView(match: any): LiveHeroViewModel | null {
   var timestampMs = match.lastStateUpdatedAt || match.lastUpdated || match.scheduledStartTime || Date.now();
   var oversValue = this.parseOversValue(score.overs);
   var runRate = oversValue > 0 ? score.runs / oversValue : 0;
-  var status = this.isLiveLikeStatus(match.status) ? match.status : 'COMPLETED';
+  // Keep scheduled fixtures distinct from completed results when the live
+  // snapshot is not yet available.
+  var normalizedStatus = this.normalizeMatchStatus(match.status);
+  var status = this.isLiveLikeStatus(match.status)
+    ? match.status
+    : (this.isUpcomingStatus(normalizedStatus) ? 'UPCOMING' : (normalizedStatus || 'UPCOMING'));
 
   // Build a clean formatted result summary with both teams' scores
   var formattedResult = match.resultSummary || match.lastKnownState || null;

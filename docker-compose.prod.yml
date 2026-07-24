@@ -66,6 +66,10 @@ services:
       JWT_SECRET: "${JWT_SECRET:-change_me}"
       JWT_EXPIRATION: "${JWT_EXPIRATION:-86400}"
       SCRAPER_HYDRATE_URL: "${SCRAPER_HYDRATE_URL:-http://scraper:5000/hydrate-match-details}"
+      # Player pages are fetched synchronously on a user click when the DB
+      # has no persisted profile.  This must use the Docker service hostname,
+      # not the backend container's localhost.
+      SCRAPER_PLAYER_PROFILE_HYDRATE_URL: "${SCRAPER_PLAYER_PROFILE_HYDRATE_URL:-http://scraper:5000/hydrate-player-profile}"
       # Redis configuration
       REDIS_HOST: redis
       REDIS_PORT: "6379"
@@ -141,7 +145,7 @@ services:
       FAST_POLL_INTERVAL_MS: "${FAST_POLL_INTERVAL_MS:-1000}"
       FAST_POLL_RECONCILE_INTERVAL_SECONDS: "${FAST_POLL_RECONCILE_INTERVAL_SECONDS:-0.8}"
       LIVE_MATCH_RESCRAPE_INTERVAL_SECONDS: "${LIVE_MATCH_RESCRAPE_INTERVAL_SECONDS:-15}"
-      ENABLE_PLAYER_STATS_CRAWLER: "${ENABLE_PLAYER_STATS_CRAWLER:-false}"
+      ENABLE_PLAYER_STATS_CRAWLER: "${ENABLE_PLAYER_STATS_CRAWLER:-true}"
       PLAYER_STATS_INCLUDE_LIVE_MATCHES: "${PLAYER_STATS_INCLUDE_LIVE_MATCHES:-true}"
       PLAYER_STATS_INCLUDE_UPCOMING_MATCHES: "${PLAYER_STATS_INCLUDE_UPCOMING_MATCHES:-false}"
       PLAYER_STATS_POLLING_INTERVAL_SECONDS: "${PLAYER_STATS_POLLING_INTERVAL_SECONDS:-30}"
