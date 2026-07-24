@@ -1152,6 +1152,15 @@ fetchMatchInfo(matchUrl:string) {
   this.isLoadingMatchInfo = true;
   this.cricketService.getMatchInfo(matchUrl).subscribe(
     data => {
+      if (!data || typeof data !== 'object') {
+        // The stale-while-revalidate service can complete without emitting
+        // when a mobile request is interrupted or the upstream returns an
+        // empty response. Do not leave the Details tab on its spinner.
+        this.isLoadingMatchInfo = false;
+        this.populateFallbackMatchInfo();
+        this.syncMatchTabSelection();
+        return;
+      }
       this.matchInfo = data;
       this.isFallbackMatchInfo = false;
       this.isLoadingMatchInfo = false;
@@ -1194,6 +1203,16 @@ fetchMatchInfo(matchUrl:string) {
       console.error('Error fetching match info:', error);
       this.populateFallbackMatchInfo();
       this.syncMatchTabSelection();
+    },
+    () => {
+      // `getMatchInfo` intentionally turns network failures into an empty
+      // observable so cached data can still win. A no-cache mobile request
+      // therefore reaches complete rather than error; settle it here.
+      if (this.isLoadingMatchInfo) {
+        this.isLoadingMatchInfo = false;
+        this.populateFallbackMatchInfo();
+        this.syncMatchTabSelection();
+      }
     }
   );
 }

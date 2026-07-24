@@ -136,6 +136,24 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     );
   });
 
+  it('settles the Details tab with fallback information when match-info completes without data', () => {
+    var component = createComponent();
+    spyOn<any>(component, 'populateFallbackMatchInfo');
+    spyOn<any>(component, 'syncMatchTabSelection');
+    (component as any).cricketService.getMatchInfo = jasmine.createSpy('getMatchInfo').and.returnValue({
+      subscribe: function(_next: Function, _error: Function, complete: Function) {
+        complete();
+        return { unsubscribe: function() {} };
+      }
+    });
+
+    component.fetchMatchInfo('team-a-vs-team-b-123A');
+
+    expect(component.isLoadingMatchInfo).toBe(false);
+    expect((component as any).populateFallbackMatchInfo).toHaveBeenCalled();
+    expect((component as any).syncMatchTabSelection).toHaveBeenCalled();
+  });
+
   it('does not try to load scorecard data for upcoming matches', () => {
     var component = createComponent();
     component.matchInfo = { match_status: 'UPCOMING' };

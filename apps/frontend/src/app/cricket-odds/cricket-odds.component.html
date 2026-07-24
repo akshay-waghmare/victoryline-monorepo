@@ -308,9 +308,15 @@
               </section>
             </details>
 
-            <div class="loading-indicator match-tab-state" *ngIf="!matchInfo">
+            <div class="loading-indicator match-tab-state" *ngIf="!matchInfo && isLoadingMatchInfo">
               <mat-spinner></mat-spinner>
               <p>Loading match details...</p>
+            </div>
+
+            <div class="match-tab-state" *ngIf="!matchInfo && !isLoadingMatchInfo">
+              <mat-icon>info_outline</mat-icon>
+              <p>Match details are temporarily unavailable.</p>
+              <button type="button" class="match-tab-state__retry" (click)="fetchMatchInfo(matchId || currentUrl)">Try again</button>
             </div>
           </section>
         </mat-tab>
