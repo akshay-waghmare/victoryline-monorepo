@@ -21,6 +21,7 @@ interface PublicPredictionMatch {
   insight?: string | null;
   updated_at?: string | null;
   detail_url?: string | null;
+  match_url?: string | null;
   format_label?: string | null;
   model_mode?: string | null;
   model_source?: string | null;
@@ -184,6 +185,19 @@ export class MatchIntelligenceDataService {
   private findPublicPrediction(slug: string, currentMatch: MatchCardViewModel | null, matchInfo: any, publicMatches: PublicPredictionMatch[]): PublicPredictionMatch | null {
     if (!publicMatches || !publicMatches.length) {
       return null;
+    }
+
+    // The prediction service retains the exact CREX source URL. Prefer this
+    // over display-name matching: live states can abbreviate a team label
+    // (for example TAN-W becoming W), but the canonical route remains stable.
+    var routeSlug = extractSlugFromUrl(slug) || String(slug || '').trim().toLowerCase();
+    if (routeSlug) {
+      var urlMatch = publicMatches.find((item) =>
+        extractSlugFromUrl(String(item && item.match_url || '')) === routeSlug
+      );
+      if (urlMatch) {
+        return urlMatch;
+      }
     }
 
     var currentMatchupKey = this.extractMatchupKey(
