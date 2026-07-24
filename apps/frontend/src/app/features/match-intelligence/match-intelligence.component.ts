@@ -558,14 +558,17 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
   }
 
   private resolveProbabilityTeam(): string | null {
-    if (this.snapshot && this.snapshot.matchData && this.snapshot.matchData.team_odds && this.snapshot.matchData.team_odds.favTeam) {
-      return String(this.snapshot.matchData.team_odds.favTeam).trim();
+    // The plotted percentage comes from the public model payload, where it is
+    // explicitly owned by the current batting team. Legacy match odds can
+    // describe a different favourite and must not relabel the model series.
+    if (this.snapshot && this.snapshot.publicPrediction && this.snapshot.publicPrediction.batting_team) {
+      return String(this.snapshot.publicPrediction.batting_team).trim();
     }
     if (this.snapshot && this.snapshot.matchData && this.snapshot.matchData.batting_team) {
       return String(this.snapshot.matchData.batting_team).trim();
     }
-    if (this.snapshot && this.snapshot.publicPrediction && this.snapshot.publicPrediction.batting_team) {
-      return String(this.snapshot.publicPrediction.batting_team).trim();
+    if (this.snapshot && this.snapshot.matchData && this.snapshot.matchData.team_odds && this.snapshot.matchData.team_odds.favTeam) {
+      return String(this.snapshot.matchData.team_odds.favTeam).trim();
     }
     return null;
   }
@@ -586,7 +589,25 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
   }
 
   private normalizeTeamIdentity(value: string | null | undefined): string {
-    return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    var normalized = String(value || '')
+      .toLowerCase()
+      .replace(/\bwomen\b/g, '')
+      .replace(/[^a-z0-9]/g, '');
+    var aliases: { [key: string]: string } = {
+      hkw: 'hongkong',
+      hongkongw: 'hongkong',
+      hongkong: 'hongkong',
+      namw: 'namibia',
+      namibiaw: 'namibia',
+      namibia: 'namibia',
+      tanw: 'tanzania',
+      tanzaniaw: 'tanzania',
+      tanzania: 'tanzania',
+      ugnw: 'uganda',
+      ugandaw: 'uganda',
+      uganda: 'uganda'
+    };
+    return aliases[normalized] || normalized;
   }
 
   private resolveStateLabel(lifecycle: 'upcoming' | 'live' | 'completed' | 'unknown', freshnessState: 'fresh' | 'stale' | 'unavailable', modelUnavailable: boolean): string {
@@ -1110,18 +1131,8 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
 
   private getProbabilityChartPoints(): Array<{ x: number; y: number; over: string; score: string; probability: number; label: string; innings: number }> {
     var inningsOvers = this.getChartInningsOvers();
-    var activeInnings = this.getCurrentInnings();
     var candidates = this.getSwingPoints()
-      .map((point, index) => ({ point: point, index: index, innings: this.resolvePointInnings(point.innings) }))
-      .filter((entry) => entry.innings === activeInnings);
-
-    // A current-innings chart should not start halfway across a two-innings
-    // canvas. The dashboard uses cricket-over positions; retain that model
-    // here and discard superseded duplicate ball snapshots before Chart.js
-    // draws the line.
-    if (!candidates.length) {
-      candidates = this.getSwingPoints().map((point, index) => ({ point: point, index: index, innings: this.resolvePointInnings(point.innings) }));
-    }
+      .map((point, index) => ({ point: point, index: index, innings: this.resolvePointInnings(point.innings) }));
 
     var byBall: { [key: string]: any } = {};
     candidates.forEach((entry) => {
@@ -1132,11 +1143,11 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
       over = Math.max(0, Math.min(inningsOvers, over));
       // Keep the newest snapshot for a ball; feeds can resend a corrected
       // probability for the same over/ball out of chronological order.
-      byBall[String(Math.round(over * 6))] = { entry: entry, over: over };
+      byBall[String(entry.innings) + ':' + String(Math.round(over * 6))] = { entry: entry, over: over };
     });
 
     return Object.keys(byBall).map((key) => byBall[key]).map((item) => ({
-      x: Math.round(item.over * 100) / 100,
+      x: Math.round(((item.entry.innings === 2 ? inningsOvers : 0) + item.over) * 100) / 100,
       y: Math.max(0, Math.min(100, item.entry.point.probability)),
       over: item.entry.point.over,
       score: item.entry.point.score,
@@ -1242,16 +1253,22 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
 
   private buildProbabilityChartOptions(): any {
     var inningsOvers = this.getChartInningsOvers();
+    var showSecondInnings = this.shouldShowSecondInnings();
+    var chartOvers = showSecondInnings ? inningsOvers * 2 : inningsOvers;
     var options = Object.assign({}, this.probabilityChartOptions || {});
     options.scales = Object.assign({}, options.scales, {
       xAxes: [{
         type: 'linear',
         ticks: {
           min: 0,
-          max: inningsOvers,
+          max: chartOvers,
           stepSize: inningsOvers === 50 ? 10 : 5,
           fontColor: '#637083',
-          callback: (value: number) => value + ' ov'
+          maxRotation: 0,
+          callback: (value: number) => {
+            var inningsValue = showSecondInnings && value > inningsOvers ? value - inningsOvers : value;
+            return inningsValue + ' ov';
+          }
         },
         gridLines: { color: 'rgba(148, 163, 184, 0.24)', borderDash: [3, 4], drawBorder: false }
       }],

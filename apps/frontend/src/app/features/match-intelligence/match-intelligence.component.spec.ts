@@ -99,6 +99,30 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
     expect(opponent).toBe('UGN W');
   });
 
+  it('selects the real opponent when a full women team name meets an abbreviated route label', () => {
+    const normalize = (value: string) =>
+      (MatchIntelligenceComponent.prototype as any).normalizeTeamIdentity.call({}, value);
+    const opponent = (MatchIntelligenceComponent.prototype as any).resolveOpponentTeam.call({
+      normalizeTeamIdentity: normalize
+    }, 'HK W vs NAM W', 'Hong Kong Women');
+
+    expect(opponent).toBe('NAM W');
+  });
+
+  it('uses the public model batting team as probability owner before legacy odds', () => {
+    const owner = (MatchIntelligenceComponent.prototype as any).resolveProbabilityTeam.call({
+      snapshot: {
+        publicPrediction: { batting_team: 'Hong Kong Women' },
+        matchData: {
+          batting_team: 'Hong Kong Women',
+          team_odds: { favTeam: 'NAM-W' }
+        }
+      }
+    });
+
+    expect(owner).toBe('Hong Kong Women');
+  });
+
   it('keeps expected-finish comparison bars bounded to the shared maximum', () => {
     const context: any = {
       snapshot: {

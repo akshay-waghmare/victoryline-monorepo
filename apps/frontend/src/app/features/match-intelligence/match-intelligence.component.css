@@ -936,7 +936,7 @@
   position: relative;
   display: block;
   min-height: 184px;
-  padding: 8px 30px 0 34px;
+  padding: 8px 8px 0;
   overflow: hidden;
   border: 1px solid #ded8cc;
   border-radius: 10px;
@@ -964,8 +964,8 @@
   height: 172px !important;
 }
 
-.match-intelligence__chart-canvas::after,
-.match-intelligence__chart-server-placeholder::after {
+.match-intelligence__chart-shell--two-innings .match-intelligence__chart-canvas::after,
+.match-intelligence__chart-shell--two-innings .match-intelligence__chart-server-placeholder::after {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -1161,17 +1161,137 @@
 
 @media (max-width: 640px) {
   .match-intelligence__chart-shell {
-    min-height: 164px;
-    padding-left: 30px;
-    padding-right: 28px;
+    min-height: 190px;
+    padding: 6px 4px 0;
   }
 
-  .match-intelligence__worm {
-    height: 152px;
+  .match-intelligence__chart-canvas,
+  .match-intelligence__chart-canvas canvas {
+    height: 184px !important;
   }
 
   .match-intelligence__worm-axis {
-    margin-left: 30px;
-    margin-right: 28px;
+    margin: 0 8px;
+  }
+}
+
+/* Final responsive contract. Earlier sections preserve legacy standalone-page
+   styling; these rules deliberately win after the cockpit refinements above. */
+@media (max-width: 900px) {
+  .match-intelligence__hero,
+  .match-intelligence__prediction-brief {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .match-intelligence__score-context {
+    padding-top: 12px;
+    padding-left: 0;
+    border-top: 1px solid rgba(148, 163, 184, .24);
+    border-left: 0;
+  }
+
+  .match-intelligence__metric-panel {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .match-intelligence {
+    padding: 8px 0 20px;
+  }
+
+  .match-intelligence__shell {
+    gap: 12px;
+  }
+
+  .match-intelligence__hero,
+  .match-intelligence__prediction-brief,
+  .match-intelligence__relationship {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .match-intelligence__title {
+    font-size: 1.3rem;
+    line-height: 1.2;
+  }
+
+  .match-intelligence__prediction-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .match-intelligence__prediction-value {
+    font-size: 2.35rem;
+  }
+
+  .match-intelligence__score-context {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .match-intelligence__metric-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .match-intelligence__visual-grid,
+  .match-intelligence__explanation-grid,
+  .match-intelligence__grid,
+  .match-intelligence__utility-grid,
+  .match-intelligence__briefing-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .match-intelligence__visual-grid > .match-intelligence__chart-card:first-child {
+    grid-column: auto;
+  }
+
+  .match-intelligence__chart-card,
+  .match-intelligence__card,
+  .match-intelligence__utility {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .match-intelligence__probability-header,
+  .match-intelligence__probability-teams {
+    align-items: flex-start;
+  }
+
+  .match-intelligence__probability-teams {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .match-intelligence__probability-teams span {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    justify-content: stretch;
+  }
+
+  .match-intelligence__probability-teams strong {
+    white-space: nowrap;
+  }
+
+  .match-intelligence__chart-phase-axis,
+  .match-intelligence__worm-axis {
+    margin-right: 8px;
+    margin-left: 8px;
+  }
+
+  .match-intelligence__chart-legend {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .match-intelligence__history-row {
+    grid-template-columns: minmax(5.5rem, auto) minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+
+  .match-intelligence__history-row strong:last-child {
+    grid-column: 2 / -1;
   }
 }

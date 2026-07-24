@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, defaultIfEmpty, map, timeout } from 'rxjs/operators';
+import { catchError, defaultIfEmpty, map, switchMap, timeout } from 'rxjs/operators';
 import { CricketService } from '../../cricket-odds/cricket-odds.service';
 import { MatchStatus, MatchCardViewModel } from '../matches/models/match-card.models';
 import { extractSlugFromUrl } from '../../core/utils/match-utils';
@@ -51,6 +51,10 @@ interface PublicPredictionMatch {
 
 interface PublicPredictionMatchesResponse {
   matches?: PublicPredictionMatch[];
+}
+
+interface PublicPredictionMatchResponse {
+  match?: PublicPredictionMatch;
 }
 
 export interface MatchIntelligenceSnapshot {
@@ -106,6 +110,27 @@ export class MatchIntelligenceDataService {
           lifecycle: lifecycle,
           freshnessState: freshnessState
         };
+      }),
+      switchMap((snapshot) => {
+        var publicPrediction = snapshot.publicPrediction;
+        if (!publicPrediction || !publicPrediction.slug) {
+          return of(snapshot);
+        }
+
+        return this.loadPublicPredictionDetail(publicPrediction.slug).pipe(
+          map((detail) => {
+            if (!detail) {
+              return snapshot;
+            }
+            var mergedMatchData = this.mergePublicPrediction(snapshot.matchData, detail);
+            return Object.assign({}, snapshot, {
+              publicPrediction: detail,
+              matchData: mergedMatchData,
+              freshnessState: this.resolveFreshnessState(mergedMatchData)
+            });
+          }),
+          catchError(() => of(snapshot))
+        );
       })
     );
   }
@@ -164,9 +189,7 @@ export class MatchIntelligenceDataService {
   }
 
   private loadPublicPredictionMatches(): Observable<PublicPredictionMatch[]> {
-    var publicPredictionApiUrl = this.isBrowser()
-      ? environment.MODEL_PUBLIC_API_URL
-      : 'http://127.0.0.1:4000' + environment.MODEL_PUBLIC_API_URL;
+    var publicPredictionApiUrl = this.getPublicPredictionApiUrl();
     if (!publicPredictionApiUrl) {
       return of([]);
     }
@@ -176,6 +199,27 @@ export class MatchIntelligenceDataService {
       map((response) => (response && Array.isArray(response.matches)) ? response.matches : []),
       catchError(() => of([]))
     );
+  }
+
+  private loadPublicPredictionDetail(slug: string): Observable<PublicPredictionMatch | null> {
+    var publicPredictionApiUrl = this.getPublicPredictionApiUrl();
+    if (!publicPredictionApiUrl || !slug) {
+      return of(null);
+    }
+
+    return this.http.get<PublicPredictionMatchResponse>(
+      publicPredictionApiUrl + '/matches/' + encodeURIComponent(slug)
+    ).pipe(
+      timeout(4000),
+      map((response) => response && response.match ? response.match : null),
+      catchError(() => of(null))
+    );
+  }
+
+  private getPublicPredictionApiUrl(): string {
+    return this.isBrowser()
+      ? environment.MODEL_PUBLIC_API_URL
+      : 'http://127.0.0.1:4000' + environment.MODEL_PUBLIC_API_URL;
   }
 
   private isBrowser(): boolean {
@@ -302,7 +346,8 @@ export class MatchIntelligenceDataService {
       merged.projected_score = publicPrediction.projected_score;
     }
     ['innings', 'current_run_rate', 'required_run_rate', 'venue_average_score', 'resource_pct',
-      'resource_win_probability_pct', 'score_vs_par', 'pressure_index', 'last_swings'].forEach((key) => {
+      'resource_win_probability_pct', 'score_vs_par', 'pressure_index', 'last_swings',
+      'prediction_history'].forEach((key) => {
       if ((publicPrediction as any)[key] !== undefined) {
         merged[key] = (publicPrediction as any)[key];
       }
