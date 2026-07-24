@@ -133,7 +133,10 @@ async def _hydrate_player_profile(external_id: str) -> Dict[str, Any]:
         match_id="demand:" + normalized_id,
         match_url=player_url,
         task_type="PLAYER_REFERENCE",
-        metadata={"player": {"externalId": normalized_id, "name": slug.replace("-", " ")}},
+        metadata={
+            "onDemand": True,
+            "player": {"externalId": normalized_id, "name": slug.replace("-", " ")},
+        },
     )
     await crawler._process_player_reference_task(task)
     persisted = await asyncio.to_thread(

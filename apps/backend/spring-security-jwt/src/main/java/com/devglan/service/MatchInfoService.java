@@ -70,7 +70,7 @@ public class MatchInfoService {
             return CrexMatchUrlHelper.toMatchDetailsUrl(trimmedUrl);
         }
 
-        LiveMatch liveMatch = liveMatchRepository.findByUrlContaining(trimmedUrl);
+        LiveMatch liveMatch = liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(trimmedUrl);
         if (liveMatch != null && liveMatch.getUrl() != null && !liveMatch.getUrl().trim().isEmpty()) {
             return CrexMatchUrlHelper.toMatchDetailsUrl(liveMatch.getUrl());
         }

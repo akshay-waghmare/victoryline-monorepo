@@ -62,14 +62,14 @@ public class MatchDetailHydrationService {
         }
 
         String trimmedUrl = requestedUrl.trim();
-        LiveMatch directMatch = liveMatchRepository.findByUrlContaining(trimmedUrl);
+        LiveMatch directMatch = liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(trimmedUrl);
         if (directMatch != null && directMatch.getUrl() != null && !directMatch.getUrl().trim().isEmpty()) {
             return directMatch.getUrl();
         }
 
         String slug = extractScoreboardSlug(trimmedUrl);
         if (slug != null) {
-            LiveMatch slugMatch = liveMatchRepository.findByUrlContaining(slug);
+            LiveMatch slugMatch = liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(slug);
             if (slugMatch != null && slugMatch.getUrl() != null && !slugMatch.getUrl().trim().isEmpty()) {
                 return slugMatch.getUrl();
             }

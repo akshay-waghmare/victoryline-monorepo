@@ -607,8 +607,13 @@ class PlayerStatsCrawlerService:
         # check: it is written before the player page has been visited.  The
         # player_profile snapshot is the durable completion marker for an
         # on-demand scorecard/lineup profile request.
+        # An on-demand hydration request originates from the backend /player
+        # endpoint.  Calling that endpoint again here would create a
+        # backend -> scraper -> backend cycle and leave the user request
+        # waiting for its own completion.  It must fetch and ingest directly.
+        on_demand = bool(task.metadata.get("onDemand"))
         player_external_id = str((task.metadata.get("player") or {}).get("externalId") or "").strip()
-        if player_external_id:
+        if player_external_id and not on_demand:
             persisted_player = await asyncio.to_thread(
                 CricketDataService.get_player_stats_player,
                 player_external_id,
@@ -637,7 +642,7 @@ class PlayerStatsCrawlerService:
             return
 
         previous_payload = await self._get_cached_reference_payload(task.match_id)
-        if previous_payload and self._payload_signature(previous_payload) == self._payload_signature(request):
+        if not on_demand and previous_payload and self._payload_signature(previous_payload) == self._payload_signature(request):
             player_external_id = (request.get("player") or {}).get("externalId")
             backend_player = await asyncio.to_thread(
                 CricketDataService.get_player_stats_player,

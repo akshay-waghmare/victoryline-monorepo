@@ -62,7 +62,7 @@ public class ScorecardService {
             return trimmedUrl;
         }
 
-        LiveMatch liveMatch = liveMatchRepository.findByUrlContaining(trimmedUrl);
+        LiveMatch liveMatch = liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(trimmedUrl);
         if (liveMatch != null && liveMatch.getUrl() != null && !liveMatch.getUrl().trim().isEmpty()) {
             return liveMatch.getUrl();
         }

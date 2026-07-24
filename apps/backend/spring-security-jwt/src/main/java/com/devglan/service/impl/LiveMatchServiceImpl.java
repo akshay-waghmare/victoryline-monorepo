@@ -308,7 +308,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
     }
 	
 	public LiveMatch findByUrl(String url) {
-		return liveMatchRepository.findByUrlContaining(url);
+		return liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(url);
 	}
 
 	public ResponseEntity<CricketDataDTO> fetchAndSendData(String url) {
@@ -366,7 +366,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             }
         }
         if (existing == null && url != null && !url.trim().isEmpty()) {
-            existing = liveMatchRepository.findByUrlContaining(url);
+            existing = liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(url);
         }
         return existing;
     }

@@ -807,7 +807,7 @@ public class PlayerStatsCrawlerService {
             }
         }
         if (hasText(url)) {
-            return liveMatchRepository.findByUrlContaining(url);
+            return liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(url);
         }
         return null;
     }
