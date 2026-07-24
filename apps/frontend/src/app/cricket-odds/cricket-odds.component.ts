@@ -1068,6 +1068,10 @@ onTabChange(event: MatTabChangeEvent) {
   // Compare against that route, not a potentially stale previous index, so a
   // real user tap is never discarded after moving between child routes.
   if (this.resolveRequestedTabKey() === keyByIndex[event.index]) {
+    // A direct child URL (especially after mobile browser restoration) can
+    // select Material's tab before the component's first fetch settles.
+    // Re-run the tab's lightweight loader; it is internally de-duplicated.
+    this.ensureDataForTab(event.index);
     return;
   }
 

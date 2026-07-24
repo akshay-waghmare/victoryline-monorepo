@@ -154,6 +154,18 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect((component as any).syncMatchTabSelection).toHaveBeenCalled();
   });
 
+  it('loads Details when Material selects the tab from an already-matching child route', () => {
+    var component = createComponent();
+    component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A/match-details';
+    spyOn<any>(component, 'ensureDataForTab');
+
+    component.onTabChange({ index: (component as any).tabIndexByKey.details } as any);
+
+    expect((component as any).ensureDataForTab).toHaveBeenCalledWith(
+      (component as any).tabIndexByKey.details
+    );
+  });
+
   it('does not try to load scorecard data for upcoming matches', () => {
     var component = createComponent();
     component.matchInfo = { match_status: 'UPCOMING' };

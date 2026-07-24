@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable, of, concat, EMPTY } from 'rxjs';
-import { tap, filter, catchError } from 'rxjs/operators';
+import { tap, filter, catchError, timeout } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { TokenStorage } from '../token.storage';
 
@@ -313,6 +313,10 @@ export class CricketService {
   getMatchInfo(url: string): Observable<any> {
     const cached = this.getCache(this.matchInfoCache, 'info', url);
     const http$ = this.http.get<any>(`${this.getMatchInfoDetails}?url=${encodeURIComponent(url)}`).pipe(
+      // Mobile browsers can leave a fetch pending while the radio changes or
+      // Safari resumes a backgrounded tab. Let the caller settle to its
+      // route-based fallback instead of holding the Details spinner forever.
+      timeout(8000),
       tap(data => {
         if (data) {
           this.setCache(this.matchInfoCache, 'info', url, data);
