@@ -1294,4 +1294,29 @@
   .match-intelligence__history-row strong:last-child {
     grid-column: 2 / -1;
   }
+
+  /* Mobile is a decision surface, not a compressed desktop report. Keep the
+     score/probability and timeline in the first reading layer; the repeated
+     legacy narrative grid adds height without adding a new decision. */
+  .match-intelligence__grid,
+  .match-intelligence__card--next {
+    display: none;
+  }
+
+  .match-intelligence__analysis-chart,
+  .match-intelligence__chart-shell {
+    min-height: 224px;
+  }
+
+  .match-intelligence__chart-canvas,
+  .match-intelligence__chart-canvas canvas {
+    height: 218px !important;
+  }
+
+  .match-intelligence__prediction-history > summary,
+  .match-intelligence__metric-glossary > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
 }

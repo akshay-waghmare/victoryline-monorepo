@@ -1143,7 +1143,7 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
       over = Math.max(0, Math.min(inningsOvers, over));
       // Keep the newest snapshot for a ball; feeds can resend a corrected
       // probability for the same over/ball out of chronological order.
-      byBall[String(entry.innings) + ':' + String(Math.round(over * 6))] = { entry: entry, over: over };
+      byBall[String(entry.innings) + ':' + String(Math.round(over * this.getChartBallsPerOver()))] = { entry: entry, over: over };
     });
 
     return Object.keys(byBall).map((key) => byBall[key]).map((item) => ({
@@ -1161,7 +1161,20 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
     var data = this.snapshot && this.snapshot.matchData;
     var prediction = this.snapshot && this.snapshot.publicPrediction;
     var format = String((data && (data.format_label || data.format)) || (prediction && prediction.format_label) || '').toLowerCase();
+    if (format.indexOf('hundred') !== -1) {
+      // The predictor records The Hundred in its native five-ball sets.
+      // Keep the public axis in the same 0–20 set clock so end-of-innings
+      // points at 20.0 are never clipped as if they were six-ball overs.
+      return 20;
+    }
     return format.indexOf('odi') !== -1 ? 50 : 20;
+  }
+
+  private getChartBallsPerOver(): number {
+    var data = this.snapshot && this.snapshot.matchData;
+    var prediction = this.snapshot && this.snapshot.publicPrediction;
+    var format = String((data && (data.format_label || data.format)) || (prediction && prediction.format_label) || '').toLowerCase();
+    return format.indexOf('hundred') !== -1 ? 5 : 6;
   }
 
   private parseChartOver(value: string): number {
@@ -1177,8 +1190,10 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
       return NaN;
     }
 
-    // Cricket notation is overs.balls: 19.3 means 19 overs and 3 balls.
-    return balls >= 0 && balls < 6 ? overs + (balls / 6) : Number(raw);
+    // Cricket notation is overs.balls. The Hundred uses five-ball sets;
+    // standard cricket formats use six-ball overs.
+    var ballsPerOver = this.getChartBallsPerOver();
+    return balls >= 0 && balls < ballsPerOver ? overs + (balls / ballsPerOver) : Number(raw);
   }
 
   private getProbabilityChartData(points: Array<{ x: number; y: number; over: string; score: string; probability: number; label: string; innings: number }>): any[] {
@@ -1267,7 +1282,7 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
           maxRotation: 0,
           callback: (value: number) => {
             var inningsValue = showSecondInnings && value > inningsOvers ? value - inningsOvers : value;
-            return inningsValue + ' ov';
+            return inningsValue + (this.getChartBallsPerOver() === 5 ? ' set' : ' ov');
           }
         },
         gridLines: { color: 'rgba(148, 163, 184, 0.24)', borderDash: [3, 4], drawBorder: false }

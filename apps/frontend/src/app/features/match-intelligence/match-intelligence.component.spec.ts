@@ -37,8 +37,20 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
   it('converts cricket over.ball notation into ball-based positions', () => {
     const parseChartOver = (MatchIntelligenceComponent.prototype as any).parseChartOver;
 
-    expect(parseChartOver.call({}, '19.3')).toBe(19.5);
-    expect(parseChartOver.call({}, '2.4')).toBeCloseTo(2.6667, 3);
+    expect(parseChartOver.call({ getChartBallsPerOver: () => 6 }, '19.3')).toBe(19.5);
+    expect(parseChartOver.call({ getChartBallsPerOver: () => 6 }, '2.4')).toBeCloseTo(2.6667, 3);
+  });
+
+  it('uses the native twenty five-ball-set clock for Hundred history', () => {
+    const component = MatchIntelligenceComponent.prototype as any;
+    const context: any = {
+      snapshot: { publicPrediction: { format_label: 'The Hundred' } },
+      getChartBallsPerOver: () => 5
+    };
+
+    expect(component.getChartInningsOvers.call(context)).toBe(20);
+    expect(component.parseChartOver.call(context, '10.3')).toBe(10.6);
+    expect(component.parseChartOver.call(context, '20.0')).toBe(20);
   });
 
   it('plots innings points on a chronological two-innings scale', () => {
@@ -49,7 +61,8 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
       ],
       getChartInningsOvers: () => 20,
       resolvePointInnings: (innings: number) => innings,
-      parseChartOver: (value: string) => (MatchIntelligenceComponent.prototype as any).parseChartOver.call({}, value)
+      parseChartOver: (value: string) => (MatchIntelligenceComponent.prototype as any).parseChartOver.call({ getChartBallsPerOver: () => 6 }, value),
+      getChartBallsPerOver: () => 6
     });
 
     expect(points[0].x).toBe(19.5);

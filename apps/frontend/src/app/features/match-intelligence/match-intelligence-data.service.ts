@@ -114,7 +114,15 @@ export class MatchIntelligenceDataService {
       switchMap((snapshot) => {
         var publicPrediction = snapshot.publicPrediction;
         if (!publicPrediction || !publicPrediction.slug) {
-          return of(snapshot);
+          return this.loadPublicPredictionBySource(slug).pipe(
+            map((detail) => detail ? Object.assign({}, snapshot, {
+              publicPrediction: detail,
+              matchData: this.mergePublicPrediction(snapshot.matchData, detail),
+              lifecycle: this.resolveLifecycle(snapshot.currentMatch, snapshot.matchInfo, detail),
+              freshnessState: this.resolveFreshnessState(this.mergePublicPrediction(snapshot.matchData, detail))
+            }) : snapshot),
+            catchError(() => of(snapshot))
+          );
         }
 
         return this.loadPublicPredictionDetail(publicPrediction.slug).pipe(
@@ -209,6 +217,21 @@ export class MatchIntelligenceDataService {
 
     return this.http.get<PublicPredictionMatchResponse>(
       publicPredictionApiUrl + '/matches/' + encodeURIComponent(slug)
+    ).pipe(
+      timeout(4000),
+      map((response) => response && response.match ? response.match : null),
+      catchError(() => of(null))
+    );
+  }
+
+  private loadPublicPredictionBySource(routeSlug: string): Observable<PublicPredictionMatch | null> {
+    var publicPredictionApiUrl = this.getPublicPredictionApiUrl();
+    if (!publicPredictionApiUrl || !routeSlug) {
+      return of(null);
+    }
+    var matchUrl = 'https://crex.com/cricket-live-score/' + routeSlug;
+    return this.http.get<PublicPredictionMatchResponse>(
+      publicPredictionApiUrl + '/matches/resolve?match_url=' + encodeURIComponent(matchUrl)
     ).pipe(
       timeout(4000),
       map((response) => response && response.match ? response.match : null),
