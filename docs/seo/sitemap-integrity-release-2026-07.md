@@ -69,3 +69,18 @@ $responses = $shards | ForEach-Object -Parallel {
 ```
 
 Also verify `https://www.crickzen.com/live-score/archive` contains no `/cricket-match-report/` link, and record `/api/v1/seo/sitemap/status` after the initial manifest generation.
+
+## Production rollout evidence
+
+Rolled out on 26 July 2026 with:
+
+- backend: `macubex/victoryline-backend:20260726-sitemap-878493a`;
+- frontend: `macubex/victoryline-frontend:20260726-sitemap-878493a`.
+
+Both containers reported healthy after backend-first restart. Public verification generated one manifest with generation ID `1`, `2,694` URLs, and `3` shards. The shards contained `1,000`, `1,000`, and `694` URLs respectively.
+
+- All sitemap and shard responses were `200` and non-empty.
+- There were no duplicate locations, no parameter URLs, no report URLs, no Match Intelligence URLs, and no child match routes.
+- Nine concurrent shard requests all succeeded. A second run of twelve concurrent requests produced exactly three stable content hashes (one per shard) and left the manifest generation, count, duration, and failure count unchanged.
+- `/live-score/archive` returned `200` and did not contain `/cricket-match-report/`.
+- A malformed compatibility shard route returned `404` with `Cache-Control: no-store`.
