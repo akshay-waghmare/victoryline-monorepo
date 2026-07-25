@@ -405,17 +405,10 @@ export class MatchesService {
     // Try to get team data from various possible API structures
     const teamData = apiMatch[teamKey] || (apiMatch.teams && apiMatch.teams[index]) || {};
     const fallbackTeamName = 'Team ' + (index + 1);
-    let scorecardTeamCode = '';
-
-    if (scorecardData && scorecardData.match_stats_by_innings && scorecardData.match_stats_by_innings.innings) {
-      const innings = scorecardData.match_stats_by_innings.innings;
-      const inningsKey = index === 0 ? '1st_inning' : '2nd_inning';
-      const inningsData = innings[inningsKey];
-
-      if (inningsData && inningsData.team_code) {
-        scorecardTeamCode = this.normalizeTeamLabel(inningsData.team_code);
-      }
-    }
+    const scorecardInnings = this.findScorecardInningsForTeam(apiMatch, teamKey, index, urlData, scorecardData);
+    const scorecardTeamCode = scorecardInnings && scorecardInnings.team_code
+      ? this.normalizeTeamLabel(scorecardInnings.team_code)
+      : '';
 
     const explicitTeamName = this.normalizeTeamLabel(apiMatch[`${teamKey}Name`]);
     const urlTeamName = this.normalizeTeamLabel(urlData && urlData[teamKey]);
@@ -447,18 +440,17 @@ export class MatchesService {
    */
   private parseScore(teamData: any, apiMatch: any, teamIndex: number, scorecardData?: any): ScoreInfo | null {
     // First try to get score from scorecard data
-    if (scorecardData && scorecardData.match_stats_by_innings && scorecardData.match_stats_by_innings.innings) {
-      const innings = scorecardData.match_stats_by_innings.innings;
-
-      // Map team index to innings (0 -> 1st_inning, 1 -> 2nd_inning)
-      const inningsKey = teamIndex === 0 ? '1st_inning' : '2nd_inning';
-      const inningsData = innings[inningsKey];
-
-      if (inningsData && inningsData.team_score) {
-        const scoreStr = inningsData.team_score;
+    const scorecardInnings = this.findScorecardInningsForTeam(
+      apiMatch,
+      teamIndex === 0 ? 'team1' : 'team2',
+      teamIndex,
+      this.parseUrlData(apiMatch.url),
+      scorecardData
+    );
+    if (scorecardInnings && scorecardInnings.team_score) {
+        const scoreStr = scorecardInnings.team_score;
         // Parse score string like "243/8(291" or "243/8(50.0)"
         return this.parseScoreString(scoreStr);
-      }
     }
 
     // Fallback: Check if scorecardData has direct score field
@@ -485,6 +477,42 @@ export class MatchesService {
     }
 
     return this.formatScoreInfo(scoreData);
+  }
+
+  /**
+   * CREX catalog order is not guaranteed to be batting order.  Scorecards are
+   * keyed by innings, so resolve their team by name before falling back to the
+   * historic positional mapping.  This keeps a chase card from showing the
+   * first-innings total under the chasing team.
+   */
+  private findScorecardInningsForTeam(apiMatch: any, teamKey: string, index: number, urlData?: any, scorecardData?: any): any | null {
+    const innings = scorecardData && scorecardData.match_stats_by_innings && scorecardData.match_stats_by_innings.innings;
+    if (!innings) {
+      return null;
+    }
+
+    const teamData = apiMatch[teamKey] || (apiMatch.teams && apiMatch.teams[index]) || {};
+    const candidates = [
+      apiMatch[`${teamKey}Name`],
+      typeof teamData === 'string' ? teamData : '',
+      teamData.fullName,
+      teamData.teamName,
+      teamData.name,
+      urlData && urlData[teamKey]
+    ].map(value => this.normalizeTeamLabel(value)).filter(Boolean);
+
+    const entries = Object.keys(innings).map(key => innings[key]).filter(Boolean);
+    const matched = entries.find((inning: any) => {
+      const inningNames = [inning.team_name, inning.teamName, inning.team_code]
+        .map(value => this.normalizeTeamLabel(value))
+        .filter(Boolean);
+      return candidates.some(candidate => inningNames.indexOf(candidate) !== -1);
+    });
+    if (matched) {
+      return matched;
+    }
+
+    return innings[index === 0 ? '1st_inning' : '2nd_inning'] || null;
   }
 
   /**

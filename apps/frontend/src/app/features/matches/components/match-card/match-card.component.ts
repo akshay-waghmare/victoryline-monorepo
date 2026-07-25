@@ -436,6 +436,16 @@ export class MatchCardComponent implements OnInit, OnDestroy, OnChanges, AfterVi
     return true;
   }
 
+  formatOvers(overs: number | null | undefined): string {
+    const value = Number(overs);
+    if (!isFinite(value) || value < 0) {
+      return '';
+    }
+    // Scores store cricket notation (6.2 = six overs and two balls), not a
+    // decimal run-rate. Preserve the completed-over `.0` on cards as well.
+    return value.toFixed(1);
+  }
+
   // ===== EVENT HANDLERS =====
   
   getMatchHref(): string {
