@@ -16,17 +16,25 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Publishes sitemap XML from one immutable manifest.
+ *
+ * A crawler can fetch the index and child partitions concurrently.  They must
+ * therefore all come from the same completed generation, never from independent
+ * request-time rebuilds.  A failed refresh deliberately keeps the last good
+ * manifest in service instead of publishing an empty 200 response.
+ */
 @Service
 public class SitemapService {
     private static final Logger LOGGER = LoggerFactory.getLogger(SitemapService.class);
@@ -43,258 +51,231 @@ public class SitemapService {
             "/live-score/archive"
     };
 
-    // Timestamp formatting handled inside SitemapWriter
-
-    // Debounce and burst tracking
-    private final Deque<Long> writeTimestamps = new ArrayDeque<>();
-
-    // Simple in-memory cache (can be replaced by Redis later)
-    private volatile String cachedIndexXml = null;
-    private volatile long cachedIndexLastGen = 0;
-    private volatile boolean sitemapDirty = false;
-    private volatile long lastRefreshEvent = 0;
-    private final Object cacheLock = new Object();
+    private final Object generationLock = new Object();
+    private final AtomicReference<SitemapManifest> currentManifest = new AtomicReference<>();
+    private final AtomicLong generationFailures = new AtomicLong(0L);
+    private final AtomicLong generationSequence = new AtomicLong(0L);
 
     private final SeoCache seoCache;
     private final LiveMatchesService liveMatchesService;
-    private final MatchFreshnessSummaryService matchFreshnessSummaryService;
-    private MatchRepository matchRepository; // optional; may be null in tests
+    private MatchRepository matchRepository; // optional in isolated tests
+
+    private volatile boolean sitemapDirty = true;
+    private volatile long lastSuccessfulGenerationEpochMs = 0L;
+    private volatile long lastGenerationDurationMs = 0L;
 
     @Autowired
-    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService, MatchFreshnessSummaryService matchFreshnessSummaryService) {
-        this.seoCache = seoCache;
-        this.liveMatchesService = liveMatchesService;
-        this.matchFreshnessSummaryService = matchFreshnessSummaryService;
+    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService, MatchFreshnessSummaryService ignoredFreshnessSummaryService) {
+        this(seoCache, liveMatchesService);
     }
 
     public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService) {
-        this(seoCache, liveMatchesService, null);
+        this.seoCache = seoCache;
+        this.liveMatchesService = liveMatchesService;
     }
 
-    // Setter injection keeps tests working while allowing Spring to wire repository in app
     @Autowired(required = false)
     public void setMatchRepository(MatchRepository matchRepository) {
         this.matchRepository = matchRepository;
     }
 
     public String getSitemapIndexXml() {
-        long now = epochSeconds();
-        // Try Redis/local cache first
-        String fromCache = seoCache.getSitemapIndex();
-        if (fromCache != null && !fromCache.isEmpty()) {
-            cachedIndexXml = fromCache;
-        }
-
-        synchronized (cacheLock) {
-            boolean needsRebuild = (cachedIndexXml == null) || sitemapDirty;
-            if (needsRebuild && canRegenerate(now)) {
-                cachedIndexXml = buildIndexXml();
-                cachedIndexLastGen = now;
-                sitemapDirty = false;
-                recordWrite(now);
-                seoCache.putSitemapIndex(cachedIndexXml);
-            } else if (needsRebuild && LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Skipping sitemap rebuild due to debounce/burst controls (dirty={}, cachedAt={}, now={})",
-                        sitemapDirty, cachedIndexLastGen, now);
-            }
-        }
-        return cachedIndexXml;
+        SitemapManifest manifest = getOrRefreshManifest();
+        return manifest == null ? null : manifest.indexXml;
     }
 
+    /**
+     * Returns null when the requested child is not part of the published
+     * manifest, or when no valid manifest has ever been generated.
+     */
     public String getPartitionXml(int part) {
-        // Partition XML is small; for demo just build every time but still respect burst cap
-        long now = epochSeconds();
-        if (isBurstExceeded(now)) {
-            // Return previous if burst exceeded to avoid excessive writes
-            return cachedIndexXml != null ? cachedIndexXml : buildIndexXml();
-        }
-        recordWrite(now);
-        try {
-            return buildPartitionXml(part);
-        } catch (Exception ex) {
-            // Fallback safety to ensure endpoint remains responsive
-            SitemapWriter writer = new SitemapWriter();
-            return writer.buildPartition(java.util.Collections.singletonList(writer.url("/health", "weekly", 0.1)));
-        }
+        SitemapManifest manifest = getOrRefreshManifest();
+        return manifest == null ? null : manifest.partitionXmlByNumber.get(part);
     }
 
-    private boolean isBurstExceeded(long now) {
-        cleanupOldWrites(now);
-        return writeTimestamps.size() >= SeoConstants.SITEMAP_MAX_WRITES_PER_MINUTE;
+    public boolean hasPublishedManifest() {
+        return currentManifest.get() != null;
     }
 
-    private void recordWrite(long now) {
-        cleanupOldWrites(now);
-        writeTimestamps.addLast(now);
+    public Map<String, Object> getManifestMetrics() {
+        SitemapManifest manifest = currentManifest.get();
+        Map<String, Object> metrics = new LinkedHashMap<>();
+        metrics.put("available", manifest != null);
+        metrics.put("generationId", manifest == null ? 0L : manifest.generationId);
+        metrics.put("urlCount", manifest == null ? 0 : manifest.urlCount);
+        metrics.put("shardCount", manifest == null ? 0 : manifest.partitionXmlByNumber.size());
+        metrics.put("lastSuccessfulGenerationEpochMs", lastSuccessfulGenerationEpochMs);
+        metrics.put("lastGenerationDurationMs", lastGenerationDurationMs);
+        metrics.put("generationFailures", generationFailures.get());
+        metrics.put("refreshPending", sitemapDirty);
+        return metrics;
     }
 
     @EventListener
     public void handleContentChange(SeoContentChangeEvent event) {
-        long now = epochSeconds();
-        lastRefreshEvent = now;
-        synchronized (cacheLock) {
-            sitemapDirty = true;
-        }
+        sitemapDirty = true;
+        // The old Redis index could describe a different set of partitions.
+        // It is intentionally not read by manifest-serving requests.
         seoCache.evictSitemapIndex();
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("SEO content change detected ({}), reference={}, occurredAt={}.",
-                    event.getChangeType(), event.getReference(), event.getOccurredAt());
+        LOGGER.info("Sitemap manifest marked dirty: changeType={}, reference={}",
+                event.getChangeType(), event.getReference());
+    }
+
+    private SitemapManifest getOrRefreshManifest() {
+        SitemapManifest existing = currentManifest.get();
+        if (existing != null && !sitemapDirty) {
+            return existing;
+        }
+
+        synchronized (generationLock) {
+            existing = currentManifest.get();
+            if (existing != null && !sitemapDirty) {
+                return existing;
+            }
+
+            long startedAt = System.currentTimeMillis();
+            try {
+                SitemapManifest next = buildManifest(generationSequence.incrementAndGet(), startedAt);
+                currentManifest.set(next); // Atomic publication after complete validation.
+                sitemapDirty = false;
+                lastSuccessfulGenerationEpochMs = System.currentTimeMillis();
+                lastGenerationDurationMs = lastSuccessfulGenerationEpochMs - startedAt;
+                LOGGER.info("Sitemap manifest published: generationId={}, urls={}, shards={}, durationMs={}",
+                        next.generationId, next.urlCount, next.partitionXmlByNumber.size(), lastGenerationDurationMs);
+                return next;
+            } catch (Exception ex) {
+                generationFailures.incrementAndGet();
+                lastGenerationDurationMs = System.currentTimeMillis() - startedAt;
+                SitemapManifest lastKnownGood = currentManifest.get();
+                if (lastKnownGood != null) {
+                    // Do not make every crawler request retry the same failed
+                    // generation. The next content-change event schedules the
+                    // next attempt; callers continue to receive one fast,
+                    // internally consistent last-known-good manifest.
+                    sitemapDirty = false;
+                    LOGGER.error("Sitemap manifest regeneration failed after {} ms; preserving generationId={} with {} URLs and {} shards",
+                            lastGenerationDurationMs, lastKnownGood.generationId, lastKnownGood.urlCount,
+                            lastKnownGood.partitionXmlByNumber.size(), ex);
+                    return lastKnownGood;
+                }
+                LOGGER.error("Initial sitemap manifest generation failed after {} ms; no manifest will be published",
+                        lastGenerationDurationMs, ex);
+                return null;
+            }
         }
     }
 
-    private String buildIndexXml() {
+    private SitemapManifest buildManifest(long generationId, long startedAt) {
         SitemapWriter writer = new SitemapWriter();
-        int count = determinePartitionCount();
-        java.util.ArrayList<String> partitions = new java.util.ArrayList<>();
-        for (int i = 1; i <= count; i++) {
-            String partName = formatPartitionName(i);
-            // Serve plain XML endpoints (no gzip) for simplicity/compatibility
-            partitions.add(SeoConstants.SITEMAP_PARTITION_PREFIX + partName + ".xml");
-        }
-        return writer.buildIndex(partitions);
-    }
+        List<SitemapWriter.SitemapUrl> allUrls = new ArrayList<>();
 
-    private String buildPartitionXml(int part) {
-        SitemapWriter writer = new SitemapWriter();
-        
-        // Build complete URL list from all sources
-        ArrayList<SitemapWriter.SitemapUrl> allUrls = new ArrayList<>();
-        
-        // Always add static pages to partition 1
-        if (part == 1) {
-            for (String staticPath : STATIC_SITEMAP_PATHS) {
-                allUrls.add(writer.url(staticPath, deriveStaticChangeFreq(staticPath), deriveStaticPriority(staticPath)));
-            }
+        for (String staticPath : STATIC_SITEMAP_PATHS) {
+            allUrls.add(writer.url(staticPath, deriveStaticChangeFreq(staticPath), deriveStaticPriority(staticPath)));
         }
-        
-        // Try to get live matches from the API
-        List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
-        if (liveMatches != null && !liveMatches.isEmpty()) {
-            List<LiveMatchesService.LiveMatchEntry> prioritizedMatches = new ArrayList<>(liveMatches);
-            prioritizedMatches.sort(Comparator.comparingLong(this::sitemapPrioritySortValue));
-            for (LiveMatchesService.LiveMatchEntry match : prioritizedMatches) {
-                String path = deriveCanonicalMatchPath(match);
-                if (path != null) {
-                    String changefreq = match.isLive() ? "hourly" : "daily";
-                    double priority = match.isLive() ? 0.9 : 0.8;
-                    allUrls.add(writer.urlWithLastMod(path, deriveLiveMatchLastMod(match, writer), changefreq, priority));
-                }
 
-                String freshnessPath = deriveFreshnessSupportPath(match);
-                if (freshnessPath != null) {
-                    allUrls.add(writer.urlWithLastMod(
-                            freshnessPath,
-                            deriveFreshnessLastMod(match, freshnessPath, writer),
-                            deriveFreshnessChangeFreq(match),
-                            deriveFreshnessPriority(match)
-                    ));
-                }
+        List<LiveMatchesService.LiveMatchEntry> liveMatches = loadSitemapMatches();
+        List<LiveMatchesService.LiveMatchEntry> prioritizedMatches = new ArrayList<>(liveMatches);
+        Collections.sort(prioritizedMatches, Comparator.comparingLong(this::sitemapPrioritySortValue));
+        for (LiveMatchesService.LiveMatchEntry match : prioritizedMatches) {
+            String canonicalPath = deriveCanonicalMatchPath(match);
+            if (canonicalPath == null) {
+                continue;
             }
-        }
-        
-        // Fallback: try database if repository available and no live matches
-        if ((liveMatches == null || liveMatches.isEmpty()) && matchRepository != null) {
-            List<Matches> allVisible = safeGetVisibleMatches();
-            if (allVisible != null && !allVisible.isEmpty()) {
-                // Sort by most recent first (null-safe)
-                Collections.sort(allVisible, new Comparator<Matches>() {
-                    @Override
-                    public int compare(Matches a, Matches b) {
-                        if (a.getMatchDate() == null && b.getMatchDate() == null) return 0;
-                        if (a.getMatchDate() == null) return 1;
-                        if (b.getMatchDate() == null) return -1;
-                        return b.getMatchDate().compareTo(a.getMatchDate());
-                    }
-                });
-                
-                for (Matches m : allVisible) {
-                    String path = deriveMatchPath(m);
-                    if (path == null) {
-                        continue;
-                    }
-                    String changefreq = deriveChangeFreq(m);
-                    double priority = derivePriority(m);
-                    String lastmod = writer.isoFromDate(m.getMatchDate());
-                    allUrls.add(writer.urlWithLastMod(path, lastmod, changefreq, priority));
-                }
-            }
+            String changefreq = match.isLive() ? "hourly" : "daily";
+            double priority = match.isLive() ? 0.9 : 0.8;
+            allUrls.add(writer.urlWithLastMod(canonicalPath, deriveLiveMatchLastMod(match, writer), changefreq, priority));
         }
 
         allUrls = deduplicateUrls(allUrls);
-        
-        // Apply partition slicing
-        int urlsPerPart = Math.max(1, SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
-        int start = Math.max(0, (part - 1) * urlsPerPart);
-        int endExclusive = Math.min(allUrls.size(), start + urlsPerPart);
-        
-        // Return slice for this partition
-        if (start < endExclusive) {
-            List<SitemapWriter.SitemapUrl> slice = allUrls.subList(start, endExclusive);
-            return writer.buildPartition(slice);
+        if (allUrls.isEmpty()) {
+            throw new IllegalStateException("Refusing to publish an empty sitemap manifest");
         }
-        
-        // If partition number exceeds available URLs, return empty valid sitemap
-        return writer.buildPartition(new ArrayList<SitemapWriter.SitemapUrl>());
+
+        int urlsPerPartition = Math.max(1, SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
+        Map<Integer, String> partitionXmlByNumber = new LinkedHashMap<>();
+        List<String> partitionPaths = new ArrayList<>();
+        for (int start = 0, part = 1; start < allUrls.size(); start += urlsPerPartition, part++) {
+            int endExclusive = Math.min(allUrls.size(), start + urlsPerPartition);
+            List<SitemapWriter.SitemapUrl> partitionUrls = new ArrayList<>(allUrls.subList(start, endExclusive));
+            if (partitionUrls.isEmpty()) {
+                throw new IllegalStateException("Refusing to publish an empty sitemap partition");
+            }
+            partitionXmlByNumber.put(part, writer.buildPartition(partitionUrls));
+            partitionPaths.add(SeoConstants.SITEMAP_PARTITION_PREFIX + formatPartitionName(part) + ".xml");
+        }
+
+        if (partitionXmlByNumber.isEmpty()) {
+            throw new IllegalStateException("Refusing to publish a sitemap index without child partitions");
+        }
+
+        return new SitemapManifest(generationId, startedAt, writer.buildIndex(partitionPaths),
+                Collections.unmodifiableMap(partitionXmlByNumber), allUrls.size());
     }
 
-    private int determinePartitionCount() {
+    private List<LiveMatchesService.LiveMatchEntry> loadSitemapMatches() {
         try {
-            int total = STATIC_SITEMAP_PATHS.length;
-            
-            // Count live matches from API
-            List<LiveMatchesService.LiveMatchEntry> liveMatches = liveMatchesService.getLiveMatches();
-            if (liveMatches != null && !liveMatches.isEmpty()) {
-                total += countDistinctCanonicalLiveMatches(liveMatches);
-            } else if (matchRepository != null) {
-                // Fallback: count database matches if no live matches
-                List<Matches> allVisible = safeGetVisibleMatches();
-                if (allVisible != null) {
-                    total += countDistinctCanonicalRepositoryMatches(allVisible);
-                }
+            List<LiveMatchesService.LiveMatchEntry> matches = liveMatchesService.getSitemapMatches();
+            if (matches == null || matches.isEmpty()) {
+                throw new IllegalStateException("Sitemap match source returned no records");
             }
-            
-            // Cap total to avoid excessive memory/processing
-            if (total > SeoConstants.SITEMAP_MAX_URLS_TOTAL) {
-                total = SeoConstants.SITEMAP_MAX_URLS_TOTAL;
+            return matches;
+        } catch (Exception liveSourceFailure) {
+            List<LiveMatchesService.LiveMatchEntry> repositoryMatches = loadRepositoryMatches();
+            if (!repositoryMatches.isEmpty()) {
+                LOGGER.warn("Sitemap live source failed; using repository fallback with {} records", repositoryMatches.size(), liveSourceFailure);
+                return repositoryMatches;
             }
-            
-            // Calculate partitions needed based on max URLs per partition
-            int per = Math.max(1, SeoConstants.SITEMAP_MAX_URLS_PER_PARTITION);
-            int count = (total + per - 1) / per; // Ceiling division
-            return Math.max(1, count);
-        } catch (Exception e) {
-            LOGGER.error("Error determining partition count", e);
-            return 1; // Safe default
+            throw new IllegalStateException("Sitemap match source unavailable and repository fallback is empty", liveSourceFailure);
         }
+    }
+
+    private List<LiveMatchesService.LiveMatchEntry> loadRepositoryMatches() {
+        if (matchRepository == null) {
+            return Collections.emptyList();
+        }
+        List<Matches> visibleMatches = safeGetVisibleMatches();
+        if (visibleMatches.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<LiveMatchesService.LiveMatchEntry> converted = new ArrayList<>();
+        for (Matches match : visibleMatches) {
+            String path = deriveMatchPath(match);
+            if (path == null) {
+                continue;
+            }
+            LiveMatchesService.LiveMatchEntry entry = new LiveMatchesService.LiveMatchEntry();
+            entry.setUrl(SeoConstants.CANONICAL_HOST + path);
+            entry.setExternalMatchKey(path.replaceFirst("^/cric-live/", ""));
+            entry.setStatus(match.getMatchStatus());
+            entry.setResultSummary(match.getResult());
+            entry.setLastKnownState(match.getResult());
+            entry.setLastStateUpdatedAt(match.getMatchDate() == null ? null : match.getMatchDate().getTime());
+            converted.add(entry);
+        }
+        return converted;
     }
 
     private List<Matches> safeGetVisibleMatches() {
         try {
-            return matchRepository.findByVisibilityTrue();
-        } catch (Exception e) {
-            return java.util.Collections.emptyList();
+            List<Matches> matches = matchRepository.findByVisibilityTrue();
+            return matches == null ? Collections.<Matches>emptyList() : matches;
+        } catch (Exception ex) {
+            LOGGER.warn("Sitemap repository fallback failed", ex);
+            return Collections.emptyList();
         }
     }
 
-    private String deriveMatchPath(Matches m) {
-        // Prefer slug from external link; fallback to matchId
-        String link = m.getMatchLink();
-        if (link != null) {
-            String slug = extractSlugFromUrl(link);
-            if (isCanonicalMatchSlug(slug)) {
-                return "/cric-live/" + slug;
-            }
+    private String deriveMatchPath(Matches match) {
+        if (match == null || match.getMatchLink() == null) {
+            return null;
         }
-
-        return null;
+        String slug = extractSlugFromUrl(match.getMatchLink());
+        return isCanonicalMatchSlug(slug) ? "/cric-live/" + slug : null;
     }
 
     private String deriveCanonicalMatchPath(LiveMatchesService.LiveMatchEntry match) {
-        if (match == null) {
-            return null;
-        }
-
-        if (isCompletedWithoutIndexableResult(match)) {
+        if (match == null || isCompletedWithoutIndexableResult(match)) {
             return null;
         }
 
@@ -302,7 +283,6 @@ public class SitemapService {
         if (!isCanonicalMatchSlug(slug)) {
             slug = match.getExternalMatchKey();
         }
-
         return isCanonicalMatchSlug(slug) ? "/cric-live/" + slug : null;
     }
 
@@ -310,15 +290,10 @@ public class SitemapService {
         if (match == null) {
             return writer.isoFromEpochMillis(null);
         }
-
         if (match.getLastStateUpdatedAt() != null && match.getLastStateUpdatedAt() > 0) {
             return writer.isoFromEpochMillis(match.getLastStateUpdatedAt());
         }
 
-        // For upcoming matches (future start time), use the current emit time
-        // instead of the future scheduledStartTime so lastmod is not a future
-        // timestamp — Google ignores future-dated lastmod, which weakens the
-        // freshness signal right when pre-match discovery matters most.
         long now = System.currentTimeMillis();
         if (match.getScheduledStartTime() != null && match.getScheduledStartTime() > 0) {
             if (match.getScheduledStartTime() > now) {
@@ -327,19 +302,15 @@ public class SitemapService {
             return writer.isoFromEpochMillis(match.getScheduledStartTime());
         }
 
-        // startDate string fallback: also guard against future kickoff dates
-        // so an upcoming fixture with no scheduledStartTime but a parsed
-        // startDate string does not emit a future lastmod either.
         String parsedStartDate = parseLiveMatchStartDate(match.getStartDate());
         if (parsedStartDate != null) {
             try {
-                java.time.OffsetDateTime odt = java.time.OffsetDateTime.parse(parsedStartDate);
-                if (odt.toInstant().toEpochMilli() > now) {
+                OffsetDateTime parsed = OffsetDateTime.parse(parsedStartDate);
+                if (parsed.toInstant().toEpochMilli() > now) {
                     return writer.isoFromEpochMillis(now);
                 }
             } catch (Exception ignored) {
-                // If we cannot parse it for the future check, fall through to
-                // returning the parsed value as before rather than dropping it.
+                // Preserve the parsed timestamp when its future status is unknown.
             }
             return parsedStartDate;
         }
@@ -351,20 +322,17 @@ public class SitemapService {
         if (value == null || value.trim().isEmpty()) {
             return null;
         }
-
         String raw = value.trim();
         try {
             return OffsetDateTime.parse(raw).toInstant().atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         } catch (DateTimeParseException ignored) {
-            // fall through
+            // Try the alternate forms below.
         }
-
         try {
             return LocalDateTime.parse(raw).toInstant(ZoneOffset.UTC).atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         } catch (DateTimeParseException ignored) {
-            // fall through
+            // Try date-only format below.
         }
-
         try {
             return LocalDate.parse(raw).atStartOfDay().toInstant(ZoneOffset.UTC).atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         } catch (DateTimeParseException ignored) {
@@ -374,9 +342,7 @@ public class SitemapService {
 
     private boolean isCompletedWithoutIndexableResult(LiveMatchesService.LiveMatchEntry match) {
         String status = normalize(match.getStatus());
-        boolean completed = match.isFinished()
-                || status.contains("completed")
-                || status.contains("finished");
+        boolean completed = match.isFinished() || status.contains("completed") || status.contains("finished");
         if (!completed) {
             return false;
         }
@@ -385,28 +351,7 @@ public class SitemapService {
         if (signals.trim().isEmpty() || "null null".equals(signals.trim())) {
             return true;
         }
-
         return !hasResultSignal(signals);
-    }
-
-    private long sitemapPrioritySortValue(LiveMatchesService.LiveMatchEntry match) {
-        String status = normalize(match == null ? null : match.getStatus());
-        long scheduledStart = match == null || match.getScheduledStartTime() == null
-                ? Long.MAX_VALUE / 8
-                : match.getScheduledStartTime();
-        long updatedAt = match == null || match.getLastStateUpdatedAt() == null
-                ? 0
-                : match.getLastStateUpdatedAt();
-
-        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
-            return scheduledStart;
-        }
-        if (status.contains("upcoming") || status.contains("scheduled")) {
-            return Long.MAX_VALUE / 4 + scheduledStart;
-        }
-
-        // Newer completed matches remain ahead of older archive pages.
-        return Long.MAX_VALUE / 2 - Math.min(updatedAt, Long.MAX_VALUE / 8);
     }
 
     private boolean hasResultSignal(String value) {
@@ -418,25 +363,19 @@ public class SitemapService {
                 || value.matches(".*\\b\\d+[/\\-]\\d+\\b.*");
     }
 
-    private String normalize(String value) {
-        if (value == null || "null".equalsIgnoreCase(value.trim())) {
-            return "";
+    private long sitemapPrioritySortValue(LiveMatchesService.LiveMatchEntry match) {
+        String status = normalize(match == null ? null : match.getStatus());
+        long scheduledStart = match == null || match.getScheduledStartTime() == null
+                ? Long.MAX_VALUE / 8 : match.getScheduledStartTime();
+        long updatedAt = match == null || match.getLastStateUpdatedAt() == null
+                ? 0 : match.getLastStateUpdatedAt();
+        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
+            return scheduledStart;
         }
-
-        return value.trim().toLowerCase();
-    }
-
-    private boolean isCanonicalMatchSlug(String slug) {
-        if (slug == null) {
-            return false;
+        if (status.contains("upcoming") || status.contains("scheduled")) {
+            return Long.MAX_VALUE / 4 + scheduledStart;
         }
-
-        String clean = slug.trim();
-        if (clean.isEmpty() || clean.matches("\\d+") || "match".equalsIgnoreCase(clean)) {
-            return false;
-        }
-
-        return clean.toLowerCase().contains("-vs-");
+        return Long.MAX_VALUE / 2 - Math.min(updatedAt, Long.MAX_VALUE / 8);
     }
 
     private ArrayList<SitemapWriter.SitemapUrl> deduplicateUrls(List<SitemapWriter.SitemapUrl> urls) {
@@ -449,107 +388,24 @@ public class SitemapService {
         return new ArrayList<>(uniqueByLocation.values());
     }
 
-    private int countDistinctCanonicalLiveMatches(List<LiveMatchesService.LiveMatchEntry> matches) {
-        Set<String> paths = new LinkedHashSet<>();
-        for (LiveMatchesService.LiveMatchEntry match : matches) {
-            String path = deriveCanonicalMatchPath(match);
-            if (path != null) {
-                paths.add(path);
-            }
-            String freshnessPath = deriveFreshnessSupportPath(match);
-            if (freshnessPath != null) {
-                paths.add(freshnessPath);
-            }
-        }
-        return paths.size();
-    }
-
-    private int countDistinctCanonicalRepositoryMatches(List<Matches> matches) {
-        Set<String> paths = new LinkedHashSet<>();
-        for (Matches match : matches) {
-            String path = deriveMatchPath(match);
-            if (path != null) {
-                paths.add(path);
-            }
-        }
-        return paths.size();
-    }
-
     private String extractSlugFromUrl(String url) {
         return CrexMatchUrlHelper.extractMatchKey(url);
     }
 
-    private String deriveChangeFreq(Matches m) {
-        String status = m.getMatchStatus();
-        if (status == null) return "daily";
-        String s = status.toLowerCase();
-        if (s.contains("live")) return "hourly";
-        if (s.contains("upcoming") || s.contains("scheduled")) return "daily";
-        return "weekly";
-    }
-
     private String deriveStaticChangeFreq(String path) {
-        if ("/".equals(path) || "/matches".equals(path) || "/live-cricket-score".equals(path) || "/live-score".equals(path) || "/live-score/today".equals(path)) {
+        if ("/".equals(path) || "/matches".equals(path) || "/live-cricket-score".equals(path)
+                || "/live-score".equals(path) || "/live-score/today".equals(path)) {
             return "hourly";
         }
         return "daily";
-    }
-
-    private String deriveFreshnessSupportPath(LiveMatchesService.LiveMatchEntry match) {
-        String canonicalPath = deriveCanonicalMatchPath(match);
-        if (canonicalPath == null) {
-            return null;
-        }
-
-        String slug = canonicalPath.replaceFirst("^/cric-live/", "");
-        String status = normalize(match == null ? null : match.getStatus());
-
-        if (isCompletedWithoutIndexableResult(match)) {
-            return null;
-        }
-
-        if (status.contains("upcoming") || status.contains("scheduled")) {
-            return "/cricket-match-preview/" + slug;
-        }
-
-        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
-            return "/cricket-live-updates/" + slug;
-        }
-
-        if (match != null && (match.isFinished() || status.contains("completed") || status.contains("finished"))) {
-            return "/cricket-match-report/" + slug;
-        }
-
-        return null;
-    }
-
-    private String deriveFreshnessChangeFreq(LiveMatchesService.LiveMatchEntry match) {
-        String status = normalize(match == null ? null : match.getStatus());
-        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
-            return "hourly";
-        }
-        if (status.contains("upcoming") || status.contains("scheduled")) {
-            return "daily";
-        }
-        return "weekly";
-    }
-
-    private double deriveFreshnessPriority(LiveMatchesService.LiveMatchEntry match) {
-        String status = normalize(match == null ? null : match.getStatus());
-        if (status.contains("live") || status.contains("innings_break") || status.contains("rain_delay")) {
-            return 0.82;
-        }
-        if (status.contains("upcoming") || status.contains("scheduled")) {
-            return 0.76;
-        }
-        return 0.7;
     }
 
     private double deriveStaticPriority(String path) {
         if ("/".equals(path)) {
             return 1.0;
         }
-        if ("/matches".equals(path) || "/live-cricket-score".equals(path) || "/live-score".equals(path) || "/live-score/today".equals(path)) {
+        if ("/matches".equals(path) || "/live-cricket-score".equals(path) || "/live-score".equals(path)
+                || "/live-score/today".equals(path)) {
             return 0.9;
         }
         if ("/live-score/ipl".equals(path) || "/cricket-schedule/today".equals(path)) {
@@ -558,70 +414,40 @@ public class SitemapService {
         return 0.8;
     }
 
-    private double derivePriority(Matches m) {
-        String status = m.getMatchStatus();
-        if (status == null) return 0.6;
-        String s = status.toLowerCase();
-        if (s.contains("live")) return 0.9;
-        if (s.contains("upcoming") || s.contains("scheduled")) return 0.8;
-        return 0.5;
-    }
-
     private String formatPartitionName(int part) {
         return String.format("%0" + SeoConstants.SITEMAP_PARTITION_PAD + "d", part);
     }
 
-    private String deriveFreshnessLastMod(LiveMatchesService.LiveMatchEntry match, String freshnessPath, SitemapWriter writer) {
-        if (match == null || freshnessPath == null || matchFreshnessSummaryService == null) {
-            return deriveLiveMatchLastMod(match, writer);
-        }
-
-        String pageType = inferFreshnessPageType(freshnessPath);
-        try {
-            Long meaningfulUpdatedAt = matchFreshnessSummaryService.resolveMeaningfulUpdatedAt(match.getUrl(), pageType);
-            if (meaningfulUpdatedAt != null && meaningfulUpdatedAt > 0 && meaningfulUpdatedAt <= System.currentTimeMillis()) {
-                return writer.isoFromEpochMillis(meaningfulUpdatedAt);
-            }
-        } catch (Exception ex) {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Falling back to live-match lastmod for freshness path {} due to summary lookup error", freshnessPath, ex);
-            }
-        }
-
-        return deriveLiveMatchLastMod(match, writer);
-    }
-
-    private String inferFreshnessPageType(String freshnessPath) {
-        if (freshnessPath.contains("/cricket-match-report/")) {
-            return "result";
-        }
-        if (freshnessPath.contains("/cricket-live-updates/")) {
-            return "live-updates";
-        }
-        return "preview";
-    }
-
-    private long epochSeconds() {
-        return OffsetDateTime.now().toEpochSecond();
-    }
-
-    // kept for future hooks; currently using SitemapWriter for timestamps
-
-    private void cleanupOldWrites(long now) {
-        while (!writeTimestamps.isEmpty() && (now - writeTimestamps.peekFirst()) > 60) {
-            writeTimestamps.removeFirst();
-        }
-    }
-
-    private boolean canRegenerate(long now) {
-        if (cachedIndexXml == null) {
-            return !isBurstExceeded(now);
-        }
-        long secondsSinceLastGen = now - cachedIndexLastGen;
-        if (secondsSinceLastGen < SeoConstants.SITEMAP_DEBOUNCE_SECONDS) {
+    private boolean isCanonicalMatchSlug(String slug) {
+        if (slug == null) {
             return false;
         }
-        return !isBurstExceeded(now);
+        String clean = slug.trim();
+        return !clean.isEmpty() && !clean.matches("\\d+") && !"match".equalsIgnoreCase(clean)
+                && clean.toLowerCase().contains("-vs-");
     }
 
+    private String normalize(String value) {
+        if (value == null || "null".equalsIgnoreCase(value.trim())) {
+            return "";
+        }
+        return value.trim().toLowerCase();
+    }
+
+    private static final class SitemapManifest {
+        private final long generationId;
+        private final long generatedAtEpochMs;
+        private final String indexXml;
+        private final Map<Integer, String> partitionXmlByNumber;
+        private final int urlCount;
+
+        private SitemapManifest(long generationId, long generatedAtEpochMs, String indexXml,
+                                Map<Integer, String> partitionXmlByNumber, int urlCount) {
+            this.generationId = generationId;
+            this.generatedAtEpochMs = generatedAtEpochMs;
+            this.indexXml = indexXml;
+            this.partitionXmlByNumber = partitionXmlByNumber;
+            this.urlCount = urlCount;
+        }
+    }
 }

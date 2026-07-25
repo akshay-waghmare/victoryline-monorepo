@@ -17,16 +17,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.Collections;
+import java.util.List;
+
 public class SitemapControllerTest {
 
     private MockMvc mockMvc;
 
     @Before
     public void setUp() {
-        // Note: Without MatchRepository, SitemapService will return static pages only
-        // These tests verify the partition XML structure is valid even with minimal content
         SeoCache cache = new SeoCache();
-        LiveMatchesService liveMatchesService = new LiveMatchesService();
+        LiveMatchesService liveMatchesService = new StubLiveMatchesService();
         SitemapService service = new SitemapService(cache, liveMatchesService);
         SitemapController api = new SitemapController(service);
         PublicSitemapController pub = new PublicSitemapController(service);
@@ -85,5 +86,28 @@ public class SitemapControllerTest {
         assertThat(xml).contains("<urlset");
         assertThat(xml).contains("https://www.crickzen.com/");
         assertThat(xml).contains("<lastmod>");
+    }
+
+    @Test
+    public void unknown_public_partition_returns_not_found_without_cache() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/sitemaps/sitemap-matches-9999.xml"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void malformed_public_partition_route_returns_not_found_without_cache() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/sitemaps/compatibility-0001.xml"))
+                .andExpect(status().isNotFound());
+    }
+
+    private static class StubLiveMatchesService extends LiveMatchesService {
+        @Override
+        public List<LiveMatchEntry> getSitemapMatches() {
+            LiveMatchEntry entry = new LiveMatchEntry();
+            entry.setUrl("https://crex.com/cricket-live-score/ind-vs-aus-1st-test-2026-match-updates-111A");
+            entry.setStatus("LIVE");
+            entry.setLastKnownState("India 10/0");
+            return Collections.singletonList(entry);
+        }
     }
 }

@@ -34,6 +34,37 @@ public class LiveMatchesService {
         // Fallback to live-only endpoint
         return getLiveMatchesOnly();
     }
+
+    /**
+     * Strict source for sitemap publication.  Sitemap generation must be able
+     * to distinguish an upstream failure from a valid list; silently turning a
+     * failed fetch into an empty list can otherwise replace a good manifest.
+     */
+    public List<LiveMatchEntry> getSitemapMatches() {
+        try {
+            String url = backendUrl + "/cricket-data/matches";
+            String response = restTemplate.getForObject(url, String.class);
+            if (response == null || response.trim().isEmpty()) {
+                throw new IllegalStateException("Sitemap match source returned an empty body");
+            }
+
+            JsonNode jsonArray = objectMapper.readTree(response);
+            if (!jsonArray.isArray()) {
+                throw new IllegalStateException("Sitemap match source returned a non-array payload");
+            }
+
+            List<LiveMatchEntry> matches = new ArrayList<>();
+            for (JsonNode node : jsonArray) {
+                matches.add(toLiveMatchEntry(node));
+            }
+            if (matches.isEmpty()) {
+                throw new IllegalStateException("Sitemap match source returned zero records");
+            }
+            return matches;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Unable to load the sitemap match source", ex);
+        }
+    }
     
     /**
      * Fetch ALL matches (live, scheduled, finished) for comprehensive sitemap generation.
@@ -74,29 +105,7 @@ public class LiveMatchesService {
             List<LiveMatchEntry> matches = new ArrayList<>();
             
             for (JsonNode node : jsonArray) {
-                LiveMatchEntry entry = new LiveMatchEntry();
-                entry.setUrl(node.has("url") ? node.get("url").asText() : null);
-                entry.setExternalMatchKey(node.has("externalMatchKey") ? node.get("externalMatchKey").asText() : null);
-                entry.setLastKnownState(node.has("lastKnownState") ? node.get("lastKnownState").asText() : null);
-                entry.setStatus(node.has("status") ? node.get("status").asText() : null);
-                entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
-                entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
-                entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
-                entry.setLastStateUpdatedAt(readLong(node, "lastStateUpdatedAt", "last_state_updated_at"));
-                entry.setId(node.has("id") ? node.get("id").asLong() : null);
-                // Parse startDate from various possible field names (Google GSC requires startDate for SportsEvent)
-                String startDate = null;
-                if (node.has("match_date")) {
-                    startDate = node.get("match_date").asText();
-                } else if (node.has("matchDate")) {
-                    startDate = node.get("matchDate").asText();
-                } else if (node.has("start_date")) {
-                    startDate = node.get("start_date").asText();
-                } else if (node.has("startDate")) {
-                    startDate = node.get("startDate").asText();
-                }
-                entry.setStartDate(startDate);
-                matches.add(entry);
+                matches.add(toLiveMatchEntry(node));
             }
             
             return matches;
@@ -121,34 +130,37 @@ public class LiveMatchesService {
             JsonNode jsonArray = objectMapper.readTree(response);
             
             for (JsonNode node : jsonArray) {
-                LiveMatchEntry entry = new LiveMatchEntry();
-                entry.setUrl(node.has("url") ? node.get("url").asText() : null);
-                entry.setExternalMatchKey(node.has("externalMatchKey") ? node.get("externalMatchKey").asText() : null);
-                entry.setLastKnownState(node.has("lastKnownState") ? node.get("lastKnownState").asText() : null);
-                entry.setStatus(node.has("status") ? node.get("status").asText() : null);
-                entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
-                entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
-                entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
-                entry.setLastStateUpdatedAt(readLong(node, "lastStateUpdatedAt", "last_state_updated_at"));
-                entry.setId(node.has("id") ? node.get("id").asLong() : null);
-                // Parse startDate from various possible field names (Google GSC requires startDate for SportsEvent)
-                String startDate = null;
-                if (node.has("match_date")) {
-                    startDate = node.get("match_date").asText();
-                } else if (node.has("matchDate")) {
-                    startDate = node.get("matchDate").asText();
-                } else if (node.has("start_date")) {
-                    startDate = node.get("start_date").asText();
-                } else if (node.has("startDate")) {
-                    startDate = node.get("startDate").asText();
-                }
-                entry.setStartDate(startDate);
-                matches.add(entry);
+                matches.add(toLiveMatchEntry(node));
             }
         } catch (Exception e) {
             System.err.println("Error parsing matches response: " + e.getMessage());
         }
         return matches;
+    }
+
+    private LiveMatchEntry toLiveMatchEntry(JsonNode node) {
+        LiveMatchEntry entry = new LiveMatchEntry();
+        entry.setUrl(node.has("url") ? node.get("url").asText() : null);
+        entry.setExternalMatchKey(node.has("externalMatchKey") ? node.get("externalMatchKey").asText() : null);
+        entry.setLastKnownState(node.has("lastKnownState") ? node.get("lastKnownState").asText() : null);
+        entry.setStatus(node.has("status") ? node.get("status").asText() : null);
+        entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
+        entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
+        entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
+        entry.setLastStateUpdatedAt(readLong(node, "lastStateUpdatedAt", "last_state_updated_at"));
+        entry.setId(node.has("id") ? node.get("id").asLong() : null);
+        String startDate = null;
+        if (node.has("match_date")) {
+            startDate = node.get("match_date").asText();
+        } else if (node.has("matchDate")) {
+            startDate = node.get("matchDate").asText();
+        } else if (node.has("start_date")) {
+            startDate = node.get("start_date").asText();
+        } else if (node.has("startDate")) {
+            startDate = node.get("startDate").asText();
+        }
+        entry.setStartDate(startDate);
+        return entry;
     }
 
     private Long readLong(JsonNode node, String... fieldNames) {

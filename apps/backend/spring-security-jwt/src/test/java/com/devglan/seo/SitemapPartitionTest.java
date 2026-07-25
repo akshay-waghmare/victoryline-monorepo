@@ -119,17 +119,18 @@ public class SitemapPartitionTest {
     }
 
     @Test
-    public void empty_partition_returns_valid_xml() {
-        // Given: Mock repo returns only 50 matches (less than 2 partitions worth)
+    public void unlisted_partition_is_not_emitted_as_an_empty_xml_file() {
+        // Given: Mock source returns only 50 matches (less than two partitions)
         List<Matches> matches = createMatchList(50);
         liveMatchesService.setMatches(toLiveEntries(matches));
         
         // When: Request partition 5 (beyond available data)
         String partition5Xml = service.getPartitionXml(5);
         
-        // Then: Should return valid empty sitemap
-        assertThat(partition5Xml).contains("<urlset");
-        assertThat(partition5Xml).contains("</urlset>");
+        // Then: The index must not advertise this shard and callers must not
+        // receive a cacheable empty XML document.
+        assertThat(partition5Xml).isNull();
+        assertThat(service.getSitemapIndexXml()).doesNotContain("sitemap-matches-0005.xml");
     }
 
     @Test
@@ -293,7 +294,7 @@ public class SitemapPartitionTest {
     @Test
     public void sitemap_prioritizes_live_matches_into_first_partition() {
         List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
-        for (int i = 1; i <= 120; i++) {
+        for (int i = 1; i <= 1200; i++) {
             LiveMatchesService.LiveMatchEntry completed = new LiveMatchesService.LiveMatchEntry();
             completed.setUrl(validMatchLink(i));
             completed.setStatus("COMPLETED");
@@ -382,6 +383,11 @@ public class SitemapPartitionTest {
 
         @Override
         public List<LiveMatchEntry> getLiveMatches() {
+            return matches;
+        }
+
+        @Override
+        public List<LiveMatchEntry> getSitemapMatches() {
             return matches;
         }
     }

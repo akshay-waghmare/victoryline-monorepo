@@ -441,8 +441,14 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private buildResultSupportLinks(matches: MatchCardViewModel[]): MatchFreshnessLink[] {
-    var completedMatches = this.limitUnique(filterCompletedMatches(matches), this.config.type === 'archive' ? 24 : 12);
-    return buildFreshnessDiscoveryLinksForMatches(completedMatches, this.config.type === 'archive' ? 24 : 12)
+    // Match reports are not deployed yet. The archive must expose completed canonical
+    // match pages only, rather than linking crawlers and users to known 404 routes.
+    if (this.config.type === 'archive') {
+      return [];
+    }
+
+    var completedMatches = this.limitUnique(filterCompletedMatches(matches), 12);
+    return buildFreshnessDiscoveryLinksForMatches(completedMatches, 12)
       .filter(function(link) { return link.type === 'result'; });
   }
 

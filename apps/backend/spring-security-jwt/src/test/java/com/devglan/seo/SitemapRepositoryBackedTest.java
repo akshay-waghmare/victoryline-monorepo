@@ -56,7 +56,7 @@ public class SitemapRepositoryBackedTest {
         // Seed a few visible matches with different statuses and dates
         seedMatch("TeamA", "TeamB", daysAgo(1), "live", true, "https://crex.com/cricket-live-score/teama-vs-teamb-1st-match-test-league-2026-match-updates-111A");
         seedMatch("TeamC", "TeamD", daysAgo(3), "upcoming", true, "https://crex.com/cricket-live-score/teamc-vs-teamd-2nd-match-test-league-2026-match-updates-111B");
-        seedMatch("TeamE", "TeamF", daysAgo(10), "finished", true, "https://crex.com/cricket-live-score/teame-vs-teamf-3rd-match-test-league-2026-match-updates-111C/scorecard");
+        seedMatch("TeamE", "TeamF", daysAgo(10), "finished", true, "TeamE won by 5 wickets", "https://crex.com/cricket-live-score/teame-vs-teamf-3rd-match-test-league-2026-match-updates-111C/scorecard");
         seedMatch("Hidden", "TeamX", daysAgo(2), "live", false, "https://crex.com/cricket-live-score/hidden-vs-teamx-4th-match-test-league-2026-match-updates-111D"); // invisible
 
         SeoCache cache = new SeoCache();
@@ -88,10 +88,10 @@ public class SitemapRepositoryBackedTest {
         // Assert changefreq/priority mapping by status
         assertThat(xml).contains("<changefreq>hourly</changefreq>");   // live
         assertThat(xml).contains("<changefreq>daily</changefreq>");    // upcoming
-        assertThat(xml).contains("<changefreq>weekly</changefreq>");   // finished
+        assertThat(xml).contains("<changefreq>daily</changefreq>");    // finished canonical match
         assertThat(xml).contains("<priority>0.9</priority>");          // live
         assertThat(xml).contains("<priority>0.8</priority>");          // upcoming
-        assertThat(xml).contains("<priority>0.5</priority>");          // finished
+        assertThat(xml).contains("<priority>0.8</priority>");          // finished canonical match
     }
 
     @Test
@@ -111,11 +111,16 @@ public class SitemapRepositoryBackedTest {
     }
 
     private void seedMatch(String home, String away, Date date, String status, boolean visible, String link) {
+        seedMatch(home, away, date, status, visible, null, link);
+    }
+
+    private void seedMatch(String home, String away, Date date, String status, boolean visible, String result, String link) {
         Matches m = new Matches();
         m.setHomeTeamName(home);
         m.setAwayTeamName(away);
         m.setMatchDate(date);
         m.setMatchStatus(status);
+        m.setResult(result);
         m.setVisibility(visible);
         m.setMatchLink(link);
         matchRepository.save(m);

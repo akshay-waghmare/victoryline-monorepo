@@ -77,7 +77,7 @@ describe('LiveScoreHubComponent discovery priorities', () => {
     expect(component.upcomingSectionMatches[0].id).toBe('upcoming-a-vs-upcoming-b-123B');
   });
 
-  it('retains completed result-support links for archive intent', () => {
+  it('does not expose undeployed match-report links from the archive', () => {
     var component = createComponentShape();
     var completedA = createMatch('india-vs-australia-1st-odi-123A', MatchStatus.COMPLETED, -18);
     var completedB = createMatch('england-vs-south-africa-2nd-t20-123B', MatchStatus.COMPLETED, -8);
@@ -88,8 +88,7 @@ describe('LiveScoreHubComponent discovery priorities', () => {
 
     (component as any).applyMatches();
 
-    expect(component.resultSupportLinks.length).toBe(2);
-    expect(component.resultSupportLinks.every(function(link) { return link.href.indexOf('/cricket-match-report/') === 0; })).toBe(true);
+    expect(component.resultSupportLinks).toEqual([]);
   });
 
   it('does not expose live or upcoming matches from the archive hub', () => {
