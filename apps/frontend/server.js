@@ -23,6 +23,7 @@ const MODEL_API_URL = (process.env.MODEL_API_URL || 'http://host.docker.internal
 const SSR_RENDER_TIMEOUT_MS = process.env.SSR_RENDER_TIMEOUT_MS ? Number(process.env.SSR_RENDER_TIMEOUT_MS) : 8000;
 const SSR_SNAPSHOT_TIMEOUT_MS = process.env.SSR_SNAPSHOT_TIMEOUT_MS ? Number(process.env.SSR_SNAPSHOT_TIMEOUT_MS) : 700;
 const SSR_SNAPSHOT_CACHE_TTL_MS = process.env.SSR_SNAPSHOT_CACHE_TTL_MS ? Number(process.env.SSR_SNAPSHOT_CACHE_TTL_MS) : 120000;
+const SSR_LIVE_SNAPSHOT_MAX_AGE_MS = process.env.SSR_LIVE_SNAPSHOT_MAX_AGE_MS ? Number(process.env.SSR_LIVE_SNAPSHOT_MAX_AGE_MS) : 180000;
 const ssrSnapshotCache = new Map();
 const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/$/,
@@ -235,13 +236,20 @@ function parseCanonicalMatchSlug(pathname) {
   };
 }
 
-function fetchJson(url, timeoutMs) {
+function fetchJsonResponse(url, timeoutMs) {
   return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (!settled) {
+        settled = true;
+        resolve(value);
+      }
+    };
     let parsed;
     try {
       parsed = new URL(url);
     } catch (_) {
-      resolve(null);
+      finish({ status: null, data: null, timedOut: false });
       return;
     }
     const client = parsed.protocol === 'https:' ? https : http;
@@ -250,19 +258,18 @@ function fetchJson(url, timeoutMs) {
       response.setEncoding('utf8');
       response.on('data', (chunk) => { body += chunk; });
       response.on('end', () => {
-        if (response.statusCode < 200 || response.statusCode >= 300) {
-          resolve(null);
-          return;
-        }
         try {
-          resolve(JSON.parse(body));
+          finish({ status: response.statusCode, data: JSON.parse(body), timedOut: false });
         } catch (_) {
-          resolve(null);
+          finish({ status: response.statusCode, data: null, timedOut: false });
         }
       });
     });
-    request.on('timeout', () => request.destroy());
-    request.on('error', () => resolve(null));
+    request.on('timeout', () => {
+      request.destroy();
+      finish({ status: null, data: null, timedOut: true });
+    });
+    request.on('error', () => finish({ status: null, data: null, timedOut: false }));
   });
 }
 
@@ -280,21 +287,72 @@ async function fetchCanonicalMatchSnapshot(match) {
     return cached.value;
   }
 
-  const infoUrl = `${BACKEND_URL}/cricket-data/match-info/get?url=${encodeURIComponent(match.slug)}`;
-  const data = await fetchJson(infoUrl, SSR_SNAPSHOT_TIMEOUT_MS);
-  if (!data || typeof data !== 'object') {
-    return null;
+  const snapshotUrl = `${BACKEND_URL}/cricket-data/canonical-match-snapshot?slug=${encodeURIComponent(match.slug)}`;
+  const response = await fetchJsonResponse(snapshotUrl, SSR_SNAPSHOT_TIMEOUT_MS);
+  if (response.status === 404) {
+    const invalid = { validity: 'invalid' };
+    ssrSnapshotCache.set(match.slug, { createdAt: Date.now(), value: invalid });
+    return invalid;
+  }
+  if (response.status < 200 || response.status >= 300 || !response.data || typeof response.data !== 'object') {
+    return { validity: 'unknown' };
   }
 
+  const data = response.data;
   const snapshot = {
-    series: cleanSnapshotText(data.match_name || data.series_name),
+    validity: 'valid',
+    series: cleanSnapshotText(data.series),
     venue: cleanSnapshotText(data.venue),
-    scheduledAt: cleanSnapshotText(data.match_date || data.start_date),
-    toss: cleanSnapshotText(data.toss_info),
-    status: cleanSnapshotText(data.match_status || data.status)
+    scheduledAt: cleanSnapshotText(data.scheduledLabel),
+    scheduledAtMs: Number(data.scheduledAt) || null,
+    toss: cleanSnapshotText(data.toss),
+    status: cleanSnapshotText(data.status),
+    result: cleanSnapshotText(data.finalResult || data.result),
+    lastKnownState: cleanSnapshotText(data.lastKnownState),
+    score: cleanSnapshotText(data.score),
+    overs: data.overs === null || data.overs === undefined || data.overs === '' ? null : String(data.overs),
+    battingTeam: cleanSnapshotText(data.battingTeam),
+    stateUpdatedAt: Number(data.stateUpdatedAt || data.snapshotTimestamp) || null,
+    source: cleanSnapshotText(data.source)
   };
   ssrSnapshotCache.set(match.slug, { createdAt: Date.now(), value: snapshot });
   return snapshot;
+}
+
+function deriveSnapshotLifecycle(snapshot) {
+  const status = cleanSnapshotText(snapshot && snapshot.status).toUpperCase();
+  const detail = `${cleanSnapshotText(snapshot && snapshot.result)} ${cleanSnapshotText(snapshot && snapshot.lastKnownState)}`.toLowerCase();
+  if (status === 'UPCOMING') return 'upcoming';
+  if (status === 'LIVE') return 'live';
+  if (status === 'INNINGS_BREAK') return 'innings-break';
+  if (status === 'RAIN_DELAY' || /delay|postpon/.test(detail)) return 'delayed';
+  if (status === 'ABANDONED' || /abandoned|no result/.test(detail)) return 'abandoned';
+  if (status === 'COMPLETED' || /won by|match (?:drawn|tied)|result/.test(detail)) return 'completed';
+  return 'neutral';
+}
+
+function hasFreshLiveScore(snapshot, lifecycle) {
+  if (lifecycle !== 'live' && lifecycle !== 'innings-break') return false;
+  if (!snapshot || !snapshot.score || !snapshot.stateUpdatedAt) return false;
+  return Date.now() - snapshot.stateUpdatedAt <= SSR_LIVE_SNAPSHOT_MAX_AGE_MS;
+}
+
+function lifecycleSummary(match, snapshot) {
+  const lifecycle = deriveSnapshotLifecycle(snapshot);
+  const scoreIsFresh = hasFreshLiveScore(snapshot, lifecycle);
+  const scoreLine = scoreIsFresh
+    ? `${snapshot.battingTeam ? `${snapshot.battingTeam} ` : ''}${snapshot.score}${snapshot.overs ? ` (${snapshot.overs} overs)` : ''}`
+    : '';
+  const result = cleanSnapshotText(snapshot && (snapshot.result || snapshot.lastKnownState));
+  switch (lifecycle) {
+    case 'upcoming': return { lifecycle, label: 'Upcoming match', copy: `${match.teams} is scheduled to begin shortly.`, scoreLine: '' };
+    case 'live': return { lifecycle, label: 'Live match', copy: scoreLine ? `Live score: ${scoreLine}.` : 'Live match data is temporarily unavailable; updates will appear shortly.', scoreLine };
+    case 'innings-break': return { lifecycle, label: 'Innings break', copy: scoreLine ? `Innings break: ${scoreLine}.` : 'The match is at an innings break; the next update will appear shortly.', scoreLine };
+    case 'completed': return { lifecycle, label: 'Match completed', copy: result || 'This match has concluded. The final result is being confirmed.', scoreLine: '' };
+    case 'delayed': return { lifecycle, label: 'Match delayed', copy: result || 'The match is delayed or postponed. Updates will appear when play resumes.', scoreLine: '' };
+    case 'abandoned': return { lifecycle, label: 'Match abandoned or no result', copy: result || 'This match ended without a result or was abandoned.', scoreLine: '' };
+    default: return { lifecycle, label: 'Match update', copy: 'Match data is temporarily loading. Score, commentary, and scorecard updates will appear shortly.', scoreLine: '' };
+  }
 }
 
 function buildCanonicalMatchFallbackHtml(req, snapshot) {
@@ -306,12 +364,13 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
   const canonicalPath = `/cric-live/${match.slug}`;
   const canonicalUrl = `https://www.crickzen.com${canonicalPath}`;
   const series = cleanSnapshotText(snapshot && snapshot.series) || match.series;
+  const summary = lifecycleSummary(match, snapshot);
   const title = series
-    ? `${match.teams} Cricket Match Score and Updates, ${series} | Crickzen`
-    : `${match.teams} Cricket Match Score and Updates | Crickzen`;
+    ? `${match.teams} ${summary.label}, ${series} | Crickzen`
+    : `${match.teams} ${summary.label} | Crickzen`;
   const description = series
-    ? `Follow ${match.teams} score, match updates, commentary, and scorecard from ${series} on Crickzen.`
-    : `Follow ${match.teams} score, match updates, commentary, and scorecard on Crickzen.`;
+    ? `${summary.copy} Follow ${match.teams} score, commentary, and scorecard from ${series} on Crickzen.`
+    : `${summary.copy} Follow ${match.teams} score, commentary, and scorecard on Crickzen.`;
   const structuredData = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'SportsEvent',
@@ -320,7 +379,15 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     competitor: [
       { '@type': 'SportsTeam', name: match.team1 },
       { '@type': 'SportsTeam', name: match.team2 }
-    ]
+    ],
+    eventStatus: summary.lifecycle === 'live' || summary.lifecycle === 'innings-break'
+      ? 'https://schema.org/EventInProgress'
+      : summary.lifecycle === 'completed' ? 'https://schema.org/EventCompleted'
+        : summary.lifecycle === 'abandoned' ? 'https://schema.org/EventCancelled'
+          : 'https://schema.org/EventScheduled',
+    startDate: snapshot && snapshot.scheduledAtMs ? new Date(snapshot.scheduledAtMs).toISOString() : undefined,
+    location: snapshot && snapshot.venue ? { '@type': 'Place', name: snapshot.venue } : undefined,
+    description
   }).replace(/</g, '\\u003c');
   const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8')
     // The application shell has a generic description. Remove it before
@@ -339,12 +406,12 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
   ].join('');
   const body = `<main id="canonical-match-ssr-fallback" data-ssr-fallback="canonical-match">
     <nav aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/live-score">Live Cricket Scores</a>${series ? ` <span aria-hidden="true">/</span> <span>${escapeHtml(series)}</span>` : ''}</nav>
-    <h1>${escapeHtml(match.teams)} Cricket Match Score and Updates</h1>
+    <h1>${escapeHtml(match.teams)} — ${escapeHtml(summary.label)}</h1>
     ${series ? `<p>${escapeHtml(series)}</p>` : ''}
     ${snapshot && snapshot.scheduledAt ? `<p>Scheduled: ${escapeHtml(snapshot.scheduledAt)}</p>` : ''}
     ${snapshot && snapshot.venue ? `<p>Venue: ${escapeHtml(snapshot.venue)}</p>` : ''}
     ${snapshot && snapshot.toss ? `<p>${escapeHtml(snapshot.toss)}</p>` : ''}
-    <p>Match data is temporarily loading. Score, commentary, and scorecard updates will appear shortly.</p>
+    <p>${escapeHtml(summary.copy)}</p>
     <p><a href="${canonicalPath}">${escapeHtml(match.teams)} match centre</a> · <a href="/live-score">Live cricket scores</a> · <a href="/cricket-schedule/today">Today’s cricket schedule</a></p>
   </main>`;
 
@@ -353,15 +420,28 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     .replace(/<app-root><\/app-root>/i, `<app-root>${body}</app-root>`);
 }
 
+function buildCanonicalMatchNotFoundHtml(req) {
+  const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8').replace(/<meta\s+name="description"[^>]*>\s*/i, '');
+  const head = '<title>Cricket Match Not Found | Crickzen</title><meta name="robots" content="noindex,follow"><meta name="description" content="This cricket match URL could not be resolved.">';
+  const body = '<main id="canonical-match-not-found"><h1>Cricket match not found</h1><p>This match URL could not be resolved. Browse live scores or today’s schedule for current cricket coverage.</p><p><a href="/live-score">Live cricket scores</a> · <a href="/cricket-schedule/today">Today’s cricket schedule</a></p></main>';
+  return indexHtml.replace(/<title>[^<]*<\/title>/i, head).replace(/<app-root><\/app-root>/i, `<app-root>${body}</app-root>`);
+}
+
 async function sendSsrFallback(req, res, routeStatus, reason) {
   const routeMatch = routeStatus === 200 ? parseCanonicalMatchSlug(req.path) : null;
   const startedAt = Date.now();
-  const snapshot = routeMatch ? await fetchCanonicalMatchSnapshot(routeMatch) : null;
+  const snapshot = routeMatch ? (req.canonicalMatchSnapshot || await fetchCanonicalMatchSnapshot(routeMatch)) : null;
+  if (routeMatch && snapshot && snapshot.validity === 'invalid') {
+    res.status(404).send(buildCanonicalMatchNotFoundHtml(req));
+    return;
+  }
   const canonicalFallback = routeMatch && buildCanonicalMatchFallbackHtml(req, snapshot);
   if (canonicalFallback) {
-    console.error('[SSR] Canonical match fallback', { url: req.originalUrl, reason, snapshot: snapshot ? 'backend' : 'route', fallbackMs: Date.now() - startedAt });
+    const lifecycle = deriveSnapshotLifecycle(snapshot);
+    console.error('[SSR] Canonical match fallback', { url: req.originalUrl, reason, snapshot: snapshot && snapshot.validity === 'valid' ? snapshot.source || 'backend' : 'route', lifecycle, fallbackMs: Date.now() - startedAt });
     res.setHeader('X-SSR-Fallback', 'canonical-match');
-    res.setHeader('X-SSR-Fallback-Level', snapshot ? 'snapshot' : 'route');
+    res.setHeader('X-SSR-Fallback-Level', snapshot && snapshot.validity === 'valid' ? 'snapshot' : 'route');
+    res.setHeader('X-SSR-Lifecycle', lifecycle);
     res.status(200).send(canonicalFallback);
     return;
   }
@@ -434,7 +514,22 @@ app.get('*.*', express.static(DIST_FOLDER, {
   maxAge: '1y'
 }));
 
-app.get('*', (req, res) => {
+app.get('*', async (req, res) => {
+  const canonicalMatch = parseCanonicalMatchSlug(req.path);
+  if (/^\/cric-live\//.test(req.path) && !canonicalMatch) {
+    res.status(404).send(buildCanonicalMatchNotFoundHtml(req));
+    return;
+  }
+
+  if (canonicalMatch) {
+    req.canonicalMatchSnapshot = await fetchCanonicalMatchSnapshot(canonicalMatch);
+    if (req.canonicalMatchSnapshot && req.canonicalMatchSnapshot.validity === 'invalid') {
+      console.warn('[SSR] Canonical match route not found', { url: req.originalUrl });
+      res.status(404).send(buildCanonicalMatchNotFoundHtml(req));
+      return;
+    }
+  }
+
   const routeStatus = isKnownFrontendRoute(req.path) ? 200 : 404;
 
   if (path.extname(req.path) && routeStatus !== 200) {

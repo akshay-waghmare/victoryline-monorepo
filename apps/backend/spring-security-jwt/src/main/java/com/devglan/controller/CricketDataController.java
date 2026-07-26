@@ -540,6 +540,102 @@ public class CricketDataController {
 		}
 	}
 
+	/**
+	 * Small, exact-record contract for server-rendered canonical match pages.
+	 *
+	 * This intentionally does not invoke external hydration.  A 404 therefore
+	 * means that the stored match catalogue cannot resolve the slug, while a
+	 * slow/unavailable caller can be handled by the frontend as an availability
+	 * problem rather than incorrectly becoming a soft 404.
+	 */
+	@GetMapping("/canonical-match-snapshot")
+	public ResponseEntity<?> getCanonicalMatchSnapshot(@RequestParam("slug") String slug) {
+		String normalizedSlug = slug == null ? "" : slug.trim();
+		if (normalizedSlug.isEmpty() || !normalizedSlug.matches("[A-Za-z0-9-]+") || !normalizedSlug.contains("-vs-")) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
+		}
+
+		LiveMatch match = liveMatchService.findByUrl(normalizedSlug);
+		if (match == null || !matchesCanonicalSlug(match, normalizedSlug)) {
+			String storedInfo = matchInfoService.getMatchInfo(normalizedSlug);
+			if (storedInfo == null || storedInfo.trim().isEmpty()) {
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
+			}
+			try {
+				Map<String, Object> info = springObjectMapper.readValue(storedInfo, new TypeReference<Map<String, Object>>() {});
+				if (!hasMeaningfulMatchInfo(info)) {
+					return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
+				}
+				Map<String, Object> response = new HashMap<>();
+				response.put("slug", normalizedSlug);
+				response.put("status", null);
+				response.put("series", info.get("match_name"));
+				response.put("scheduledLabel", info.get("match_date"));
+				response.put("venue", info.get("venue"));
+				response.put("toss", info.get("toss_info"));
+				response.put("snapshotTimestamp", System.currentTimeMillis());
+				response.put("source", "stored-match-info");
+				return ResponseEntity.ok(response);
+			} catch (Exception ex) {
+				log.warn("Unable to read stored match info for canonical snapshot {}", normalizedSlug, ex);
+				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
+			}
+		}
+
+		Map<String, Object> response = new HashMap<>();
+		response.put("slug", normalizedSlug);
+		response.put("status", match.getStatus() == null ? null : match.getStatus().name());
+		response.put("scheduledAt", match.getScheduledStartTime());
+		response.put("team1", match.getTeam1Name());
+		response.put("team2", match.getTeam2Name());
+		response.put("series", match.getSeriesName());
+		response.put("venue", match.getVenue());
+		response.put("result", match.getResultSummary());
+		response.put("lastKnownState", match.getLastKnownState());
+		response.put("snapshotTimestamp", match.getLastStateUpdatedAt());
+		response.put("source", "stored-match-record");
+
+		try {
+			CricketDataDTO current = cricketDataService.getLastUpdatedData(match.getUrl());
+			if (current != null) {
+				response.put("series", firstMeaningful(current.getMatchName(), match.getSeriesName()));
+				response.put("scheduledLabel", current.getMatchDate());
+				response.put("venue", firstMeaningful(current.getVenue(), match.getVenue()));
+				response.put("toss", current.getTossInfo());
+				response.put("score", current.getScore());
+				response.put("overs", current.getOver());
+				response.put("battingTeam", current.getBattingTeamName());
+				response.put("finalResult", current.getFinalResultText());
+				response.put("stateUpdatedAt", current.getUpdatedTimeStamp());
+			}
+		} catch (Exception ex) {
+			// Static identity and lifecycle data remain a valid bounded snapshot.
+			log.debug("Current score unavailable for canonical snapshot {}", normalizedSlug, ex);
+		}
+
+		return ResponseEntity.ok(response);
+	}
+
+	private boolean matchesCanonicalSlug(LiveMatch match, String slug) {
+		if (match.getExternalMatchKey() != null && match.getExternalMatchKey().equals(slug)) {
+			return true;
+		}
+		return match.getUrl() != null && match.getUrl().contains(slug);
+	}
+
+	private boolean hasMeaningfulMatchInfo(Map<String, Object> info) {
+		Object matchName = info.get("match_name");
+		if (matchName == null) {
+			return false;
+		}
+		String value = String.valueOf(matchName).trim();
+		return !value.isEmpty() && !"No match name".equalsIgnoreCase(value);
+	}
+
+	private String firstMeaningful(String primary, String fallback) {
+		return primary != null && !primary.trim().isEmpty() ? primary : fallback;
+	}
+
 	@GetMapping("/bets")
 	public ResponseEntity<BetResponse> getBetsForMatch(@RequestParam String url) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

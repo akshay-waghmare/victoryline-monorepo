@@ -1,6 +1,7 @@
 param(
   [Parameter(Mandatory = $true)]
   [string[]]$Url,
+  [string[]]$InvalidUrl = @(),
   [int]$MinimumBytes = 9000,
   [int]$TimeoutSeconds = 30
 )
@@ -28,6 +29,33 @@ foreach ($target in $Url) {
       Url = $target
       StatusCode = $response.StatusCode
       Bytes = $bytes
+      Fallback = $response.Headers['X-SSR-Fallback']
+      FallbackLevel = $response.Headers['X-SSR-Fallback-Level']
+      Passed = $failed.Count -eq 0
+      FailedChecks = $failed -join ', '
+    }
+    if ($failed.Count -gt 0) { $failures += $target }
+  } catch {
+    $failures += $target
+    [PSCustomObject]@{ Url = $target; StatusCode = $null; Bytes = 0; Fallback = $null; FallbackLevel = $null; Passed = $false; FailedChecks = $_.Exception.Message }
+  }
+}
+
+foreach ($target in $InvalidUrl) {
+  try {
+    $response = Invoke-WebRequest -UseBasicParsing -Uri $target -TimeoutSec $TimeoutSeconds -SkipHttpErrorCheck
+    $html = $response.Content
+    $checks = [ordered]@{
+      status = $response.StatusCode -eq 404
+      noindex = [regex]::IsMatch($html, '(?is)<meta[^>]+name=["'']robots["''][^>]+content=["'']noindex,follow["'']')
+      h1 = [regex]::IsMatch($html, '(?is)<h1[ >][^>]*>\s*Cricket match not found\s*</h1>')
+      noCanonical = -not [regex]::IsMatch($html, '(?is)<link[^>]+rel=["'']canonical["'']')
+    }
+    $failed = @($checks.GetEnumerator() | Where-Object { -not $_.Value } | ForEach-Object Key)
+    [PSCustomObject]@{
+      Url = $target
+      StatusCode = $response.StatusCode
+      Bytes = [Text.Encoding]::UTF8.GetByteCount($html)
       Fallback = $response.Headers['X-SSR-Fallback']
       FallbackLevel = $response.Headers['X-SSR-Fallback-Level']
       Passed = $failed.Count -eq 0
