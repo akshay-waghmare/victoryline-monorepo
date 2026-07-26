@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-27  
 **Scope:** `GET /cric-live/{slug}` only  
-**Status:** planned — do not deploy until the failing SSR path is reproduced and traced
+**Status:** Slice 0 and the bounded identity snapshot are deployed; lifecycle-complete snapshot work remains
 
 ## Outcome
 
@@ -14,6 +14,17 @@ This phase protects the existing contract:
 - Child tabs fold to the parent canonical under the existing policy.
 - Match Intelligence remains `noindex,follow`.
 - Browser hydration enhances a correct document; it does not create the first usable representation of the match.
+
+## Implemented checkpoint — 2026-07-27
+
+- `76a9f51` eliminates the bare Angular index-shell response when canonical match SSR reaches its deadline or render error. A valid `/cric-live/{slug}` receives a deterministic, indexable route fallback with its own title, description, canonical, robots, H1, breadcrumbs, hub links, and `SportsEvent` JSON-LD.
+- `29bef5f` adds a bounded server-side snapshot enrichment step before that fallback is written. It reads only the existing match-info endpoint, has a 700 ms deadline and a short in-process TTL cache, and never waits for scorecard, commentary, player, or prediction data.
+- The current enrichment is deliberately limited to data that is independently available and safe to display: series, scheduled time, venue, and toss. If that endpoint is slow or unavailable, the server still returns the deterministic route fallback rather than an empty shell.
+- Response headers make the degradation visible without changing indexing semantics: `X-SSR-Fallback: canonical-match` and `X-SSR-Fallback-Level: snapshot|route`. Structured server logs include the reason, snapshot source, and total fallback time.
+- `scripts/Assert-CanonicalMatchSsr.ps1` is the raw-HTML regression gate. It verifies HTTP 200, a minimum body size, title, self-canonical, robots, one H1, `SportsEvent` JSON-LD, and non-empty app root across a supplied canonical-URL set.
+- A forced 1 ms SSR-timeout container test proved the snapshot branch includes series, venue, scheduled time, and toss. After deployment, the public Hundred and Bangladesh–Zimbabwe canonical URLs both returned HTTP 200, 9.6–9.8 KB documents, and `X-SSR-Fallback-Level: snapshot`.
+
+This checkpoint is not a claim of complete lifecycle SSR. Score/result/target/status, real entity links, TransferState parity, invalid-slug 404 evidence, and the full fixture matrix remain in the later slices below.
 
 ## Confirmed baseline
 
