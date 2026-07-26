@@ -595,6 +595,23 @@ public class CricketDataController {
 		response.put("snapshotTimestamp", match.getLastStateUpdatedAt());
 		response.put("source", "stored-match-record");
 
+		// Match-info is the authoritative static identity source when present.
+		// It is read from storage only; this endpoint must never trigger hydration.
+		try {
+			String storedInfo = matchInfoService.getMatchInfo(normalizedSlug);
+			if (storedInfo != null && !storedInfo.trim().isEmpty()) {
+				Map<String, Object> info = springObjectMapper.readValue(storedInfo, new TypeReference<Map<String, Object>>() {});
+				if (hasMeaningfulMatchInfo(info)) {
+					response.put("series", firstMeaningful(asText(info.get("match_name")), match.getSeriesName()));
+					response.put("scheduledLabel", asText(info.get("match_date")));
+					response.put("venue", firstMeaningful(asText(info.get("venue")), match.getVenue()));
+					response.put("toss", asText(info.get("toss_info")));
+				}
+			}
+		} catch (Exception ex) {
+			log.debug("Stored match info unavailable for canonical snapshot {}", normalizedSlug, ex);
+		}
+
 		try {
 			CricketDataDTO current = cricketDataService.getLastUpdatedData(match.getUrl());
 			if (current != null) {
@@ -634,6 +651,10 @@ public class CricketDataController {
 
 	private String firstMeaningful(String primary, String fallback) {
 		return primary != null && !primary.trim().isEmpty() ? primary : fallback;
+	}
+
+	private String asText(Object value) {
+		return value == null ? null : String.valueOf(value);
 	}
 
 	@GetMapping("/bets")

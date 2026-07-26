@@ -274,7 +274,8 @@ function fetchJsonResponse(url, timeoutMs) {
 }
 
 function cleanSnapshotText(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim();
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  return /^(null|undefined|no (?:match|venue|data|toss)(?: .*)?)$/i.test(text) ? '' : text;
 }
 
 async function fetchCanonicalMatchSnapshot(match) {
