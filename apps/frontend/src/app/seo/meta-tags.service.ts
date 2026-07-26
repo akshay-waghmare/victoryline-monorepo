@@ -25,12 +25,28 @@ export interface CanonicalMeta {
 @Injectable({ providedIn: 'root' })
 export class MetaTagsService {
   private canonicalHost = 'https://www.crickzen.com';
+  private readonly ssrFallbackCanonicalUrl: string | null;
+  private readonly ssrFallbackTitle: string | null;
+  private readonly ssrFallbackRobots: string | null;
 
   constructor(
     private titleService: Title,
     private metaService: Meta,
     @Inject(DOCUMENT) private document: any
-  ) {}
+  ) {
+    const fallback = this.document && this.document.querySelector
+      ? this.document.querySelector('[data-ssr-fallback="canonical-match"]')
+      : null;
+    const canonical = this.document && this.document.head
+      ? this.document.head.querySelector('link[rel="canonical"]')
+      : null;
+    const robots = this.document && this.document.head
+      ? this.document.head.querySelector('meta[name="robots"]')
+      : null;
+    this.ssrFallbackCanonicalUrl = fallback && canonical ? canonical.getAttribute('href') : null;
+    this.ssrFallbackTitle = fallback && this.document ? this.document.title : null;
+    this.ssrFallbackRobots = fallback && robots ? robots.getAttribute('content') : null;
+  }
 
   // Ensures canonical URL uses the configured host consistently
   ensureCanonicalHost(url: string): string {
@@ -101,6 +117,7 @@ export class MetaTagsService {
   }
 
   setPageMeta(_path: string, meta: CanonicalMeta) {
+    meta = this.preserveCanonicalFallbackParity(meta);
     this.titleService.setTitle(meta.title);
     this.metaService.updateTag({ name: 'description', content: meta.description });
     this.metaService.updateTag({ name: 'robots', content: meta.robots || 'index,follow' });
@@ -132,6 +149,38 @@ export class MetaTagsService {
     } else {
       this.metaService.removeTag("name='twitter:image'");
     }
+  }
+
+  /**
+   * A timeout fallback is already a valid canonical document.  During client
+   * hydration, incomplete data must not replace it with an unavailable title,
+   * a different canonical target, or a weaker robots instruction.  Richer
+   * same-match data is still allowed through normally.
+   */
+  private preserveCanonicalFallbackParity(meta: CanonicalMeta): CanonicalMeta {
+    if (!this.ssrFallbackCanonicalUrl || !this.ssrFallbackTitle) {
+      return meta;
+    }
+
+    const incomingCanonical = this.ensureCanonicalHost(meta.canonicalUrl);
+    const serverCanonical = this.ensureCanonicalHost(this.ssrFallbackCanonicalUrl);
+    const sameCanonical = incomingCanonical === serverCanonical;
+    const incomingTitle = (meta.title || '').trim();
+    const genericTitle = /match not available|^live cricket match\b|^cricket match\b/i.test(incomingTitle);
+    const losesMatchIdentity = /\bvs\b/i.test(this.ssrFallbackTitle) && !/\bvs\b/i.test(incomingTitle);
+    const weakRobots = this.ssrFallbackRobots === 'index,follow' && meta.robots === 'noindex,follow';
+
+    if (sameCanonical && !genericTitle && !losesMatchIdentity && !weakRobots) {
+      return meta;
+    }
+
+    return {
+      ...meta,
+      title: this.ssrFallbackTitle,
+      canonicalUrl: serverCanonical,
+      robots: (this.ssrFallbackRobots as 'index,follow' | 'noindex,follow') || meta.robots,
+      og: { ...(meta.og || {}), title: this.ssrFallbackTitle, url: serverCanonical }
+    };
   }
 
   private setCanonical(url: string): void {
