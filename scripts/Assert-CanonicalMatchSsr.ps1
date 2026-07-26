@@ -48,7 +48,7 @@ foreach ($target in $InvalidUrl) {
     $checks = [ordered]@{
       status = $response.StatusCode -eq 404
       noindex = [regex]::IsMatch($html, '(?is)<meta[^>]+name=["'']robots["''][^>]+content=["'']noindex,follow["'']')
-      h1 = [regex]::IsMatch($html, '(?is)<h1[ >][^>]*>\s*Cricket match not found\s*</h1>')
+      h1 = [regex]::IsMatch($html, '(?is)<h1\b[^>]*>\s*Cricket match not found\s*</h1>')
       noCanonical = -not [regex]::IsMatch($html, '(?is)<link[^>]+rel=["'']canonical["'']')
     }
     $failed = @($checks.GetEnumerator() | Where-Object { -not $_.Value } | ForEach-Object Key)
