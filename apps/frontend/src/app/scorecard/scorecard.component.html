@@ -120,9 +120,9 @@
                   <th class="col-player">Batter</th>
                   <th class="col-num">R</th>
                   <th class="col-num">B</th>
-                  <th class="col-num">4s</th>
-                  <th class="col-num">6s</th>
-                  <th class="col-num">SR</th>
+                  <th class="col-num col-fours">4s</th>
+                  <th class="col-num col-sixes">6s</th>
+                  <th class="col-num col-rate">SR</th>
                 </tr>
               </thead>
               <tbody>
@@ -147,9 +147,9 @@
                   </td>
                   <td class="col-num bold-runs">{{ getBatsmanStats(batterKey, inningKey).runs }}</td>
                   <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).balls_faced }}</td>
-                  <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).fours }}</td>
-                  <td class="col-num">{{ getBatsmanStats(batterKey, inningKey).sixes }}</td>
-                  <td class="col-num">{{ calculateStrikeRate(getBatsmanStats(batterKey, inningKey).runs, getBatsmanStats(batterKey, inningKey).balls_faced) | number:'1.0-2' }}</td>
+                  <td class="col-num col-fours">{{ getBatsmanStats(batterKey, inningKey).fours }}</td>
+                  <td class="col-num col-sixes">{{ getBatsmanStats(batterKey, inningKey).sixes }}</td>
+                  <td class="col-num col-rate">{{ calculateStrikeRate(getBatsmanStats(batterKey, inningKey).runs, getBatsmanStats(batterKey, inningKey).balls_faced) | number:'1.0-2' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -171,10 +171,10 @@
                 <tr>
                   <th class="col-player">Bowler</th>
                   <th class="col-num">O</th>
-                  <th class="col-num">M</th>
+                  <th class="col-num col-maidens">M</th>
                   <th class="col-num">R</th>
                   <th class="col-num">W</th>
-                  <th class="col-num">ECON</th>
+                  <th class="col-num col-rate">ECON</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,10 +191,10 @@
                     </button>
                   </td>
                   <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).overs }}</td>
-                  <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).maidens }}</td>
+                  <td class="col-num col-maidens">{{ getBowlerStats(bowlerKey, inningKey).maidens }}</td>
                   <td class="col-num">{{ getBowlerStats(bowlerKey, inningKey).runs }}</td>
                   <td class="col-num bold-wickets">{{ getBowlerStats(bowlerKey, inningKey).wickets }}</td>
-                  <td class="col-num">{{ calculateEconomyRate(getBowlerStats(bowlerKey, inningKey).runs, getBowlerStats(bowlerKey, inningKey).overs) | number:'1.0-2' }}</td>
+                  <td class="col-num col-rate">{{ calculateEconomyRate(getBowlerStats(bowlerKey, inningKey).runs, getBowlerStats(bowlerKey, inningKey).overs) | number:'1.0-2' }}</td>
                 </tr>
               </tbody>
             </table>

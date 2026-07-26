@@ -332,7 +332,7 @@
 
 @media (max-width: 768px) {
   .scorecard {
-    padding: 14px;
+    padding: 12px;
   }
 
   .scorecard__header {
@@ -351,22 +351,102 @@
   }
 
   .sc-table {
-    min-width: 620px;
+    min-width: 0;
+    table-layout: fixed;
   }
 
   .sc-table th,
   .sc-table td {
-    padding: 10px;
+    padding: 10px 7px;
+  }
+
+  .col-player {
+    width: 46%;
+    min-width: 0;
+  }
+
+  .col-num {
+    width: auto;
+    font-size: 0.78rem !important;
+  }
+
+  .player-name {
+    align-items: flex-start;
+    font-size: 0.82rem;
+    line-height: 1.25;
+  }
+
+  .player-name-button__hint {
+    display: none;
   }
 
   .dismissal-text {
-    max-width: 190px;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  :host ::ng-deep .scorecard-tabs .mat-tab-header {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  :host ::ng-deep .scorecard-tabs .mat-tab-header::-webkit-scrollbar {
+    display: none;
+  }
+
+  :host ::ng-deep .scorecard-tabs .mat-tab-labels {
+    min-width: max-content;
   }
 
   :host ::ng-deep .scorecard-tabs .mat-tab-label {
     min-width: auto;
     padding: 0 10px;
     font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .scorecard {
+    margin-right: -2px;
+    margin-left: -2px;
+    padding: 10px;
+    border-radius: 10px;
+  }
+
+  .innings-header {
+    margin-bottom: 10px;
+    padding: 12px;
+  }
+
+  .innings-header .team-score {
+    font-size: 1.18rem;
+  }
+
+  .sc-table th,
+  .sc-table td {
+    padding: 9px 5px;
+  }
+
+  .col-player {
+    width: 52%;
+  }
+
+  .col-fours,
+  .col-sixes,
+  .col-maidens,
+  .col-rate {
+    display: none;
+  }
+
+  .section-label {
+    margin-bottom: 6px;
+  }
+
+  .yet-to-bat-row {
+    padding: 10px;
+    font-size: 0.78rem;
   }
 }
 
