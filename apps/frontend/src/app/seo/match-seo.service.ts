@@ -59,19 +59,36 @@ export class MatchSeoService {
       team1,
       team2
     );
+    // Indexability is a route-policy decision, not a statement about whether
+    // the match exists. Child surfaces such as Match Intelligence are
+    // deliberately noindex, but a live match on those surfaces must still
+    // expose truthful metadata to users and crawlers.
+    const hasLiveMatchContext = lifecycle === 'live' && (!!sourceSlug || hasTeams || !!input.matchInfo || !!input.currentMatch);
     const title = isIndexable
       ? this.buildRouteTitle(routeIntent.surface, teams, shortTeams, series, lifecycle)
-      : 'Cricket Match Not Available | Crickzen';
+      : hasLiveMatchContext
+        ? this.buildLiveFallbackTitle(teams, series, hasTeams)
+        : 'Cricket Match Not Available | Crickzen';
     const breadcrumbSeries = this.getBreadcrumbSeries(series);
     const ogImageUrl = this.host + getOgImageForMatch(sourceSlug || routeSlug || 'match');
     const description = isIndexable
       ? this.buildRouteDescription(routeIntent.surface, teams, shortTeams, series, lifecycle)
-      : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
+      : hasLiveMatchContext
+        ? this.buildLiveFallbackDescription(teams, series, hasTeams)
+        : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
     const canonicalUrl = this.host + canonicalPath;
-    const h1 = isIndexable ? this.buildRouteH1(routeIntent.surface, teams, shortTeams, lifecycle) : 'Cricket match not available';
+    const h1 = isIndexable
+      ? this.buildRouteH1(routeIntent.surface, teams, shortTeams, lifecycle)
+      : hasLiveMatchContext
+        ? (hasTeams ? `${teams} Live Cricket Score` : 'Live Cricket Match')
+        : 'Cricket match not available';
     const summary = isIndexable
       ? this.buildRouteSummary(routeIntent.surface, teams, shortTeams, series, lifecycle)
-      : 'This match could not be resolved to a reliable scorecard yet. Use the match centre to find live scores, upcoming fixtures, and recent cricket results.';
+      : hasLiveMatchContext
+        ? (hasTeams
+          ? `${teams} live score and win probability${series ? ` for ${series}` : ''}.`
+          : 'Live cricket score and win probability updates.')
+        : 'This match could not be resolved to a reliable scorecard yet. Use the match centre to find live scores, upcoming fixtures, and recent cricket results.';
 
     return {
       canonicalPath,
@@ -105,6 +122,26 @@ export class MatchSeoService {
       case 'lineups': return `${teams} Playing XI and Lineups${series ? ` | ${series}` : ''} | Crickzen`;
       default: return this.buildTitle(teams, shortTeams, lifecycle);
     }
+  }
+
+  private buildLiveFallbackTitle(teams: string, series: string, hasTeams: boolean): string {
+    if (!hasTeams) {
+      return 'Live Cricket Match – Score & Win Probability | Crickzen';
+    }
+
+    if (series) {
+      return `${teams}, ${series} – Live Score & Win Probability | Crickzen`;
+    }
+
+    return `${teams} – Live Cricket Score | Crickzen`;
+  }
+
+  private buildLiveFallbackDescription(teams: string, series: string, hasTeams: boolean): string {
+    if (!hasTeams) {
+      return 'Follow the live cricket score, match updates, and win probability on Crickzen.';
+    }
+
+    return `Follow ${teams} live score, match updates, and win probability${series ? ` in ${series}` : ''}.`;
   }
 
   private buildRouteH1(surface: MatchRouteSurface, teams: string, shortTeams: string, lifecycle: MatchLifecycleState): string {

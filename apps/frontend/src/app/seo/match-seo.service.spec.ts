@@ -67,6 +67,36 @@ describe('MatchSeoService canonical lifecycle', () => {
     expect(unknownSurface.isIndexable).toBe(false);
   });
 
+  it('keeps a live Hundred Match Intelligence title truthful even though the child route is noindex', () => {
+    var intelligence = service.build({
+      routeSlug: 'ls-vs-tr-8th-match-the-hundred-2026-men-match-updates-ZKC',
+      requestedPath: '/cric-live/ls-vs-tr-8th-match-the-hundred-2026-men-match-updates-ZKC/match-intelligence',
+      matchInfo: {
+        team1_name: 'London Spirit',
+        team2_name: 'Trent Rockets',
+        match_status: 'Live',
+        series_name: 'The Hundred 2026'
+      }
+    });
+
+    expect(intelligence.robots).toBe('noindex,follow');
+    expect(intelligence.title).toBe('London Spirit vs Trent Rockets, The Hundred 2026 – Live Score & Win Probability | Crickzen');
+    expect(intelligence.description).toContain('live score, match updates, and win probability');
+    expect(intelligence.h1).toBe('London Spirit vs Trent Rockets Live Cricket Score');
+    expect(intelligence.title).not.toContain('Not Available');
+  });
+
+  it('uses a team-only live title when the series is not available', () => {
+    var partial = service.build({
+      routeSlug: 'abc-vs-def',
+      requestedPath: '/cric-live/abc-vs-def/match-intelligence',
+      matchInfo: { team1_name: 'Alpha CC', team2_name: 'Delta CC', match_status: 'Live' }
+    });
+
+    expect(partial.title).toBe('Alpha CC vs Delta CC – Live Cricket Score | Crickzen');
+    expect(partial.title).not.toContain('Not Available');
+  });
+
   it('keeps unresolved numeric routes out of the index', () => {
     var unresolved = service.build({
       routeSlug: '445',
@@ -78,6 +108,8 @@ describe('MatchSeoService canonical lifecycle', () => {
     expect(unresolved.canonicalDecision.disposition).toBe('noindex');
     expect(unresolved.robots).toBe('noindex,follow');
     expect(unresolved.isIndexable).toBe(false);
+    expect(unresolved.title).toBe('Live Cricket Match – Score & Win Probability | Crickzen');
+    expect(unresolved.h1).toBe('Live Cricket Match');
   });
 
   it('keeps full team names in concise metadata without literal truncation', () => {
