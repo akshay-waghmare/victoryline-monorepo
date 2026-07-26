@@ -156,6 +156,144 @@ function moveTransferStateBeforeBundles(html) {
   return withoutState.slice(0, bundleMatch.index) + stateMatch[0] + withoutState.slice(bundleMatch.index);
 }
 
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function titleCaseSlugToken(value) {
+  const token = String(value || '').trim();
+  if (!token) {
+    return '';
+  }
+  if (/^(odi|t20|t20i|ipl|wpl|bbl|bblw|wc)$/i.test(token)) {
+    return token.toUpperCase();
+  }
+  if (/^[a-z0-9]{1,4}$/i.test(token)) {
+    return token.toUpperCase();
+  }
+  return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+}
+
+function titleCaseSeriesSlugToken(value) {
+  const token = String(value || '').trim();
+  if (/^\d+(st|nd|rd|th)$/i.test(token)) {
+    return token.toLowerCase();
+  }
+  if (/^(the|men|women|match|tour|cup|league|tournament)$/i.test(token)) {
+    return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+  }
+  return titleCaseSlugToken(token);
+}
+
+function parseCanonicalMatchSlug(pathname) {
+  let decodedPath = String(pathname || '');
+  try {
+    decodedPath = decodeURIComponent(decodedPath);
+  } catch (_) {
+    // Keep the original request path when malformed escaping is present.
+  }
+
+  const match = decodedPath.match(/^\/cric-live\/([^/?#]+?)(?:\/(?:live|commentary|scorecard|match-scorecard|match-details|info|lineups|report|match-report))?\/?$/i);
+  const slug = match && match[1] ? match[1] : '';
+  if (!slug || slug.indexOf('-vs-') === -1) {
+    return null;
+  }
+
+  const parts = slug.split('-').filter(Boolean);
+  const vsIndex = parts.indexOf('vs');
+  if (vsIndex <= 0 || vsIndex >= parts.length - 1) {
+    return null;
+  }
+
+  const ordinalIndex = parts.findIndex((part, index) => index > vsIndex && /^\d+(st|nd|rd|th)$/i.test(part));
+  const team2End = ordinalIndex > vsIndex ? ordinalIndex : Math.min(parts.length, vsIndex + 2);
+  const team1 = parts.slice(0, vsIndex).map(titleCaseSlugToken).join(' ');
+  const team2 = parts.slice(vsIndex + 1, team2End).map(titleCaseSlugToken).join(' ');
+  const seriesTokens = (ordinalIndex > -1 ? parts.slice(ordinalIndex) : parts.slice(team2End))
+    .join('-')
+    .replace(/-?match-updates-[a-z0-9]+$/i, '')
+    .split('-')
+    .filter(Boolean);
+  const series = seriesTokens.map(titleCaseSeriesSlugToken).join(' ');
+
+  return {
+    slug,
+    team1,
+    team2,
+    teams: team1 && team2 ? `${team1} vs ${team2}` : 'Cricket Match',
+    series
+  };
+}
+
+function buildCanonicalMatchFallbackHtml(req) {
+  const match = parseCanonicalMatchSlug(req.path);
+  if (!match) {
+    return null;
+  }
+
+  const canonicalPath = `/cric-live/${match.slug}`;
+  const canonicalUrl = `https://www.crickzen.com${canonicalPath}`;
+  const title = match.series
+    ? `${match.teams} Cricket Match Score and Updates, ${match.series} | Crickzen`
+    : `${match.teams} Cricket Match Score and Updates | Crickzen`;
+  const description = match.series
+    ? `Follow ${match.teams} score, match updates, commentary, and scorecard from ${match.series} on Crickzen.`
+    : `Follow ${match.teams} score, match updates, commentary, and scorecard on Crickzen.`;
+  const structuredData = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'SportsEvent',
+    name: match.teams,
+    url: canonicalUrl,
+    competitor: [
+      { '@type': 'SportsTeam', name: match.team1 },
+      { '@type': 'SportsTeam', name: match.team2 }
+    ]
+  }).replace(/</g, '\\u003c');
+  const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8')
+    // The application shell has a generic description. Remove it before
+    // injecting the fallback head so a crawler receives one authoritative
+    // description instead of competing generic and match-specific tags.
+    .replace(/<meta\s+name="description"[^>]*>\s*/i, '');
+  const head = [
+    `<title>${escapeHtml(title)}</title>`,
+    `<meta name="description" content="${escapeHtml(description)}">`,
+    `<meta name="robots" content="index,follow">`,
+    `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`,
+    `<meta property="og:title" content="${escapeHtml(title)}">`,
+    `<meta property="og:description" content="${escapeHtml(description)}">`,
+    `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
+    `<script type="application/ld+json">${structuredData}</script>`
+  ].join('');
+  const body = `<main id="canonical-match-ssr-fallback" data-ssr-fallback="canonical-match">
+    <nav aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/live-score">Live Cricket Scores</a>${match.series ? ` <span aria-hidden="true">/</span> <span>${escapeHtml(match.series)}</span>` : ''}</nav>
+    <h1>${escapeHtml(match.teams)} Cricket Match Score and Updates</h1>
+    ${match.series ? `<p>${escapeHtml(match.series)}</p>` : ''}
+    <p>Live match data is temporarily loading. Score, commentary, and scorecard updates will appear shortly.</p>
+    <p><a href="${canonicalPath}">${escapeHtml(match.teams)} match centre</a> · <a href="/live-score">Live cricket scores</a> · <a href="/cricket-schedule/today">Today’s cricket schedule</a></p>
+  </main>`;
+
+  return indexHtml
+    .replace(/<title>[^<]*<\/title>/i, head)
+    .replace(/<app-root><\/app-root>/i, `<app-root>${body}</app-root>`);
+}
+
+function sendSsrFallback(req, res, routeStatus, reason) {
+  const canonicalFallback = routeStatus === 200 && buildCanonicalMatchFallbackHtml(req);
+  if (canonicalFallback) {
+    console.error('[SSR] Canonical match fallback', { url: req.originalUrl, reason });
+    res.setHeader('X-SSR-Fallback', 'canonical-match');
+    res.status(200).send(canonicalFallback);
+    return;
+  }
+
+  res.status(routeStatus).sendFile(INDEX_HTML);
+}
+
 function isKnownFrontendRoute(pathname) {
   return KNOWN_FRONTEND_ROUTE_PATTERNS.some((pattern) => pattern.test(pathname));
 }
@@ -243,7 +381,7 @@ app.get('*', (req, res) => {
 
     completed = true;
     console.error('[SSR] Render timed out', { url: req.originalUrl, timeoutMs: SSR_RENDER_TIMEOUT_MS });
-    res.status(routeStatus).sendFile(INDEX_HTML);
+    sendSsrFallback(req, res, routeStatus, 'timeout');
   }, SSR_RENDER_TIMEOUT_MS);
 
   res.render('index', {
@@ -268,7 +406,7 @@ app.get('*', (req, res) => {
         error: err.message,
         stack: err.stack
       });
-      res.status(routeStatus).sendFile(INDEX_HTML);
+      sendSsrFallback(req, res, routeStatus, 'render-error');
       return;
     }
     res.status(routeStatus).send(moveTransferStateBeforeBundles(html));
