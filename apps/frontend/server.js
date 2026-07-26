@@ -278,6 +278,19 @@ function cleanSnapshotText(value) {
   return /^(null|undefined|no (?:match|venue|data|toss)(?: .*)?)$/i.test(text) ? '' : text;
 }
 
+function cleanSnapshotIdentityText(value) {
+  const text = cleanSnapshotText(value);
+  // Lifecycle records can occasionally carry the last score-state in their
+  // series/venue fields.  It is safer to use route identity than publish it
+  // as an event name or location.
+  return /(?:\b\d+[-/]\d+\b|\b\d{1,3}b\b|\brain delay\b)/i.test(text) ? '' : text;
+}
+
+function formatSnapshotSchedule(timestamp) {
+  if (!timestamp || !Number.isFinite(timestamp)) return '';
+  return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+}
+
 async function fetchCanonicalMatchSnapshot(match) {
   if (!match || !match.slug) {
     return null;
@@ -302,9 +315,9 @@ async function fetchCanonicalMatchSnapshot(match) {
   const data = response.data;
   const snapshot = {
     validity: 'valid',
-    series: cleanSnapshotText(data.series),
-    venue: cleanSnapshotText(data.venue),
-    scheduledAt: cleanSnapshotText(data.scheduledLabel),
+    series: cleanSnapshotIdentityText(data.series),
+    venue: cleanSnapshotIdentityText(data.venue),
+    scheduledAt: cleanSnapshotIdentityText(data.scheduledLabel),
     scheduledAtMs: Number(data.scheduledAt) || null,
     toss: cleanSnapshotText(data.toss),
     status: cleanSnapshotText(data.status),
@@ -316,6 +329,9 @@ async function fetchCanonicalMatchSnapshot(match) {
     stateUpdatedAt: Number(data.stateUpdatedAt || data.snapshotTimestamp) || null,
     source: cleanSnapshotText(data.source)
   };
+  if (!snapshot.scheduledAt) {
+    snapshot.scheduledAt = formatSnapshotSchedule(snapshot.scheduledAtMs);
+  }
   ssrSnapshotCache.set(match.slug, { createdAt: Date.now(), value: snapshot });
   return snapshot;
 }
