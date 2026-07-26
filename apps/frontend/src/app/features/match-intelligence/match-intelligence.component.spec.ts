@@ -67,7 +67,22 @@ describe('MatchIntelligenceComponent chart and lifecycle language', () => {
 
     expect(points[0].x).toBe(19.5);
     expect(points[1].x).toBe(22.67);
-    expect(points[1].y).toBe(39);
+    expect(points[1].y).toBe(61);
+  });
+
+  it('keeps the first-innings batting side as the chart reference across a chase', () => {
+    const points = (MatchIntelligenceComponent.prototype as any).getProbabilityChartPoints.call({
+      getSwingPoints: () => [
+        { over: '20.0', score: '220/6', probability: 92, label: 'end innings', innings: 1 },
+        { over: '0.0', score: '0/0', probability: 8, label: 'chase start', innings: 2 }
+      ],
+      getChartInningsOvers: () => 20,
+      resolvePointInnings: (innings: number) => innings,
+      parseChartOver: (value: string) => Number(value),
+      getChartBallsPerOver: () => 6
+    });
+
+    expect(points.map((point: any) => point.y)).toEqual([92, 92]);
   });
 
   it('maps public prediction history without inventing missing score views', () => {

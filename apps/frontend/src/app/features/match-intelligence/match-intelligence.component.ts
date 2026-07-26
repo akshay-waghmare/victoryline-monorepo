@@ -1148,10 +1148,20 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
 
     return Object.keys(byBall).map((key) => byBall[key]).map((item) => ({
       x: Math.round(((item.entry.innings === 2 ? inningsOvers : 0) + item.over) * 100) / 100,
-      y: Math.max(0, Math.min(100, item.entry.point.probability)),
+      // The predictor reports the probability for the side currently batting.
+      // That ownership flips at the innings break, so a raw chart would show
+      // an artificial cliff (for example 92% to 8%) even when the same team
+      // remains at 92%. Keep the worm anchored to the first-innings batting
+      // side; only the chart is normalised, while the live card remains for
+      // the current batting side.
+      y: Math.max(0, Math.min(100, item.entry.innings === 2
+        ? 100 - item.entry.point.probability
+        : item.entry.point.probability)),
       over: item.entry.point.over,
       score: item.entry.point.score,
-      probability: item.entry.point.probability,
+      probability: Math.max(0, Math.min(100, item.entry.innings === 2
+        ? 100 - item.entry.point.probability
+        : item.entry.point.probability)),
       label: item.entry.point.label,
       innings: item.entry.innings
     })).sort((left, right) => left.x - right.x);

@@ -93,7 +93,7 @@
           <span><i class="match-intelligence__team-dot match-intelligence__team-dot--primary"></i>{{ viewModel.probabilityTeamLabel }} <strong>{{ viewModel.probabilityLabel || '--' }}</strong></span>
           <span><i class="match-intelligence__team-dot"></i>{{ viewModel.probabilityOpponentLabel }} <strong>{{ viewModel.opponentProbabilityLabel || '--' }}</strong></span>
         </div>
-        <p class="match-intelligence__formula-note">The probability line shows how the model view changed during the match.</p>
+        <p class="match-intelligence__formula-note">The probability line shows how the model view changed during the match<span *ngIf="viewModel.showSecondInnings">, keeping the first-innings batting side as the same reference across both innings</span>.</p>
         <div class="match-intelligence__analysis-chart" *ngIf="viewModel.swingPoints.length > 1; else noTimeline">
           <div class="match-intelligence__chart-shell" [class.match-intelligence__chart-shell--two-innings]="viewModel.showSecondInnings">
             <div class="match-intelligence__chart-canvas" *ngIf="isBrowser; else chartServerFallback">
