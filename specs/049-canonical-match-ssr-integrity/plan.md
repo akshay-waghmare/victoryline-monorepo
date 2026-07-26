@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-27  
 **Scope:** `GET /cric-live/{slug}` only  
-**Status:** Slice 0 and the bounded identity snapshot are deployed; lifecycle-complete snapshot work remains
+**Status:** Lifecycle snapshot integrity is deployed; hydration parity and the full lifecycle fixture matrix remain
 
 ## Outcome
 
@@ -25,6 +25,17 @@ This phase protects the existing contract:
 - A forced 1 ms SSR-timeout container test proved the snapshot branch includes series, venue, scheduled time, and toss. After deployment, the public Hundred and Bangladesh–Zimbabwe canonical URLs both returned HTTP 200, 9.6–9.8 KB documents, and `X-SSR-Fallback-Level: snapshot`.
 
 This checkpoint is not a claim of complete lifecycle SSR. Score/result/target/status, real entity links, TransferState parity, invalid-slug 404 evidence, and the full fixture matrix remain in the later slices below.
+
+## Lifecycle snapshot integrity checkpoint — 2026-07-27
+
+- `4ac1a23` adds `GET /cricket-data/canonical-match-snapshot?slug=...`: a compact, exact stored-record resolver that never triggers external hydration. It returns a definitive 404 for a non-existent canonical slug and otherwise exposes only SSR-safe identity/lifecycle fields plus current score/overs when stored.
+- The frontend preflights canonical match routes through that resolver. A definitive 404 returns a real noindex 404 document with no canonical. A timeout or resolver failure is intentionally `unknown`, not invalid: the URL retains the bounded 200 route fallback rather than becoming a false 404.
+- One normalized snapshot now drives fallback title, description, H1, visible lifecycle summary, and `SportsEvent` status. Supported summaries are upcoming, live, innings break, completed, delayed, abandoned/no-result, and neutral. Live score is displayed only if the recorded state is no older than 180 seconds.
+- Identity fields reject score-like/stale lifecycle text. When a stored record has an unusable series label, route-derived identity is used rather than publishing a score string as a tournament name. Null-like strings are suppressed.
+- `Assert-CanonicalMatchSsr.ps1` now covers both valid canonical documents and invalid 404 documents.
+- Production evidence: backend `victoryline-backend:20260727-c742d24-lifecycle` and frontend `victoryline-frontend:20260727-182b793-lifecycle` are healthy. Public Hundred and Bangladesh–Zimbabwe URLs returned HTTP 200 snapshot documents with completed lifecycle headers and clean metadata; a fabricated slug returned HTTP 404/noindex/no canonical. A forced 1 ms SSR-timeout container test returned snapshot-level lifecycle documents; concurrent requests for the two matches retained their own titles/H1s with no cross-match cache leakage.
+
+The remaining statement above is narrowed accordingly: score, result, status, and invalid-slug evidence are now implemented. Target extraction is deliberately deferred because no trusted scalar target exists in this resolver contract; it must be added only with an explicit source and freshness rule. TransferState/hydration parity and a representative automated fixture set for every lifecycle remain required before declaring all SSR work complete.
 
 ## Confirmed baseline
 
