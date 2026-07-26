@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-27  
 **Scope:** `GET /cric-live/{slug}` only  
-**Status:** Lifecycle snapshot integrity is deployed; hydration parity and the full lifecycle fixture matrix remain
+**Status:** Lifecycle snapshot integrity, metadata hydration guard, and recurring raw-SSR smoke check are deployed; browser-visible parity and the full lifecycle fixture matrix remain
 
 ## Outcome
 
@@ -36,6 +36,15 @@ This checkpoint is not a claim of complete lifecycle SSR. Score/result/target/st
 - Production evidence: backend `victoryline-backend:20260727-c742d24-lifecycle` and frontend `victoryline-frontend:20260727-182b793-lifecycle` are healthy. Public Hundred and Bangladesh–Zimbabwe URLs returned HTTP 200 snapshot documents with completed lifecycle headers and clean metadata; a fabricated slug returned HTTP 404/noindex/no canonical. A forced 1 ms SSR-timeout container test returned snapshot-level lifecycle documents; concurrent requests for the two matches retained their own titles/H1s with no cross-match cache leakage.
 
 The remaining statement above is narrowed accordingly: score, result, status, and invalid-slug evidence are now implemented. Target extraction is deliberately deferred because no trusted scalar target exists in this resolver contract; it must be added only with an explicit source and freshness rule. TransferState/hydration parity and a representative automated fixture set for every lifecycle remain required before declaring all SSR work complete.
+
+## Hydration and operational monitoring checkpoint — 2026-07-27
+
+- `5a3ad74` adds a client-side metadata preservation guard in `meta-tags.service.ts`. When the server emitted a canonical-match fallback, hydration may improve the title only with a specific same-match identity; it cannot replace it with a generic unavailable title, weaken `index,follow` to `noindex`, or replace the self-canonical with a different URL.
+- The guard is deliberately narrow: it protects title/canonical/robots parity at the head boundary. It does not claim to prove that a hydrated browser preserves every visible lifecycle H1/body summary; that remains a browser verification and fixture-matrix gate.
+- `e44843f` adds `scripts/assert-canonical-match-ssr.sh`, a dependency-light public smoke probe. It asserts a real canonical match remains HTTP 200 with title, canonical, robots, H1, and `SportsEvent`, while a fabricated slug remains a true HTTP 404 with `noindex`, a not-found H1, and no canonical.
+- Production runs the smoke script hourly at minute 17. The currently deployed frontend is `victoryline-frontend:20260727-5a3ad74-hydration`; the lifecycle backend remains `victoryline-backend:20260727-c742d24-lifecycle`. The immediate public smoke run passed after installation.
+
+The browser automation session was not available during this checkpoint, so no claim is made that the post-hydration DOM/head comparison has passed. Restore that session or run a real browser harness before closing the remaining parity gate.
 
 ## Confirmed baseline
 
