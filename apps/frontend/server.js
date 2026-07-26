@@ -5,6 +5,8 @@ const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const domino = require('domino');
+const http = require('http');
+const https = require('https');
 const { APP_BASE_HREF } = require('@angular/common');
 const { ngExpressEngine } = require('@nguniversal/express-engine');
 const { provideModuleMap } = require('@nguniversal/module-map-ngfactory-loader');
@@ -19,6 +21,9 @@ const BACKEND_URL = (process.env.BACKEND_URL || process.env.API_URL || 'http://l
 const SCRAPER_URL = (process.env.SCRAPER_URL || 'http://scraper:5000').replace(/\/+$/, '');
 const MODEL_API_URL = (process.env.MODEL_API_URL || 'http://host.docker.internal:8000').replace(/\/+$/, '');
 const SSR_RENDER_TIMEOUT_MS = process.env.SSR_RENDER_TIMEOUT_MS ? Number(process.env.SSR_RENDER_TIMEOUT_MS) : 8000;
+const SSR_SNAPSHOT_TIMEOUT_MS = process.env.SSR_SNAPSHOT_TIMEOUT_MS ? Number(process.env.SSR_SNAPSHOT_TIMEOUT_MS) : 700;
+const SSR_SNAPSHOT_CACHE_TTL_MS = process.env.SSR_SNAPSHOT_CACHE_TTL_MS ? Number(process.env.SSR_SNAPSHOT_CACHE_TTL_MS) : 120000;
+const ssrSnapshotCache = new Map();
 const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/$/,
   /^\/Home\/?$/,
@@ -230,7 +235,69 @@ function parseCanonicalMatchSlug(pathname) {
   };
 }
 
-function buildCanonicalMatchFallbackHtml(req) {
+function fetchJson(url, timeoutMs) {
+  return new Promise((resolve) => {
+    let parsed;
+    try {
+      parsed = new URL(url);
+    } catch (_) {
+      resolve(null);
+      return;
+    }
+    const client = parsed.protocol === 'https:' ? https : http;
+    const request = client.get(parsed, { timeout: timeoutMs, headers: { Accept: 'application/json' } }, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => { body += chunk; });
+      response.on('end', () => {
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          resolve(null);
+          return;
+        }
+        try {
+          resolve(JSON.parse(body));
+        } catch (_) {
+          resolve(null);
+        }
+      });
+    });
+    request.on('timeout', () => request.destroy());
+    request.on('error', () => resolve(null));
+  });
+}
+
+function cleanSnapshotText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+async function fetchCanonicalMatchSnapshot(match) {
+  if (!match || !match.slug) {
+    return null;
+  }
+
+  const cached = ssrSnapshotCache.get(match.slug);
+  if (cached && Date.now() - cached.createdAt < SSR_SNAPSHOT_CACHE_TTL_MS) {
+    return cached.value;
+  }
+
+  const infoUrl = `${BACKEND_URL}/cricket-data/match-info/get?url=${encodeURIComponent(match.slug)}`;
+  const data = await fetchJson(infoUrl, SSR_SNAPSHOT_TIMEOUT_MS);
+  if (!data || typeof data !== 'object') {
+    return null;
+  }
+
+  const snapshot = {
+    series: cleanSnapshotText(data.match_name || data.series_name),
+    venue: cleanSnapshotText(data.venue),
+    scheduledAt: cleanSnapshotText(data.match_date || data.start_date),
+    toss: cleanSnapshotText(data.toss_info),
+    status: cleanSnapshotText(data.match_status || data.status)
+  };
+  ssrSnapshotCache.set(match.slug, { createdAt: Date.now(), value: snapshot });
+  return snapshot;
+}
+
+function buildCanonicalMatchFallbackHtml(req, snapshot) {
   const match = parseCanonicalMatchSlug(req.path);
   if (!match) {
     return null;
@@ -238,11 +305,12 @@ function buildCanonicalMatchFallbackHtml(req) {
 
   const canonicalPath = `/cric-live/${match.slug}`;
   const canonicalUrl = `https://www.crickzen.com${canonicalPath}`;
-  const title = match.series
-    ? `${match.teams} Cricket Match Score and Updates, ${match.series} | Crickzen`
+  const series = cleanSnapshotText(snapshot && snapshot.series) || match.series;
+  const title = series
+    ? `${match.teams} Cricket Match Score and Updates, ${series} | Crickzen`
     : `${match.teams} Cricket Match Score and Updates | Crickzen`;
-  const description = match.series
-    ? `Follow ${match.teams} score, match updates, commentary, and scorecard from ${match.series} on Crickzen.`
+  const description = series
+    ? `Follow ${match.teams} score, match updates, commentary, and scorecard from ${series} on Crickzen.`
     : `Follow ${match.teams} score, match updates, commentary, and scorecard on Crickzen.`;
   const structuredData = JSON.stringify({
     '@context': 'https://schema.org',
@@ -270,10 +338,13 @@ function buildCanonicalMatchFallbackHtml(req) {
     `<script type="application/ld+json">${structuredData}</script>`
   ].join('');
   const body = `<main id="canonical-match-ssr-fallback" data-ssr-fallback="canonical-match">
-    <nav aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/live-score">Live Cricket Scores</a>${match.series ? ` <span aria-hidden="true">/</span> <span>${escapeHtml(match.series)}</span>` : ''}</nav>
+    <nav aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/live-score">Live Cricket Scores</a>${series ? ` <span aria-hidden="true">/</span> <span>${escapeHtml(series)}</span>` : ''}</nav>
     <h1>${escapeHtml(match.teams)} Cricket Match Score and Updates</h1>
-    ${match.series ? `<p>${escapeHtml(match.series)}</p>` : ''}
-    <p>Live match data is temporarily loading. Score, commentary, and scorecard updates will appear shortly.</p>
+    ${series ? `<p>${escapeHtml(series)}</p>` : ''}
+    ${snapshot && snapshot.scheduledAt ? `<p>Scheduled: ${escapeHtml(snapshot.scheduledAt)}</p>` : ''}
+    ${snapshot && snapshot.venue ? `<p>Venue: ${escapeHtml(snapshot.venue)}</p>` : ''}
+    ${snapshot && snapshot.toss ? `<p>${escapeHtml(snapshot.toss)}</p>` : ''}
+    <p>Match data is temporarily loading. Score, commentary, and scorecard updates will appear shortly.</p>
     <p><a href="${canonicalPath}">${escapeHtml(match.teams)} match centre</a> · <a href="/live-score">Live cricket scores</a> · <a href="/cricket-schedule/today">Today’s cricket schedule</a></p>
   </main>`;
 
@@ -282,11 +353,15 @@ function buildCanonicalMatchFallbackHtml(req) {
     .replace(/<app-root><\/app-root>/i, `<app-root>${body}</app-root>`);
 }
 
-function sendSsrFallback(req, res, routeStatus, reason) {
-  const canonicalFallback = routeStatus === 200 && buildCanonicalMatchFallbackHtml(req);
+async function sendSsrFallback(req, res, routeStatus, reason) {
+  const routeMatch = routeStatus === 200 ? parseCanonicalMatchSlug(req.path) : null;
+  const startedAt = Date.now();
+  const snapshot = routeMatch ? await fetchCanonicalMatchSnapshot(routeMatch) : null;
+  const canonicalFallback = routeMatch && buildCanonicalMatchFallbackHtml(req, snapshot);
   if (canonicalFallback) {
-    console.error('[SSR] Canonical match fallback', { url: req.originalUrl, reason });
+    console.error('[SSR] Canonical match fallback', { url: req.originalUrl, reason, snapshot: snapshot ? 'backend' : 'route', fallbackMs: Date.now() - startedAt });
     res.setHeader('X-SSR-Fallback', 'canonical-match');
+    res.setHeader('X-SSR-Fallback-Level', snapshot ? 'snapshot' : 'route');
     res.status(200).send(canonicalFallback);
     return;
   }
