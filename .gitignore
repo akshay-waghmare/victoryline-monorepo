@@ -118,4 +118,5 @@ debug_crex_api_output*.json
 dto_bytecode*.txt
 scraper_*.log
 artifacts/seo-audit-agent/
+tools/seo-audit-agent/fixtures.json
 

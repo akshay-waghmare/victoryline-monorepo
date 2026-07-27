@@ -1,0 +1,18 @@
+{
+  "fixtures": [
+    {
+      "url": "/cric-live/replace-with-a-stable-archived-match",
+      "sampleType": "benchmark",
+      "source": "operator-fixture",
+      "lifecycle": "archive",
+      "expectedRoute": "valid"
+    },
+    {
+      "url": "/cric-live/replace-with-a-known-sparse-but-valid-match",
+      "sampleType": "benchmark",
+      "source": "operator-fixture",
+      "lifecycle": "sparse",
+      "expectedRoute": "valid"
+    }
+  ]
+}

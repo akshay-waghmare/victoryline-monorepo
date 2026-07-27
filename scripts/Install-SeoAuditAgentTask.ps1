@@ -38,4 +38,17 @@ $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -MultipleInstances 
 $principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Interactive -RunLevel Limited
 
 Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
-Get-ScheduledTask -TaskName $TaskName | Select-Object TaskName, State
+$task = Get-ScheduledTask -TaskName $TaskName
+$info = Get-ScheduledTaskInfo -TaskName $TaskName
+[pscustomobject]@{
+  TaskName = $task.TaskName
+  State = $task.State
+  DailyAt = ('{0:D2}:{1:D2}' -f $Hour, $Minute)
+  Python = $python
+  WorkingDirectory = $repoRoot
+  Arguments = $arguments
+  ArtifactRoot = (Join-Path $repoRoot 'artifacts\seo-audit-agent')
+  LastRunTime = $info.LastRunTime
+  LastTaskResult = $info.LastTaskResult
+  RemoveCommand = ".\scripts\Install-SeoAuditAgentTask.ps1 -TaskName '$TaskName' -Remove"
+} | Format-List
