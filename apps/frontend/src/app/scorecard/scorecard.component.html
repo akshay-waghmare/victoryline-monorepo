@@ -100,7 +100,7 @@
     </div>
   </header>
 
-  <mat-tab-group class="scorecard-tabs" (selectedTabChange)="onTabChange($event)">
+  <mat-tab-group class="scorecard-tabs" *ngIf="inningsKeys.length > 0; else noDetailedInnings" (selectedTabChange)="onTabChange($event)">
     <mat-tab *ngFor="let inningKey of inningsKeys" [label]="getInningLabel(inningKey)">
 
       <!-- Innings team score header -->
@@ -204,4 +204,8 @@
       </ng-container>
     </mat-tab>
   </mat-tab-group>
+
+  <ng-template #noDetailedInnings>
+    <p class="scorecard__empty">Detailed innings data is not available yet.</p>
+  </ng-template>
 </div>

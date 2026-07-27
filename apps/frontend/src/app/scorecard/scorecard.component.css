@@ -11,6 +11,12 @@
   overflow: hidden;
 }
 
+.scorecard__empty {
+  margin: 16px 0 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
 .scorecard__header {
   display: flex;
   align-items: flex-start;

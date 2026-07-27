@@ -230,8 +230,8 @@ export class ScorecardComponent implements OnInit, OnChanges {
     this.selectedInning = '';
 
     if(this.scorecardInfo && this.scorecardInfo.match_stats_by_innings.innings){
-      this.inningsKeys = Object.keys(this.scorecardInfo.match_stats_by_innings.innings);
-      console.log(this.inningsKeys);
+      this.inningsKeys = Object.keys(this.scorecardInfo.match_stats_by_innings.innings)
+        .filter((inningKey: string) => this.hasMeaningfulInning(this.scorecardInfo.match_stats_by_innings.innings[inningKey]));
       if (this.inningsKeys.length > 0) {
         this.selectedInning = this.inningsKeys[0];
       }
@@ -311,6 +311,57 @@ export class ScorecardComponent implements OnInit, OnChanges {
       const bStats = stats && stats.batsman_stats && stats.batsman_stats[k];
       return bStats && bStats.status === 'yet_to_bat';
     });
+  }
+
+  private hasMeaningfulInning(inning: any): boolean {
+    if (!inning || typeof inning !== 'object') {
+      return false;
+    }
+
+    if (this.hasRecordedScore(inning.team_score)) {
+      return true;
+    }
+
+    const batters = inning.batsman_stats || {};
+    const hasFacedBall = Object.keys(batters).some((key: string) => {
+      const batter = batters[key] || {};
+      return this.toFiniteNumber(batter.balls_faced) > 0 ||
+        this.toFiniteNumber(batter.runs) > 0 ||
+        this.toFiniteNumber(batter.fours) > 0 ||
+        this.toFiniteNumber(batter.sixes) > 0;
+    });
+    if (hasFacedBall) {
+      return true;
+    }
+
+    const bowlers = inning.bowlers_stats || {};
+    return Object.keys(bowlers).some((key: string) => {
+      const bowler = bowlers[key] || {};
+      return this.toFiniteNumber(bowler.overs) > 0 ||
+        this.toFiniteNumber(bowler.maidens) > 0 ||
+        this.toFiniteNumber(bowler.runs) > 0 ||
+        this.toFiniteNumber(bowler.wickets) > 0;
+    });
+  }
+
+  private hasRecordedScore(teamScore: any): boolean {
+    const value = String(teamScore || '').trim();
+    if (!value) {
+      return false;
+    }
+
+    const scoreMatch = value.match(/(\d+)\s*\/\s*(\d+)/);
+    if (scoreMatch && (this.toFiniteNumber(scoreMatch[1]) > 0 || this.toFiniteNumber(scoreMatch[2]) > 0)) {
+      return true;
+    }
+
+    const oversMatch = value.match(/\(([^)]+)\)/);
+    return !!(oversMatch && this.toFiniteNumber(oversMatch[1]) > 0);
+  }
+
+  private toFiniteNumber(value: any): number {
+    const parsed = Number(value);
+    return isFinite(parsed) ? parsed : 0;
   }
 
   getYetToBatDisplayNames(inningKey?: string): string[] {

@@ -104,4 +104,47 @@ describe('ScorecardComponent', () => {
 
     expect(component.getYetToBatDisplayNames('inning_1')).toEqual(['Sophia Dunkley']);
   });
+
+  it('does not render a second-innings tab for an unstarted placeholder', () => {
+    component.scorecardInfo = {
+      match_stats_by_innings: {
+        innings: {
+          inning_1: {
+            team_code: 'AAA',
+            team_score: '154/6 (20.0)',
+            batsman_stats: { opener: { status: 'out', runs: 42, balls_faced: 31 } }
+          },
+          inning_2: {
+            team_code: 'BBB',
+            team_score: '0/0 (0.0)',
+            batsman_stats: { opener: { status: 'yet_to_bat', runs: 0, balls_faced: 0 } },
+            bowlers_stats: {}
+          }
+        }
+      }
+    };
+
+    component.ngOnInit();
+
+    expect(component.inningsKeys).toEqual(['inning_1']);
+  });
+
+  it('keeps an innings tab once a real scoreless delivery has been recorded', () => {
+    component.scorecardInfo = {
+      match_stats_by_innings: {
+        innings: {
+          inning_1: { team_score: '154/6 (20.0)' },
+          inning_2: {
+            team_score: '0/0 (0.1)',
+            batsman_stats: { opener: { status: 'currently_batting', runs: 0, balls_faced: 1 } },
+            bowlers_stats: { bowler: { overs: '0.1', runs: 0, wickets: 0 } }
+          }
+        }
+      }
+    };
+
+    component.ngOnInit();
+
+    expect(component.inningsKeys).toEqual(['inning_1', 'inning_2']);
+  });
 });
