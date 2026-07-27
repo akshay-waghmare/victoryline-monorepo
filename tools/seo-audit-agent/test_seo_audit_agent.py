@@ -169,6 +169,75 @@ class SeoAuditAgentTest(unittest.TestCase):
         self.assertIn("## Metadata Changes From Previous Run", report)
         self.assertIn("Old -> New", report)
 
+    def test_report_keeps_model_findings_out_of_deterministic_section(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir)
+            state = {
+                "output_dir": str(output_dir),
+                "evidence": {"auditStatus": "passed", "severityCounts": {"critical": 0, "high": 0, "medium": 0, "low": 0}, "pages": [], "targets": [], "selectionWarnings": []},
+                "comparison": {"available": True, "regressions": [], "resolutions": [], "changes": []},
+                "synthesis": {"llmStatus": "used:opencode", "executive_summary": "Model summary", "findings": [{"severity": "low", "title": "Model-only priority", "evidence": "scope", "recommendation": "expand", "urls": []}], "next_run_focus": "expand"},
+            }
+            agent.write_node(state)
+            report = (output_dir / "report.md").read_text(encoding="utf-8")
+
+        deterministic_section, model_section = report.split("## OpenCode Prioritization", 1)
+        self.assertNotIn("Model-only priority", deterministic_section)
+        self.assertIn("Model-only priority", model_section)
+
+    def test_clean_evidence_skips_opencode_triage(self):
+        evidence = {"auditStatus": "passed", "severityCounts": {"critical": 0, "high": 0, "medium": 0, "low": 0}, "selectionWarnings": [], "pages": []}
+        comparison = {"available": True, "regressions": [], "resolutions": [], "changes": []}
+        with patch.object(agent, "opencode_triage") as triage:
+            result = agent.analyze_node({"evidence": evidence, "comparison": comparison, "use_llm": True})
+
+        self.assertEqual(result["synthesis"]["llmStatus"], "skipped:no_findings")
+        triage.assert_not_called()
+
+    def test_flagged_evidence_uses_opencode_triage(self):
+        evidence = {"auditStatus": "failed", "severityCounts": {"critical": 1, "high": 0, "medium": 0, "low": 0}, "selectionWarnings": [], "pages": [{"url": "https://example.com", "flags": [{"code": "CANONICAL_NOT_SELF", "severity": "critical", "observed": "missing", "expected": "self canonical"}]}]}
+        comparison = {"available": True, "regressions": [], "resolutions": [], "changes": []}
+        triage_output = {"executive_summary": "One critical finding.", "findings": [], "next_run_focus": "Fix the canonical."}
+        with patch.object(agent, "opencode_triage", return_value=triage_output) as triage:
+            result = agent.analyze_node({"evidence": evidence, "comparison": comparison, "use_llm": True, "triage_model": "opencode-go/deepseek-v4-flash"})
+
+        self.assertEqual(result["synthesis"]["llmStatus"], "used:opencode")
+        triage.assert_called_once()
+
+    def test_extract_json_object_handles_code_fence(self):
+        payload = agent.extract_json_object('```json\n{"executive_summary":"ok","findings":[],"next_run_focus":"none"}\n```')
+
+        self.assertEqual(payload["executive_summary"], "ok")
+
+    def test_opencode_failure_keeps_deterministic_summary(self):
+        evidence = {"auditStatus": "failed", "severityCounts": {"critical": 1, "high": 0, "medium": 0, "low": 0}, "selectionWarnings": [], "pages": [{"url": "https://example.com", "flags": [{"code": "CANONICAL_NOT_SELF", "severity": "critical", "observed": "missing", "expected": "self canonical"}]}]}
+        comparison = {"available": True, "regressions": [], "resolutions": [], "changes": []}
+        with patch.object(agent, "opencode_triage", side_effect=RuntimeError("provider unavailable")):
+            result = agent.analyze_node({"evidence": evidence, "comparison": comparison, "use_llm": True})
+
+        self.assertEqual(result["synthesis"]["llmStatus"], "failed:opencode:RuntimeError")
+        self.assertEqual(result["synthesis"]["findings"][0]["title"], "CANONICAL_NOT_SELF")
+
+    @patch.object(agent.subprocess, "run")
+    def test_opencode_triage_parses_a_valid_response(self, run):
+        run.return_value = type("Completed", (), {"returncode": 0, "stdout": '{"executive_summary":"prioritised","findings":[],"next_run_focus":"recheck"}', "stderr": ""})()
+        evidence = {"auditStatus": "degraded", "severityCounts": {"critical": 0, "high": 1, "medium": 0, "low": 0}, "selectionWarnings": [], "pages": []}
+        comparison = {"available": False, "regressions": [], "resolutions": [], "changes": []}
+
+        result = agent.opencode_triage(evidence, comparison, "opencode-go/deepseek-v4-flash")
+
+        self.assertEqual(result["executive_summary"], "prioritised")
+        self.assertIn("--agent", run.call_args.args[0])
+
+    @patch.object(agent.subprocess, "run", side_effect=FileNotFoundError("opencode missing"))
+    def test_missing_opencode_binary_keeps_deterministic_summary(self, _run):
+        evidence = {"auditStatus": "failed", "severityCounts": {"critical": 1, "high": 0, "medium": 0, "low": 0}, "selectionWarnings": [], "pages": [{"url": "https://example.com", "flags": [{"code": "CANONICAL_NOT_SELF", "severity": "critical", "observed": "missing", "expected": "self canonical"}]}]}
+        comparison = {"available": True, "regressions": [], "resolutions": [], "changes": []}
+
+        result = agent.analyze_node({"evidence": evidence, "comparison": comparison, "use_llm": True})
+
+        self.assertEqual(result["synthesis"]["llmStatus"], "failed:opencode:FileNotFoundError")
+
 
 if __name__ == "__main__":
     unittest.main()
