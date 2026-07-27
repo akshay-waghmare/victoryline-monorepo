@@ -13,6 +13,7 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 ENV/
 build/
 develop-eggs/
@@ -116,4 +117,5 @@ gsc-service-account.json
 debug_crex_api_output*.json
 dto_bytecode*.txt
 scraper_*.log
+artifacts/seo-audit-agent/
 
