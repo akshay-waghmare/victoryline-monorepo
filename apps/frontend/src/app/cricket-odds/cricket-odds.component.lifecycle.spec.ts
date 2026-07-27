@@ -1,4 +1,5 @@
 import { CricketOddsComponent } from './cricket-odds.component';
+import { of } from 'rxjs';
 
 function createComponent(): CricketOddsComponent {
   var structuredDataService = {
@@ -399,5 +400,92 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     var types = items.map(function(item: any) { return item['@type']; });
 
     expect(types).not.toContain('LiveBlogPosting');
+  });
+});
+
+describe('CricketOddsComponent player stats retry platform guard', () => {
+  var routeMatch = { url: 'team-a-vs-team-b-123A', externalMatchKey: 'team-a-vs-team-b-123A' };
+
+  function mockPlayerStatsNotFound(component: CricketOddsComponent) {
+    var service = (component as any).cricketService;
+    service.hasFreshPlayerStatsMatchCache = function() { return false; };
+    service.getPlayerStatsMatch = jasmine.createSpy('getPlayerStatsMatch').and.returnValue(of(null));
+    return service;
+  }
+
+  it('does not schedule a retry during SSR when the player-stats snapshot 404s', () => {
+    (window as any).__SSR__ = true;
+    try {
+      var component = createComponent();
+      var service = mockPlayerStatsNotFound(component);
+
+      (component as any).fetchPlayerStatsForMatch(routeMatch, 'team-a-vs-team-b-123A');
+
+      expect(component.playerStatsError).toBe(true);
+      expect((component as any).playerStatsRetryAttempt).toBe(0);
+      expect((component as any).playerStatsRetryTimer).toBeNull();
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(1);
+    } finally {
+      delete (window as any).__SSR__;
+    }
+  });
+
+  it('keeps browser-side retries after a player-stats 404 and caps them at three', () => {
+    jasmine.clock().install();
+    try {
+      var component = createComponent();
+      var service = mockPlayerStatsNotFound(component);
+
+      (component as any).fetchPlayerStatsForMatch(routeMatch, 'team-a-vs-team-b-123A');
+
+      expect(component.playerStatsError).toBe(true);
+      expect((component as any).playerStatsRetryAttempt).toBe(1);
+      expect((component as any).playerStatsRetryTimer).not.toBeNull();
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(1);
+
+      jasmine.clock().tick(3000);
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(2);
+      expect((component as any).playerStatsRetryAttempt).toBe(2);
+
+      jasmine.clock().tick(6000);
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(3);
+      expect((component as any).playerStatsRetryAttempt).toBe(3);
+
+      jasmine.clock().tick(9000);
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(4);
+
+      jasmine.clock().tick(12000);
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(4);
+      expect((component as any).playerStatsRetryTimer).toBeNull();
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it('clears a pending browser retry when a fresh fetch starts', () => {
+    jasmine.clock().install();
+    try {
+      var component = createComponent();
+      var service = mockPlayerStatsNotFound(component);
+
+      (component as any).fetchPlayerStatsForMatch(routeMatch, 'team-a-vs-team-b-123A');
+      expect((component as any).playerStatsRetryTimer).not.toBeNull();
+
+      // A fresh fetch cancels the pending retry and runs immediately.
+      (component as any).fetchPlayerStatsForMatch(routeMatch, 'team-a-vs-team-b-123A');
+
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(2);
+      expect((component as any).playerStatsRetryAttempt).toBe(2);
+
+      // The replacement retry honours the growing backoff (3000 * attempt),
+      // so nothing fires at the old 3-second point.
+      jasmine.clock().tick(3000);
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(2);
+
+      jasmine.clock().tick(3000);
+      expect(service.getPlayerStatsMatch.calls.count()).toBe(3);
+    } finally {
+      jasmine.clock().uninstall();
+    }
   });
 });

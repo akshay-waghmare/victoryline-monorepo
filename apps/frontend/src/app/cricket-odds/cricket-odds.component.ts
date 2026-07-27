@@ -1373,6 +1373,13 @@ private fetchPlayerStatsForMatch(match?: any, fallbackExternalKey?: string): voi
 }
 
 private schedulePlayerStatsRetry(match?: any, fallbackExternalKey?: string): void {
+  // Never retry during SSR: a pending setTimeout keeps the Universal zone
+  // unstable, so the server render timeout ships the thin fallback shell
+  // instead of the full match page. The browser hydrates and runs its own
+  // fetch + retry cycle there.
+  if (!this.isBrowser()) {
+    return;
+  }
   if (this.playerStatsRetryAttempt >= 3) {
     return;
   }
