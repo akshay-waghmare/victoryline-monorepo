@@ -50,3 +50,9 @@ Unknown:
 ## Current recommendation
 
 Do not change the canonical route or add duplicate live-match aliases yet. The technical discovery gate is currently green; the next high-value action is Search Console evidence and a controlled query-to-page mapping. If the data shows impressions but poor position, improve page intent and internal anchor context. If it shows no discovery before start, fix lifecycle timing and hub exposure first.
+
+## Intent alignment release
+
+Frontend commit `e036f98` updates `/live-score` to use the explicit intent language `Live Cricket Matches & Scores Today` in its title/H1, with matching intro and FAQ copy. It preserves the self-canonical, `index,follow`, seven JSON-LD blocks, and 149 SSR canonical match links.
+
+Production image `macubex/victoryline-frontend:20260728-live-match-intent-e036f98` is healthy. A Googlebot probe returned HTTP 200 and confirmed the new title/H1, self-canonical, `index,follow`, 149 match links, and a 200 sitemap child containing the hub plus 990 canonical match URLs.
