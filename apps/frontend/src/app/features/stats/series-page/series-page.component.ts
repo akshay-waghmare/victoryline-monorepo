@@ -155,7 +155,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   }
 
   private openSeriesProfile(externalId: string, slug: string): void {
-    const name = slug.replace(/-/g, ' ');
+    const name = this.toDisplaySeriesName(slug);
     this.isDetailLoading = true;
     this.detailOpen = true;
     this.selectedSeries = null;
@@ -432,6 +432,21 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
 
   toSlug(value: string): string {
     return (value || 'series').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'series';
+  }
+
+  toDisplaySeriesName(value: string | null | undefined): string {
+    return (value || 'series')
+      .replace(/-/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .map(function(word) {
+        if (/^(t20i?|odi|ipl|psl|bbl|cpl|sa20|wncl|t10|100b)$/i.test(word)) {
+          return word.toUpperCase();
+        }
+        return word ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+      })
+      .join(' ');
   }
 
   private updateStructuredData(): void {

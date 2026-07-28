@@ -88,4 +88,11 @@ describe('SeriesPageComponent discovery grouping', () => {
     expect(groups[0].matches.length).toBe(4);
     expect(groups[0].totalMatches).toBe(5);
   });
+
+  it('formats slug fallbacks as readable series-intent headings', () => {
+    var component = createComponentShape();
+
+    expect(component.toDisplaySeriesName('england-one-day-cup-2026')).toBe('England One Day Cup 2026');
+    expect(component.toDisplaySeriesName('w-t20i-in-switzerland-2026')).toBe('W T20I In Switzerland 2026');
+  });
 });
