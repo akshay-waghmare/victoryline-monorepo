@@ -23,7 +23,7 @@ Production checks on 2026-07-28 showed:
 
 ## Implementation
 
-The homepage now maps each named series link to `/series/current/{slug}` using the same stable slug convention as the series surface, preserves the visible series selection state, and emits a non-empty `ItemList` of those exact visible series URLs in homepage JSON-LD after match data is available.
+The homepage now maps each named series link to `/series/current/{slug}` using the same stable slug convention as the series surface and preserves the visible series selection state. No additional homepage `ItemList` schema is emitted: CrickZen already has several list schemas, and the visible, crawlable anchors are the direct discovery signal without increasing Rich Results carousel risk.
 
 This keeps `/series` as the general hub and gives each named competition a distinct crawl path without aliases or canonical changes.
 
@@ -31,7 +31,7 @@ This keeps `/series` as the general hub and gives each named competition a disti
 
 - Googlebot homepage HTML contains distinct `/series/current/{slug}` anchors whose visible labels match the series names.
 - Each sampled current-series URL returns 200, self-canonical, indexable SSR HTML with a series-specific title and H1.
-- Homepage JSON-LD contains the same series URLs as visible anchors and no empty `ItemList`.
+- Existing homepage JSON-LD remains unchanged, with no new empty or duplicate series `ItemList`.
 - Search Console URL Inspection changes from unknown to indexed for a representative current-series URL.
 - Search Console page/query data shows the `/series` hub or representative current-series URL at average position ≤50 for a relevant series-intent query.
 

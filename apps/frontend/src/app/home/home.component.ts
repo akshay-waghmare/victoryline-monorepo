@@ -591,20 +591,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       })
     ];
 
-    var homeSeriesLinks = this.getHomeSeriesLinks();
-    if (homeSeriesLinks.length > 0) {
-      items.push(this.structuredDataService.itemList({
-        name: 'Homepage cricket series links',
-        url: 'https://www.crickzen.com/',
-        description: 'Current series and tournament pages linked above the homepage match cards.',
-        items: homeSeriesLinks.map((series) => ({
-          name: series + ' fixtures, table, and stats',
-          url: 'https://www.crickzen.com' + this.getHomeSeriesHref(series),
-          description: 'Current ' + series + ' fixtures, standings, and team statistics on Crickzen.'
-        }))
-      }));
-    }
-
     if (this.liveDiscoveryMatches.length > 0) {
       items.push(this.structuredDataService.itemList({
         name: 'Live match pages on the homepage',
