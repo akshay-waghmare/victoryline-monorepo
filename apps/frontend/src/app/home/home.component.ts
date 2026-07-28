@@ -339,7 +339,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   selectSeries(series: string, event: Event): void {
-    event.preventDefault();
     this.selectedSeries = series;
     this.activeTab = this.getSeriesTab(series);
     this.syncActiveMatches();
@@ -427,6 +426,17 @@ export class HomeComponent implements OnInit, OnDestroy {
         return true;
       })
       .slice(0, 6);
+  }
+
+  getHomeSeriesHref(series: string): string {
+    return '/series/current/' + this.slugifySeriesName(series);
+  }
+
+  private slugifySeriesName(value: string | null | undefined): string {
+    return (value || 'series')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') || 'series';
   }
 
   private normalizeSeriesName(match: MatchCardViewModel | null): string {
@@ -580,6 +590,20 @@ export class HomeComponent implements OnInit, OnDestroy {
         ]
       })
     ];
+
+    var homeSeriesLinks = this.getHomeSeriesLinks();
+    if (homeSeriesLinks.length > 0) {
+      items.push(this.structuredDataService.itemList({
+        name: 'Homepage cricket series links',
+        url: 'https://www.crickzen.com/',
+        description: 'Current series and tournament pages linked above the homepage match cards.',
+        items: homeSeriesLinks.map((series) => ({
+          name: series + ' fixtures, table, and stats',
+          url: 'https://www.crickzen.com' + this.getHomeSeriesHref(series),
+          description: 'Current ' + series + ' fixtures, standings, and team statistics on Crickzen.'
+        }))
+      }));
+    }
 
     if (this.liveDiscoveryMatches.length > 0) {
       items.push(this.structuredDataService.itemList({

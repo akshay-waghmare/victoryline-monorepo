@@ -22,7 +22,7 @@
       <div class="home__series-links" #seriesLinksRef>
       <a
         *ngFor="let series of getHomeSeriesLinks()"
-        href="/series"
+        [attr.href]="getHomeSeriesHref(series)"
         class="home__series-link"
         [attr.data-series]="series"
         [class.home__series-link--active]="selectedSeries === series"

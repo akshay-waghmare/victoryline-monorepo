@@ -128,4 +128,11 @@ describe('HomeComponent discovery matches', () => {
     expect(cards[1].summary).toContain('Tomorrow 6:00 AM');
     expect(cards[2].summary).toBe('Team One won by 5 wickets');
   });
+
+  it('maps homepage series labels to crawlable current-series surfaces', () => {
+    var component = createComponentShape();
+
+    expect(component.getHomeSeriesHref('England One Day Cup 2026')).toBe('/series/current/england-one-day-cup-2026');
+    expect(component.getHomeSeriesHref('Women\'s T20I — Switzerland 2026')).toBe('/series/current/women-s-t20i-switzerland-2026');
+  });
 });
