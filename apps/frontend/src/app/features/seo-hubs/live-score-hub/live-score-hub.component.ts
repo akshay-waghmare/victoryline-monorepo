@@ -882,20 +882,20 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
           type: 'liveScore',
           canonicalPath: '/live-score',
           eyebrow: 'Cricket live score hub',
-          title: 'Cricket Live Score Today',
-          intro: 'Follow cricket live score today with direct match links for scorecard, toss update, playing XI, venue stats, today match live score, and match result updates.',
+          title: 'Live Cricket Matches & Scores Today',
+          intro: 'Follow live cricket matches and live scores today with direct links for scorecards, toss updates, playing XI, venue stats, and match results.',
           primaryKicker: 'Live score centre',
-          primaryHeading: 'Cricket live score, scorecard, and match updates',
+          primaryHeading: 'Live cricket matches, scores, and match updates',
           primarySummary: 'A central crawlable hub for live, upcoming, and completed cricket match pages.',
           discoveryKicker: 'Canonical discovery graph',
           discoveryHeading: 'More cricket live score and scorecard pages',
           discoverySummary: 'These extra links keep canonical match pages reachable through SSR HTML rather than sitemap-only discovery.',
-          fallbackCardText: 'Canonical match page with cricket live score today, scorecard, toss update, playing XI, venue stats, and match result context.',
+          fallbackCardText: 'Canonical match page with live cricket score today, scorecard, toss update, playing XI, venue stats, and match result context.',
           faqHeading: 'Cricket live score FAQ',
           faqs: [
             {
-              question: 'Where can I follow cricket live score today?',
-              answer: 'Use this hub to open canonical match pages with live score today, scorecard, toss update, playing XI, and result updates.'
+              question: 'Where can I follow live cricket matches today?',
+              answer: 'Use this hub to open canonical live match pages with live score today, scorecard, toss update, playing XI, and result updates.'
             },
             {
               question: 'Are these live score pages crawlable?',
