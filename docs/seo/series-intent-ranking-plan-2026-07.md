@@ -25,6 +25,10 @@ Production checks on 2026-07-28 showed:
 
 The homepage now maps each named series link to `/series/current/{slug}` using the same stable slug convention as the series surface and preserves the visible series selection state. No additional homepage `ItemList` schema is emitted: CrickZen already has several list schemas, and the visible, crawlable anchors are the direct discovery signal without increasing Rich Results carousel risk.
 
+Frontend commit `6290bce` is deployed as `macubex/victoryline-frontend:20260728-series-links-6290bce` (healthy in production). A Googlebot probe after rollout found six distinct `/series/current/{slug}` anchors above the homepage cards. All six sampled destinations returned 200, `index,follow`, self-canonicals, and series-specific titles/H1s. The homepage JSON-LD count remained six; no new carousel list schema was introduced.
+
+Search Console indexing was requested for `/series/current/england-one-day-cup-2026`; Google confirmed the URL was added to its priority crawl queue. This is a crawl request, not proof of indexing or ranking yet.
+
 This keeps `/series` as the general hub and gives each named competition a distinct crawl path without aliases or canonical changes.
 
 ## Verification gate
