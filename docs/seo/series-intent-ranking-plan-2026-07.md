@@ -29,6 +29,8 @@ Frontend commit `6290bce` is deployed as `macubex/victoryline-frontend:20260728-
 
 Search Console indexing was requested for `/series/current/england-one-day-cup-2026`; Google confirmed the URL was added to its priority crawl queue. This is a crawl request, not proof of indexing or ranking yet.
 
+On the follow-up live URL test at 16:19 on 28 Jul 2026, Google reported **URL is available to Google** and **Page can be indexed**, with one valid Breadcrumbs item. Standard URL Inspection still reported **URL is not on Google / URL is unknown to Google**, confirming that the remaining step is Google’s indexing queue rather than a robots, canonical, SSR, or fetch failure.
+
 This keeps `/series` as the general hub and gives each named competition a distinct crawl path without aliases or canonical changes.
 
 ## Verification gate
