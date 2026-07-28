@@ -4551,7 +4551,26 @@ private titleCaseSlug(value: string): string {
       return null;
     }
 
-    var parsed = new Date(value);
+    var normalizedValue = value;
+    if (typeof value === 'string' && !/\b(?:19|20)\d{2}\b/.test(value)) {
+      // CREX-style match labels often contain a weekday, day, month and time,
+      // but no year (for example "Tuesday, 28 July, 5:30 AM").  Date.parse
+      // then chooses an arbitrary historic year, which is worse than omitting
+      // an Event.  The canonical match slug carries the scheduled season year.
+      var slugYearMatch = String(this.matchId || '').match(/\b((?:19|20)\d{2})\b/);
+      if (!slugYearMatch) {
+        return null;
+      }
+
+      var timeSuffixMatch = value.match(/,\s*(\d{1,2}:\d{2}(?:\s*[AP]M)?)\s*$/i);
+      if (!timeSuffixMatch) {
+        return null;
+      }
+
+      normalizedValue = value.slice(0, timeSuffixMatch.index) + ' ' + slugYearMatch[1] + ', ' + timeSuffixMatch[1];
+    }
+
+    var parsed = new Date(normalizedValue);
     if (isNaN(parsed.getTime())) {
       return null;
     }
