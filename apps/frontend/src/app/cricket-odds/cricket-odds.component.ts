@@ -4336,7 +4336,10 @@ private titleCaseSlug(value: string): string {
     var dateModified = this.getStructuredDataDateModified(startDate);
     var liveMatchUpdates = this.getLiveMatchUpdates();
     var faqItems = this.getMatchFaqItems();
-    var sportsEventSchema = startDate ? this.structuredDataService.sportsEvent({
+    // Event rich results require both a reliable start time and a venue. Do
+    // not publish a structurally-invalid SportsEvent while a sparse payload is
+    // still being reconciled; the SSR snapshot preserves a known venue.
+    var sportsEventSchema = startDate && location ? this.structuredDataService.sportsEvent({
       name: this.matchSeo.h1,
       url: this.matchSeo.canonicalUrl,
       description: this.matchSeo.summary,
@@ -4364,47 +4367,9 @@ private titleCaseSlug(value: string): string {
       authorName: 'Crickzen Sports Desk'
     }));
 
-    items.push(this.structuredDataService.itemList({
-      name: this.matchSeo.teams + ' support links',
-      url: this.matchSeo.canonicalUrl,
-      description: 'Visible lifecycle and series links that keep the canonical match page connected to schedule, live-score, archive, and series surfaces.',
-      items: [
-        {
-          name: this.getPrimaryLifecycleHubLabel(),
-          url: 'https://www.crickzen.com' + this.getPrimaryLifecycleHubHref(),
-          description: 'Primary lifecycle hub for this match state.'
-        },
-        {
-          name: 'All cricket matches',
-          url: 'https://www.crickzen.com/matches',
-          description: 'Open the full list of live, upcoming, and completed matches.'
-        },
-        {
-          name: this.getSeriesSurfaceLinkLabel(),
-          url: 'https://www.crickzen.com' + this.getSeriesSurfaceHref(),
-          description: 'Open the current lightweight series tables and standings surface.'
-        },
-        {
-          name: 'Live cricket score hub',
-          url: 'https://www.crickzen.com/live-cricket-score',
-          description: 'Open the keyword-focused live cricket score hub.'
-        }
-      ]
-    }));
-
-    var freshnessLinks = this.resolveFreshnessSupportLinks();
-    if (freshnessLinks.length > 0) {
-      items.push(this.structuredDataService.itemList({
-        name: this.matchSeo.teams + ' freshness-support pages',
-        url: this.matchSeo.canonicalUrl,
-        description: 'Preview, live-update, and result pages related to the same canonical match entity.',
-        items: freshnessLinks.map((link) => ({
-          name: link.label,
-          url: 'https://www.crickzen.com' + link.href,
-          description: link.summary
-        }))
-      }));
-    }
+    // Keep support and freshness links in visible SSR HTML, but do not model
+    // them as ItemLists. Google evaluates those lists as Carousel candidates,
+    // where this page's navigational links have no rich-result purpose.
 
     if (faqItems.length > 0) {
       items.push(this.structuredDataService.faqPage(faqItems));

@@ -388,7 +388,10 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
   const description = series
     ? `${summary.copy} Follow ${match.teams} score, commentary, and scorecard from ${series} on Crickzen.`
     : `${summary.copy} Follow ${match.teams} score, commentary, and scorecard on Crickzen.`;
-  const structuredData = JSON.stringify({
+  // Google requires both startDate and location for Event rich-result
+  // eligibility. A fallback must omit SportsEvent rather than emit an invalid
+  // event when the stored snapshot has not yet resolved a trustworthy venue.
+  const structuredData = snapshot && snapshot.scheduledAtMs && snapshot.venue ? JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'SportsEvent',
     name: match.teams,
@@ -405,7 +408,7 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     startDate: snapshot && snapshot.scheduledAtMs ? new Date(snapshot.scheduledAtMs).toISOString() : undefined,
     location: snapshot && snapshot.venue ? { '@type': 'Place', name: snapshot.venue } : undefined,
     description
-  }).replace(/</g, '\\u003c');
+  }).replace(/</g, '\\u003c') : '';
   const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8')
     // The application shell has a generic description. Remove it before
     // injecting the fallback head so a crawler receives one authoritative
@@ -419,7 +422,7 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     `<meta property="og:title" content="${escapeHtml(title)}">`,
     `<meta property="og:description" content="${escapeHtml(description)}">`,
     `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
-    `<script type="application/ld+json">${structuredData}</script>`
+    structuredData ? `<script type="application/ld+json">${structuredData}</script>` : ''
   ].join('');
   const body = `<main id="canonical-match-ssr-fallback" data-ssr-fallback="canonical-match">
     <nav aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/live-score">Live Cricket Scores</a>${series ? ` <span aria-hidden="true">/</span> <span>${escapeHtml(series)}</span>` : ''}</nav>

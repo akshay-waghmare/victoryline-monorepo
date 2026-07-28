@@ -615,10 +615,13 @@ public class CricketDataController {
 		try {
 			CricketDataDTO current = cricketDataService.getLastUpdatedData(match.getUrl());
 			if (current != null) {
-				response.put("series", firstMeaningful(current.getMatchName(), match.getSeriesName()));
-				response.put("scheduledLabel", current.getMatchDate());
-				response.put("venue", firstMeaningful(current.getVenue(), match.getVenue()));
-				response.put("toss", current.getTossInfo());
+				// Stored match-info is the authoritative static identity record. Live
+				// snapshots are allowed to fill a missing field, never erase a known
+				// venue/series/schedule with their frequently sparse payload.
+				response.put("series", firstMeaningful(asText(response.get("series")), current.getMatchName()));
+				response.put("scheduledLabel", firstMeaningful(asText(response.get("scheduledLabel")), current.getMatchDate()));
+				response.put("venue", firstMeaningful(asText(response.get("venue")), current.getVenue()));
+				response.put("toss", firstMeaningful(current.getTossInfo(), asText(response.get("toss"))));
 				response.put("score", current.getScore());
 				response.put("overs", current.getOver());
 				response.put("battingTeam", current.getBattingTeamName());
