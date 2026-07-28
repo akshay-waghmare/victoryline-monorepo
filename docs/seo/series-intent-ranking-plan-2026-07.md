@@ -31,6 +31,8 @@ Search Console indexing was requested for `/series/current/england-one-day-cup-2
 
 On the follow-up live URL test at 16:19 on 28 Jul 2026, Google reported **URL is available to Google** and **Page can be indexed**, with one valid Breadcrumbs item. Standard URL Inspection still reported **URL is not on Google / URL is unknown to Google**, confirming that the remaining step is Google’s indexing queue rather than a robots, canonical, SSR, or fetch failure.
 
+Frontend commit `5e708c8` is also deployed as `macubex/victoryline-frontend:20260728-series-intent-5e708c8` (healthy). It formats slug fallbacks into readable series headings. Production now returns `England One Day Cup 2026 Fixtures, Table & Stats | Crickzen`, H1 `England One Day Cup 2026`, HTTP 200, and a self-canonical for the representative page.
+
 This keeps `/series` as the general hub and gives each named competition a distinct crawl path without aliases or canonical changes.
 
 ## Verification gate
