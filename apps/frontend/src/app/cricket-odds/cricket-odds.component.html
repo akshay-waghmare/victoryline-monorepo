@@ -55,7 +55,7 @@
           <h2 class="cricket-odds__summary-title">{{ matchInfo.match_name }}</h2>
           <p class="cricket-odds__summary-subtitle" *ngIf="matchInfo.series_name">{{ matchInfo.series_name }}</p>
           <p class="cricket-odds__summary-meta" *ngIf="matchInfo.match_date">
-            {{ matchInfo.match_date | date: 'fullDate' }}, {{ matchInfo.match_date | date: 'shortTime' }}
+            {{ matchInfo.match_date }}
           </p>
           <p class="cricket-odds__summary-meta" *ngIf="matchInfo.venue">{{ matchInfo.venue }}</p>
           <p class="cricket-odds__summary-result" *ngIf="getFallbackResultSummary()">{{ getFallbackResultSummary() }}</p>
