@@ -48,6 +48,33 @@ mat-card-content {
   width: 100%;
 }
 
+.canonical-intelligence {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(13, 148, 136, 0.24);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f0fdfa 0%, #ffffff 72%);
+  color: #17324d;
+  text-align: left;
+}
+
+.canonical-intelligence__copy { min-width: 0; }
+.canonical-intelligence__kicker { margin: 0 0 3px; color: #0f766e; font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.canonical-intelligence h2 { margin: 0; color: #123d45; font-size: 1rem; line-height: 1.35; }
+.canonical-intelligence__copy > p:not(.canonical-intelligence__kicker) { margin: 5px 0 0; color: #476173; font-size: .84rem; line-height: 1.45; }
+.canonical-intelligence small { display: block; margin-top: 6px; color: #5e7481; font-size: .72rem; }
+.canonical-intelligence__probability { flex: 0 0 auto; min-width: 86px; padding-left: 15px; border-left: 1px solid rgba(13, 148, 136, .22); text-align: right; }
+.canonical-intelligence__probability span { display: block; color: #5e7481; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+.canonical-intelligence__probability strong { color: #0f766e; font-size: 1.5rem; line-height: 1.1; }
+
+@media (max-width: 560px) {
+  .canonical-intelligence { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .canonical-intelligence__probability { min-width: 0; padding-left: 0; border-left: 0; text-align: left; }
+}
+
 .cricket-odds__breadcrumb {
   display: flex;
   align-items: center;

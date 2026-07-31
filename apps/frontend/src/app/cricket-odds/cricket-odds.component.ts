@@ -1,7 +1,7 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { RxStompService } from '@stomp/ng2-stompjs';
-import { merge, Subject } from 'rxjs';
+import { merge, Subject, Subscription, timer } from 'rxjs';
 import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
@@ -33,6 +33,7 @@ import { StructuredDataLocationInput, StructuredDataService } from '../seo/struc
 import { MatchFreshnessLink, buildFreshnessLinksFromMatch, buildFreshnessLinksFromSlug } from '../seo/match-freshness-links';
 import { LiveMatchUpdate } from '../shared/models/match.models';
 import { AnalyticsService } from './analytics.service';
+import { MatchIntelligenceDataService, MatchIntelligenceSnapshot } from '../features/match-intelligence/match-intelligence-data.service';
 
 const MATCH_INFO_KEY = makeStateKey<any>('cricket_match_info');
 const CRICKET_DATA_KEY = makeStateKey<any>('cricket_data_snapshot');
@@ -82,6 +83,15 @@ interface CoverageSummaryFact {
 interface MatchFaqItem {
   question: string;
   answer: string;
+}
+
+interface CanonicalIntelligenceView {
+  lifecycle: 'upcoming' | 'live' | 'completed';
+  probability: number;
+  headline: string;
+  reason: string;
+  updatedAt: string | null;
+  modelLabel: string | null;
 }
 
 type MatchPageTabKey = 'commentary' | 'details' | 'scorecard' | 'lineups' | 'intelligence';
@@ -195,6 +205,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   matchSeo: MatchSeoViewModel | null = null;
   freshnessLinks: MatchFreshnessLink[] = [];
   private hasTrackedIntelligenceCtaImpression: boolean = false;
+  canonicalIntelligence: CanonicalIntelligenceView | null = null;
+  private canonicalIntelligenceSubscription: Subscription | null = null;
 
   // Toggle to hide/show odds sections
   showOdds: boolean = true;
@@ -237,7 +249,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private router: Router,
               private ngZone: NgZone,
               private transferState: TransferState,
-              private analyticsService: AnalyticsService) { }
+              private analyticsService: AnalyticsService,
+              private matchIntelligenceDataService: MatchIntelligenceDataService) { }
 
   trackByCommentaryId(index: number, entry: any): string {
     return (entry && entry.id) || (entry && entry.overBall) || String(index);
@@ -256,6 +269,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
     if (this.cricetTopicSubscription) {
       this.cricetTopicSubscription.unsubscribe();
+    }
+    if (this.canonicalIntelligenceSubscription) {
+      this.canonicalIntelligenceSubscription.unsubscribe();
+      this.canonicalIntelligenceSubscription = null;
     }
   }
 
@@ -393,6 +410,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
                   || match
                   || this.matchId;
     this.syncMatchTabSelection(true);
+    this.loadCanonicalIntelligence(match);
 
     if (!isSameRouteMatch) {
       this.playerStatsRetryAttempt = 0;
@@ -447,6 +465,85 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     
     // Fetch match info for hero component
     this.fetchMatchInfo(this.matchId || match);
+  }
+
+  private loadCanonicalIntelligence(routeSlug: string): void {
+    if (this.canonicalIntelligenceSubscription) {
+      this.canonicalIntelligenceSubscription.unsubscribe();
+      this.canonicalIntelligenceSubscription = null;
+    }
+    this.canonicalIntelligence = null;
+    if (!routeSlug) {
+      return;
+    }
+
+    const applySnapshot = (snapshot: MatchIntelligenceSnapshot) => {
+      this.canonicalIntelligence = this.buildCanonicalIntelligence(snapshot);
+    };
+
+    if (this.isBrowser()) {
+      this.canonicalIntelligenceSubscription = timer(0, 30000).pipe(
+        switchMap(() => this.matchIntelligenceDataService.loadSnapshot(routeSlug)),
+        takeUntil(this.destroy$)
+      ).subscribe(applySnapshot, () => {
+        this.canonicalIntelligence = null;
+      });
+      return;
+    }
+
+    this.matchIntelligenceDataService.loadSnapshot(routeSlug).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(applySnapshot, () => {
+      this.canonicalIntelligence = null;
+    });
+  }
+
+  private buildCanonicalIntelligence(snapshot: MatchIntelligenceSnapshot): CanonicalIntelligenceView | null {
+    const prediction: any = snapshot && snapshot.publicPrediction;
+    if (!prediction || prediction.win_probability_pct === null || prediction.win_probability_pct === undefined) {
+      return null;
+    }
+
+    const probability = Number(prediction.win_probability_pct);
+    if (isNaN(probability) || probability < 0 || probability > 100) {
+      return null;
+    }
+
+    const publicStatus = String(prediction.status || '').toLowerCase();
+    const lifecycle = publicStatus === 'completed' || publicStatus === 'complete'
+      ? 'completed'
+      : (snapshot.lifecycle === 'upcoming' ? 'upcoming' : 'live');
+    const history = Array.isArray(prediction.prediction_history) ? prediction.prediction_history : [];
+
+    // A completed replay is historic by design; live and upcoming figures need
+    // the same five-minute freshness rule as the public model feed.
+    if (lifecycle === 'completed') {
+      if (history.length < 2) {
+        return null;
+      }
+    } else if (snapshot.freshnessState !== 'fresh') {
+      return null;
+    }
+
+    const team = String(prediction.batting_team || prediction.title || 'The batting side');
+    const fallbackReason = lifecycle === 'completed'
+      ? 'This completed replay retains the final model state and probability path from the match.'
+      : lifecycle === 'upcoming'
+        ? 'This opening model view can change when toss, confirmed XI, and conditions are known.'
+        : 'This live model view updates with the match state and should be read alongside the score.';
+
+    return {
+      lifecycle: lifecycle,
+      probability: Math.round(probability),
+      headline: lifecycle === 'completed'
+        ? team + ' finished with a ' + Math.round(probability) + '% final model probability.'
+        : lifecycle === 'upcoming'
+          ? team + ' has a ' + Math.round(probability) + '% opening win probability.'
+          : team + ' currently has a ' + Math.round(probability) + '% win probability.',
+      reason: String(prediction.insight || (prediction.reasons && prediction.reasons[0]) || fallbackReason),
+      updatedAt: prediction.updated_at ? String(prediction.updated_at) : null,
+      modelLabel: prediction.model_label ? String(prediction.model_label) : null
+    };
   }
 
   private parseCricObjData(data) {

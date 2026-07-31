@@ -32,6 +32,19 @@
           [bowlerDataList]="bowlerDataList">
         </app-live-hero>
 
+        <section class="canonical-intelligence" *ngIf="canonicalIntelligence as intelligence" aria-label="Match intelligence summary">
+          <div class="canonical-intelligence__copy">
+            <p class="canonical-intelligence__kicker">{{ intelligence.lifecycle === 'completed' ? 'Completed match intelligence' : intelligence.lifecycle === 'upcoming' ? 'Pre-match intelligence' : 'Live match intelligence' }}</p>
+            <h2>{{ intelligence.headline }}</h2>
+            <p>{{ intelligence.reason }}</p>
+            <small *ngIf="intelligence.modelLabel">Model: {{ intelligence.modelLabel }}<span *ngIf="intelligence.updatedAt"> · Updated {{ intelligence.updatedAt }}</span></small>
+          </div>
+          <div class="canonical-intelligence__probability" aria-label="Win probability">
+            <span>Win probability</span>
+            <strong>{{ intelligence.probability }}%</strong>
+          </div>
+        </section>
+
         <section class="cricket-odds__announcement" *ngIf="matchAnnouncement">
           <mat-icon>campaign</mat-icon>
           <span>{{ matchAnnouncement }}</span>
