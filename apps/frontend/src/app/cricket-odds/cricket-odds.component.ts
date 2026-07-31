@@ -2762,6 +2762,19 @@ private getResolvedMatchStatus(): string {
     || '';
 }
 
+/**
+ * A terminal catalogue result must never share the generic live hero with a
+ * stale 0/0 snapshot. Completed pages use the compact result summary until a
+ * richer completed-intelligence module is available.
+ */
+shouldRenderLiveHero(): boolean {
+  return !this.isCompletedStatus(this.getResolvedMatchStatus());
+}
+
+shouldRenderCompletedSummary(): boolean {
+  return !!this.matchInfo && this.isCompletedStatus(this.getResolvedMatchStatus());
+}
+
 private normalizeMatchStatus(status: string | null | undefined): string {
   return String(status || '')
     .trim()

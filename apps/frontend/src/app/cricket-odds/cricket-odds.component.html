@@ -23,7 +23,7 @@
 
         <app-live-hero
           class="cricket-odds__hero"
-          *ngIf="matchId && canonicalIntelligence?.lifecycle !== 'completed'"
+          *ngIf="matchId && shouldRenderLiveHero()"
           [matchId]="matchId"
           [fallbackView]="heroFallbackView"
           [matchInfo]="matchInfo"
@@ -50,7 +50,7 @@
           <span>{{ matchAnnouncement }}</span>
         </section>
 
-        <section class="cricket-odds__summary-fallback" *ngIf="matchInfo && !showLiveHero && !heroFallbackView">
+        <section class="cricket-odds__summary-fallback" *ngIf="matchInfo && shouldRenderCompletedSummary()">
           <div class="cricket-odds__summary-status">{{ matchInfo.match_status || matchInfo.status }}</div>
           <h2 class="cricket-odds__summary-title">{{ matchInfo.match_name }}</h2>
           <p class="cricket-odds__summary-subtitle" *ngIf="matchInfo.series_name">{{ matchInfo.series_name }}</p>

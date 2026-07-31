@@ -343,7 +343,8 @@ public class CricketDataController {
 	            // Parse the JSON string back into an object
 	            ObjectMapper objectMapper = new ObjectMapper();
 	            Map<String, Object> data = objectMapper.readValue(dataJson, new TypeReference<Map<String, Object>>() {});
-	            
+	            addTerminalLifecycleContext(data, url);
+
 	            return ResponseEntity.ok(data);
 	        } else {
 	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No data found for the given URL.");
@@ -352,6 +353,35 @@ public class CricketDataController {
 	        e.printStackTrace();
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving match info.");
 	    }
+	}
+
+	/**
+	 * Stored CREX match-info is primarily a pre-match identity snapshot and often
+	 * has no lifecycle field after the fixture finishes. The match catalogue is
+	 * the authoritative lifecycle source, so expose a terminal catalogue state on
+	 * this compatibility endpoint rather than allowing canonical SSR to render a
+	 * completed fixture as an upcoming 0/0 match.
+	 */
+	private void addTerminalLifecycleContext(Map<String, Object> data, String url) {
+		LiveMatch match = liveMatchService.findByUrl(url);
+		if (match == null || match.getStatus() == null || !match.getStatus().isTerminal()) {
+			return;
+		}
+
+		String status = match.getStatus().name();
+		data.put("match_status", status);
+		data.put("status", status);
+		data.put("url", match.getUrl());
+		putIfBlank(data, "final_result_text", match.getResultSummary());
+		putIfBlank(data, "lastKnownState", match.getLastKnownState());
+	}
+
+	private void putIfBlank(Map<String, Object> data, String key, String value) {
+		Object existing = data.get(key);
+		if (value != null && !value.trim().isEmpty()
+				&& (existing == null || String.valueOf(existing).trim().isEmpty())) {
+			data.put(key, value);
+		}
 	}
 	
 	@GetMapping("/sC4-stats/get")
