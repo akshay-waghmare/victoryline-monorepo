@@ -23,7 +23,7 @@
 
         <app-live-hero
           class="cricket-odds__hero"
-          *ngIf="matchId"
+          *ngIf="matchId && canonicalIntelligence?.lifecycle !== 'completed'"
           [matchId]="matchId"
           [fallbackView]="heroFallbackView"
           [matchInfo]="matchInfo"
