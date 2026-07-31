@@ -1,5 +1,12 @@
 import { Injectable } from '@angular/core';
 
+export interface CanonicalMatchViewContext {
+  matchSlug: string;
+  matchPath: string;
+  lifecycle: 'upcoming' | 'live' | 'completed';
+  surface: string;
+}
+
 /**
  * AnalyticsService
  * Hooks for instrumentation and metrics tracking.
@@ -50,6 +57,78 @@ export class AnalyticsService {
 
   trackIntelligenceEvent(eventName: string, properties?: Record<string, any>) {
     this.trackEvent(eventName, properties || {});
+  }
+
+  trackCanonicalMatchView(context: CanonicalMatchViewContext): void {
+    if (!context || !context.matchSlug || !context.matchPath) {
+      return;
+    }
+
+    this.trackEvent('match_view', Object.assign({
+      match_slug: context.matchSlug,
+      match_path: context.matchPath,
+      lifecycle: context.lifecycle,
+      surface: context.surface
+    }, this.getBrowserAttribution()));
+  }
+
+  private getBrowserAttribution(): Record<string, string | null> {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return {
+        anonymous_session_id: null,
+        landing_path: null,
+        referrer_host: null,
+        source_attribution: 'server'
+      };
+    }
+
+    var search = window.location && window.location.search ? window.location.search : '';
+    var params = new URLSearchParams(search);
+    var referrerHost = this.getReferrerHost(document.referrer || '');
+    var utmSource = params.get('utm_source');
+
+    return {
+      anonymous_session_id: this.getAnonymousSessionId(),
+      landing_path: (window.location.pathname || '') + search,
+      referrer_host: referrerHost,
+      source_attribution: utmSource ? 'utm:' + utmSource : (referrerHost || 'direct'),
+      utm_source: utmSource,
+      utm_medium: params.get('utm_medium'),
+      utm_campaign: params.get('utm_campaign')
+    };
+  }
+
+  private getAnonymousSessionId(): string | null {
+    var storageKey = 'crickzen_analytics_session_id';
+    try {
+      var existing = window.sessionStorage.getItem(storageKey);
+      if (existing) {
+        return existing;
+      }
+
+      var cryptoApi = (window as any).crypto;
+      var generated = cryptoApi && typeof cryptoApi.randomUUID === 'function'
+        ? cryptoApi.randomUUID()
+        : 'cz-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+      window.sessionStorage.setItem(storageKey, generated);
+      return generated;
+    } catch (_) {
+      // Privacy mode or a storage policy can reject sessionStorage. Keep the
+      // event useful without creating a durable browser identifier.
+      return null;
+    }
+  }
+
+  private getReferrerHost(referrer: string): string | null {
+    if (!referrer) {
+      return null;
+    }
+
+    try {
+      return new URL(referrer).hostname || null;
+    } catch (_) {
+      return null;
+    }
   }
 
   // Performance mark helpers

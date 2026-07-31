@@ -205,6 +205,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   matchSeo: MatchSeoViewModel | null = null;
   freshnessLinks: MatchFreshnessLink[] = [];
   private hasTrackedIntelligenceCtaImpression: boolean = false;
+  private hasTrackedCanonicalMatchView: boolean = false;
   canonicalIntelligence: CanonicalIntelligenceView | null = null;
   private canonicalIntelligenceSubscription: Subscription | null = null;
 
@@ -427,6 +428,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.lastLiveBallEventToken = null;
       this.lastResolvedRouteSlug = match;
       this.hasTrackedIntelligenceCtaImpression = false;
+      this.hasTrackedCanonicalMatchView = false;
     }
 
     this.populateFallbackMatchInfo();
@@ -1306,6 +1308,7 @@ fetchMatchInfo(matchUrl:string) {
 
       // T045: Update browser tab title with team names (Feature 008 - SEO)
       this.updatePageTitle();
+      this.trackCanonicalMatchView();
 
       // Extract keys
       this.teamComparisonKeys = Object.keys(this.matchInfo.team_comparison || {});
@@ -1335,6 +1338,44 @@ fetchMatchInfo(matchUrl:string) {
       }
     }
   );
+}
+
+private trackCanonicalMatchView(): void {
+  if (this.hasTrackedCanonicalMatchView || !this.isBrowser()) {
+    return;
+  }
+
+  var matchSlug = this.getCanonicalMatchSlug();
+  var lifecycle = this.getCanonicalAnalyticsLifecycle();
+  if (!matchSlug || !lifecycle) {
+    return;
+  }
+
+  this.hasTrackedCanonicalMatchView = true;
+  this.analyticsService.trackCanonicalMatchView({
+    matchSlug: matchSlug,
+    matchPath: '/cric-live/' + matchSlug,
+    lifecycle: lifecycle,
+    surface: 'cric-live'
+  });
+}
+
+private getCanonicalAnalyticsLifecycle(): 'upcoming' | 'live' | 'completed' | null {
+  if (this.canonicalIntelligence && this.canonicalIntelligence.lifecycle) {
+    return this.canonicalIntelligence.lifecycle;
+  }
+
+  var status = this.getResolvedMatchStatus();
+  if (this.isCompletedStatus(status)) {
+    return 'completed';
+  }
+  if (this.isUpcomingStatus(status)) {
+    return 'upcoming';
+  }
+  if (this.isLiveLikeStatus(status)) {
+    return 'live';
+  }
+  return null;
 }
 
 private resolveRouteMatch(matchSlug: string): void {
