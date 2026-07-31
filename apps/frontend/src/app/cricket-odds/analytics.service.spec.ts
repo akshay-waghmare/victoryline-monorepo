@@ -1,7 +1,7 @@
 import { AnalyticsService } from './analytics.service';
 
 describe('AnalyticsService intelligence event bridge', () => {
-  it('forwards events to gtag and dataLayer when configured', () => {
+  it('prefers gtag so one configured event is not double-counted', () => {
     const service = new AnalyticsService();
     const gtag = jasmine.createSpy('gtag');
     const dataLayer: any[] = [];
@@ -11,8 +11,19 @@ describe('AnalyticsService intelligence event bridge', () => {
     service.trackIntelligenceEvent('prediction_view', { lifecycle: 'live' });
 
     expect(gtag).toHaveBeenCalledWith('event', 'prediction_view', { lifecycle: 'live' });
-    expect(dataLayer[0]).toEqual({ event: 'prediction_view', lifecycle: 'live' });
+    expect(dataLayer.length).toBe(0);
     delete (window as any).gtag;
+    delete (window as any).dataLayer;
+  });
+
+  it('uses dataLayer when gtag is unavailable', () => {
+    const service = new AnalyticsService();
+    const dataLayer: any[] = [];
+    (window as any).dataLayer = dataLayer;
+
+    service.trackIntelligenceEvent('prediction_view', { lifecycle: 'live' });
+
+    expect(dataLayer[0]).toEqual({ event: 'prediction_view', lifecycle: 'live' });
     delete (window as any).dataLayer;
   });
 

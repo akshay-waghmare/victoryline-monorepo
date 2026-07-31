@@ -24,10 +24,19 @@ export class AnalyticsService {
     // local SSR and provider-less development safe.
     if (typeof window !== 'undefined') {
       var host = window as any;
+      var deliveredToGtag = false;
       if (typeof host.gtag === 'function') {
-        host.gtag('event', eventName, payload);
+        try {
+          host.gtag('event', eventName, payload);
+          deliveredToGtag = true;
+        } catch (_) {
+          // Fall through to the dataLayer bridge when a host gtag shim fails.
+        }
       }
-      if (Array.isArray(host.dataLayer)) {
+      // A normal gtag implementation already writes into dataLayer. Pushing a
+      // second object here double-counts the same GA4 event, so dataLayer is a
+      // fallback only when gtag is unavailable or failed.
+      if (!deliveredToGtag && Array.isArray(host.dataLayer)) {
         host.dataLayer.push(Object.assign({ event: eventName }, payload));
       }
       if (typeof host.dispatchEvent === 'function' && typeof CustomEvent !== 'undefined') {
