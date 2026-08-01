@@ -26,6 +26,15 @@ describe('MatchIntelligenceDataService freshness and public metric mapping', () 
     expect(state).toBe('fresh');
   });
 
+  it('prefers the fresh model timestamp over an older score-feed timestamp', () => {
+    const state = (service as any).resolveFreshnessState({
+      lastUpdated: Date.now() - 20 * 60 * 1000,
+      updated_at: new Date(Date.now() - 30 * 1000).toISOString().replace('Z', '')
+    });
+
+    expect(state).toBe('fresh');
+  });
+
   it('marks an old model timestamp stale', () => {
     const state = (service as any).resolveFreshnessState({
       updated_at: new Date(Date.now() - 6 * 60 * 1000).toISOString()

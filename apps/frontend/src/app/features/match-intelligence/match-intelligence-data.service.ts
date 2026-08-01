@@ -187,9 +187,12 @@ export class MatchIntelligenceDataService {
       return 'unavailable';
     }
 
-    var timestamp = matchData.lastUpdated || matchData.updatedAt || matchData.last_updated || matchData.updated_at;
+    // Prefer the public model timestamp when it is available. The score-feed
+    // `lastUpdated` can be a numeric epoch and describes a different handoff;
+    // letting it mask `updated_at` can suppress an otherwise fresh model view.
+    var timestamp = matchData.updated_at || matchData.updatedAt || matchData.last_updated || matchData.lastUpdated;
     if (timestamp) {
-      var parsed = this.parseProviderTimestamp(timestamp);
+      var parsed = typeof timestamp === 'number' ? timestamp : this.parseProviderTimestamp(timestamp);
       if (!isNaN(parsed)) {
         return Date.now() - parsed <= this.freshnessLimitMs ? 'fresh' : 'stale';
       }
@@ -199,6 +202,10 @@ export class MatchIntelligenceDataService {
   }
 
   private parseProviderTimestamp(value: any): number {
+    if (typeof value === 'number') {
+      return value;
+    }
+
     var timestamp = String(value || '').trim();
     if (!timestamp) {
       return NaN;
