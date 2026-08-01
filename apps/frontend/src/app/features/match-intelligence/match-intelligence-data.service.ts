@@ -187,13 +187,29 @@ export class MatchIntelligenceDataService {
 
     var timestamp = matchData.lastUpdated || matchData.updatedAt || matchData.last_updated || matchData.updated_at;
     if (timestamp) {
-      var parsed = Date.parse(String(timestamp));
+      var parsed = this.parseProviderTimestamp(timestamp);
       if (!isNaN(parsed)) {
         return Date.now() - parsed <= this.freshnessLimitMs ? 'fresh' : 'stale';
       }
     }
 
     return 'stale';
+  }
+
+  private parseProviderTimestamp(value: any): number {
+    var timestamp = String(value || '').trim();
+    if (!timestamp) {
+      return NaN;
+    }
+
+    // The model writer historically emitted UTC ISO timestamps without a
+    // timezone suffix. Treat that legacy contract as UTC rather than allowing
+    // each browser locale to reinterpret the same live update differently.
+    if (!/(?:Z|[+-]\d{2}:?\d{2})$/i.test(timestamp)) {
+      timestamp += 'Z';
+    }
+
+    return Date.parse(timestamp);
   }
 
   private loadPublicPredictionMatches(): Observable<PublicPredictionMatch[]> {

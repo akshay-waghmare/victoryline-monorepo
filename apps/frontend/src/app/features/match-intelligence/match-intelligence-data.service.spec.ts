@@ -16,6 +16,14 @@ describe('MatchIntelligenceDataService freshness and public metric mapping', () 
     expect(state).toBe('fresh');
   });
 
+  it('treats legacy timezone-less provider timestamps as UTC', () => {
+    const state = (service as any).resolveFreshnessState({
+      updated_at: new Date(Date.now() - 30 * 1000).toISOString().replace('Z', '')
+    });
+
+    expect(state).toBe('fresh');
+  });
+
   it('marks an old model timestamp stale', () => {
     const state = (service as any).resolveFreshnessState({
       updated_at: new Date(Date.now() - 6 * 60 * 1000).toISOString()
