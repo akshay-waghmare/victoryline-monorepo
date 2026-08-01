@@ -90,11 +90,14 @@ calibrated result is Brier `0.2258` and log loss `0.6430`, better than neutral
 
 The experiment is nevertheless **shadow-only revise**, not a serving approval:
 the female holdout has 680 rows but ECE `0.0705` exceeds the written `0.050`
-gate, and the source has no named competition values for a competition segment.
-Do not add an opening percentage to the public API, build fixture ingress, or
-change canonical SSR based on this result. Reopen the upcoming lifecycle only
-after reliable competition identity and a revised calibration approach pass a
-new untouched female/competition temporal holdout.
+gate. Commit `b6aa282` recovers a named `info.event.name` for 5,300 of 5,363
+fixtures by exact Cricsheet match ID; that is valid pre-innings metadata, but
+the largest recent holdout event has only 49 rows and is diagnostic rather than
+its own calibration gate. Do not add an opening percentage to the public API,
+build fixture ingress, or change canonical SSR based on this result. Reopen the
+upcoming lifecycle only after a revised calibration approach passes a new
+untouched female holdout; any competition-specific serving claim also needs a
+materially sized, justified grouping.
 
 ## Program gates
 
