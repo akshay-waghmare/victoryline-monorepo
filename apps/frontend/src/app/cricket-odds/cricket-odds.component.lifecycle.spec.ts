@@ -28,6 +28,7 @@ function createComponent(): CricketOddsComponent {
     { url: '/cric-live/team-a-vs-team-b-123A' } as any,
     {} as any,
     { get: function() { return null; }, hasKey: function() { return false; }, set: function() {}, remove: function() {} } as any,
+    {} as any,
     {} as any
   );
 }
