@@ -7,6 +7,7 @@ live scraper's browser budget or become a live prediction candidate.
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Any, Iterable, List
 
@@ -37,10 +38,30 @@ def _scheduled_at_seconds(match: Any) -> float | None:
     return timestamp / 1000 if timestamp >= 100_000_000_000 else timestamp
 
 
-def _is_supported_t20(match: Any) -> bool:
-    value = _value(match, "matchFormat", "match_format", "format")
-    normalized = str(value or "").strip().lower().replace(" ", "")
-    return "t20" in normalized and "t10" not in normalized
+def _normalized_t20_format(match: Any) -> str | None:
+    """Return the explicit T20 marker supplied by the schedule record.
+
+    A few backend catalogue rows omit ``matchFormat`` even though their
+    source-facing series descriptor or canonical CREX URL explicitly includes
+    a match type such as ``4thT20`` or ``-t20-``.  That is sufficient to
+    recover the known format, but only for an explicit T20/T20I marker;
+    generic competition-name inference is deliberately out of scope.
+    """
+    values = (
+        _value(match, "matchFormat", "match_format", "format"),
+        _value(match, "seriesName", "series_name", "label"),
+        _value(match, "url", "matchUrl", "match_url"),
+    )
+    for value in values:
+        normalized = str(value or "").strip().casefold().replace(" ", "")
+        if "t10" in normalized or "hundred" in normalized:
+            continue
+        if re.search(r"(?:^|[^a-z0-9])t20i?(?:$|[^a-z0-9])", normalized):
+            return "T20"
+        # CREX sometimes joins the ordinal and format (for example ``4thT20``).
+        if re.search(r"\d+(?:st|nd|rd|th)t20i?(?:$|[^a-z0-9])", normalized):
+            return "T20"
+    return None
 
 
 def _is_upcoming(match: Any) -> bool:
@@ -65,7 +86,10 @@ def select_prematch_candidates(
     reference = time.time() if now is None else now
     eligible: List[tuple[float, dict[str, Any]]] = []
     for match in matches or []:
-        if not isinstance(match, dict) or not _is_upcoming(match) or not _is_supported_t20(match):
+        if not isinstance(match, dict) or not _is_upcoming(match):
+            continue
+        match_format = _normalized_t20_format(match)
+        if match_format is None:
             continue
         url = _value(match, "url", "matchUrl", "match_url")
         scheduled_at = _scheduled_at_seconds(match)
@@ -74,7 +98,12 @@ def select_prematch_candidates(
         lead_seconds = scheduled_at - reference
         if not PREMATCH_MIN_LEAD_SECONDS <= lead_seconds <= PREMATCH_MAX_LEAD_SECONDS:
             continue
-        eligible.append((scheduled_at, match))
+        # Keep the upstream record untouched while ensuring the public
+        # handoff preserves the exact supported format used for selection.
+        normalized_match = dict(match)
+        if not _value(normalized_match, "matchFormat", "match_format", "format"):
+            normalized_match["matchFormat"] = match_format
+        eligible.append((scheduled_at, normalized_match))
 
     eligible.sort(key=lambda item: (item[0], str(_value(item[1], "url", "matchUrl", "match_url"))))
     return [match for _, match in eligible[:limit]]

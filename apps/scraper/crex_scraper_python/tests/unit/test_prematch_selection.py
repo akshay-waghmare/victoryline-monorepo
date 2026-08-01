@@ -42,6 +42,56 @@ def test_rejects_unsupported_or_non_upcoming_records_without_mutating_input():
     assert records == original
 
 
+def test_recovers_only_explicit_t20_marker_from_source_series_descriptor():
+    records = [
+        {
+            "url": "https://crex.com/cricket-live-score/arg-w-vs-can-w",
+            "status": "UPCOMING",
+            "scheduledStartTime": int((NOW + 24 * 60 * 60) * 1000),
+            "seriesName": "Argentina Women 6:30 PM 4thT20, Canada Women Tour",
+        },
+        {
+            "url": "https://crex.com/cricket-live-score/unknown-format",
+            "status": "UPCOMING",
+            "scheduledStartTime": int((NOW + 24 * 60 * 60) * 1000),
+            "seriesName": "Argentina Women vs Canada Women",
+        },
+    ]
+
+    selected = select_prematch_candidates(records, now=NOW)
+
+    assert selected == [{
+        "url": "https://crex.com/cricket-live-score/arg-w-vs-can-w",
+        "status": "UPCOMING",
+        "scheduledStartTime": int((NOW + 24 * 60 * 60) * 1000),
+        "seriesName": "Argentina Women 6:30 PM 4thT20, Canada Women Tour",
+        "matchFormat": "T20",
+    }]
+    assert "matchFormat" not in records[0]
+
+
+def test_replaces_blank_upstream_format_with_explicit_source_marker():
+    selected = select_prematch_candidates([{
+        "url": "https://crex.com/cricket-live-score/arg-w-vs-can-w",
+        "status": "UPCOMING",
+        "matchFormat": None,
+        "scheduledStartTime": int((NOW + 24 * 60 * 60) * 1000),
+        "seriesName": "Argentina Women 6:30 PM 4thT20, Canada Women Tour",
+    }], now=NOW)
+
+    assert selected[0]["matchFormat"] == "T20"
+
+
+def test_recovers_t20_only_from_an_explicit_canonical_url_marker():
+    selected = select_prematch_candidates([{
+        "url": "https://crex.com/cricket-live-score/arg-w-vs-can-w-5th-t20-tour-2026",
+        "status": "UPCOMING",
+        "scheduledStartTime": int((NOW + 24 * 60 * 60) * 1000),
+    }], now=NOW)
+
+    assert selected[0]["matchFormat"] == "T20"
+
+
 def test_bounds_and_sorts_the_separate_prematch_slate():
     selected = select_prematch_candidates([
         _match("https://crex.com/cricket-live-score/c", 30),
