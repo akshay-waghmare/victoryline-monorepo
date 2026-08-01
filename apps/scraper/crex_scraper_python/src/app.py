@@ -257,6 +257,8 @@ def prematch_candidates():
             "source": "backend:upcoming",
             "scheduled_start_time": match.get("scheduledStartTime") or match.get("scheduled_start_time"),
             "match_format": match.get("matchFormat") or match.get("match_format") or match.get("format"),
+            "team1_name": team1 or None,
+            "team2_name": team2 or None,
             "label": label,
         })
 

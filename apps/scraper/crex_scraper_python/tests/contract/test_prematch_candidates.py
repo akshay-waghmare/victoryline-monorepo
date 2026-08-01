@@ -44,5 +44,7 @@ def test_prematch_endpoint_exposes_a_bounded_non_live_contract(client):
         "source": "backend:upcoming",
         "scheduled_start_time": now_ms + 24 * 60 * 60 * 1000,
         "match_format": "T20",
+        "team1_name": "Alpha",
+        "team2_name": "Bravo",
         "label": "Alpha vs Bravo",
     }]
