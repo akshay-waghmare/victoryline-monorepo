@@ -32,6 +32,14 @@ _schedule_lifecycle_breaker = CircuitBreaker.from_settings(
         "success_threshold": 1,
     },
 )
+_upcoming_catalog_breaker = CircuitBreaker.from_settings(
+    "backend_upcoming_catalog",
+    overrides={
+        "failure_threshold": 3,
+        "timeout_seconds": 15,
+        "success_threshold": 1,
+    },
+)
 
 # Track fast update timestamps per match URL to avoid stale regular pushes overwriting fresh data
 # Key: source_url, Value: timestamp of last fast update
@@ -706,6 +714,35 @@ class CricketDataService:
             return matches
         except Exception as e:
             logger.error("matches.list.error", metadata={"error": str(e)})
+            return []
+
+    @staticmethod
+    def get_upcoming_matches(token):
+        """Fetch the schedule catalogue used by the opening-model handoff."""
+        logger.info("matches.upcoming.start")
+        url = f"{CricketDataService._service_base_url()}/upcoming-matches"
+
+        def _fetch():
+            response = requests.get(
+                url,
+                headers=CricketDataService._build_headers(token),
+                timeout=CricketDataService.BACKEND_TIMEOUT,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            if isinstance(payload, dict):
+                return payload.get("data") or payload.get("matches") or []
+            return payload if isinstance(payload, list) else []
+
+        try:
+            matches = _upcoming_catalog_breaker.call(_fetch)
+            logger.info("matches.upcoming.success", metadata={"count": len(matches)})
+            return matches
+        except CircuitBreakerOpenError:
+            logger.warning("matches.upcoming.circuit_open", metadata={"breaker": "backend_upcoming_catalog"})
+            return []
+        except Exception as e:
+            logger.error("matches.upcoming.error", metadata={"error": str(e), "url": url})
             return []
 
     @staticmethod

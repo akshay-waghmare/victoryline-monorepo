@@ -7,6 +7,7 @@ import asyncio
 import logging
 import re
 import threading
+import time
 from concurrent.futures import TimeoutError as FutureTimeoutError
 from typing import Optional, Dict, Any
 
@@ -26,6 +27,7 @@ from .cricket_data_service import CricketDataService
 from .player_stats_crawler import PlayerStatsCrawlerService, PlayerStatsTask
 from .health import HealthState
 from .live_match_selection import select_live_matches
+from .prematch_selection import select_prematch_candidates
 from .loggers.adapters import configure_logging
 
 # Configure logging immediately
@@ -231,6 +233,34 @@ def prediction_candidates():
         "matches": [{"url": url, "is_live": True, "source": source} for url in urls],
         "count": len(urls),
     })
+
+
+@app.route("/prematch-candidates")
+def prematch_candidates():
+    """Expose a bounded, non-live fixture slate for the opening model only."""
+    try:
+        token = scraper_service._auth_token or CricketDataService.get_bearer_token()
+        matches = CricketDataService.get_upcoming_matches(token)
+        selected = select_prematch_candidates(matches, now=time.time())
+    except Exception as exc:
+        logger.warning("prematch_candidates.error", extra={"error": str(exc)})
+        selected = []
+
+    payload = []
+    for match in selected:
+        team1 = str(match.get("team1Name") or match.get("team1_name") or "").strip()
+        team2 = str(match.get("team2Name") or match.get("team2_name") or "").strip()
+        label = " vs ".join(team for team in (team1, team2) if team)
+        payload.append({
+            "url": match.get("url") or match.get("matchUrl") or match.get("match_url"),
+            "is_live": False,
+            "source": "backend:upcoming",
+            "scheduled_start_time": match.get("scheduledStartTime") or match.get("scheduled_start_time"),
+            "match_format": match.get("matchFormat") or match.get("match_format") or match.get("format"),
+            "label": label,
+        })
+
+    return jsonify({"status": "success", "matches": payload, "count": len(payload)})
 
 @app.route("/metrics")
 def metrics():
