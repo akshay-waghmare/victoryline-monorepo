@@ -256,9 +256,21 @@ export class MatchIntelligenceDataService {
   }
 
   private getPublicPredictionApiUrl(): string {
-    return this.isBrowser()
-      ? environment.MODEL_PUBLIC_API_URL
-      : 'http://127.0.0.1:4000' + environment.MODEL_PUBLIC_API_URL;
+    if (this.isBrowser()) {
+      return environment.MODEL_PUBLIC_API_URL;
+    }
+
+    // SSR runs inside the frontend container, where 127.0.0.1 is the
+    // frontend itself. Use the explicitly configured dashboard origin so the
+    // canonical HTML can include the same fresh public model answer a browser
+    // receives through the edge proxy.
+    var runtimeProcess: any = typeof process !== 'undefined' ? process : null;
+    var serverModelApiUrl = runtimeProcess && runtimeProcess.env && runtimeProcess.env.MODEL_API_URL;
+    if (serverModelApiUrl) {
+      return String(serverModelApiUrl).replace(/\/+$/, '') + '/api/public';
+    }
+
+    return 'http://127.0.0.1:4000' + environment.MODEL_PUBLIC_API_URL;
   }
 
   private isBrowser(): boolean {
