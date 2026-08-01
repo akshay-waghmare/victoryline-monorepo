@@ -1,6 +1,8 @@
 import { MatchIntelligenceDataService } from './match-intelligence-data.service';
 import { MatchStatus } from '../matches/models/match-card.models';
 
+declare const global: any;
+
 describe('MatchIntelligenceDataService freshness and public metric mapping', () => {
   let service: MatchIntelligenceDataService;
 

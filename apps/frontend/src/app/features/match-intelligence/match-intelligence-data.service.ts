@@ -7,6 +7,8 @@ import { MatchStatus, MatchCardViewModel } from '../matches/models/match-card.mo
 import { extractSlugFromUrl } from '../../core/utils/match-utils';
 import { environment } from 'src/environments/environment';
 
+declare const process: any;
+
 interface PublicPredictionMatch {
   slug: string;
   title: string;
