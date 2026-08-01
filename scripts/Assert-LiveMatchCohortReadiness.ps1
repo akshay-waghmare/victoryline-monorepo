@@ -85,6 +85,14 @@ function Convert-ProviderTimestampToUtc {
     return $Timestamp.ToUniversalTime()
   }
   if ($Timestamp -is [DateTime]) {
+    # Live predictor state still serializes its UTC wall-clock timestamp
+    # without an offset. Invoke-RestMethod turns that legacy form into an
+    # Unspecified DateTime; treating it as the operator's local clock makes a
+    # current row look 5.5 hours old in India. Preserve explicit UTC/local
+    # kinds, but declare the legacy unspecified form as UTC.
+    if ($Timestamp.Kind -eq [DateTimeKind]::Unspecified) {
+      return [DateTimeOffset]::new([DateTime]::SpecifyKind($Timestamp, [DateTimeKind]::Utc))
+    }
     return [DateTimeOffset]$Timestamp.ToUniversalTime()
   }
 
