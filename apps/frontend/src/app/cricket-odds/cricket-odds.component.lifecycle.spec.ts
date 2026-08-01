@@ -102,6 +102,30 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(component.selectedTabIndex).toBe(2);
   });
 
+  it('retains a stopped provider row when the canonical match lifecycle is completed', () => {
+    var component = createComponent();
+
+    var intelligence = (component as any).buildCanonicalIntelligence({
+      lifecycle: 'completed',
+      freshnessState: 'stale',
+      publicPrediction: {
+        status: 'stopped',
+        batting_team: 'EDR',
+        win_probability_pct: 100,
+        prediction_history: [
+          { over: '17.5', win_probability_pct: 99 },
+          { over: '18.1', win_probability_pct: 100 }
+        ],
+        updated_at: '2026-08-01T11:50:52.732993',
+        model_label: 'T20 all-gender v2'
+      }
+    });
+
+    expect(intelligence.lifecycle).toBe('completed');
+    expect(intelligence.probability).toBe(100);
+    expect(intelligence.headline).toContain('finished');
+  });
+
   it('preserves a real user tab change over later lifecycle defaults', () => {
     var component = createComponent();
     component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A';

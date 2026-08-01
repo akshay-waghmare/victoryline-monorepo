@@ -512,7 +512,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     }
 
     const publicStatus = String(prediction.status || '').toLowerCase();
-    const lifecycle = publicStatus === 'completed' || publicStatus === 'complete'
+    // The canonical match resolver owns lifecycle identity. A retained model
+    // row can be marked `stopped` once its live writer is halted even though
+    // the authoritative match record has reached COMPLETED. Preserve the
+    // replay's final answer only when that canonical lifecycle is explicit.
+    const lifecycle = snapshot.lifecycle === 'completed' || publicStatus === 'completed' || publicStatus === 'complete'
       ? 'completed'
       : (snapshot.lifecycle === 'upcoming' ? 'upcoming' : 'live');
     const history = Array.isArray(prediction.prediction_history) ? prediction.prediction_history : [];
