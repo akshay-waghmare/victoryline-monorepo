@@ -138,4 +138,16 @@ describe('MatchIntelligenceDataService freshness and public metric mapping', () 
 
     expect((service as any).findPublicPrediction(routeSlug, null, null, [prediction])).toBe(prediction);
   });
+
+  it('does not substitute a current live team match for a different canonical source URL', () => {
+    const retainedRoute = 'bp-w-vs-wf-w-15th-match-the-hundred-2026-women-match-updates-ZKJ';
+    const currentLivePrediction = {
+      slug: 'wf-vs-bp-hundred-win-probability',
+      title: 'Welsh Fire vs Birmingham Phoenix',
+      match_url: 'https://crex.com/cricket-live-score/bp-vs-wf-15th-match-the-hundred-2026-men-match-updates-ZKO',
+      win_probability_pct: 61
+    };
+
+    expect((service as any).findPublicPrediction(retainedRoute, null, null, [currentLivePrediction])).toBeNull();
+  });
 });

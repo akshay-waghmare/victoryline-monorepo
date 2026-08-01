@@ -322,6 +322,13 @@ export class MatchIntelligenceDataService {
       if (urlMatch) {
         return urlMatch;
       }
+
+      // A canonical route has an exact CREX source identity.  Never pair a
+      // retained result with a current live row simply because abbreviated
+      // team names overlap; the caller will resolve the exact source URL from
+      // the retained public archive when the rolling feed no longer contains
+      // this match.
+      return null;
     }
 
     var currentMatchupKey = this.extractMatchupKey(
