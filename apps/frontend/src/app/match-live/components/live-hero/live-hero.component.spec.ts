@@ -58,4 +58,15 @@ describe('LiveHeroComponent current ball display', () => {
     expect(component.getActiveView(staleLiveView)).toBe(completedFallback);
     expect(component.shouldShowLiveOnlySections(completedFallback)).toBe(false);
   });
+
+  it('keeps an upcoming fixture out of score-bearing live sections', () => {
+    const upcomingView: any = {
+      status: 'UPCOMING',
+      completedScores: null,
+      score: { resultSummary: null }
+    };
+
+    expect(component.isUpcomingView(upcomingView)).toBe(true);
+    expect(component.shouldShowLiveOnlySections(upcomingView)).toBe(false);
+  });
 });

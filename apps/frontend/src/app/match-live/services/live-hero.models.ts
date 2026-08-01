@@ -1,4 +1,4 @@
-export type LiveMatchStatus = 'LIVE' | 'INNINGS_BREAK' | 'DELAYED' | 'COMPLETED';
+export type LiveMatchStatus = 'UPCOMING' | 'LIVE' | 'INNINGS_BREAK' | 'DELAYED' | 'COMPLETED';
 
 export interface LiveMatchSnapshotDto {
   id: string;

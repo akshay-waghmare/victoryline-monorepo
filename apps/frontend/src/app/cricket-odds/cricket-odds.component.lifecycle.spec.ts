@@ -219,6 +219,22 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(component.scorecardData).toBeNull();
   });
 
+  it('builds an upcoming hero fallback as a scheduled fixture rather than live match state', () => {
+    var component = createComponent();
+    var view = (component as any).buildHeroFallbackView({
+      externalMatchKey: 'ind-vs-aus-1st-t20-123A',
+      status: 'UPCOMING',
+      scheduledStartTime: '2026-08-02T13:30:00.000Z',
+      team1: { name: 'India', shortName: 'IND' },
+      team2: { name: 'Australia', shortName: 'AUS' }
+    });
+
+    expect(view.status).toBe('UPCOMING');
+    expect(view.score.teamName).toContain('India');
+    expect(view.score.teamName).toContain('Australia');
+    expect(view.score.resultSummary).toBeNull();
+  });
+
   it('uses honest upcoming commentary placeholder copy in the canonical intent rail', () => {
     var component = createComponent();
     component.matchInfo = { match_status: 'UPCOMING' };

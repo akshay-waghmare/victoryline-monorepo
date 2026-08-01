@@ -17,8 +17,8 @@
       </div>
       <div class="live-hero__timestamp">
         <mat-icon class="timestamp-icon">schedule</mat-icon>
-        <span class="timestamp-label">Updated</span>
-        <time [attr.datetime]="view.timestamp">{{ view.timestamp | date:'shortTime' }}</time>
+        <span class="timestamp-label">{{ isUpcomingView(view) ? 'Starts' : 'Updated' }}</span>
+        <time [attr.datetime]="view.timestamp">{{ view.timestamp | date:(isUpcomingView(view) ? 'medium' : 'shortTime') }}</time>
         
         <!-- Staleness Warning Badge -->
         <span class="staleness-badge" 
@@ -62,8 +62,24 @@
         </div>
       </ng-container>
 
-      <!-- LIVE / UPCOMING: Original single-team score layout -->
+      <!-- UPCOMING: fixture state deliberately has no score, overs, or run rate. -->
       <ng-template #liveScoreLayout>
+      <ng-container *ngIf="isUpcomingView(view); else liveScoreContent">
+        <div class="live-hero__score-area">
+          <div class="live-hero__pod live-hero__pod--score">
+            <div class="scoreline__team-name">{{ view.score.teamName }}</div>
+            <div class="scoreline" aria-label="Scheduled fixture">
+              <span class="scoreline__runs">Scheduled</span>
+            </div>
+            <div class="live-hero__context-line">
+              <span>Score and live updates will appear when play begins.</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- LIVE: Original single-team score layout -->
+      <ng-template #liveScoreContent>
       <div class="live-hero__score-area">
         <div class="live-hero__pod live-hero__pod--score">
           <div class="scoreline__team-name">{{ view.score.teamName }}</div>
@@ -88,6 +104,7 @@
           </div>
         </div>
       </div>
+      </ng-template>
       </ng-template>
 
       <!-- COLUMN 2: Recent Activity Area -->

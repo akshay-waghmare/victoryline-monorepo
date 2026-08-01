@@ -98,7 +98,11 @@ export class LiveHeroComponent implements OnChanges, OnDestroy {
   }
 
   shouldShowLiveOnlySections(view: LiveHeroViewModel | null): boolean {
-    return !this.isCompletedView(view);
+    return !this.isCompletedView(view) && !this.isUpcomingView(view);
+  }
+
+  isUpcomingView(view: LiveHeroViewModel | null): boolean {
+    return getLiveHeroStatusKey(view, this.matchInfo) === 'UPCOMING';
   }
 
   stalenessBadge(view: LiveHeroViewModel | null): string | null {

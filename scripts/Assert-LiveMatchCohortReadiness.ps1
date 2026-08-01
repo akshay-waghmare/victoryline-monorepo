@@ -76,7 +76,17 @@ function Get-HeaderValue {
 }
 
 function Convert-ProviderTimestampToUtc {
-  param([string]$Timestamp)
+  param($Timestamp)
+
+  # Invoke-RestMethod materializes ISO offsets as DateTime on some PowerShell
+  # versions. Preserve that parsed local/offset information instead of turning
+  # it back into a locale-formatted string and incorrectly appending `Z`.
+  if ($Timestamp -is [DateTimeOffset]) {
+    return $Timestamp.ToUniversalTime()
+  }
+  if ($Timestamp -is [DateTime]) {
+    return [DateTimeOffset]$Timestamp.ToUniversalTime()
+  }
 
   $value = [string]$Timestamp
   if ([string]::IsNullOrWhiteSpace($value)) {
@@ -191,11 +201,14 @@ foreach ($lifecycle in $lifecycleEndpoints.Keys) {
       $publicRow = $null
     }
   }
-  $modelUpdatedAt = if ($publicRow.updated_at) { [string]$publicRow.updated_at } else { '' }
+  $modelTimestamp = $publicRow.updated_at
+  $modelUpdatedAt = ''
   $modelFresh = $false
-  if ($modelUpdatedAt) {
+  if ($modelTimestamp) {
     try {
-      $age = $now - (Convert-ProviderTimestampToUtc $modelUpdatedAt)
+      $modelTimestampUtc = Convert-ProviderTimestampToUtc $modelTimestamp
+      $modelUpdatedAt = $modelTimestampUtc.ToString('o')
+      $age = $now - $modelTimestampUtc
       # An opening row's timestamp is the versioned artifact generation time,
       # not a live score update.  Apply the artifact's explicit 24-hour TTL
       # while retaining the five-minute service-level freshness gate for live.
@@ -220,7 +233,10 @@ foreach ($lifecycle in $lifecycleEndpoints.Keys) {
 
   $document = Test-CanonicalDocument $canonicalUrl
   $canonicalReady = $document.Status -eq 200 -and $document.SelfCanonical -and $document.Indexable -and $document.H1Count -eq 1
-  $hasLifecycleConflict = $lifecycle -eq 'completed' -and $document.HasStaleUpcomingScore
+  # A scheduled fixture must not pretend that innings have started, and a
+  # completed page must not regress into the same shell.  Treat the stale
+  # `Upcoming 0/0` text as an SSR-contract failure for every lifecycle.
+  $hasLifecycleConflict = $document.HasStaleUpcomingScore
   $eligible = $canonicalReady -and $modelLifecycleReady -and $document.HasSsrWinProbability -and -not $hasLifecycleConflict
   $blockers = @()
   if (-not $canonicalReady) { $blockers += 'Canonical SSR contract failed' }
