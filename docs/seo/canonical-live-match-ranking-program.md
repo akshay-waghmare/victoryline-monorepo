@@ -79,6 +79,23 @@ live-only: mixing upcoming rows into the finite scraper slate can retire healthy
 live predictors. An upcoming probability may reach canonical SSR only after
 identity, coverage, calibration, TTL, and exact-source evidence pass.
 
+### Opening-model temporal holdout checkpoint (2026-08-01)
+
+Model-repo commit `8db1021` establishes the first actual opening-model quality
+gate: its expanding team-strength baseline uses only outcomes prior to each
+fixture date, reserves whole recent dates for a final holdout, and fits Platt
+calibration only on older OOF rows. On 1,491 final eligible T20 fixtures the
+calibrated result is Brier `0.2258` and log loss `0.6430`, better than neutral
+(`0.2500`, `0.6931`) and simple historical-rate (`0.2444`, `0.6819`) baselines.
+
+The experiment is nevertheless **shadow-only revise**, not a serving approval:
+the female holdout has 680 rows but ECE `0.0705` exceeds the written `0.050`
+gate, and the source has no named competition values for a competition segment.
+Do not add an opening percentage to the public API, build fixture ingress, or
+change canonical SSR based on this result. Reopen the upcoming lifecycle only
+after reliable competition identity and a revised calibration approach pass a
+new untouched female/competition temporal holdout.
+
 ## Program gates
 
 1. **Eligibility gate**: Only selected matches with stable identity, lifecycle data, fresh model data, and a valid canonical route receive intelligence promises.
