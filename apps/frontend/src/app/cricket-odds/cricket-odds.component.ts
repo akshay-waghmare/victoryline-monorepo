@@ -1180,6 +1180,19 @@ onTabChange(event: MatTabChangeEvent) {
     return;
   }
 
+  // A bare canonical match URL deliberately picks a useful lifecycle default
+  // (completed => scorecard, upcoming => details) after its data arrives.
+  // Material emits selectedTabChange for that programmatic choice as well.
+  // Treat it as rendering state, not as a user navigation: otherwise a
+  // canonical completed URL silently turns into its /scorecard child route
+  // during hydration and breaks URL-level SSR/browser parity.
+  if (!requestedKey
+    && !this.hasUserSelectedTab
+    && this.tabIndexByKey[this.resolveLifecycleDefaultTab()] === event.index) {
+    this.ensureDataForTab(event.index);
+    return;
+  }
+
   this.hasUserSelectedTab = true;
   this.ensureDataForTab(event.index);
 

@@ -85,6 +85,22 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(component.selectedTabIndex).toBe(0);
   });
 
+  it('keeps a bare completed canonical URL when its lifecycle default tab initializes', () => {
+    var component = createComponent();
+    var navigate = jasmine.createSpy('navigate');
+    (component as any).router = {
+      url: '/cric-live/team-a-vs-team-b-123A',
+      navigate: navigate
+    };
+    component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A';
+    component.matchInfo = { match_status: 'COMPLETED' };
+
+    component.onTabChange({ index: 2 } as any);
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect(component.selectedTabIndex).toBe(2);
+  });
+
   it('preserves a real user tab change over later lifecycle defaults', () => {
     var component = createComponent();
     component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A';

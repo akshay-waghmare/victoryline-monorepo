@@ -43,7 +43,8 @@ Rule: do not mark a task complete on source edits alone. Record the requested ev
   Live SSR proof (2026-08-01): image `20260801-live-intelligence-ssr-r4` returns the same compact live intelligence answer to direct SSR, normal public, and Googlebot requests for EDR/SDS. Remaining proof: a 390px browser screenshot and an eligible upcoming lifecycle sample.
 - [ ] **R1.4** Verify hydration parity and stale/unavailable model fallbacks.  
   Depends on: R1.3.  
-  Proof: browser output matches SSR identity/metadata; no stale probability is presented as current.
+  Mobile progress (2026-08-01): a real 390px production-browser check shows the live BP-W/WF-W page with visible live intelligence (44%, label, timestamp) and the completed MSG/TR page with visible final intelligence (100%, label, timestamp), self-canonical `index,follow`, one H1, and no stale `Upcoming 0/0`. The completed bare canonical URL then client-navigated to `/scorecard` when Material emitted its lifecycle-default tab event. The narrow source guard and regression spec now prevent programmatic completed/upcoming default tabs from writing a supporting-route URL; compilation is still pending because the local checked-in TypeScript compiler is truncated (`Unexpected end of input`).  
+  Remaining proof: restore a valid local frontend dependency set, run the lifecycle spec/build, deploy the isolated guard, and repeat 390px parity on the canonical base URL. An eligible upcoming sample remains unavailable until the shadow-only opening model is revised.
 
 ## R2 — Search intent and discovery
 
