@@ -1,6 +1,7 @@
 param(
   [string]$SiteUrl = 'https://www.crickzen.com',
   [int]$MaxModelAgeMinutes = 5,
+  [int]$MaxOpeningArtifactAgeHours = 24,
   [switch]$FailWhenNotReady,
   [int]$TimeoutSeconds = 30
 )
@@ -46,6 +47,26 @@ function Get-FirstSupportedMatch {
   param($Matches)
 
   return @($Matches | Where-Object { (Get-MatchSlug $_) -and (Test-SupportedFormat $_) }) | Select-Object -First 1
+}
+
+function Get-UpcomingCohortMatch {
+  param($Matches, $PublicMatches)
+
+  $supported = @($Matches | Where-Object { (Get-MatchSlug $_) -and (Test-SupportedFormat $_) })
+  # The opening model is intentionally selective.  Prefer an exact upcoming
+  # source identity with a real public opening row so an unrelated uncovered
+  # domestic fixture cannot hide a ready controlled-cohort sample.  Keep the
+  # normal first-supported fallback to make an empty public feed observable.
+  $ready = @($supported | Where-Object {
+    $sourceUrl = ([string]$_.url).TrimEnd('/')
+    $sourceUrl -and @($PublicMatches | Where-Object {
+      ([string]$_.match_url).TrimEnd('/') -ieq $sourceUrl -and
+      ([string]$_.status).Trim().ToLowerInvariant() -eq 'upcoming' -and
+      $null -ne $_.win_probability_pct
+    }).Count -gt 0
+  })
+  return @($ready | Sort-Object scheduledStartTime | Select-Object -First 1) +
+    @($supported | Select-Object -First 1) | Select-Object -First 1
 }
 
 function Get-HeaderValue {
@@ -131,7 +152,11 @@ foreach ($lifecycle in $lifecycleEndpoints.Keys) {
     # contract required by the completed-match cohort.
     $candidatePool = @($candidatePool | Where-Object { [string]$_.status -eq 'COMPLETED' })
   }
-  $match = Get-FirstSupportedMatch $candidatePool
+  $match = if ($lifecycle -eq 'upcoming') {
+    Get-UpcomingCohortMatch $candidatePool $publicMatches
+  } else {
+    Get-FirstSupportedMatch $candidatePool
+  }
   if (-not $match) {
     $results += [pscustomobject]@{
       Lifecycle = $lifecycle
@@ -171,7 +196,11 @@ foreach ($lifecycle in $lifecycleEndpoints.Keys) {
   if ($modelUpdatedAt) {
     try {
       $age = $now - (Convert-ProviderTimestampToUtc $modelUpdatedAt)
-      $modelFresh = $age.TotalMinutes -ge 0 -and $age.TotalMinutes -le $MaxModelAgeMinutes
+      # An opening row's timestamp is the versioned artifact generation time,
+      # not a live score update.  Apply the artifact's explicit 24-hour TTL
+      # while retaining the five-minute service-level freshness gate for live.
+      $maxAgeMinutes = if ($lifecycle -eq 'upcoming') { $MaxOpeningArtifactAgeHours * 60 } else { $MaxModelAgeMinutes }
+      $modelFresh = $age.TotalMinutes -ge 0 -and $age.TotalMinutes -le $maxAgeMinutes
     } catch {
       $modelFresh = $false
     }
@@ -198,6 +227,7 @@ foreach ($lifecycle in $lifecycleEndpoints.Keys) {
   if ($null -eq $publicRow) { $blockers += 'No exact public-model row' }
   elseif (-not $modelLifecycleReady) {
     if ($lifecycle -eq 'completed') { $blockers += 'Completed model row lacks final probability or retained history' }
+    elseif ($lifecycle -eq 'upcoming') { $blockers += "Opening artifact is older than $MaxOpeningArtifactAgeHours hours or has no probability" }
     else { $blockers += "Public-model row is older than $MaxModelAgeMinutes minutes or has no probability" }
   }
   if (-not $document.HasSsrWinProbability) { $blockers += 'SSR intelligence not implemented yet' }

@@ -72,6 +72,7 @@ export interface MatchIntelligenceSnapshot {
 @Injectable({ providedIn: 'root' })
 export class MatchIntelligenceDataService {
   private readonly freshnessLimitMs = 5 * 60 * 1000;
+  private readonly openingArtifactFreshnessLimitMs = 24 * 60 * 60 * 1000;
 
   constructor(
     private http: HttpClient,
@@ -101,7 +102,7 @@ export class MatchIntelligenceDataService {
         var publicPrediction = this.findPublicPrediction(slug, currentMatch, matchInfo, publicMatches || []);
         var lifecycle = this.resolveLifecycle(currentMatch, matchInfo, publicPrediction);
         var mergedMatchData = this.mergePublicPrediction(matchData, publicPrediction);
-        var freshnessState = this.resolveFreshnessState(mergedMatchData);
+        var freshnessState = this.resolveFreshnessState(mergedMatchData, publicPrediction, lifecycle);
 
         return {
           slug: slug,
@@ -121,7 +122,11 @@ export class MatchIntelligenceDataService {
               publicPrediction: detail,
               matchData: this.mergePublicPrediction(snapshot.matchData, detail),
               lifecycle: this.resolveLifecycle(snapshot.currentMatch, snapshot.matchInfo, detail),
-              freshnessState: this.resolveFreshnessState(this.mergePublicPrediction(snapshot.matchData, detail))
+              freshnessState: this.resolveFreshnessState(
+                this.mergePublicPrediction(snapshot.matchData, detail),
+                detail,
+                this.resolveLifecycle(snapshot.currentMatch, snapshot.matchInfo, detail)
+              )
             }) : snapshot),
             catchError(() => of(snapshot))
           );
@@ -136,7 +141,7 @@ export class MatchIntelligenceDataService {
             return Object.assign({}, snapshot, {
               publicPrediction: detail,
               matchData: mergedMatchData,
-              freshnessState: this.resolveFreshnessState(mergedMatchData)
+              freshnessState: this.resolveFreshnessState(mergedMatchData, detail, snapshot.lifecycle)
             });
           }),
           catchError(() => of(snapshot))
@@ -182,7 +187,11 @@ export class MatchIntelligenceDataService {
     return 'unknown';
   }
 
-  private resolveFreshnessState(matchData: any): 'fresh' | 'stale' | 'unavailable' {
+  private resolveFreshnessState(
+    matchData: any,
+    publicPrediction?: PublicPredictionMatch | null,
+    lifecycle?: 'upcoming' | 'live' | 'completed' | 'unknown'
+  ): 'fresh' | 'stale' | 'unavailable' {
     if (!matchData) {
       return 'unavailable';
     }
@@ -194,7 +203,14 @@ export class MatchIntelligenceDataService {
     if (timestamp) {
       var parsed = typeof timestamp === 'number' ? timestamp : this.parseProviderTimestamp(timestamp);
       if (!isNaN(parsed)) {
-        return Date.now() - parsed <= this.freshnessLimitMs ? 'fresh' : 'stale';
+        // Opening rows are immutable, bounded historical artifacts rather
+        // than live score updates.  Their serving contract enforces a 24-hour
+        // TTL; applying the live five-minute clock would hide a valid upcoming
+        // answer between artifact refreshes.
+        var isOpeningArtifact = lifecycle === 'upcoming'
+          && String((publicPrediction && publicPrediction.model_source) || '').toLowerCase() === 'opening_team_strength';
+        var limit = isOpeningArtifact ? this.openingArtifactFreshnessLimitMs : this.freshnessLimitMs;
+        return Date.now() - parsed <= limit ? 'fresh' : 'stale';
       }
     }
 

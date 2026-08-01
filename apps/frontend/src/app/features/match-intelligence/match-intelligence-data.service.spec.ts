@@ -43,6 +43,21 @@ describe('MatchIntelligenceDataService freshness and public metric mapping', () 
     expect(state).toBe('stale');
   });
 
+  it('keeps a current opening artifact fresh without relaxing the live-model gate', () => {
+    const timestamp = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+
+    expect((service as any).resolveFreshnessState(
+      { updated_at: timestamp },
+      { model_source: 'opening_team_strength' },
+      'upcoming'
+    )).toBe('fresh');
+    expect((service as any).resolveFreshnessState(
+      { updated_at: timestamp },
+      { model_source: 'opening_team_strength' },
+      'live'
+    )).toBe('stale');
+  });
+
   it('marks absent model data unavailable', () => {
     expect((service as any).resolveFreshnessState(null)).toBe('unavailable');
   });
