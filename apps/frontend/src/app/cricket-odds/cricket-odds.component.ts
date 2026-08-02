@@ -1314,12 +1314,27 @@ fetchMatchInfo(matchUrl:string) {
       this.isLoadingMatchInfo = false;
       var resolvedStatus = data && (data.match_status || data.status);
       if (resolvedStatus) {
+        // Match-info is the authoritative direct-route identity source. Keep
+        // the series and short team codes on the route match so retained SSR
+        // navigation can resolve only the matching series standings.
+        var metadataTeamCodes = data && data.team_comparison && typeof data.team_comparison === 'object'
+          ? Object.keys(data.team_comparison).filter((code) => !!String(code || '').trim())
+          : [];
+        var existingMatch = this.currentMatch || {};
         this.currentMatch = Object.assign({}, this.currentMatch || {}, {
           status: resolvedStatus,
-          url: data.url || (this.currentMatch && (this.currentMatch.url || this.currentMatch.matchUrl)) || matchUrl
+          url: data.url || (this.currentMatch && (this.currentMatch.url || this.currentMatch.matchUrl)) || matchUrl,
+          seriesName: data.series_name || data.match_name || existingMatch.seriesName,
+          team1: metadataTeamCodes[0] ? Object.assign({}, existingMatch.team1 || {}, { shortName: metadataTeamCodes[0] }) : existingMatch.team1,
+          team2: metadataTeamCodes[1] ? Object.assign({}, existingMatch.team2 || {}, { shortName: metadataTeamCodes[1] }) : existingMatch.team2
         });
         this.showLiveHero = this.isLiveLikeStatus(resolvedStatus);
         this.heroFallbackView = this.buildHeroFallbackView(this.currentMatch);
+        // Direct canonical SSR begins with a route-only match identity, so the
+        // retained completed-record resolver cannot safely run until this
+        // response establishes lifecycle and series metadata. Re-enter the
+        // fallback context here so its HTTP work remains inside the SSR zone.
+        this.updateSeriesFallbackContext(this.currentMatch);
       }
       this.syncMatchTabSelection();
       // Supporting routes are lazy: only load their data after the match

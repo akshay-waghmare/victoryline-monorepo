@@ -191,6 +191,7 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     component.selectedTabIndex = (component as any).tabIndexByKey.scorecard;
     spyOn<any>(component, 'ensureDataForTab');
     spyOn<any>(component, 'updatePageTitle');
+    spyOn<any>(component, 'updateSeriesFallbackContext');
     (component as any).cricketService.getMatchInfo = jasmine.createSpy('getMatchInfo').and.returnValue({
       subscribe: function(next: Function) {
         next({ match_status: 'LIVE', venue_stats: { win_bat_first: '50%' } });
@@ -202,6 +203,9 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
 
     expect((component as any).ensureDataForTab).toHaveBeenCalledWith(
       (component as any).tabIndexByKey.scorecard
+    );
+    expect((component as any).updateSeriesFallbackContext).toHaveBeenCalledWith(
+      jasmine.objectContaining({ status: 'LIVE' })
     );
   });
 
@@ -221,6 +225,33 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(component.isLoadingMatchInfo).toBe(false);
     expect((component as any).populateFallbackMatchInfo).toHaveBeenCalled();
     expect((component as any).syncMatchTabSelection).toHaveBeenCalled();
+  });
+
+  it('hydrates completed route identity from match-info before resolving retained entities', () => {
+    var component = createComponent();
+    spyOn<any>(component, 'updateSeriesFallbackContext');
+    spyOn<any>(component, 'updatePageTitle');
+    (component as any).cricketService.getMatchInfo = jasmine.createSpy('getMatchInfo').and.returnValue({
+      subscribe: function(next: Function) {
+        next({
+          match_status: 'COMPLETED',
+          match_name: 'The Hundred 2026',
+          url: 'https://crex.com/cricket-live-score/ls-vs-sb-16th-match-the-hundred-2026-men-match-updates-ZKU',
+          team_comparison: { LS: {}, SB: {} },
+          venue_stats: {}
+        });
+        return { unsubscribe: function() {} };
+      }
+    });
+
+    component.fetchMatchInfo('ls-vs-sb-16th-match-the-hundred-2026-men-match-updates-ZKU');
+
+    expect((component as any).updateSeriesFallbackContext).toHaveBeenCalledWith(jasmine.objectContaining({
+      status: 'COMPLETED',
+      seriesName: 'The Hundred 2026',
+      team1: jasmine.objectContaining({ shortName: 'LS' }),
+      team2: jasmine.objectContaining({ shortName: 'SB' })
+    }));
   });
 
   it('loads Details when Material selects the tab from an already-matching child route', () => {
