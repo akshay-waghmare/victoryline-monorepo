@@ -529,6 +529,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
     const applySnapshot = (snapshot: MatchIntelligenceSnapshot) => {
       this.canonicalIntelligence = this.buildCanonicalIntelligence(snapshot);
+      // Match-info SSR payloads can intentionally omit a lifecycle while the
+      // canonical intelligence snapshot supplies the authoritative one. Track
+      // here as well so a hydrated page is measured once that lifecycle is
+      // known, without guessing from a temporary route fallback.
+      this.trackCanonicalMatchView();
     };
 
     if (this.isBrowser()) {
