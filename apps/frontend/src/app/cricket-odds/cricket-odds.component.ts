@@ -3483,7 +3483,7 @@ getCanonicalEntitySeriesHref(): string {
   // Retained canonical SSR receives this context from the request prefetch.
   // Prefer it over a partial match snapshot so the public anchor uses the
   // stable series entity ID that was actually verified with its standings.
-  if (this.retainedEntityResolutionKey && this.resolvedSeriesContext && this.resolvedSeriesContext.externalId) {
+  if (this.resolvedSeriesContext && this.resolvedSeriesContext.externalId) {
     var retainedSeriesName = this.resolvedSeriesContext.name || this.resolvedSeriesContext.shortName || '';
     if (retainedSeriesName) {
       return '/series/' + encodeURIComponent(this.resolvedSeriesContext.externalId) + '/' + this.slugifySeriesName(retainedSeriesName);
