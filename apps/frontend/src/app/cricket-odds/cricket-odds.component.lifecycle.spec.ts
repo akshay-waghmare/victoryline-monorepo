@@ -34,7 +34,7 @@ function createComponent(): CricketOddsComponent {
     structuredDataService as any,
     { snapshot: { params: { path: 'team-a-vs-team-b-123A' }, queryParamMap: { get: function() { return null; } } } } as any,
     { url: '/cric-live/team-a-vs-team-b-123A' } as any,
-    {} as any,
+    { run: function(work: Function) { return work(); } } as any,
     { get: function() { return null; }, hasKey: function() { return false; }, set: function() {}, remove: function() {} } as any,
     {} as any,
     {} as any

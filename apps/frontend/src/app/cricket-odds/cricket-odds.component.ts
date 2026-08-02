@@ -1939,31 +1939,37 @@ private resolveRetainedEntityNavigation(match: any): void {
 
   this.isResolvingRetainedEntities = true;
   this.retainedEntityResolutionKey = matchKey;
-  this.cricketService.listSeries(undefined, seriesName)
-    .pipe(take(1), takeUntil(this.destroy$))
-    .subscribe((seriesList: PlayerStatsSeriesView[]) => {
-      var matchingSeries = (seriesList || []).filter((series) =>
-        this.normalizeComparableText(series && series.name) === this.normalizeComparableText(seriesName)
-        && !!(series && series.externalId)
-      );
-      if (matchingSeries.length !== 1) {
-        this.isResolvingRetainedEntities = false;
-        return;
-      }
+  // The direct route's match-info callback can be delivered outside Angular's
+  // tracked zone on Universal. Re-enter it explicitly: otherwise the list
+  // request starts after SSR declares stability and the canonical document
+  // ships before its exact entity identities exist.
+  this.ngZone.run(() => {
+    this.cricketService.listSeries(undefined, seriesName)
+      .pipe(take(1), takeUntil(this.destroy$))
+      .subscribe((seriesList: PlayerStatsSeriesView[]) => {
+        var matchingSeries = (seriesList || []).filter((series) =>
+          this.normalizeComparableText(series && series.name) === this.normalizeComparableText(seriesName)
+          && !!(series && series.externalId)
+        );
+        if (matchingSeries.length !== 1) {
+          this.isResolvingRetainedEntities = false;
+          return;
+        }
 
-      var series = matchingSeries[0];
-      this.resolvedSeriesContext = series;
-      this.cricketService.getPlayerStatsSeriesStandings(series.externalId)
-        .pipe(take(1), takeUntil(this.destroy$))
-        .subscribe((detail: PlayerStatsSeriesDetailView | null) => {
-          this.retainedEntityTeams = this.extractRetainedSeriesTeams(detail, match);
-          this.isResolvingRetainedEntities = false;
-        }, () => {
-          this.isResolvingRetainedEntities = false;
-        });
-    }, () => {
-      this.isResolvingRetainedEntities = false;
-    });
+        var series = matchingSeries[0];
+        this.resolvedSeriesContext = series;
+        this.cricketService.getPlayerStatsSeriesStandings(series.externalId)
+          .pipe(take(1), takeUntil(this.destroy$))
+          .subscribe((detail: PlayerStatsSeriesDetailView | null) => {
+            this.retainedEntityTeams = this.extractRetainedSeriesTeams(detail, match);
+            this.isResolvingRetainedEntities = false;
+          }, () => {
+            this.isResolvingRetainedEntities = false;
+          });
+      }, () => {
+        this.isResolvingRetainedEntities = false;
+      });
+  });
 }
 
 private extractRetainedSeriesTeams(detail: PlayerStatsSeriesDetailView | null, match: any): PlayerStatsTeamView[] {

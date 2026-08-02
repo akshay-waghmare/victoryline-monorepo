@@ -44,6 +44,10 @@
             <span>Win probability</span>
             <strong>{{ intelligence.probability }}%</strong>
           </div>
+          <nav class="canonical-intelligence__entities" aria-label="Related match entities">
+            <a [attr.href]="getSeriesSurfaceHref()">Tournament table &amp; stats</a>
+            <a *ngFor="let team of getMatchTeamEntityLinks()" [attr.href]="team.href">{{ team.label }}</a>
+          </nav>
         </section>
 
         <section class="cricket-odds__announcement" *ngIf="matchAnnouncement">
