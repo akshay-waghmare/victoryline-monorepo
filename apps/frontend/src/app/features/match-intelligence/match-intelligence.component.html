@@ -115,7 +115,7 @@
             <p class="match-intelligence__muted">{{ viewModel.swingPoints.length ? 'Current probability is available; the trend line will appear after the next model update.' : 'The probability timeline will appear after the first live model updates.' }}</p>
           </div>
         </ng-template>
-        <details class="match-intelligence__prediction-history" *ngIf="viewModel.predictionHistory.length">
+        <details class="match-intelligence__prediction-history" *ngIf="viewModel.predictionHistory.length" (toggle)="onInsightModuleToggle('prediction_history', $any($event.target).open)">
           <summary>Open prediction update log ({{ viewModel.predictionHistory.length }} updates)</summary>
           <div class="match-intelligence__history-row" *ngFor="let point of viewModel.predictionHistory">
             <span>Inn {{ point.innings }} · {{ point.over || 'Update' }}</span>
