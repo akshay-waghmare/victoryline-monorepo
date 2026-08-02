@@ -367,12 +367,12 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
     // Hydrate from SSR TransferState to avoid re-fetch flash on client
     if (this.isBrowser()) {
-      const ssrMatchInfo = this.transferState.get(MATCH_INFO_KEY, null);
+      const ssrMatchInfo = this.getHydratedState<any>(MATCH_INFO_KEY);
       if (ssrMatchInfo) {
         this.matchInfo = ssrMatchInfo;
         this.isFallbackMatchInfo = false;
       }
-      const ssrCricketData = this.transferState.get(CRICKET_DATA_KEY, null);
+      const ssrCricketData = this.getHydratedState<any>(CRICKET_DATA_KEY);
       if (ssrCricketData) {
         this.parseCricObjData(ssrCricketData);
       }
@@ -396,6 +396,40 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   }
   
 
+
+  private getHydratedState<T>(key: any): T | null {
+    var hydrated: T | null = null;
+    try {
+      hydrated = this.transferState.get<T | null>(key, null);
+    } catch (error) {
+      console.warn('[CricketOddsComponent] Could not read Angular transfer state:', error);
+    }
+    if (hydrated !== null && hydrated !== undefined) {
+      return hydrated;
+    }
+
+    if (!this.isBrowser() || typeof document === 'undefined') {
+      return hydrated;
+    }
+
+    var stateElement = document.getElementById('crickzen-app-state');
+    var encodedState = stateElement && stateElement.textContent;
+    if (!encodedState) {
+      return hydrated;
+    }
+
+    try {
+      var state = JSON.parse(encodedState.replace(/&q;/g, '"'));
+      var fallback = state && state[String(key)];
+      if (fallback !== null && fallback !== undefined) {
+        return fallback as T;
+      }
+    } catch (error) {
+      console.warn('[CricketOddsComponent] Could not decode SSR match state:', error);
+    }
+
+    return hydrated;
+  }
 
   private fetchCricketData() {
     const params = this.activatedRoute.snapshot.params;
