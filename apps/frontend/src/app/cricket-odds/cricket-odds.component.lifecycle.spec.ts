@@ -6,7 +6,9 @@ function createComponent(): CricketOddsComponent {
     getMatchInfo: function() { return of(null); },
     getScorecardInfo: function() { return of(null); },
     hasFreshPlayerStatsMatchCache: function() { return false; },
-    getPlayerStatsMatch: function() { return of(null); }
+    getPlayerStatsMatch: function() { return of(null); },
+    listSeries: function() { return of([]); },
+    getPlayerStatsSeriesStandings: function() { return of(null); }
   };
   var structuredDataService = {
     breadcrumbs: function(items: any) { return { '@type': 'BreadcrumbList', itemListElement: items }; },
@@ -371,6 +373,35 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(component.getMatchTeamEntityLinks()).toEqual([
       { label: 'Pakistan Women team profile', href: '/teams/team-11/pakistan-women' },
       { label: 'Australia Women team profile', href: '/teams/team-22/australia-women' }
+    ]);
+  });
+
+  it('resolves retained entity links through one exact series directory match', () => {
+    var component = createComponent();
+    component.currentMatch = {
+      status: 'COMPLETED',
+      externalMatchKey: 'ls-vs-sb-16th-match-the-hundred-2026-men-match-updates-ZKU',
+      seriesName: 'The Hundred 2026 Men',
+      team1: { shortName: 'LS' },
+      team2: { shortName: 'SB' }
+    } as any;
+    (component as any).cricketService.listSeries = jasmine.createSpy('listSeries').and.returnValue(of([
+      { externalId: 'series:the-hundred-2026-men-2AW', name: 'The Hundred 2026 Men' }
+    ]));
+    (component as any).cricketService.getPlayerStatsSeriesStandings = jasmine.createSpy('getPlayerStatsSeriesStandings').and.returnValue(of({
+      standings: [{ payload: [
+        { teamExternalId: 'team:london-spirit', teamName: 'London Spirit', teamCode: 'LS' },
+        { teamExternalId: 'team:southern-brave', teamName: 'Southern Brave', teamCode: 'SB' },
+        { teamExternalId: 'team:welsh-fire', teamName: 'Welsh Fire', teamCode: 'WF' }
+      ] }]
+    }));
+
+    (component as any).resolveRetainedEntityNavigation(component.currentMatch);
+
+    expect(component.getSeriesSurfaceHref()).toBe('/series/series%3Athe-hundred-2026-men-2AW/the-hundred-2026-men');
+    expect(component.getMatchTeamEntityLinks()).toEqual([
+      { label: 'London Spirit team profile', href: '/teams/team%3Alondon-spirit/london-spirit' },
+      { label: 'Southern Brave team profile', href: '/teams/team%3Asouthern-brave/southern-brave' }
     ]);
   });
 

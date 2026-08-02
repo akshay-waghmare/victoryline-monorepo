@@ -2,7 +2,7 @@ import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { merge, Subject, Subscription, timer } from 'rxjs';
-import { filter, switchMap, takeUntil, timeout } from 'rxjs/operators';
+import { filter, switchMap, take, takeUntil, timeout } from 'rxjs/operators';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
 
 import {
@@ -181,6 +181,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   isLoadingPlayerStats: boolean = false;
   playerStatsError: boolean = false;
   seriesPageUrlFallback: string | null = null;
+  private retainedEntityTeams: PlayerStatsTeamView[] = [];
+  private retainedEntityResolutionKey: string | null = null;
+  private isResolvingRetainedEntities: boolean = false;
   private resolvedSeriesContext: PlayerStatsSeriesView | null = null;
   private lastResolvedRouteSlug: string | null = null;
   private lastFetchedRouteKey: string | null = null;
@@ -1904,6 +1907,79 @@ private updateSeriesFallbackContext(match: any): void {
     name: seriesName,
     shortName: seriesName
   } : null;
+
+  this.resolveRetainedEntityNavigation(match);
+}
+
+private resolveRetainedEntityNavigation(match: any): void {
+  if (!match || !this.isCompletedStatus(match.status) || this.hasPlayerStatsData()) {
+    return;
+  }
+
+  var seriesName = String(match.seriesName || (this.matchSeo && this.matchSeo.series) || '').trim();
+  var matchKey = String(match.externalMatchKey || match.url || this.getCanonicalMatchSlug() || '').trim();
+  if (!seriesName || !matchKey || this.isResolvingRetainedEntities || this.retainedEntityResolutionKey === matchKey) {
+    return;
+  }
+
+  this.isResolvingRetainedEntities = true;
+  this.retainedEntityResolutionKey = matchKey;
+  this.cricketService.listSeries(undefined, seriesName)
+    .pipe(take(1), takeUntil(this.destroy$))
+    .subscribe((seriesList: PlayerStatsSeriesView[]) => {
+      var matchingSeries = (seriesList || []).filter((series) =>
+        this.normalizeComparableText(series && series.name) === this.normalizeComparableText(seriesName)
+        && !!(series && series.externalId)
+      );
+      if (matchingSeries.length !== 1) {
+        this.isResolvingRetainedEntities = false;
+        return;
+      }
+
+      var series = matchingSeries[0];
+      this.resolvedSeriesContext = series;
+      this.cricketService.getPlayerStatsSeriesStandings(series.externalId)
+        .pipe(take(1), takeUntil(this.destroy$))
+        .subscribe((detail: PlayerStatsSeriesDetailView | null) => {
+          this.retainedEntityTeams = this.extractRetainedSeriesTeams(detail, match);
+          this.isResolvingRetainedEntities = false;
+        }, () => {
+          this.isResolvingRetainedEntities = false;
+        });
+    }, () => {
+      this.isResolvingRetainedEntities = false;
+    });
+}
+
+private extractRetainedSeriesTeams(detail: PlayerStatsSeriesDetailView | null, match: any): PlayerStatsTeamView[] {
+  var codes = [match && match.team1 && match.team1.shortName, match && match.team2 && match.team2.shortName]
+    .map((value) => this.normalizeComparableText(value))
+    .filter((value) => !!value);
+  if (!detail || !codes.length) {
+    return [];
+  }
+
+  var result: PlayerStatsTeamView[] = [];
+  var seen: { [key: string]: boolean } = {};
+  var groups: any[] = ([] as any[]).concat((detail as any).standings || [], (detail as any).stats || []);
+  groups.forEach((group) => {
+    var rows = group && group.payload;
+    if (!Array.isArray(rows)) {
+      return;
+    }
+    rows.forEach((row) => {
+      var externalId = String(row && (row.teamExternalId || row.externalId) || '').trim();
+      var code = this.normalizeComparableText(row && (row.teamCode || row.shortName));
+      var name = String(row && (row.teamName || row.name || row.Team) || '').trim();
+      if (!externalId || !name || !code || codes.indexOf(code) === -1 || seen[externalId]) {
+        return;
+      }
+      seen[externalId] = true;
+      result.push({ externalId: externalId, name: name, shortName: row.teamCode || row.shortName, teamCode: row.teamCode });
+    });
+  });
+
+  return result;
 }
 
 private extractSeriesCodeFromUrl(url: string | null | undefined): string | null {
@@ -3366,6 +3442,7 @@ getMatchTeamEntityLinks(): Array<{ label: string; href: string }> {
   // fallback is retained for SSR, but synthetic `match-team1` IDs must never
   // be published as team-profile routes.
   this.getPlayerStatsTeams().forEach(function(team) { candidates.push(team); });
+  this.retainedEntityTeams.forEach(function(team) { candidates.push(team); });
   if (this.currentMatch) {
     candidates.push(this.currentMatch.team1, this.currentMatch.team2);
   }
