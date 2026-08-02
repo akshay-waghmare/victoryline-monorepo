@@ -65,7 +65,14 @@ export class AnalyticsService {
   }
 
   trackIntelligenceEvent(eventName: string, properties?: Record<string, any>) {
-    this.trackEvent(eventName, properties || {});
+    // Keep every intelligence interaction joinable to its originating
+    // canonical match view. Caller-provided fields intentionally win so
+    // lifecycle/surface-specific instrumentation can remain explicit.
+    this.trackEvent(eventName, Object.assign(
+      {},
+      this.getBrowserAttribution(),
+      properties || {}
+    ));
   }
 
   trackCanonicalMatchView(context: CanonicalMatchViewContext): void {

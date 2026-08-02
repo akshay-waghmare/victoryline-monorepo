@@ -10,7 +10,11 @@ describe('AnalyticsService intelligence event bridge', () => {
 
     service.trackIntelligenceEvent('prediction_view', { lifecycle: 'live' });
 
-    expect(gtag).toHaveBeenCalledWith('event', 'prediction_view', { lifecycle: 'live' });
+    expect(gtag).toHaveBeenCalledWith('event', 'prediction_view', jasmine.objectContaining({
+      lifecycle: 'live',
+      anonymous_session_id: jasmine.any(String),
+      source_attribution: jasmine.any(String)
+    }));
     expect(dataLayer.length).toBe(0);
     delete (window as any).gtag;
     delete (window as any).dataLayer;
@@ -23,7 +27,10 @@ describe('AnalyticsService intelligence event bridge', () => {
 
     service.trackIntelligenceEvent('prediction_view', { lifecycle: 'live' });
 
-    expect(dataLayer[0]).toEqual({ event: 'prediction_view', lifecycle: 'live' });
+    expect(dataLayer[0].event).toBe('prediction_view');
+    expect(dataLayer[0].lifecycle).toBe('live');
+    expect(dataLayer[0].anonymous_session_id).toBeTruthy();
+    expect(dataLayer[0].source_attribution).toBeTruthy();
     delete (window as any).dataLayer;
   });
 
