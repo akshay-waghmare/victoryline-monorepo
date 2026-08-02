@@ -60,6 +60,27 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     });
   });
 
+  it('tracks authoritative SSR match-info before route fallback replaces it', () => {
+    var component = createComponent();
+    var trackCanonicalMatchView = jasmine.createSpy('trackCanonicalMatchView');
+    component.matchInfo = { match_status: 'LIVE' } as any;
+    (component as any).analyticsService = { trackCanonicalMatchView: trackCanonicalMatchView };
+    (component as any).cricketService.getLastUpdatedData = function() { return of(null); };
+    (component as any).rxStompService = { watch: function() { return of(null); } };
+    spyOn<any>(component, 'isBrowser').and.returnValue(true);
+    spyOn<any>(component, 'loadCanonicalIntelligence');
+    spyOn<any>(component, 'populateFallbackMatchInfo');
+    spyOn<any>(component, 'resolveRouteMatch');
+    spyOn<any>(component, 'fetchMatchInfo');
+
+    (component as any).fetchCricketData();
+
+    expect(trackCanonicalMatchView).toHaveBeenCalledWith(jasmine.objectContaining({
+      lifecycle: 'live',
+      matchSlug: 'team-a-vs-team-b-123A'
+    }));
+  });
+
   it('defaults live matches to commentary', () => {
     var component = createComponent();
     component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A';

@@ -437,6 +437,14 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.hasTrackedCanonicalMatchView = false;
     }
 
+    // The first browser pass can arrive with authoritative SSR match-info.
+    // `populateFallbackMatchInfo` intentionally replaces it temporarily while
+    // the live route state is resolved, so record the canonical view before
+    // that handoff loses the lifecycle needed by the analytics contract.
+    if (this.matchInfo && !this.isFallbackMatchInfo) {
+      this.trackCanonicalMatchView();
+    }
+
     this.populateFallbackMatchInfo();
 
     if (this.routeMatchHint && this.routeSlugMatches(match, this.routeMatchHint)) {
