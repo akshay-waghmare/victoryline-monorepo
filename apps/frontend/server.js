@@ -163,6 +163,21 @@ function moveTransferStateBeforeBundles(html) {
   return withoutState.slice(0, bundleMatch.index) + stateMatch[0] + withoutState.slice(bundleMatch.index);
 }
 
+function applyRetainedEntitySsrLinks(html, navigation) {
+  if (!html || !navigation || !navigation.series || !navigation.series.externalId || !navigation.series.name) {
+    return html;
+  }
+  const seriesHref = `/series/${encodeURIComponent(navigation.series.externalId)}/${String(navigation.series.name)
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`;
+  // Restrict replacement to the small canonical-intelligence entity nav. The
+  // navigation payload was accepted only after exact-series and in-standings
+  // checks, so this cannot manufacture a route from a partial match record.
+  return html.replace(
+    /(<nav[^>]+aria-label="Related match entities"[^>]*>[\s\S]*?<a[^>]+href=")[^"]+("[^>]*>Tournament table &amp; stats<\/a>)/i,
+    `$1${seriesHref}$2`
+  );
+}
+
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -671,7 +686,7 @@ app.get('*', async (req, res) => {
       sendSsrFallback(req, res, routeStatus, 'render-error');
       return;
     }
-    res.status(routeStatus).send(moveTransferStateBeforeBundles(html));
+    res.status(routeStatus).send(moveTransferStateBeforeBundles(applyRetainedEntitySsrLinks(html, req.retainedEntityNavigation)));
   });
 });
 
