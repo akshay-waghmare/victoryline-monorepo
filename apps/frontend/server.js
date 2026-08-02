@@ -24,6 +24,7 @@ const SSR_RENDER_TIMEOUT_MS = process.env.SSR_RENDER_TIMEOUT_MS ? Number(process
 const SSR_SNAPSHOT_TIMEOUT_MS = process.env.SSR_SNAPSHOT_TIMEOUT_MS ? Number(process.env.SSR_SNAPSHOT_TIMEOUT_MS) : 700;
 const SSR_SNAPSHOT_CACHE_TTL_MS = process.env.SSR_SNAPSHOT_CACHE_TTL_MS ? Number(process.env.SSR_SNAPSHOT_CACHE_TTL_MS) : 120000;
 const SSR_LIVE_SNAPSHOT_MAX_AGE_MS = process.env.SSR_LIVE_SNAPSHOT_MAX_AGE_MS ? Number(process.env.SSR_LIVE_SNAPSHOT_MAX_AGE_MS) : 180000;
+const SSR_RETAINED_ENTITY_TIMEOUT_MS = process.env.SSR_RETAINED_ENTITY_TIMEOUT_MS ? Number(process.env.SSR_RETAINED_ENTITY_TIMEOUT_MS) : 1200;
 const ssrSnapshotCache = new Map();
 const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/$/,
@@ -336,6 +337,60 @@ async function fetchCanonicalMatchSnapshot(match) {
   return snapshot;
 }
 
+function normalizeEntityText(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function extractStandingTeams(detail, teamCodes) {
+  const rows = [];
+  const standings = detail && Array.isArray(detail.standings) ? detail.standings : [];
+  standings.forEach((standing) => {
+    const payload = standing && Array.isArray(standing.payload) ? standing.payload : [];
+    payload.forEach((row) => rows.push(row));
+  });
+  const required = new Set(teamCodes.map((code) => String(code || '').trim()).filter(Boolean));
+  const found = [];
+  rows.forEach((row) => {
+    const code = String(row && (row.teamCode || row.shortName) || '').trim();
+    const externalId = String(row && (row.teamExternalId || row.externalId || row.id) || '').trim();
+    const name = String(row && (row.teamName || row.name) || '').trim();
+    if (required.has(code) && externalId && name && !found.some((team) => team.externalId === externalId)) {
+      found.push({ externalId, name, shortName: code });
+    }
+  });
+  return found.length === required.size ? found : [];
+}
+
+async function fetchRetainedEntityNavigation(match) {
+  if (!match || !match.slug) return null;
+  const matchInfoResponse = await fetchJsonResponse(
+    `${BACKEND_URL}/cricket-data/match-info/get?url=${encodeURIComponent(match.slug)}`,
+    SSR_RETAINED_ENTITY_TIMEOUT_MS
+  );
+  const matchInfo = matchInfoResponse && matchInfoResponse.data;
+  if (!matchInfo || String(matchInfo.match_status || matchInfo.status || '').toUpperCase() !== 'COMPLETED') return null;
+  const seriesName = String(matchInfo.series_name || matchInfo.match_name || '').trim();
+  const teamCodes = Object.keys(matchInfo.team_comparison || {}).filter(Boolean).slice(0, 2);
+  if (!seriesName || teamCodes.length !== 2) return null;
+
+  const seriesResponse = await fetchJsonResponse(
+    `${BACKEND_URL}/crawler/player-stats/series/list?q=${encodeURIComponent(seriesName)}`,
+    SSR_RETAINED_ENTITY_TIMEOUT_MS
+  );
+  const matches = (Array.isArray(seriesResponse && seriesResponse.data) ? seriesResponse.data : []).filter((series) =>
+    series && series.externalId && normalizeEntityText(series.name) === normalizeEntityText(seriesName)
+  );
+  if (matches.length !== 1) return null;
+  const series = matches[0];
+  const standingsResponse = await fetchJsonResponse(
+    `${BACKEND_URL}/crawler/player-stats/series/standings?externalId=${encodeURIComponent(series.externalId)}`,
+    SSR_RETAINED_ENTITY_TIMEOUT_MS
+  );
+  const teams = extractStandingTeams(standingsResponse && standingsResponse.data, teamCodes);
+  if (teams.length !== 2) return null;
+  return { slug: match.slug, series: { externalId: series.externalId, name: series.name, shortName: series.shortName || series.name }, teams };
+}
+
 function deriveSnapshotLifecycle(snapshot) {
   const status = cleanSnapshotText(snapshot && snapshot.status).toUpperCase();
   const detail = `${cleanSnapshotText(snapshot && snapshot.result)} ${cleanSnapshotText(snapshot && snapshot.lastKnownState)}`.toLowerCase();
@@ -548,6 +603,10 @@ app.get('*', async (req, res) => {
       res.status(404).send(buildCanonicalMatchNotFoundHtml(req));
       return;
     }
+    // Retained result pages need exact series/team IDs in their first HTML
+    // response. Resolve only a unique exact series and its own standings
+    // before Angular begins SSR; any uncertainty safely leaves this unset.
+    req.retainedEntityNavigation = await fetchRetainedEntityNavigation(canonicalMatch);
   }
 
   const routeStatus = isKnownFrontendRoute(req.path) ? 200 : 404;

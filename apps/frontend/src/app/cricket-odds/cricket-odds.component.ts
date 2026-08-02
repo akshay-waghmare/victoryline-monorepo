@@ -1,9 +1,10 @@
-import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
+import { Component, Inject, NgZone, OnDestroy, OnInit, Optional } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { merge, Subject, Subscription, timer } from 'rxjs';
 import { filter, switchMap, take, takeUntil, timeout } from 'rxjs/operators';
 import { TransferState, makeStateKey } from '@angular/platform-browser';
+import { REQUEST } from '@nguniversal/express-engine/tokens';
 
 import {
   CricketService,
@@ -255,7 +256,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
               private ngZone: NgZone,
               private transferState: TransferState,
               private analyticsService: AnalyticsService,
-              private matchIntelligenceDataService: MatchIntelligenceDataService) { }
+              private matchIntelligenceDataService: MatchIntelligenceDataService,
+              @Optional() @Inject(REQUEST) private request: any = null) { }
 
   trackByCommentaryId(index: number, entry: any): string {
     return (entry && entry.id) || (entry && entry.overBall) || String(index);
@@ -1438,6 +1440,7 @@ private resolveRouteMatch(matchSlug: string): void {
       };
 
   this.currentMatch = routeMatch;
+  this.applyServerRetainedEntityNavigation(matchSlug);
   // A direct mobile URL has no navigation-state card.  Seed the hero with a
   // non-blocking fallback immediately so a failed live-snapshot request can
   // never leave the first screen on an infinite loader.
@@ -1445,6 +1448,16 @@ private resolveRouteMatch(matchSlug: string): void {
   this.updateSeriesFallbackContext(routeMatch);
   this.updatePageTitle();
   this.fetchPlayerStatsForMatch(routeMatch, matchSlug);
+}
+
+private applyServerRetainedEntityNavigation(matchSlug: string): void {
+  var navigation = this.request && this.request.retainedEntityNavigation;
+  if (!navigation || navigation.slug !== matchSlug || !navigation.series || !navigation.series.externalId) {
+    return;
+  }
+  this.resolvedSeriesContext = navigation.series;
+  this.retainedEntityTeams = Array.isArray(navigation.teams) ? navigation.teams : [];
+  this.retainedEntityResolutionKey = matchSlug;
 }
 
 private getNavigationMatchHint(routeMatchKey: string): any {
