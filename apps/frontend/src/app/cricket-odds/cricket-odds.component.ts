@@ -1895,7 +1895,10 @@ closeStatsExplorerSelection(): void {
 }
 
 getPlayerStatsSeries(): PlayerStatsSeriesView | null {
-  if (this.playerStatsMatch && this.playerStatsMatch.series) {
+  // A partial per-match payload can name a series without its stable ID. Do
+  // not let that shadow the request-prefetched, authoritative retained-series
+  // entity used for canonical SSR links.
+  if (this.playerStatsMatch && this.playerStatsMatch.series && this.playerStatsMatch.series.externalId) {
     return this.playerStatsMatch.series;
   }
   return this.resolvedSeriesContext;
