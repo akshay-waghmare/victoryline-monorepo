@@ -21,11 +21,24 @@ _FORMAT_PATTERN = re.compile(r"\b(test|odi|t20i?|t10)\b", re.IGNORECASE)
 _SCORE_PATTERN = re.compile(r"\b\d{1,3}[/-]\d\b|\b\d{1,3}\.\d\b")
 _TIME_PATTERN = re.compile(r"\b(\d{1,2}):(\d{2})\s*([AP]M)\b", re.IGNORECASE)
 _TEAM_SPLIT_PATTERN = re.compile(r"\s+vs\.?\s+", re.IGNORECASE)
+_CANONICAL_LIVE_SCORE_PATH_PATTERN = re.compile(
+    r"/cricket-live-score/[a-z0-9][a-z0-9-]*-vs-[a-z0-9]",
+    re.IGNORECASE,
+)
 _MAX_MATCH_NAME_ENRICHMENTS = 12
 
 
 def extract_external_match_key(url: str) -> Optional[str]:
     return extract_crex_match_key(url)
+
+
+def is_canonical_schedule_match_url(url: str) -> bool:
+    """Reject nested CREX fragments such as ``/cricket-live-score/vs-b``."""
+    normalized = normalize_text(url)
+    return (
+        "/cricket-live-score/" not in normalized
+        or _CANONICAL_LIVE_SCORE_PATH_PATTERN.search(normalized) is not None
+    )
 
 
 def classify_match_status(text: str) -> str:
@@ -445,6 +458,8 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
     for card in raw_cards:
         url = normalize_text(card.get("url"))
         if not url:
+            continue
+        if not is_canonical_schedule_match_url(url):
             continue
 
         combined_text = " ".join(

@@ -92,6 +92,17 @@ def test_recovers_t20_only_from_an_explicit_canonical_url_marker():
     assert selected[0]["matchFormat"] == "T20"
 
 
+def test_rejects_retained_nested_url_fragment_without_a_left_hand_team_slug():
+    selected = select_prematch_candidates([{
+        "url": "https://crex.com/cricket-live-score/vs-bt-7th-match-asian-legends-league-t20-2026",
+        "status": "UPCOMING",
+        "matchFormat": "T20",
+        "scheduledStartTime": int((NOW + 24 * 60 * 60) * 1000),
+    }], now=NOW)
+
+    assert selected == []
+
+
 def test_bounds_and_sorts_the_separate_prematch_slate():
     selected = select_prematch_candidates([
         _match("https://crex.com/cricket-live-score/c", 30),

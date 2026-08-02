@@ -1,6 +1,6 @@
 import pytest
 
-from src.discovery import LiveMatchDiscoverer
+from src.discovery import LiveMatchDiscoverer, extract_schedule_window
 
 
 class _FakePage:
@@ -47,6 +47,55 @@ class _FakePool:
         return _FakeContextManager(self._context)
 
 
+class _FakeNextButton:
+    def __init__(self):
+        self.clicks = 0
+
+    async def count(self):
+        return 1
+
+    async def click(self):
+        self.clicks += 1
+
+
+class _FakeSchedulePage:
+    def __init__(self):
+        self.next_button = _FakeNextButton()
+
+    def locator(self, selector, has_text):
+        assert selector == "button"
+        assert has_text == "Next >"
+        return self.next_button
+
+    async def wait_for_timeout(self, timeout):
+        assert timeout == 750
+
+
+@pytest.mark.asyncio
+async def test_schedule_window_merges_one_next_date_without_duplicate_urls(monkeypatch):
+    page = _FakeSchedulePage()
+    snapshots = [
+        [{"url": "https://crex.com/cricket-live-score/today"}],
+        [
+            {"url": "https://crex.com/cricket-live-score/today"},
+            {"url": "https://crex.com/cricket-live-score/tomorrow"},
+        ],
+    ]
+
+    async def fake_extract(_page, _base_url):
+        return snapshots.pop(0)
+
+    monkeypatch.setattr("src.discovery.extract_schedule_matches", fake_extract)
+
+    matches = await extract_schedule_window(page, "https://crex.com")
+
+    assert [match["url"] for match in matches] == [
+        "https://crex.com/cricket-live-score/today",
+        "https://crex.com/cricket-live-score/tomorrow",
+    ]
+    assert page.next_button.clicks == 1
+
+
 @pytest.mark.asyncio
 async def test_discovery_reconciles_empty_live_catalog(monkeypatch):
     live_page = _FakePage(evaluate_result=[])
@@ -57,7 +106,10 @@ async def test_discovery_reconciles_empty_live_catalog(monkeypatch):
     live_calls = []
     schedule_calls = []
 
-    monkeypatch.setattr('src.discovery.extract_schedule_matches', lambda page, base_url: [])
+    async def empty_schedule(page, base_url):
+        return []
+
+    monkeypatch.setattr('src.discovery.extract_schedule_matches', empty_schedule)
     monkeypatch.setattr('src.discovery.CricketDataService.get_bearer_token', lambda: None)
     monkeypatch.setattr(
         'src.discovery.CricketDataService.add_live_matches',

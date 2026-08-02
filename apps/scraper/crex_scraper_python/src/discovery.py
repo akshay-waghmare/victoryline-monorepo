@@ -19,6 +19,47 @@ from .parsers.crex_schedule_parser import extract_schedule_matches
 
 logger = logging.getLogger(__name__)
 
+# CREX initially renders the current fixture date. One bounded advance exposes
+# the next date as well, which is required for the separate 12--48 hour
+# opening-model handoff. Do not turn this into unbounded schedule crawling.
+SCHEDULE_LOOKAHEAD_DAYS = 1
+
+
+async def extract_schedule_window(page: Page, base_url: str) -> List[dict]:
+    """Collect the visible schedule plus a bounded next-date look-ahead.
+
+    The opening-model selector still owns format, exact-source, lead-time and
+    coverage checks. This helper only makes next-day source records visible;
+    it never feeds the live scraper slate.
+    """
+    matches = await extract_schedule_matches(page, base_url)
+    seen_urls = {str(match.get("url") or "").strip() for match in matches}
+
+    for _ in range(SCHEDULE_LOOKAHEAD_DAYS):
+        try:
+            # CREX's accessible label is not stable between headed and
+            # headless Chromium, but the visible date-control text is.
+            next_button = page.locator("button", has_text="Next >")
+            if await next_button.count() != 1:
+                break
+            await next_button.click()
+            # This control updates its fixture list in place. A short bounded
+            # render wait prevents parsing the still-visible prior date.
+            await page.wait_for_timeout(750)
+            next_matches = await extract_schedule_matches(page, base_url)
+        except Exception as exc:
+            logger.warning("schedule.lookahead.skipped", extra={"error": str(exc)})
+            break
+
+        for match in next_matches:
+            url = str(match.get("url") or "").strip()
+            if not url or url in seen_urls:
+                continue
+            matches.append(match)
+            seen_urls.add(url)
+
+    return matches
+
 class LiveMatchDiscoverer:
     """
     Discovers live matches from the main listing page.
@@ -210,7 +251,7 @@ class LiveMatchDiscoverer:
 
                     await schedule_page.goto(schedule_url, timeout=60000)
                     await schedule_page.wait_for_selector("a[href*='/scoreboard/'], a[href*='/cricket-live-score/']", timeout=20000)
-                    schedule_matches = await extract_schedule_matches(schedule_page, self.base_url)
+                    schedule_matches = await extract_schedule_window(schedule_page, self.base_url)
                     print(f"[DISCOVERY] Parsed {len(schedule_matches)} schedule matches.", flush=True)
                 except Exception as schedule_error:
                     logger.warning(f"Schedule discovery skipped due to error: {schedule_error}")

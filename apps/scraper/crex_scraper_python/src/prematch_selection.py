@@ -15,6 +15,7 @@ from typing import Any, Iterable, List
 PREMATCH_MIN_LEAD_SECONDS = 12 * 60 * 60
 PREMATCH_MAX_LEAD_SECONDS = 48 * 60 * 60
 PREMATCH_MAX_CANDIDATES = 3
+_NESTED_CREX_MATCH_FRAGMENT = re.compile(r"/cricket-live-score/vs-", re.IGNORECASE)
 
 
 def _value(match: Any, *keys: str) -> Any:
@@ -94,6 +95,11 @@ def select_prematch_candidates(
         url = _value(match, "url", "matchUrl", "match_url")
         scheduled_at = _scheduled_at_seconds(match)
         if not isinstance(url, str) or not url.strip() or scheduled_at is None:
+            continue
+        # The schedule parser already validates full canonical URLs. This
+        # extra boundary guard quarantines a malformed record retained from a
+        # prior parser cycle without tightening the public test contract.
+        if _NESTED_CREX_MATCH_FRAGMENT.search(url.strip()):
             continue
         lead_seconds = scheduled_at - reference
         if not PREMATCH_MIN_LEAD_SECONDS <= lead_seconds <= PREMATCH_MAX_LEAD_SECONDS:
