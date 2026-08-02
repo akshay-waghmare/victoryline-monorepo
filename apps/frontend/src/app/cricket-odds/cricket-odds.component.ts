@@ -1294,8 +1294,15 @@ fetchScorecardInfo(matchUrl:string){
 }
 
 fetchMatchInfo(matchUrl:string) {
-  if (this.isLoadingMatchInfo || (this.matchInfo && !this.isFallbackMatchInfo)) {
-    // Data already fetched, no need to fetch again
+  if (this.isLoadingMatchInfo) {
+    return;
+  }
+
+  if (this.matchInfo && !this.isFallbackMatchInfo) {
+    // SSR hydration has already supplied authoritative match metadata.  It
+    // must still produce the one canonical browser page-view event; otherwise
+    // only client-side refetches are visible in the analytics funnel.
+    this.trackCanonicalMatchView();
     return;
   }
 

@@ -42,6 +42,24 @@ function createComponent(): CricketOddsComponent {
 }
 
 describe('CricketOddsComponent lifecycle tab defaults', () => {
+  it('tracks the canonical page view when browser hydration reuses match-info', () => {
+    var component = createComponent();
+    var trackCanonicalMatchView = jasmine.createSpy('trackCanonicalMatchView');
+    component.currentUrl = 'team-a-vs-team-b-123A';
+    component.matchInfo = { match_status: 'LIVE' } as any;
+    (component as any).analyticsService = { trackCanonicalMatchView: trackCanonicalMatchView };
+    spyOn<any>(component, 'isBrowser').and.returnValue(true);
+
+    component.fetchMatchInfo('team-a-vs-team-b-123A');
+
+    expect(trackCanonicalMatchView).toHaveBeenCalledWith({
+      matchSlug: 'team-a-vs-team-b-123A',
+      matchPath: '/cric-live/team-a-vs-team-b-123A',
+      lifecycle: 'live',
+      surface: 'cric-live'
+    });
+  });
+
   it('defaults live matches to commentary', () => {
     var component = createComponent();
     component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A';
