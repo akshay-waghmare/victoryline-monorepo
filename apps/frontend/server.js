@@ -341,6 +341,19 @@ function normalizeEntityText(value) {
   return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+function isExactRetainedSeriesMatch(series, seriesName, slug) {
+  const candidate = normalizeEntityText(series && series.name);
+  const base = normalizeEntityText(seriesName);
+  if (!candidate || !base) return false;
+  if (candidate === base) return true;
+  // Some source match-info labels omit the gender qualifier while the series
+  // directory correctly distinguishes parallel Men/Women competitions. Use
+  // only the explicit canonical-slug marker; never guess from team codes.
+  const qualifier = /(?:^|-)women(?:-|$)/i.test(slug) ? 'women'
+    : /(?:^|-)men(?:-|$)/i.test(slug) ? 'men' : '';
+  return !!qualifier && candidate === `${base} ${qualifier}`;
+}
+
 function extractStandingTeams(detail, teamCodes) {
   const rows = [];
   const standings = detail && Array.isArray(detail.standings) ? detail.standings : [];
@@ -378,7 +391,7 @@ async function fetchRetainedEntityNavigation(match) {
     SSR_RETAINED_ENTITY_TIMEOUT_MS
   );
   const matches = (Array.isArray(seriesResponse && seriesResponse.data) ? seriesResponse.data : []).filter((series) =>
-    series && series.externalId && normalizeEntityText(series.name) === normalizeEntityText(seriesName)
+    series && series.externalId && isExactRetainedSeriesMatch(series, seriesName, match.slug)
   );
   if (matches.length !== 1) return null;
   const series = matches[0];

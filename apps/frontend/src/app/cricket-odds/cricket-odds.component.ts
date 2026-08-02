@@ -1961,7 +1961,7 @@ private resolveRetainedEntityNavigation(match: any): void {
       .pipe(take(1), takeUntil(this.destroy$))
       .subscribe((seriesList: PlayerStatsSeriesView[]) => {
         var matchingSeries = (seriesList || []).filter((series) =>
-          this.normalizeComparableText(series && series.name) === this.normalizeComparableText(seriesName)
+          this.isExactRetainedSeriesMatch(series, seriesName, matchKey)
           && !!(series && series.externalId)
         );
         if (matchingSeries.length !== 1) {
@@ -1983,6 +1983,20 @@ private resolveRetainedEntityNavigation(match: any): void {
         this.isResolvingRetainedEntities = false;
       });
   });
+}
+
+private isExactRetainedSeriesMatch(series: PlayerStatsSeriesView, seriesName: string, matchKey: string): boolean {
+  var candidate = this.normalizeComparableText(series && series.name);
+  var base = this.normalizeComparableText(seriesName);
+  if (!candidate || !base) {
+    return false;
+  }
+  if (candidate === base) {
+    return true;
+  }
+  var qualifier = /(?:^|-)women(?:-|$)/i.test(matchKey) ? 'women'
+    : /(?:^|-)men(?:-|$)/i.test(matchKey) ? 'men' : '';
+  return !!qualifier && candidate === base + ' ' + qualifier;
 }
 
 private extractRetainedSeriesTeams(detail: PlayerStatsSeriesDetailView | null, match: any): PlayerStatsTeamView[] {
