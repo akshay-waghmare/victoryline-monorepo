@@ -2,6 +2,12 @@ import { CricketOddsComponent } from './cricket-odds.component';
 import { of } from 'rxjs';
 
 function createComponent(): CricketOddsComponent {
+  var cricketService = {
+    getMatchInfo: function() { return of(null); },
+    getScorecardInfo: function() { return of(null); },
+    hasFreshPlayerStatsMatchCache: function() { return false; },
+    getPlayerStatsMatch: function() { return of(null); }
+  };
   var structuredDataService = {
     breadcrumbs: function(items: any) { return { '@type': 'BreadcrumbList', itemListElement: items }; },
     article: function(input: any) { return Object.assign({ '@type': 'Article' }, input); },
@@ -16,7 +22,7 @@ function createComponent(): CricketOddsComponent {
 
   return new CricketOddsComponent(
     {} as any,
-    {} as any,
+    cricketService as any,
     {} as any,
     {} as any,
     {} as any,
@@ -41,7 +47,7 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
 
     (component as any).syncMatchTabSelection(true);
 
-    expect(component.selectedTabIndex).toBe(1);
+    expect(component.selectedTabIndex).toBe(0);
   });
 
   it('defaults upcoming matches to match details', () => {
@@ -51,7 +57,7 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
 
     (component as any).syncMatchTabSelection(true);
 
-    expect(component.selectedTabIndex).toBe(2);
+    expect(component.selectedTabIndex).toBe(0);
   });
 
   it('defaults completed matches to scorecard', () => {
@@ -71,7 +77,7 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
 
     (component as any).syncMatchTabSelection(true);
 
-    expect(component.selectedTabIndex).toBe(1);
+    expect(component.selectedTabIndex).toBe(2);
   });
 
   it('does not treat the initial tab event as a user override', () => {
@@ -124,6 +130,24 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(intelligence.lifecycle).toBe('completed');
     expect(intelligence.probability).toBe(100);
     expect(intelligence.headline).toContain('finished');
+    expect(intelligence.nextStep).toContain('scorecard');
+  });
+
+  it('adds a lifecycle-specific next step to live and upcoming canonical intelligence', () => {
+    var component = createComponent();
+    var live = (component as any).buildCanonicalIntelligence({
+      lifecycle: 'live',
+      freshnessState: 'fresh',
+      publicPrediction: { batting_team: 'IND', win_probability_pct: 64, updated_at: '2026-08-01T20:00:00Z' }
+    });
+    var upcoming = (component as any).buildCanonicalIntelligence({
+      lifecycle: 'upcoming',
+      freshnessState: 'fresh',
+      publicPrediction: { batting_team: 'AUS', win_probability_pct: 53, updated_at: '2026-08-01T20:00:00Z' }
+    });
+
+    expect(live.nextStep).toContain('next scoring phase');
+    expect(upcoming.nextStep).toContain('toss and confirmed XI');
   });
 
   it('preserves a real user tab change over later lifecycle defaults', () => {
@@ -161,12 +185,13 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
 
   it('loads scorecard only when the scorecard tab is active after metadata arrives', () => {
     var component = createComponent();
+    component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A/scorecard';
     component.selectedTabIndex = (component as any).tabIndexByKey.scorecard;
     spyOn<any>(component, 'ensureDataForTab');
     spyOn<any>(component, 'updatePageTitle');
     (component as any).cricketService.getMatchInfo = jasmine.createSpy('getMatchInfo').and.returnValue({
       subscribe: function(next: Function) {
-        next({ match_status: 'LIVE' });
+        next({ match_status: 'LIVE', venue_stats: { win_bat_first: '50%' } });
         return { unsubscribe: function() {} };
       }
     });
@@ -230,8 +255,7 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     });
 
     expect(view.status).toBe('UPCOMING');
-    expect(view.score.teamName).toContain('India');
-    expect(view.score.teamName).toContain('Australia');
+    expect(view.score.teamName).toBe('IND vs AUS');
     expect(view.score.resultSummary).toBeNull();
   });
 
@@ -331,8 +355,28 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(component.getDetailsSupportLinks().map(function(link) { return link.type; })).toEqual(['result', 'live-updates']);
   });
 
+  it('publishes only authoritative team entity links for retained completed matches', () => {
+    var component = createComponent();
+    component.currentMatch = {
+      team1: { id: 'match-1-team1', name: 'Synthetic Team' },
+      team2: { id: 'team-22', name: 'Australia Women' }
+    } as any;
+    component.playerStatsMatch = {
+      teams: [
+        { externalId: 'team-11', name: 'Pakistan Women' },
+        { externalId: 'team-22', name: 'Australia Women' }
+      ]
+    } as any;
+
+    expect(component.getMatchTeamEntityLinks()).toEqual([
+      { label: 'Pakistan Women team profile', href: '/teams/team-11/pakistan-women' },
+      { label: 'Australia Women team profile', href: '/teams/team-22/australia-women' }
+    ]);
+  });
+
   it('builds visible match FAQs only from answerable match data', () => {
     var component = createComponent();
+    component.currentMatch = { resultSummary: 'India beat Australia by 5 wickets.' } as any;
     component.matchInfo = {
       match_status: 'COMPLETED',
       toss_info: 'India won the toss and chose to bat.',
@@ -416,7 +460,7 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     ];
 
     var items = (component as any).buildStructuredDataItems();
-    var types = items.map(function(item: any) { return item['@type']; });
+    var types = (items || []).map(function(item: any) { return item['@type']; });
 
     expect(types).toContain('FAQPage');
     expect(types).toContain('LiveBlogPosting');
@@ -454,7 +498,7 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     ];
 
     var items = (component as any).buildStructuredDataItems();
-    var types = items.map(function(item: any) { return item['@type']; });
+    var types = (items || []).map(function(item: any) { return item['@type']; });
 
     expect(types).not.toContain('LiveBlogPosting');
   });

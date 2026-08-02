@@ -71,7 +71,7 @@ describe('MatchesListComponent discovery sections', () => {
     expect(component.crawlableMatches.some(function(match) { return match.id === 'upcoming-a-vs-upcoming-b-123B'; })).toBe(true);
   });
 
-  it('builds at-a-glance summaries that stay scoreboard-first across match states', () => {
+  it('builds status-specific summary copy across match states', () => {
     var component = createComponentShape();
     var live = createMatch('live-a-vs-live-b-123A', MatchStatus.LIVE, -1);
     live.team1.score = {
@@ -99,8 +99,16 @@ describe('MatchesListComponent discovery sections', () => {
     component.allMatches = [live, upcoming, result];
     component.applyFilters();
 
-    expect(component.getStatusCardSummary(MatchStatus.LIVE)).toContain('176/6 (20)');
-    expect(component.getStatusCardSummary(MatchStatus.UPCOMING)).toContain('Tomorrow 6:00 AM');
-    expect(component.getStatusCardSummary(MatchStatus.COMPLETED)).toBe('Team One won by 5 wickets');
+    component.selectedStatus = MatchStatus.LIVE;
+    component.applyFilters();
+    expect(component.getResultSummaryCopy()).toContain('live matches visible');
+
+    component.selectedStatus = MatchStatus.UPCOMING;
+    component.applyFilters();
+    expect(component.getResultSummaryCopy()).toContain('fixtures visible');
+
+    component.selectedStatus = MatchStatus.COMPLETED;
+    component.applyFilters();
+    expect(component.getResultSummaryCopy()).toContain('results visible');
   });
 });

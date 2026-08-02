@@ -90,6 +90,7 @@ interface CanonicalIntelligenceView {
   probability: number;
   headline: string;
   reason: string;
+  nextStep: string;
   updatedAt: string | null;
   modelLabel: string | null;
 }
@@ -547,6 +548,11 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
           ? team + ' has a ' + Math.round(probability) + '% opening win probability.'
           : team + ' currently has a ' + Math.round(probability) + '% win probability.',
       reason: String(prediction.insight || (prediction.reasons && prediction.reasons[0]) || fallbackReason),
+      nextStep: lifecycle === 'completed'
+        ? 'Review the scorecard and probability path to see where the result turned, then continue to the relevant team or series.'
+        : lifecycle === 'upcoming'
+          ? 'Check back after toss and confirmed XI, when the opening view can be refreshed with the latest match context.'
+          : 'Follow the next scoring phase and the next probability update; the live score remains the primary match state.',
       updatedAt: prediction.updated_at ? String(prediction.updated_at) : null,
       modelLabel: prediction.model_label ? String(prediction.model_label) : null
     };
@@ -3349,6 +3355,45 @@ getSeriesSurfaceHref(): string {
 getSeriesSurfaceLinkLabel(): string {
   var series = this.getBreadcrumbSeriesLabel();
   return series === 'Series' ? 'Cricket series' : series + ' series hub';
+}
+
+getMatchTeamEntityLinks(): Array<{ label: string; href: string }> {
+  var links: Array<{ label: string; href: string }> = [];
+  var seen: { [key: string]: boolean } = {};
+  var candidates: Array<{ externalId?: string; id?: string; name?: string; shortName?: string }> = [];
+
+  // Player-stats team IDs are authoritative when available. The match-card
+  // fallback is retained for SSR, but synthetic `match-team1` IDs must never
+  // be published as team-profile routes.
+  this.getPlayerStatsTeams().forEach(function(team) { candidates.push(team); });
+  if (this.currentMatch) {
+    candidates.push(this.currentMatch.team1, this.currentMatch.team2);
+  }
+
+  candidates.forEach((team) => {
+    if (!team) {
+      return;
+    }
+    var externalId = String(team.externalId || team.id || '').trim();
+    var name = String(team.name || team.shortName || '').trim();
+    if (!this.isNavigableTeamEntityId(externalId) || !name || seen[externalId]) {
+      return;
+    }
+    seen[externalId] = true;
+    links.push({
+      label: name + ' team profile',
+      href: '/teams/' + encodeURIComponent(externalId) + '/' + this.slugifySeriesName(name)
+    });
+  });
+
+  return links;
+}
+
+private isNavigableTeamEntityId(value: string): boolean {
+  return !!value
+    && !/^unknown-/i.test(value)
+    && !/-team[12]$/i.test(value)
+    && !/^team[12]$/i.test(value);
 }
 
 getFreshnessSupportLinks(): MatchFreshnessLink[] {

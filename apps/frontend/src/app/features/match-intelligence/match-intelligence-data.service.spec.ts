@@ -7,7 +7,7 @@ describe('MatchIntelligenceDataService freshness and public metric mapping', () 
   let service: MatchIntelligenceDataService;
 
   beforeEach(() => {
-    service = new MatchIntelligenceDataService({} as any, {} as any, {} as any);
+    service = new MatchIntelligenceDataService({} as any, {} as any);
   });
 
   it('marks a recent model timestamp fresh', () => {
@@ -62,14 +62,9 @@ describe('MatchIntelligenceDataService freshness and public metric mapping', () 
     expect((service as any).resolveFreshnessState(null)).toBe('unavailable');
   });
 
-  it('uses the configured model origin for server-side requests', () => {
-    const originalProcess = (global as any).process;
-    (global as any).process = { env: { MODEL_API_URL: 'http://crickzen-dashboard:8000/' } };
-
+  it('uses the public proxy origin for browser-side requests', () => {
     expect((service as any).getPublicPredictionApiUrl())
-      .toBe('http://crickzen-dashboard:8000/api/public');
-
-    (global as any).process = originalProcess;
+      .toBe('/prediction-api/api/public');
   });
 
   it('merges public intelligence metrics without exposing raw model fields', () => {

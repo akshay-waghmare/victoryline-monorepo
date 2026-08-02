@@ -37,6 +37,7 @@
             <p class="canonical-intelligence__kicker">{{ intelligence.lifecycle === 'completed' ? 'Completed match intelligence' : intelligence.lifecycle === 'upcoming' ? 'Pre-match intelligence' : 'Live match intelligence' }}</p>
             <h2>{{ intelligence.headline }}</h2>
             <p>{{ intelligence.reason }}</p>
+            <p class="canonical-intelligence__next"><strong>What matters next:</strong> {{ intelligence.nextStep }}</p>
             <small *ngIf="intelligence.modelLabel">Model: {{ intelligence.modelLabel }}<span *ngIf="intelligence.updatedAt"> · Updated {{ intelligence.updatedAt }}</span></small>
           </div>
           <div class="canonical-intelligence__probability" aria-label="Win probability">
@@ -439,6 +440,7 @@
         <a [attr.href]="getMatchEntityNavigationHref('lineups')">Lineups</a>
         <a [attr.href]="getMatchEntityNavigationHref('details')">Match Details</a>
         <a [attr.href]="getSeriesSurfaceHref()">Tournament table &amp; stats</a>
+        <a *ngFor="let team of getMatchTeamEntityLinks()" [attr.href]="team.href">{{ team.label }}</a>
         <a *ngIf="isMatchIntelligenceEligible()" [attr.href]="getMatchIntelligenceHref()">Match Intelligence</a>
       </nav>
 

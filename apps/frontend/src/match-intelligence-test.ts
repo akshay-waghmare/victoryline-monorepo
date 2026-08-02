@@ -13,3 +13,4 @@ getTestBed().initTestEnvironment(
 import './app/features/match-intelligence/match-intelligence-data.service.spec';
 import './app/features/match-intelligence/match-intelligence.component.spec';
 import './app/cricket-odds/analytics.service.spec';
+import './app/cricket-odds/cricket-odds.component.lifecycle.spec';
