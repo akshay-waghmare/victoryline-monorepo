@@ -176,11 +176,11 @@ export class MatchesService {
       this.getCompletedMatches()
     ]).pipe(
       map(([liveMatches, upcomingMatches, completedMatches]) =>
-        sortMatchesByPriority([
+        sortMatchesByPriority(this.dedupeMatches([
           ...liveMatches,
           ...upcomingMatches,
           ...completedMatches
-        ])
+        ]))
       )
     );
   }
@@ -302,19 +302,19 @@ export class MatchesService {
    */
   private parseUrlData(url: string): any {
     if (!url) {
-      return { team1: 'Team 1', team2: 'Team 2', tournament: 'Tournament' };
+      return { team1: '', team2: '', tournament: 'Tournament' };
     }
 
     try {
       const matchPart = extractSlugFromUrl(url) || this.extractSlugCandidate(url);
       if (!matchPart) {
-        return { team1: 'Team 1', team2: 'Team 2', tournament: 'Tournament' };
+        return { team1: '', team2: '', tournament: 'Tournament' };
       }
 
       // Find the "-vs-" separator
       const vsIndex = matchPart.indexOf('-vs-');
       if (vsIndex === -1) {
-        return { team1: 'Team 1', team2: 'Team 2', tournament: matchPart };
+        return { team1: '', team2: '', tournament: matchPart };
       }
 
       // Split at first occurrence of "-vs-"
@@ -329,7 +329,7 @@ export class MatchesService {
       const matchTypePattern = /\d+(st|nd|rd|th)-(test|odi|t20|match)/i;
       const matchTypeMatch = afterVs.match(matchTypePattern);
 
-      let team2Name = 'Team 2';
+      let team2Name = '';
       let tournament = 'Tournament';
 
       if (matchTypeMatch) {
@@ -354,7 +354,7 @@ export class MatchesService {
       };
     } catch (error) {
       console.error('Error parsing URL:', url, error);
-      return { team1: 'Team 1', team2: 'Team 2', tournament: 'Tournament' };
+      return { team1: '', team2: '', tournament: 'Tournament' };
     }
   }
 
@@ -404,7 +404,7 @@ export class MatchesService {
   private parseTeamInfo(apiMatch: any, teamKey: string, index: number, urlData?: any, scorecardData?: any): TeamInfo {
     // Try to get team data from various possible API structures
     const teamData = apiMatch[teamKey] || (apiMatch.teams && apiMatch.teams[index]) || {};
-    const fallbackTeamName = 'Team ' + (index + 1);
+    const fallbackTeamName = 'TBD';
     const scorecardInnings = this.findScorecardInningsForTeam(apiMatch, teamKey, index, urlData, scorecardData);
     const scorecardTeamCode = scorecardInnings && scorecardInnings.team_code
       ? this.normalizeTeamLabel(scorecardInnings.team_code)
@@ -786,7 +786,32 @@ export class MatchesService {
   }
 
   private normalizeTeamLabel(value: any): string {
-    return typeof value === 'string' ? value.trim() : '';
+    if (typeof value !== 'string') return '';
+    const normalized = value.trim();
+    return /^(null|undefined)$/i.test(normalized) ? '' : normalized;
+  }
+
+  private dedupeMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    const byKey = new Map<string, MatchCardViewModel>();
+    for (const match of matches) {
+      const key = this.extractCrexApiKey(match.matchUrl) || match.externalMatchKey || match.matchUrl || match.id;
+      const current = byKey.get(key);
+      if (!current || this.matchQuality(match) > this.matchQuality(current)
+          || (this.matchQuality(match) === this.matchQuality(current) && match.lastUpdated > current.lastUpdated)) {
+        byKey.set(key, match);
+      }
+    }
+    return Array.from(byKey.values());
+  }
+
+  private extractCrexApiKey(url: string): string {
+    const match = String(url || '').split(/[?#]/)[0].match(/-match-updates-([A-Za-z0-9]+)$/);
+    return match ? match[1] : '';
+  }
+
+  private matchQuality(match: MatchCardViewModel): number {
+    const usableNames = match.team1.name !== 'TBD' && match.team2.name !== 'TBD' ? 2 : 0;
+    return usableNames + (String(match.matchUrl || '').indexOf('-vs-') !== -1 ? 1 : 0);
   }
 
   private isLikelyShortTeamName(name: string): boolean {

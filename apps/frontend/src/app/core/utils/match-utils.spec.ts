@@ -106,6 +106,8 @@ describe('match-utils recent ball helpers', () => {
     expect(buildCanonicalMatchLinkLabel({ ...baseMatch, status: MatchStatus.LIVE })).toBe('India vs Australia live score');
     expect(buildCanonicalMatchLinkLabel({ ...baseMatch, status: MatchStatus.UPCOMING })).toBe('India vs Australia match preview');
     expect(buildCanonicalMatchLinkLabel({ ...baseMatch, status: MatchStatus.COMPLETED })).toBe('India vs Australia result');
+    expect(buildCanonicalMatchLinkLabel({ team1: { name: '', shortName: '' }, team2: { name: '', shortName: '' }, status: MatchStatus.LIVE } as any))
+      .toBe('TBD vs TBD live score');
   });
 
   it('filters upcoming matches by a forward hour window', () => {

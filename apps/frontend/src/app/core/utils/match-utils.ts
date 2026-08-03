@@ -539,7 +539,7 @@ export function buildCanonicalMatchPath(match: Pick<MatchCardViewModel, 'matchUr
 export function buildCanonicalMatchLinkLabel(match: Pick<MatchCardViewModel, 'team1' | 'team2' | 'status'>): string {
   var team1 = getPreferredTeamLabel(match && match.team1);
   var team2 = getPreferredTeamLabel(match && match.team2);
-  var base = (team1 || 'Team 1') + ' vs ' + (team2 || 'Team 2');
+  var base = (team1 || 'TBD') + ' vs ' + (team2 || 'TBD');
 
   switch (match && match.status) {
     case MatchStatus.UPCOMING:
