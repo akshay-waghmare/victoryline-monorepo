@@ -169,6 +169,27 @@ describe('MatchSeoService canonical lifecycle', () => {
     expect(seo.summary).toContain('IND vs AUS');
   });
 
+  it('rejects placeholder team and series metadata in favor of the canonical slug context', () => {
+    var seo = service.build({
+      routeSlug: 'br-vs-sgr-12th-match-afghanistan-national-t20-cup-2026-match-updates-11S9',
+      requestedPath: '/cric-live/br-vs-sgr-12th-match-afghanistan-national-t20-cup-2026-match-updates-11S9',
+      matchInfo: {
+        team1_name: 'BR',
+        team2_name: 'SGR',
+        team1_short_name: 'TEAM 1',
+        team2_short_name: 'TEAM 2',
+        match_status: 'Result',
+        series_name: 'No match name'
+      }
+    });
+
+    expect(seo.shortTeams).toBe('BR vs SGR');
+    expect(seo.series).toBe('Afghanistan National T20 Cup 2026');
+    expect(seo.title).not.toContain('TEAM 1');
+    expect(seo.h1).not.toContain('TEAM 2');
+    expect(seo.description).not.toContain('No match name');
+  });
+
   it('uses the canonical slug series when the schedule feed series is polluted', () => {
     var seo = service.build({
       routeSlug: 'so-vs-tsk-1st-match-major-league-cricket-2026-match-updates-110W',

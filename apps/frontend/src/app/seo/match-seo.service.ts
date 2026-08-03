@@ -328,7 +328,7 @@ export class MatchSeoService {
       && normalizedRaw.indexOf(team2.toLowerCase()) !== -1
     );
     const looksLikeScheduleRow = /\b\d{1,2}:\d{2}\s*(am|pm)\b/i.test(cleanedRaw);
-    const looksLikeStatusRow = this.looksLikePollutedSeriesValue(cleanedRaw);
+    const looksLikeStatusRow = this.looksLikePollutedSeriesValue(cleanedRaw) || this.isPlaceholderSeriesValue(cleanedRaw);
 
     if ((containsBothTeams || looksLikeScheduleRow || looksLikeStatusRow) && cleanedParsed) {
       return cleanedParsed;
@@ -360,6 +360,10 @@ export class MatchSeoService {
     }
 
     return false;
+  }
+
+  private isPlaceholderSeriesValue(value: string): boolean {
+    return /^(no match name|unknown|n\/a)$/i.test(this.cleanName(value));
   }
 
   private getBreadcrumbSeries(series: string): string {
@@ -434,7 +438,7 @@ export class MatchSeoService {
       || ''
     );
 
-    if (explicit) {
+    if (explicit && !this.isPlaceholderTeamLabel(explicit)) {
       return this.normalizeShortTeamName(explicit);
     }
 
@@ -500,6 +504,10 @@ export class MatchSeoService {
 
   private normalizeShortTeamName(value: string): string {
     return value.replace(/\s+/g, ' ').trim().toUpperCase();
+  }
+
+  private isPlaceholderTeamLabel(value: string): boolean {
+    return /^(team\s*[12ab]|unknown|n\/a)$/i.test(this.cleanName(value));
   }
 
   private isLikelyShortTeamName(value: string): boolean {
