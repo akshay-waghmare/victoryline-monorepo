@@ -66,6 +66,9 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   primaryFallbackLinks: HubFallbackLink[] = [];
   visibleSitemapLinks: HubFallbackLink[] = [];
   discoveryFallbackLinks: HubFallbackLink[] = [];
+  // Upcoming fixtures are a first-class SSR discovery lane. It must not wait
+  // for the heavier live-score/scorecard fan-out to settle.
+  prematchDiscoveryLinks: HubFallbackLink[] = [];
   resultSupportLinks: MatchFreshnessLink[] = [];
   archivePageLinks: number[] = [];
   archivePage = 1;
@@ -98,6 +101,10 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
         this.archivePage = this.getArchivePage();
         this.applyMatches();
       });
+
+    if (this.isServerRender()) {
+      this.loadPrematchDiscoveryLinks();
+    }
 
     this.matchesService.getLiveMatchesWithAutoRefresh()
       .pipe(takeUntil(this.destroy$))
@@ -230,6 +237,11 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     this.discoveryFallbackLinks = this.shouldUseSitemapFallback()
       ? this.getDiscoveryFallbackLinks()
       : [];
+    if (this.prematchDiscoveryLinks.length > 0) {
+      this.discoveryFallbackLinks = this.uniqueFallbackLinks(
+        this.prematchDiscoveryLinks.concat(this.discoveryFallbackLinks)
+      ).slice(0, 220);
+    }
     this.archivePageLinks = this.buildArchivePageLinks();
     this.updateStructuredData();
   }
@@ -246,6 +258,37 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
       )
       .subscribe((links: HubFallbackLink[]) => {
         this.sitemapLinks = this.uniqueFallbackLinks(links || []);
+        this.applyMatches();
+      });
+  }
+
+  private loadPrematchDiscoveryLinks(): void {
+    this.http.get('/api/cricket-data/upcoming-matches', { params: { _ts: Date.now().toString() } })
+      .pipe(
+        timeout(this.sitemapRequestTimeoutMs),
+        map((response: any) => {
+          var rows = Array.isArray(response) ? response : response && Array.isArray(response.data) ? response.data : [];
+          return rows
+            .map((match: any) => {
+              var href = buildCanonicalMatchPath(match);
+              if (!href) {
+                return null;
+              }
+              return { href: href, label: buildCanonicalMatchLinkLabel(match) } as HubFallbackLink;
+            })
+            .filter((link: HubFallbackLink | null): link is HubFallbackLink => !!link)
+            .slice(0, 220);
+        }),
+        catchError(() => [] as any),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((links: HubFallbackLink[]) => {
+        this.prematchDiscoveryLinks = this.uniqueFallbackLinks(links || []);
+        // Let SSR publish the crawlable upcoming lane immediately; the live
+        // score fan-out can continue hydrating without blocking first HTML.
+        if (this.isServerRender()) {
+          this.isLoading = false;
+        }
         this.applyMatches();
       });
   }

@@ -52,6 +52,7 @@ function createComponentShape(): LiveScoreHubComponent {
   component.fallbackSitemapMatches = [];
   component.primaryFallbackLinks = [];
   component.discoveryFallbackLinks = [];
+  component.prematchDiscoveryLinks = [];
   component.resultSupportLinks = [];
   component.archivePageLinks = [];
   component.archivePage = 1;
