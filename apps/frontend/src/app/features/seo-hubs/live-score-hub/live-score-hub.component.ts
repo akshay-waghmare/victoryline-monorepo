@@ -286,7 +286,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
         this.prematchDiscoveryLinks = this.uniqueFallbackLinks(links || []);
         // Let SSR publish the crawlable upcoming lane immediately; the live
         // score fan-out can continue hydrating without blocking first HTML.
-        if (this.isServerRender()) {
+        if (this.isServerRender() && this.prematchDiscoveryLinks.length > 0) {
           this.isLoading = false;
         }
         this.applyMatches();
