@@ -108,6 +108,24 @@ describe('match-utils recent ball helpers', () => {
     expect(buildCanonicalMatchLinkLabel({ ...baseMatch, status: MatchStatus.COMPLETED })).toBe('India vs Australia result');
     expect(buildCanonicalMatchLinkLabel({ team1: { name: '', shortName: '' }, team2: { name: '', shortName: '' }, status: MatchStatus.LIVE } as any))
       .toBe('TBD vs TBD live score');
+    expect(buildCanonicalMatchLinkLabel({
+      team1: { name: '', shortName: '' },
+      team2: { name: '', shortName: '' },
+      status: MatchStatus.UPCOMING,
+      matchUrl: 'https://crex.com/cricket-live-score/hk-vs-tan-34th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GW'
+    } as any)).toBe('HK vs TAN match preview');
+    expect(buildCanonicalMatchLinkLabel({
+      team1: { name: 'TBD', shortName: 'TBD' },
+      team2: { name: 'TBD', shortName: 'TBD' },
+      status: MatchStatus.UPCOMING,
+      matchUrl: 'https://crex.com/cricket-live-score/hk-vs-tan-34th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GW'
+    } as any)).toBe('HK vs TAN match preview');
+    expect(buildCanonicalMatchLinkLabel({
+      team1: { name: 'Team 1', shortName: 'TEAM 1' },
+      team2: { name: 'Team 2', shortName: 'TEAM 2' },
+      status: MatchStatus.LIVE,
+      externalMatchKey: 'edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO'
+    } as any)).toBe('EDR vs WDL live score');
   });
 
   it('filters upcoming matches by a forward hour window', () => {

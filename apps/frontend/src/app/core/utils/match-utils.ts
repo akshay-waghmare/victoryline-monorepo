@@ -536,9 +536,22 @@ export function buildCanonicalMatchPath(match: Pick<MatchCardViewModel, 'matchUr
   return '/cric-live/' + slug;
 }
 
-export function buildCanonicalMatchLinkLabel(match: Pick<MatchCardViewModel, 'team1' | 'team2' | 'status'>): string {
+export function buildCanonicalMatchLinkLabel(
+  match: Pick<MatchCardViewModel, 'team1' | 'team2' | 'status'>
+    & Partial<Pick<MatchCardViewModel, 'matchUrl' | 'externalMatchKey' | 'id'>>
+): string {
   var team1 = getPreferredTeamLabel(match && match.team1);
   var team2 = getPreferredTeamLabel(match && match.team2);
+
+  // Some upcoming catalogue rows omit team objects even though their stable
+  // CREX slug already carries the authoritative fixture identity. Keep the
+  // SSR crawl anchor match-specific instead of publishing `TBD vs TBD`.
+  if (!team1 || !team2 || isPlaceholderTeamLabel(team1) || isPlaceholderTeamLabel(team2)) {
+    var slugTeams = getTeamsFromCanonicalSlug(match);
+    team1 = slugTeams ? slugTeams[0] : team1;
+    team2 = slugTeams ? slugTeams[1] : team2;
+  }
+
   var base = (team1 || 'TBD') + ' vs ' + (team2 || 'TBD');
 
   switch (match && match.status) {
@@ -555,17 +568,60 @@ export function buildCanonicalMatchLinkLabel(match: Pick<MatchCardViewModel, 'te
   }
 }
 
+function getTeamsFromCanonicalSlug(
+  match: Partial<Pick<MatchCardViewModel, 'matchUrl' | 'externalMatchKey' | 'id'>>
+): [string, string] | null {
+  var canonicalPath = buildCanonicalMatchPath(match as Pick<MatchCardViewModel, 'matchUrl' | 'externalMatchKey' | 'id'>);
+  var slug = canonicalPath ? canonicalPath.replace(/^\/cric-live\//, '') : '';
+  var matchParts = slug.match(/^(.+)-vs-(.+?)-\d+(?:st|nd|rd|th)-/i);
+  if (!matchParts) {
+    return null;
+  }
+
+  return [formatSlugTeamLabel(matchParts[1]), formatSlugTeamLabel(matchParts[2])];
+}
+
+function formatSlugTeamLabel(value: string): string {
+  return value
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.length <= 4
+      ? part.toUpperCase()
+      : part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+}
+
 function getPreferredTeamLabel(team: MatchCardViewModel['team1'] | null | undefined): string {
   if (!team) {
     return '';
   }
 
   var name = team.name ? team.name.trim() : '';
-  if (name) {
+  if (name && !isPlaceholderTeamLabel(name)) {
     return name;
   }
 
-  return team.shortName ? team.shortName.trim() : '';
+  var shortName = team.shortName ? team.shortName.trim() : '';
+  return shortName && !isPlaceholderTeamLabel(shortName) ? shortName : '';
+}
+
+function isPlaceholderTeamLabel(value: string): boolean {
+  var normalized = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+  return !normalized
+    || normalized === 'tbd'
+    || normalized === 'tbc'
+    || normalized === 'team 1'
+    || normalized === 'team 2'
+    || normalized === 'team a'
+    || normalized === 'team b'
+    || normalized === 'unknown'
+    || normalized === 'null'
+    || normalized === 'undefined';
 }
 
 function extractMatchSlugFromPath(urlOrPath: string): string | null {
