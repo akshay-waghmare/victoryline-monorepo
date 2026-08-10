@@ -7,8 +7,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class CrexMatchUrlHelper {
+
+    private static final Pattern CREX_API_KEY_PATTERN = Pattern.compile("-match-updates-([A-Za-z0-9]+)$");
 
     private static final Set<String> TERMINAL_MATCH_SEGMENTS = new HashSet<String>(Arrays.asList(
             "live",
@@ -32,6 +36,16 @@ public final class CrexMatchUrlHelper {
         }
 
         return last;
+    }
+
+    /** Returns CREX's stable key embedded in current match URLs, or null for other URL shapes. */
+    public static String extractCrexApiKey(String url) {
+        List<String> parts = extractPathSegments(url);
+        if (parts.isEmpty()) {
+            return null;
+        }
+        Matcher matcher = CREX_API_KEY_PATTERN.matcher(parts.get(parts.size() - 1));
+        return matcher.find() ? matcher.group(1) : null;
     }
 
     public static String toMatchDetailsUrl(String url) {

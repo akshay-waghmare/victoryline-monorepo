@@ -1,0 +1,22 @@
+{
+  "url": "https://www.crickzen.com/",
+  "final_url": "https://www.crickzen.com/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "html_bytes": 101451,
+  "title": "Crickzen | Live Cricket Scores & Real-time Updates | International & Domestic Matches",
+  "description": "Stay updated with live cricket scores and real-time updates from international and domestic matches on Crickzen. Get ball-by-ball commentary, match analysis, and comprehensive cricket coverage.",
+  "canonical": "https://www.crickzen.com/",
+  "robots": "index,follow",
+  "h1": [
+    "Live cricket scores"
+  ],
+  "schema_types": [
+    "ItemList",
+    "WebPage"
+  ],
+  "anchor_count": 30,
+  "match_links": [],
+  "article_links": [],
+  "word_count": 454
+}

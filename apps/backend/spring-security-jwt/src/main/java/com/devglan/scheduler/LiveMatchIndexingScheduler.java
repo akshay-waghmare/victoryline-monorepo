@@ -18,8 +18,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Scheduled job for automatic URL indexing of live matches.
- * Runs every 15 minutes to ensure new live matches get indexed quickly.
+ * Scheduled job for live-match discovery notifications.
+ *
+ * Ordinary SportsEvent match pages are discovered through the sitemap and
+ * crawlable SSR links. Google's Indexing API is not a general URL-indexing
+ * API, so its use is disabled by default here. If Crickzen later publishes a
+ * genuine qualifying livestream page, API notifications must be enabled only
+ * for that separate, eligible surface.
  * 
  * Feature 008 - Match Page Title SEO Optimization
  * 
@@ -44,6 +49,9 @@ public class LiveMatchIndexingScheduler {
     
     @Value("${gsc.live-match-indexing.enabled:true}")
     private boolean liveMatchIndexingEnabled;
+
+    @Value("${gsc.live-match-indexing.indexing-api-notifications-enabled:false}")
+    private boolean indexingApiNotificationsEnabled;
     
     @Value("${gsc.live-match-indexing.max-per-run:10}")
     private int maxIndexingPerRun;
@@ -67,7 +75,7 @@ public class LiveMatchIndexingScheduler {
     }
     
     /**
-     * Index live and upcoming matches every 15 minutes.
+     * Optionally notify Google about live and upcoming matches every 15 minutes.
      *
      * Upcoming matches are included so Google discovers pre-match pages before
      * the first ball, not hours after the match goes LIVE. Completed/abandoned
@@ -86,7 +94,13 @@ public class LiveMatchIndexingScheduler {
         }
         
         if (!liveMatchIndexingEnabled) {
-            logger.debug("[LiveMatchIndexer] Live match indexing disabled");
+            logger.debug("[LiveMatchIndexer] Live-match discovery scheduler disabled");
+            return;
+        }
+
+        if (!indexingApiNotificationsEnabled) {
+            logger.info("[LiveMatchIndexer] Indexing API notifications disabled for ordinary match pages; "
+                    + "sitemap and crawlable SSR links remain the discovery path");
             return;
         }
         
@@ -95,7 +109,7 @@ public class LiveMatchIndexingScheduler {
             return;
         }
         
-        logger.info("[LiveMatchIndexer] Starting match indexing at {}", timestamp);
+        logger.info("[LiveMatchIndexer] Starting eligible live-match notification run at {}", timestamp);
         
         try {
             List<LiveMatchEntry> allMatches = liveMatchesService.getLiveMatches();
@@ -123,7 +137,7 @@ public class LiveMatchIndexingScheduler {
             
             for (LiveMatchEntry match : indexableMatches) {
                 if (indexedToday >= dailyIndexingBudget) {
-                    logger.warn("[LiveMatchIndexer] Reached daily indexing budget ({}), stopping to protect quota", dailyIndexingBudget);
+                    logger.warn("[LiveMatchIndexer] Reached daily notification budget ({}), stopping to protect quota", dailyIndexingBudget);
                     break;
                 }
 
@@ -143,23 +157,23 @@ public class LiveMatchIndexingScheduler {
                     continue;
                 }
                 
-                // Skip if already indexed today (persisted in Redis)
+                // Skip if this notification was already submitted in the rolling cache window.
                 if (seoCache.isSlugIndexed(slug)) {
                     skipped++;
                     continue;
                 }
                 
-                // Request indexing
+                // Request a crawl notification. Success here does not prove Google indexed the URL.
                 boolean success = googleSearchConsoleService.requestIndexingForMatch(slug);
                 
                 if (success) {
                     seoCache.markSlugIndexed(slug);
                     indexed++;
                     indexedToday++;
-                    logger.info("[LiveMatchIndexer] Indexed match: {}", slug);
+                    logger.info("[LiveMatchIndexer] Submitted match notification: {}", slug);
                 } else {
                     failed++;
-                    logger.warn("[LiveMatchIndexer] Failed to index match: {}", slug);
+                    logger.warn("[LiveMatchIndexer] Failed to submit match notification: {}", slug);
                 }
                 
                 // Small delay between requests to avoid rate limiting
@@ -171,7 +185,7 @@ public class LiveMatchIndexingScheduler {
                 }
             }
             
-            logger.info("[LiveMatchIndexer] Completed: {} indexed, {} skipped (already indexed), {} failed", 
+            logger.info("[LiveMatchIndexer] Completed: {} notifications submitted, {} skipped (already submitted), {} failed",
                 indexed, skipped, failed);
             
         } catch (Exception e) {
@@ -250,7 +264,7 @@ public class LiveMatchIndexingScheduler {
      * Manual trigger for testing
      */
     public void triggerManualIndexing() {
-        logger.info("[LiveMatchIndexer] Manual indexing triggered");
+        logger.info("[LiveMatchIndexer] Manual notification run triggered");
         indexNewLiveMatches();
     }
     
@@ -259,17 +273,19 @@ public class LiveMatchIndexingScheduler {
      */
     public String getStatus() {
         StringBuilder status = new StringBuilder();
-        status.append("LiveMatchIndexingScheduler Status:\n");
+        status.append("LiveMatchDiscoveryScheduler Status:\n");
         status.append("  GSC Enabled: ").append(gscEnabled).append("\n");
-        status.append("  Live Match Indexing Enabled: ").append(liveMatchIndexingEnabled).append("\n");
+        status.append("  Live-Match Discovery Scheduler Enabled: ").append(liveMatchIndexingEnabled).append("\n");
+        status.append("  Indexing API Notifications Enabled: ").append(indexingApiNotificationsEnabled).append("\n");
         status.append("  Indexing API Initialized: ").append(googleSearchConsoleService.isIndexingInitialized()).append("\n");
         status.append("  Max Per Run: ").append(maxIndexingPerRun).append("\n");
-        status.append("  Daily Budget: ").append(dailyIndexingBudget).append("\n");
+        status.append("  Daily Notification Budget: ").append(dailyIndexingBudget).append("\n");
         status.append("  Upcoming Window Hours: ").append(upcomingIndexingWindowHours).append("\n");
         status.append("  Upcoming Priority Lead Hours: ").append(upcomingPriorityLeadHours).append("\n");
-        status.append("  Already Indexed (today): ").append(seoCache.getIndexedSlugCount()).append("\n");
-        status.append("  Persistence: Redis (25h TTL) with in-memory fallback\n");
-        status.append("  Schedule: Every 15 minutes\n");
+        status.append("  Notifications Submitted (rolling 25h): ").append(seoCache.getIndexedSlugCount()).append("\n");
+        status.append("  Notification persistence: Redis (25h TTL) with in-memory fallback\n");
+        status.append("  Standard discovery: sitemap + crawlable SSR links + URL Inspection\n");
+        status.append("  Notification schedule: Every 15 minutes when explicitly enabled\n");
         return status.toString();
     }
     
@@ -278,6 +294,14 @@ public class LiveMatchIndexingScheduler {
      */
     public long getIndexedCount() {
         return seoCache.getIndexedSlugCount();
+    }
+
+    public long getNotificationCount() {
+        return seoCache.getIndexedSlugCount();
+    }
+
+    public boolean areIndexingApiNotificationsEnabled() {
+        return indexingApiNotificationsEnabled;
     }
     
     /**

@@ -52,7 +52,22 @@ function Get-FirstSupportedMatch {
 function Get-UpcomingCohortMatch {
   param($Matches, $PublicMatches)
 
-  $supported = @($Matches | Where-Object { (Get-MatchSlug $_) -and (Test-SupportedFormat $_) })
+  $now = [DateTimeOffset]::UtcNow
+  $supported = @($Matches | Where-Object {
+    if (-not (Get-MatchSlug $_) -or -not (Test-SupportedFormat $_)) { return $false }
+    # A record whose scheduled start is already in the past is a lifecycle
+    # handoff candidate, not an upcoming opening sample. Do not let a stale
+    # catalogue row plus a running public model row masquerade as pre-match
+    # readiness while the live catalogue has not accepted the fixture.
+    if ($_.scheduledStartTime) {
+      try {
+        return [DateTimeOffset]::FromUnixTimeMilliseconds([int64]$_.scheduledStartTime) -ge $now
+      } catch {
+        return $false
+      }
+    }
+    return $true
+  })
   # The opening model is intentionally selective.  Prefer an exact upcoming
   # source identity with a real public opening row so an unrelated uncovered
   # domestic fixture cannot hide a ready controlled-cohort sample.  Keep the
@@ -67,6 +82,71 @@ function Get-UpcomingCohortMatch {
   })
   return @($ready | Sort-Object scheduledStartTime | Select-Object -First 1) +
     @($supported | Select-Object -First 1) | Select-Object -First 1
+}
+
+function Get-LiveCohortMatch {
+  param($Matches, $PublicMatches, [int]$MaxAgeMinutes)
+
+  $supported = @($Matches | Where-Object { (Get-MatchSlug $_) -and (Test-SupportedFormat $_) })
+  # The live catalogue is ordered by scraper lifecycle activity, not by model
+  # availability. Prefer an exact source-URL row that is fresh and has a
+  # probability, otherwise a stale/unmodelled first row can hide another live
+  # fixture that is fully ready for the controlled cohort.
+  foreach ($match in $supported) {
+    $sourceUrl = ([string]$match.url).TrimEnd('/')
+    if (-not $sourceUrl) { continue }
+    $rows = @($PublicMatches | Where-Object {
+      ([string]$_.match_url).TrimEnd('/') -ieq $sourceUrl -and
+      $null -ne $_.win_probability_pct -and
+      $null -ne $_.updated_at
+    })
+    foreach ($row in $rows) {
+      try {
+        $updated = Convert-ProviderTimestampToUtc $row.updated_at
+        $age = [DateTimeOffset]::UtcNow - $updated
+        if ($age.TotalMinutes -ge 0 -and $age.TotalMinutes -le $MaxAgeMinutes) {
+          return $match
+        }
+      } catch {
+        continue
+      }
+    }
+  }
+  return @($supported | Select-Object -First 1)
+}
+
+function Get-CompletedCohortMatch {
+  param($Matches, [string]$BaseUrl, [int]$RequestTimeoutSeconds)
+
+  $supported = @($Matches | Where-Object { (Get-MatchSlug $_) -and (Test-SupportedFormat $_) })
+  # Completed rows are intentionally retained outside the small rolling public
+  # feed. Prefer a source-resolvable final row with history so that a newly
+  # completed, unsupported fixture cannot replace the controlled replay sample
+  # and make retention look broken. Keep the normal first-supported fallback
+  # to expose a genuinely empty retained-model store.
+  # Completed catalogues can contain thousands of historical rows. Keep this
+  # monitor bounded when an archive resolver is unavailable; the first
+  # source-resolved retained row remains preferred, with a deterministic
+  # catalogue fallback when the bounded probe cannot find one.
+  $maxResolveAttempts = 8
+  $resolveAttempts = 0
+  $resolveTimeoutSeconds = [Math]::Min($RequestTimeoutSeconds, 2)
+  foreach ($match in $supported) {
+    if ($resolveAttempts -ge $maxResolveAttempts) { break }
+    $sourceUrl = ([string]$match.url).TrimEnd('/')
+    if (-not $sourceUrl) { continue }
+    $resolveAttempts++
+    try {
+      $resolved = Invoke-RestMethod -Uri ("$BaseUrl/prediction-api/api/public/matches/resolve?match_url=" + [uri]::EscapeDataString($sourceUrl)) -TimeoutSec $resolveTimeoutSeconds
+      $row = $resolved.match
+      if ($null -ne $row -and $null -ne $row.win_probability_pct -and @($row.prediction_history).Count -ge 2) {
+        return $match
+      }
+    } catch {
+      continue
+    }
+  }
+  return @($supported | Select-Object -First 1)
 }
 
 function Get-HeaderValue {
@@ -172,6 +252,10 @@ foreach ($lifecycle in $lifecycleEndpoints.Keys) {
   }
   $match = if ($lifecycle -eq 'upcoming') {
     Get-UpcomingCohortMatch $candidatePool $publicMatches
+  } elseif ($lifecycle -eq 'live') {
+    Get-LiveCohortMatch $candidatePool $publicMatches $MaxModelAgeMinutes
+  } elseif ($lifecycle -eq 'completed') {
+    Get-CompletedCohortMatch $candidatePool $base $TimeoutSeconds
   } else {
     Get-FirstSupportedMatch $candidatePool
   }
@@ -203,7 +287,7 @@ foreach ($lifecycle in $lifecycleEndpoints.Keys) {
     # source-addressable replay details, so resolve by the canonical CREX URL
     # before declaring an exact lifecycle row missing.
     try {
-      $resolved = Invoke-RestMethod -Uri ("$base/prediction-api/api/public/matches/resolve?match_url=" + [uri]::EscapeDataString($sourceUrl)) -TimeoutSec $TimeoutSeconds
+      $resolved = Invoke-RestMethod -Uri ("$base/prediction-api/api/public/matches/resolve?match_url=" + [uri]::EscapeDataString($sourceUrl)) -TimeoutSec ([Math]::Min($TimeoutSeconds, 5))
       $publicRow = $resolved.match
     } catch {
       $publicRow = $null

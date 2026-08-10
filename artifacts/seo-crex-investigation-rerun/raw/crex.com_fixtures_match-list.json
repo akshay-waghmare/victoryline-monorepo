@@ -1,0 +1,106 @@
+{
+  "url": "https://crex.com/fixtures/match-list",
+  "final_url": "https://crex.com/schedule",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "html_bytes": 179860,
+  "title": "CREX Cricket Schedule: Today Match, Upcoming Fixtures, ICC & Upcoming Cricket Fixtures",
+  "description": "Get Datewise, Serieswise and Teamwise Schedules of all International and Domestic Fixtures, Match Info and Results of All Upcoming and Finished Matches ",
+  "canonical": null,
+  "robots": "index, follow, max-image-preview:large",
+  "h1": [
+    "Cricket Schedule & Fixtures"
+  ],
+  "schema_types": [
+    "BreadcrumbList",
+    "CollectionPage",
+    "ItemList",
+    "NewsMediaOrganization",
+    "WebPage"
+  ],
+  "anchor_count": 40,
+  "match_links": [
+    {
+      "href": "https://crex.com/cricket-live-score/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+      "text": "WDL Yet to bat Innings Break EDR 95/5 15.0"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/js-vs-tt-19th-match-assam-premier-league-2026-match-updates-13AE",
+      "text": "TT 160/6 20.0 JS Won 19th T20 , Assam T20 2026 JS 162/1 18.1"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+      "text": "IRE 170/8 40.5 Live AFG Yet to bat"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/dg-w-vs-typ-w-3rd-odi-ireland-women-super-50-series-2026-match-updates-12CZ",
+      "text": "TYP-W 273/8 48.4 Live DG-W Yet to bat"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/dw-vs-gr-20th-match-assam-premier-league-2026-match-updates-13AF",
+      "text": "Dibrugarh Warriors 1:30 PM 20th T20 , Assam T20 2026 Guwahati Royals"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+      "text": "Purani Dilli-6 1:30 PM 21st T20 , DPL 2026 Outer Delhi Warriors"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/sb-w-vs-tr-w-29th-match-the-hundred-2026-women-match-updates-ZLC",
+      "text": "Trent Rockets Women 2:00 PM 29th 100B , The Hundred W 2026 Southern Brave Women"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+      "text": "Salem Spartans 2:00 PM 11th T20 , TNPL 2026 Madurai Panthers"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/goa-vs-oma-1st-t20-goa-tour-of-oman-2026-match-updates-13IH",
+      "text": "Oman 2:30 PM 1st T20 , GOA vs OMA 2026 Goa"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+      "text": "Trent Rockets 5:30 PM 29th 100B , The Hundred 2026 Southern Brave"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/hk-vs-tan-34th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GW",
+      "text": "Tanzania 6:00 AM 34th List A , CWC League B 2024-26 Hong Kong"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/ita-vs-ugn-35th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GX",
+      "text": "Italy 6:00 AM 35th List A , CWC League B 2024-26 Uganda"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/cdk-vs-ndt-22nd-match-delhi-premier-t20-league-2026-match-updates-13BQ",
+      "text": "Central Delhi Kings 8:00 AM 22nd T20 , DPL 2026 New Delhi Tigers"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/cs-vs-gr-21st-match-assam-premier-league-2026-match-updates-13AG",
+      "text": "Charaideo Sunrisers 8:30 AM 21st T20 , Assam T20 2026 Guwahati Royals"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/dur-vs-wor-65th-match-england-domestic-one-day-cup-2026-match-updates-ZZT",
+      "text": "Worcestershire 10:00 AM 65th One Day , England One Day Cup 2026 Durham"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/kt-vs-warks-66th-match-england-domestic-one-day-cup-2026-match-updates-ZZU",
+      "text": "Warwickshire 10:00 AM 66th One Day , England One Day Cup 2026 Kent"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/nots-vs-sur-67th-match-england-domestic-one-day-cup-2026-match-updates-ZZV",
+      "text": "Surrey 10:00 AM 67th One Day , England One Day Cup 2026 Nottinghamshire"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/lancs-vs-som-68th-match-england-domestic-one-day-cup-2026-match-updates-ZZW",
+      "text": "Somerset 10:00 AM 68th One Day , England One Day Cup 2026 Lancashire"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/mdx-vs-sus-69th-match-england-domestic-one-day-cup-2026-match-updates-ZZX",
+      "text": "Middlesex 10:00 AM 69th One Day , England One Day Cup 2026 Sussex"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/dbs-vs-ham-70th-match-england-domestic-one-day-cup-2026-match-updates-ZZY",
+      "text": "Hampshire 10:00 AM 70th One Day , England One Day Cup 2026 Derbyshire"
+    }
+  ],
+  "article_links": [],
+  "word_count": 325
+}

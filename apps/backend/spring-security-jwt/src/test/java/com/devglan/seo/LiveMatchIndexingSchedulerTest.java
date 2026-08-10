@@ -31,6 +31,7 @@ public class LiveMatchIndexingSchedulerTest {
 
         ReflectionTestUtils.setField(scheduler, "gscEnabled", true);
         ReflectionTestUtils.setField(scheduler, "liveMatchIndexingEnabled", true);
+        ReflectionTestUtils.setField(scheduler, "indexingApiNotificationsEnabled", true);
         ReflectionTestUtils.setField(scheduler, "maxIndexingPerRun", 10);
         ReflectionTestUtils.setField(scheduler, "dailyIndexingBudget", 180);
         ReflectionTestUtils.setField(scheduler, "upcomingIndexingWindowHours", 120);
@@ -133,6 +134,23 @@ public class LiveMatchIndexingSchedulerTest {
         int earlyIndex = gscService.slugOrder.indexOf("early-a-vs-early-b-1st-match-test-cup-2026-match-updates-12FF");
         int catchupIndex = gscService.slugOrder.indexOf("catchup-a-vs-catchup-b-1st-match-test-cup-2026-match-updates-12EE");
         assertThat(earlyIndex).isLessThan(catchupIndex);
+    }
+
+    @Test
+    public void does_not_submit_ordinary_match_notifications_when_api_notifications_are_disabled() {
+        ReflectionTestUtils.setField(scheduler, "indexingApiNotificationsEnabled", false);
+        liveMatchesService.allMatches = Arrays.asList(
+                entry(
+                        "https://crex.com/cricket-live-score/live-a-vs-live-b-1st-match-test-cup-2026-match-updates-12AA",
+                        "LIVE",
+                        1780000000000L));
+
+        scheduler.indexNewLiveMatches();
+
+        assertThat(gscService.requestedSlugs).isEmpty();
+        assertThat(scheduler.getStatus())
+                .contains("Indexing API Notifications Enabled: false")
+                .contains("Standard discovery: sitemap + crawlable SSR links + URL Inspection");
     }
 
     private LiveMatchesService.LiveMatchEntry entry(String url, String status, Long scheduledStartTime) {

@@ -1,0 +1,3603 @@
+{
+  "checked_at_utc": "2026-08-10T13:07:05.361420+00:00",
+  "sitemaps": [
+    {
+      "url": "https://crex.com/sitemap.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "sitemapindex",
+      "count": 15,
+      "sample": [
+        {
+          "loc": "https://crex.com/crex_sitemap/news_sitemap.xml",
+          "lastmod": "2026-08-10T18:10:03+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/news_archive_2026_01.xml",
+          "lastmod": "2026-07-22T11:54:27+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/news_archive_2026_02.xml",
+          "lastmod": "2026-07-14T13:25:54+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/news_archive_2026_03.xml",
+          "lastmod": "2026-07-24T15:08:54+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/news_archive_2026_04.xml",
+          "lastmod": "2026-07-18T11:21:54+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/news_archive_2026_05.xml",
+          "lastmod": "2026-06-18T10:42:11+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/news_archive_2026_06.xml",
+          "lastmod": "2026-07-24T12:54:28+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/news_archive_2026_07.xml",
+          "lastmod": "2026-07-31T22:34:21+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/news_archive_2026_08.xml",
+          "lastmod": "2026-08-10T18:10:03+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/player.xml",
+          "lastmod": "2026-08-08T13:43:31+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/rankings.xml",
+          "lastmod": "2026-08-08T13:43:31+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/team.xml",
+          "lastmod": "2026-08-08T13:43:31+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/cricket-live-score.xml",
+          "lastmod": "2026-08-08T13:43:31+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/series.xml",
+          "lastmod": "2026-08-08T13:43:31+05:30"
+        },
+        {
+          "loc": "https://crex.com/crex_sitemap/stats.xml",
+          "lastmod": "2026-08-08T13:43:31+05:30"
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "news hub": 9,
+        "other": 3,
+        "team": 1,
+        "match": 1,
+        "series": 1
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_sitemap.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 58,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+          "lastmod": "2026-08-10T18:11:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T11:15:00+05:30",
+          "news_title": "IRE 154-8 (37.0) (Jai Moondra 8(12), Gavin Hoey 12(33)) vs Afghanistan 3rd-ODI | Afghanistan tour of Ireland 2026 - CREX"
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/dg-w-vs-typ-w-3rd-odi-ireland-women-super-50-series-2026-match-updates-12CZ",
+          "lastmod": "2026-08-10T18:11:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T11:15:00+05:30",
+          "news_title": "TYP-W 251-5 (44.2) (Alice Tector 26(20), Coulter Reilly 3(6)) vs Dragons Women 3rd-ODI | Ireland Women Super 50 Series 2026 - CREX"
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+          "lastmod": "2026-08-10T15:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:30:00+05:30",
+          "news_title": "Salem Spartans vs Madurai Panthers 11th-Match Tamil Nadu Premier League 2026 Live Score, Match Info, Updates, Scorecard, Highlights, and News"
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/js-vs-tt-19th-match-assam-premier-league-2026-match-updates-13AE",
+          "lastmod": "2026-08-10T10:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T10:00:00+05:30",
+          "news_title": "Jorhat Stallions won by 9 wickets \ud83c\udfc6, TT vs JS Highlights, Results, Full Scorecard, Summary and Match Stats"
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/dw-vs-gr-20th-match-assam-premier-league-2026-match-updates-13AF",
+          "lastmod": "2026-08-10T15:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:00:00+05:30",
+          "news_title": "Dibrugarh Warriors vs Guwahati Royals 20th-Match Assam Premier League 2026 Live Score, Match Info, Updates, Scorecard, Highlights, and News"
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+          "lastmod": "2026-08-10T18:11:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T09:30:00+05:30",
+          "news_title": "EDR 95-5 (15.0) (Deepak Punia 2(3), Mayank Rawat 14(19)) vs West Delhi Lions 20th-Match | Delhi Premier T20 League 2026 - CREX"
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+          "lastmod": "2026-08-10T15:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:00:00+05:30",
+          "news_title": "Purani Dilli-6 vs Outer Delhi Warriors 21st-Match Delhi Premier T20 League 2026 Live Score, Match Info, Updates, Scorecard, Highlights, and News"
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/goa-vs-oma-1st-t20-goa-tour-of-oman-2026-match-updates-13IH",
+          "lastmod": "2026-08-10T16:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:00:00+05:30",
+          "news_title": "Oman vs Goa 1st-T20 Goa tour of Oman 2026 Live Score, Match Info, Updates, Scorecard, Highlights, and News"
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/sb-w-vs-tr-w-29th-match-the-hundred-2026-women-match-updates-ZLC",
+          "lastmod": "2026-08-10T15:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:30:00+05:30",
+          "news_title": "Trent Rockets Women vs Southern Brave Women 29th-Match The Hundred 2026 Women Live Score, Match Info, Updates, Scorecard, Highlights, and News"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+          "lastmod": "2026-08-10T18:10:03+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T18:10:03+05:30",
+          "news_title": "Not Hemang Badani, CSK Drops Massive Hint On Next Head Coach"
+        },
+        {
+          "loc": "https://crex.com/cricket-stories/who-is-tushar-raheja-and-why-should-kkr-mi-and-dc-keep-an-eye-on-him-in-tnpl-2026-6a79c4482d81e7efd718806e",
+          "lastmod": "2026-08-10T18:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T18:00:00+05:30",
+          "news_title": "Who Is Tushar Raheja, and Why Should KKR, MI and DC Keep an Eye on Him in TNPL 2026?"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "lastmod": "2026-08-10T17:35:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T17:35:00+05:30",
+          "news_title": "Indian Cricketers Taking Drastic Steps For Physical Transformation"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "lastmod": "2026-08-10T17:27:22+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T17:27:22+05:30",
+          "news_title": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour"
+        },
+        {
+          "loc": "https://crex.com/cricket-records/england-batter-hits-six-consecutive-sixes-but-fails-to-enter-elite-list-featuring-yuvraj-singh-gary-sobers-6a79b489d783af4a0ff219f3",
+          "lastmod": "2026-08-10T16:52:49+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:52:49+05:30",
+          "news_title": "England Batter Hits Six Consecutive Sixes But Fails To Enter Elite List Featuring Yuvraj Singh, Gary Sobers"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/india-stars-snubbed-as-icc-announces-player-of-the-month-nominees-for-july-2026-6a79a851d783af4a0ff041cb",
+          "lastmod": "2026-08-10T16:23:45+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:00:41+05:30",
+          "news_title": "India Stars Snubbed As ICC Announces Player Of The Month Nominees For July 2026"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ex-rcb-star-feels-ab-de-villiers-was-more-lethal-than-kohli-rohit-dhoni-explains-why-6a79acd82d81e7efd718804a",
+          "lastmod": "2026-08-10T16:20:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:20:00+05:30",
+          "news_title": "Ex-RCB Star Feels AB de Villiers Was More Lethal Than Kohli, Rohit, Dhoni; Explains Why"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/gujarat-titans-player-openly-wishes-to-join-ms-dhonis-csk-in-ipl-6a79a28fd783af4a0fef6c6a",
+          "lastmod": "2026-08-10T15:36:07+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:36:07+05:30",
+          "news_title": "Gujarat Titans Player Openly Wishes To Join MS Dhoni's CSK In IPL"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/bcci-mulls-shifting-indian-tournament-from-bengaluru-due-to-government-restrictions-6a799fffd783af4a0fef0f9a",
+          "lastmod": "2026-08-10T15:25:11+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:25:11+05:30",
+          "news_title": "BCCI Mulls Shifting Indian Tournament From Bengaluru Due To Government Restrictions"
+        },
+        {
+          "loc": "https://crex.com/cricket-records/mitchell-marsh-enters-virat-kohli-ab-de-villiers-league-with-special-t20-feat-6a799ca8d783af4a0fee8d44",
+          "lastmod": "2026-08-10T15:10:56+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:10:56+05:30",
+          "news_title": "Mitchell Marsh Enters Virat Kohli, AB de Villiers' League With Special T20 Feat"
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/sarfaraz-khan-vs-dhruv-jurel-from-shared-debut-to-a-new-battle-for-indias-test-spot-6a7993102d81e7efd7188030",
+          "lastmod": "2026-08-10T14:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T14:30:00+05:30",
+          "news_title": "Sarfaraz Khan vs Dhruv Jurel: From Shared Debut To A New Battle For India's Test Spot"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/zaheer-khan-sends-straightforward-message-to-mohammed-shami-amid-team-india-snub-6a7985002d81e7efd718801f",
+          "lastmod": "2026-08-10T13:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T13:30:00+05:30",
+          "news_title": "Zaheer Khan Sends Straightforward Message To Mohammed Shami Amid Team India Snub"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/yuzvendra-chahal-throws-his-hat-into-the-ring-for-2027-world-cup-selection-6a797df82d81e7efd7188008",
+          "lastmod": "2026-08-10T13:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T13:00:00+05:30",
+          "news_title": "Yuzvendra Chahal Throws His Hat Into The Ring For 2027 World Cup Selection"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/vvs-laxman-reveals-how-jay-shah-helped-gautam-gambhir-become-indias-head-coach-6a797a742d81e7efd7187ff5",
+          "lastmod": "2026-08-10T12:45:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T12:45:00+05:30",
+          "news_title": "VVS Laxman Reveals How Jay Shah Helped Gautam Gambhir Become India's Head Coach"
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/sarfaraz-khan-creates-headache-for-gambhir-indias-selection-conundrums-for-1st-test-vs-sl-6a7976f02d81e7efd7187fe3",
+          "lastmod": "2026-08-10T12:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T12:30:00+05:30",
+          "news_title": "Sarfaraz Khan Creates Headache For Gambhir: India's Selection Conundrums For 1st Test vs SL"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/sarfaraz-khan-out-of-major-tournament-after-joining-india-squad-for-sri-lanka-tests-6a7973e8d783af4a0fea142f",
+          "lastmod": "2026-08-10T12:17:04+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T12:17:04+05:30",
+          "news_title": "Sarfaraz Khan Out Of Major Tournament After Joining India Squad For Sri Lanka Tests"
+        }
+      ],
+      "has_news_namespace": true,
+      "url_type_counts": {
+        "match": 9,
+        "news article": 25,
+        "other": 11,
+        "analysis article": 6,
+        "squad news": 2,
+        "playing XI": 1,
+        "injury news": 4
+      }
+    },
+    {
+      "url": "https://a286825.sitemaphosting6.com/4510197/sitemap_4510197.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "sitemapindex",
+      "count": 2,
+      "sample": [
+        {
+          "loc": "https://a286825.sitemaphosting6.com/4510197/sitemap_4510197_1.xml",
+          "lastmod": "2026-08-08T13:43:45+05:30"
+        },
+        {
+          "loc": "https://a286825.sitemaphosting6.com/4510197/sitemap_4510197_2.xml",
+          "lastmod": "2026-08-08T13:43:45+05:30"
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 2
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_sitemap.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 59,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+          "lastmod": "2026-08-10T18:26:22+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T18:22:37+05:30",
+          "news_title": "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+          "lastmod": "2026-08-10T18:10:03+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T18:10:03+05:30",
+          "news_title": "Not Hemang Badani, CSK Drops Massive Hint On Next Head Coach"
+        },
+        {
+          "loc": "https://crex.com/cricket-stories/who-is-tushar-raheja-and-why-should-kkr-mi-and-dc-keep-an-eye-on-him-in-tnpl-2026-6a79c4482d81e7efd718806e",
+          "lastmod": "2026-08-10T18:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T18:00:00+05:30",
+          "news_title": "Who Is Tushar Raheja, and Why Should KKR, MI and DC Keep an Eye on Him in TNPL 2026?"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "lastmod": "2026-08-10T17:35:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T17:35:00+05:30",
+          "news_title": "Indian Cricketers Taking Drastic Steps For Physical Transformation"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "lastmod": "2026-08-10T17:27:22+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T17:27:22+05:30",
+          "news_title": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour"
+        },
+        {
+          "loc": "https://crex.com/cricket-records/england-batter-hits-six-consecutive-sixes-but-fails-to-enter-elite-list-featuring-yuvraj-singh-gary-sobers-6a79b489d783af4a0ff219f3",
+          "lastmod": "2026-08-10T16:52:49+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:52:49+05:30",
+          "news_title": "England Batter Hits Six Consecutive Sixes But Fails To Enter Elite List Featuring Yuvraj Singh, Gary Sobers"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/india-stars-snubbed-as-icc-announces-player-of-the-month-nominees-for-july-2026-6a79a851d783af4a0ff041cb",
+          "lastmod": "2026-08-10T16:23:45+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:00:41+05:30",
+          "news_title": "India Stars Snubbed As ICC Announces Player Of The Month Nominees For July 2026"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ex-rcb-star-feels-ab-de-villiers-was-more-lethal-than-kohli-rohit-dhoni-explains-why-6a79acd82d81e7efd718804a",
+          "lastmod": "2026-08-10T16:20:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:20:00+05:30",
+          "news_title": "Ex-RCB Star Feels AB de Villiers Was More Lethal Than Kohli, Rohit, Dhoni; Explains Why"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/gujarat-titans-player-openly-wishes-to-join-ms-dhonis-csk-in-ipl-6a79a28fd783af4a0fef6c6a",
+          "lastmod": "2026-08-10T15:36:07+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:36:07+05:30",
+          "news_title": "Gujarat Titans Player Openly Wishes To Join MS Dhoni's CSK In IPL"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/bcci-mulls-shifting-indian-tournament-from-bengaluru-due-to-government-restrictions-6a799fffd783af4a0fef0f9a",
+          "lastmod": "2026-08-10T15:25:11+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:25:11+05:30",
+          "news_title": "BCCI Mulls Shifting Indian Tournament From Bengaluru Due To Government Restrictions"
+        },
+        {
+          "loc": "https://crex.com/cricket-records/mitchell-marsh-enters-virat-kohli-ab-de-villiers-league-with-special-t20-feat-6a799ca8d783af4a0fee8d44",
+          "lastmod": "2026-08-10T15:10:56+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:10:56+05:30",
+          "news_title": "Mitchell Marsh Enters Virat Kohli, AB de Villiers' League With Special T20 Feat"
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/sarfaraz-khan-vs-dhruv-jurel-from-shared-debut-to-a-new-battle-for-indias-test-spot-6a7993102d81e7efd7188030",
+          "lastmod": "2026-08-10T14:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T14:30:00+05:30",
+          "news_title": "Sarfaraz Khan vs Dhruv Jurel: From Shared Debut To A New Battle For India's Test Spot"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/zaheer-khan-sends-straightforward-message-to-mohammed-shami-amid-team-india-snub-6a7985002d81e7efd718801f",
+          "lastmod": "2026-08-10T13:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T13:30:00+05:30",
+          "news_title": "Zaheer Khan Sends Straightforward Message To Mohammed Shami Amid Team India Snub"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/yuzvendra-chahal-throws-his-hat-into-the-ring-for-2027-world-cup-selection-6a797df82d81e7efd7188008",
+          "lastmod": "2026-08-10T13:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T13:00:00+05:30",
+          "news_title": "Yuzvendra Chahal Throws His Hat Into The Ring For 2027 World Cup Selection"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/vvs-laxman-reveals-how-jay-shah-helped-gautam-gambhir-become-indias-head-coach-6a797a742d81e7efd7187ff5",
+          "lastmod": "2026-08-10T12:45:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T12:45:00+05:30",
+          "news_title": "VVS Laxman Reveals How Jay Shah Helped Gautam Gambhir Become India's Head Coach"
+        }
+      ],
+      "has_news_namespace": true,
+      "url_type_counts": {
+        "news article": 26,
+        "other": 11,
+        "analysis article": 6,
+        "squad news": 2,
+        "playing XI": 1,
+        "injury news": 4,
+        "match": 9
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_archive_2026_01.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 718,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-listicles/sachin-tendulkars-5-best-odi-innings-69661ada6cce749239c39839",
+          "lastmod": "2026-07-22T11:54:27+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/rohit-sharma-and-harmanpreet-kaur-added-list-of-padma-shri-winning-cricketers-697625641e4e8e470e674266",
+          "lastmod": "2026-06-24T12:47:45+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/ipl-winners-list-6963712af41e63c708e651eb",
+          "lastmod": "2026-06-01T13:04:15+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-hardik-pandyas-flying-effort-stuns-conway-harshit-rana-celebrates-with-a-send-off-69762a501e4e8e470e6742a7",
+          "lastmod": "2026-02-19T10:41:03+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/harry-brook-slams-the-door-down-on-psl-lahore-qalandars-poaching-approach-turned-down-697d9a498ccea4d46d5c18ab",
+          "lastmod": "2026-02-02T17:28:06+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/pak-vs-aus-stats-preview-3rd-t20i-australia-tour-of-pakistan-2026-697e3c180763f5b5816ecde8",
+          "lastmod": "2026-01-31T23:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ishan-kishans-fiery-century-takes-new-zealand-by-storm-as-india-win-5th-t20i-by-46-runs-697e36e58ccea4d46d66b49b",
+          "lastmod": "2026-01-31T22:37:49+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ind-vs-pak-head-to-head-records-match-38-under-19-world-cup-2026-697e35100763f5b5816ecdd6",
+          "lastmod": "2026-01-31T22:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/5-players-who-can-break-chris-gayles-fastest-ipl-100-record-697e2e080763f5b5816ecdc0",
+          "lastmod": "2026-01-31T22:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/india-confirm-sanju-samson-t20-world-cup-2026-snub-with-latest-ishan-kishan-move-697e282c0763f5b5816ecdae",
+          "lastmod": "2026-01-31T21:35:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/5-players-who-can-break-virat-kohlis-record-of-973-runs-in-ipl-697e27000763f5b5816ecd96",
+          "lastmod": "2026-01-31T21:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/5-highest-totals-by-india-in-t20is-till-january-31-2026-697e25d40763f5b5816ecd86",
+          "lastmod": "2026-01-31T21:25:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/revealed-why-south-africa-is-wearing-pink-jersey-vs-west-indies-today-697e1ff80763f5b5816ecd71",
+          "lastmod": "2026-01-31T21:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ishan-kishan-hijacks-sanju-samsons-home-ground-slams-maiden-t20i-century-vs-nz-697e19a40763f5b5816ecd57",
+          "lastmod": "2026-01-31T20:40:42+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/suryakumar-yadav-creates-history-in-ind-vs-nz-5th-t20i-becomes-quickest-batter-to-697e16a78ccea4d46d64744c",
+          "lastmod": "2026-01-31T20:34:02+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 119,
+        "news article": 379,
+        "records/statistics": 55,
+        "pitch report": 22,
+        "injury news": 8,
+        "squad news": 45,
+        "streaming information": 22,
+        "playing XI": 26,
+        "head-to-head": 5,
+        "analysis article": 23,
+        "tactical analysis": 1,
+        "match report": 3,
+        "weather": 9,
+        "prediction": 1
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_archive_2026_02.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 1413,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-listicles/5-highest-partnerships-in-ipl-history-till-february-2026-698f2758bc4e0baeebc3c862",
+          "lastmod": "2026-07-17T17:11:25+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/rcb-joins-hands-with-england-team-before-ipl-2026-699ad6fff015fbe47a90f930",
+          "lastmod": "2026-07-14T13:25:54+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/top-5-players-with-most-matches-in-ipl-history-till-2026-69949788bc4e0baeebc3d17b",
+          "lastmod": "2026-05-07T17:46:26+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/highest-team-totals-in-t20-world-cups-till-march-8-2026-69a1aa68bc4e0baeebc3e4b5",
+          "lastmod": "2026-03-08T21:51:52+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/pakistan-t20-world-cup-semi-final-equation-explained-after-2128-vs-sri-lanka-69a3081a14005f74ae2ebc16",
+          "lastmod": "2026-02-28T23:41:17+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-reactions/pakistan-new-father-unlocked-fans-hail-shanaka-for-valiant-effort-vs-shaheen-afridi-69a32fa714005f74ae30ca28",
+          "lastmod": "2026-02-28T23:40:47+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/west-indies-playing-xi-vs-india-t20-world-cup-2026-super-8-69a32d20bc4e0baeebc3e6f9",
+          "lastmod": "2026-02-28T23:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-reactions/gareeb-hai-gaddar-nahi-sri-lanka-slap-match-fixing-allegations-by-kicking-out-pakistan-69a3294814005f74ae305a6b",
+          "lastmod": "2026-02-28T23:13:36+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/pakistan-knocked-out-of-t20-world-cup-as-sri-lanka-assist-new-zealand-for-semifinals-69a31db914005f74ae2f92d7",
+          "lastmod": "2026-02-28T22:58:02+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/another-england-player-joins-psl-in-ipl-window-69a14a50bc4e0baeebc3e3af",
+          "lastmod": "2026-02-28T22:00:11+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/zimbabwe-playing-xi-vs-south-africa-t20-world-cup-2026-super-8-graeme-cremer-back-69a31808bc4e0baeebc3e6e1",
+          "lastmod": "2026-02-28T22:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/csks-ms-dhoni-lands-in-legal-trouble-days-before-ipl-2026-69a27b0514005f74ae2611f9",
+          "lastmod": "2026-02-28T21:56:16+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/bellerive-oval-hobart-pitch-report-weather-report-for-ind-w-vs-aus-w-3rd-odi-2026-69a31484bc4e0baeebc3e6cf",
+          "lastmod": "2026-02-28T21:45:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/sahibzada-farhan-fakhar-zaman-go-big-all-records-broken-by-pakistan-openers-vs-sl-69a3122cbc4e0baeebc3e6bc",
+          "lastmod": "2026-02-28T21:35:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/india-playing-xi-vs-west-indies-t20-world-cup-2026-super-8-will-rinku-singh-play-69a31100bc4e0baeebc3e6a4",
+          "lastmod": "2026-02-28T21:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 250,
+        "news article": 760,
+        "playing XI": 65,
+        "pitch report": 75,
+        "streaming information": 76,
+        "records/statistics": 73,
+        "analysis article": 46,
+        "injury news": 24,
+        "match report": 13,
+        "prediction": 5,
+        "weather": 8,
+        "squad news": 6,
+        "team": 1,
+        "tactical analysis": 11
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_archive_2026_03.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 1443,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-records/delhi-capitals-record-at-arun-jaitley-stadium-delhi-before-ipl-2026-69c41490bc4e0baeebc416be",
+          "lastmod": "2026-07-30T17:51:36+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/abhishek-sharma-called-rascal-by-ex-australia-wicketkeeper-after-t20-world-cup-2026-69b4f77f4e4efb067ccadc37",
+          "lastmod": "2026-07-24T15:08:54+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ipl-team-owners-and-valuation-69c3bdea0093d5efe03ab2ac",
+          "lastmod": "2026-05-04T16:57:19+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/psl-2026-players-list-all-injuries-withdrawals-and-replacements-69c3dc50bc4e0baeebc41625",
+          "lastmod": "2026-04-06T17:05:23+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/shreyas-iyer-to-miss-csk-vs-pbks-ipl-2026-match-pbks-captain-provides-major-injury-update-69cc1033891bd6c39be6e949",
+          "lastmod": "2026-03-31T23:49:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/cooper-connolly-preserves-the-australian-legacy-in-ipl-with-mullanpur-masterclass-69cc07e7891bd6c39be57c04",
+          "lastmod": "2026-03-31T23:37:04+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/david-miller-dropped-as-csa-announces-shock-contract-list-in-major-overhaul-69cc0ca0891bd6c39be658e8",
+          "lastmod": "2026-03-31T23:34:16+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-nitish-rana-patches-up-with-dpl-nemesis-sends-invitation-at-ipl-nets-69cc0acd891bd6c39be60bff",
+          "lastmod": "2026-03-31T23:26:29+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/arshdeep-singh-equals-unwanted-ipl-record-with-11-ball-over-vs-gujarat-titans-69cc012d891bd6c39be48bff",
+          "lastmod": "2026-03-31T22:45:25+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-rahul-tewatia-not-allowed-to-bat-after-violating-massive-ipl-rule-vs-pbks-69cbfe15891bd6c39be41941",
+          "lastmod": "2026-03-31T22:32:13+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/sourav-ganguly-backs-bccis-border-gavaskar-trophy-call-to-ditch-eden-gardens-69cbf6d3891bd6c39be3083b",
+          "lastmod": "2026-03-31T22:01:15+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/will-isu-vs-psz-psl-2026-match-be-abandoned-due-to-rain-gaddafi-stadium-lahore-weather-update-69cbc77a891bd6c39bdb8748",
+          "lastmod": "2026-03-31T21:53:43+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-reactions/buffoon-washington-sundar-lambasted-for-sluggish-knock-in-gt-vs-pbks-ipl-2026-match-69cbf3d1891bd6c39be28e15",
+          "lastmod": "2026-03-31T21:48:25+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/cameron-green-injury-update-australia-coach-reacts-to-ajinkya-rahanes-ask-ca-dig-69cbf0acbc4e0baeebc42292",
+          "lastmod": "2026-03-31T21:35:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-saim-ayub-bats-in-heavy-rains-as-pakistan-opener-seeks-lost-form-in-psl-2026-69cbecdf891bd6c39be16ca8",
+          "lastmod": "2026-03-31T21:18:47+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 253,
+        "news article": 879,
+        "injury news": 24,
+        "weather": 3,
+        "match report": 3,
+        "streaming information": 29,
+        "squad news": 46,
+        "pitch report": 26,
+        "records/statistics": 25,
+        "analysis article": 103,
+        "playing XI": 17,
+        "prediction": 32,
+        "tactical analysis": 2,
+        "head-to-head": 1
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_archive_2026_04.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 1562,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-news/former-pakistan-captain-makes-derogatory-remark-on-mumbai-indians-owner-69eb6824bc4e0baeebc455e3",
+          "lastmod": "2026-07-18T11:21:54+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/dwayne-bravo-to-akash-madhwal-list-of-players-who-have-played-for-both-mi-and-csk-69ea2388bc4e0baeebc453d2",
+          "lastmod": "2026-07-02T11:48:40+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/list-of-all-players-retired-hurt-in-ipl-till-april-15-2026-69dfaf981a5197615c53cbc1",
+          "lastmod": "2026-05-29T21:09:22+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/jasprit-bumrah-replacements-3-pacers-india-must-groom-as-long-term-prospects-in-odis-69e9df90bc4e0baeebc4534a",
+          "lastmod": "2026-05-08T10:12:14+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-sanjiv-goenkas-prayers-answered-as-prince-yadav-rips-through-ishan-kishans-defence-69d23d4cfcb7283e8696ed08",
+          "lastmod": "2026-05-08T10:11:47+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-prince-yadav-and-tristan-stubbs-exchange-heated-words-as-fight-erupts-in-lsg-vs-dc-69cd501056f28ecd0e18a7b6",
+          "lastmod": "2026-05-08T10:11:19+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/not-lsg-rishabh-pants-ex-gf-isha-negi-openly-labels-this-ipl-team-her-favourite-fans-angry-69f1bbacbc4e0baeebc460dd",
+          "lastmod": "2026-05-04T14:17:40+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/arjun-tendulkar-lists-himself-for-new-tournament-while-being-constantly-ignored-by-lsg-69f1b4d8ed293d0ee0bc7622",
+          "lastmod": "2026-05-02T16:42:58+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-reactions/fans-react-to-riyan-parags-ban-escape-in-vape-case-question-strong-family-background-influence-69f3697bb295226f58d9e062",
+          "lastmod": "2026-05-01T21:12:53+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/2-cricketers-in-sri-lanka-arrested-as-shocking-bathroom-scandal-explodes-69f38bedb295226f58392def",
+          "lastmod": "2026-05-01T13:06:56+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/rcbs-josh-hazlewood-finds-himself-in-hot-waters-69f38e9bb295226f5841831f",
+          "lastmod": "2026-04-30T23:01:01+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-virat-kohli-shoved-by-ishant-sharma-after-rajat-patidar-controversy-in-ipl-2026-69f38667b295226f582993da",
+          "lastmod": "2026-04-30T22:26:29+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-virat-kohli-hurls-abuses-at-shubman-gills-face-69f38784bc4e0baeebc462be",
+          "lastmod": "2026-04-30T22:25:59+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/cpl-2026-draft-order-revealed-69f38964bc4e0baeebc462d1",
+          "lastmod": "2026-04-30T22:25:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/jason-holder-catch-controversy-will-virat-kohli-face-ipl-ban-for-losing-cool-on-umpire-69f375f2b295226f58fbe23b",
+          "lastmod": "2026-04-30T21:27:47+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "news article": 810,
+        "other": 515,
+        "squad news": 29,
+        "injury news": 56,
+        "match report": 8,
+        "records/statistics": 18,
+        "pitch report": 47,
+        "analysis article": 53,
+        "streaming information": 13,
+        "playing XI": 8,
+        "weather": 4,
+        "prediction": 1
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_archive_2026_05.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 1671,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-listicles/etpl-owners-list-6a02fe0ff47ec846459e3312",
+          "lastmod": "2026-06-26T14:11:40+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/rishabh-pant-to-prince-yadav-lsg-player-ratings-for-ipl-2026-6a187b98bc4e0baeebc49f8f",
+          "lastmod": "2026-06-18T10:42:11+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/ishan-kishan-replaced-yashasvi-jaiswal-changes-india-made-for-2027-world-cup-6a0d9b38bc4e0baeebc48ef7",
+          "lastmod": "2026-06-18T10:40:20+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/virat-kohli-flabbergasted-with-prince-yadav-bharat-arun-reveals-chat-after-rcb-vs-lsg-69ff22ecbc4e0baeebc47683",
+          "lastmod": "2026-06-18T10:38:58+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/vaibhav-sooryavanshi-not-alone-ipl-stars-to-make-india-debut-if-shreyas-iyer-becomes-t20i-captain-69fdc938bc4e0baeebc4744e",
+          "lastmod": "2026-06-18T10:38:01+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ind-w-vs-eng-w-live-streaming-live-telecast-2nd-t20i-where-to-watch-india-tour-of-england-2026-6a1af7ecbc4e0baeebc4a47d",
+          "lastmod": "2026-06-01T22:40:11+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ipl-2026-prize-money-how-much-will-rcb-gt-orange-cap-purple-cap-mvp-get-6a1bd13d42d0dd28eb0526bb",
+          "lastmod": "2026-06-01T11:24:12+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/all-records-broken-by-rcb-as-rajat-patidars-men-win-ipl-2026-6a1c7c71263a2b4faab4b98c",
+          "lastmod": "2026-06-01T00:08:11+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/virat-kohli-injured-rcb-star-in-doubt-for-india-vs-afghanistan-odis-after-ipl-final-struggles-6a1c75f56b8f875a40f55611",
+          "lastmod": "2026-06-01T00:02:12+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-reactions/watch-out-haters-virat-kohlis-fifty-in-ipl-2026-final-leaves-fans-awestruck-6a1c7b6833c51dcf2cc3dd7a",
+          "lastmod": "2026-05-31T23:48:16+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/massive-drama-in-ipl-final-virat-kohli-shubman-gill-argue-over-catch-controversy-6a1c7a2cbc4e0baeebc4a6ad",
+          "lastmod": "2026-05-31T23:45:03+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/virat-kohli-injury-update-king-reveals-status-for-ind-vs-afg-odis-6a1c7902abefb94ed8b2d0a1",
+          "lastmod": "2026-05-31T23:38:02+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/watch-anushka-sharma-worried-as-rashid-khan-threatens-virat-kohli-6a1c746babefb94ed8b1b20a",
+          "lastmod": "2026-05-31T23:31:40+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/virat-kohlis-fastest-fifty-in-ipl-rcb-great-shines-bright-vs-gt-in-ipl-2026-final-6a1c70c5abefb94ed8b0f6d1",
+          "lastmod": "2026-05-31T23:21:27+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/4464-virat-kohli-gives-belt-treatment-to-kagiso-rabada-in-ipl-2026-final-6a1c683cabefb94ed8ae538e",
+          "lastmod": "2026-05-31T22:56:35+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 457,
+        "analysis article": 97,
+        "news article": 911,
+        "streaming information": 13,
+        "injury news": 38,
+        "match report": 9,
+        "squad news": 68,
+        "pitch report": 42,
+        "records/statistics": 29,
+        "playing XI": 2,
+        "weather": 4,
+        "prediction": 1
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_archive_2026_06.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 1203,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-listicles/youngest-player-to-score-a-50-in-t20is-6a3e33d8081980692b858100",
+          "lastmod": "2026-07-24T12:54:28+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/kl-rahuls-2027-world-cup-spot-in-danger-ishan-kishans-new-role-in-ind-vs-afg-raises-eyebrows-6a2d4e74081980692b856e4d",
+          "lastmod": "2026-07-14T13:29:53+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/ipl-orange-cap-winners-list-6a1d55c8bc4e0baeebc4a82e",
+          "lastmod": "2026-07-10T17:38:09+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/youngest-players-to-represent-india-in-t20is-6a3a73646ba6d5c9df38a061",
+          "lastmod": "2026-07-07T15:06:04+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/youngest-players-to-make-t20i-debut-where-does-vaibhav-sooryavanshi-stand-6a3e7320081980692b8581ec",
+          "lastmod": "2026-07-06T17:30:46+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/bihar-born-players-to-represent-indian-cricket-team-6a3e5f34081980692b8581a0",
+          "lastmod": "2026-07-06T16:44:21+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/youngest-players-to-debut-for-india-in-mens-cricket-6a200cb4bc4e0baeebc4ad99",
+          "lastmod": "2026-07-06T16:13:19+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/rohit-sharmas-massive-icc-tournament-record-broken-by-ellyse-perry-6a367be0d3c7e0e0f003181a",
+          "lastmod": "2026-07-06T14:49:10+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-prediction/harry-brook-to-drop-rcb-batter-englands-predicted-playing-xi-for-1st-t20i-vs-india-2026-6a43c4d8081980692b8586f0",
+          "lastmod": "2026-07-01T11:23:19+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ind-vs-eng-live-streaming-live-telecast-1st-t20i-where-to-watch-india-tour-of-england-2026-6a43ef08081980692b85874f",
+          "lastmod": "2026-07-01T09:19:27+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/england-announce-playing-xi-for-1st-t20i-vs-india-jofra-archer-out-6a43e9bf9035cf374657e526",
+          "lastmod": "2026-06-30T22:02:36+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/shreyas-iyer-drags-bcci-and-ipl-into-indias-series-defeat-vs-ireland-6a43e5a8081980692b85873c",
+          "lastmod": "2026-06-30T21:20:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/chester-le-street-pitch-report-weather-report-for-ind-vs-eng-1st-t20i-india-tour-of-england-2026-6a43e0f8081980692b858729",
+          "lastmod": "2026-06-30T21:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/shreyas-iyer-refuses-to-guarantee-vaibhav-sooryavanshis-debut-in-ind-vs-eng-6a43d414081980692b858715",
+          "lastmod": "2026-06-30T20:05:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/jofra-archer-to-make-abhishek-sharma-sanju-samson-sweat-india-vs-england-player-battles-6a43d2e8081980692b858700",
+          "lastmod": "2026-06-30T20:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 287,
+        "news article": 599,
+        "streaming information": 34,
+        "playing XI": 8,
+        "pitch report": 41,
+        "analysis article": 120,
+        "injury news": 20,
+        "squad news": 59,
+        "records/statistics": 20,
+        "weather": 6,
+        "match report": 6,
+        "team": 2,
+        "tactical analysis": 1
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_archive_2026_07.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 1093,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-news/india-test-squad-for-sri-lanka-announced-jasprit-bumrah-ravindra-jadeja-return-6a68279c6105a32ef3ed0285",
+          "lastmod": "2026-08-03T10:47:46+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ben-stokes-tormented-by-kuldeep-yadav-even-after-england-retirement-6a6cd5958b0e7e66320ba8ab",
+          "lastmod": "2026-07-31T22:34:21+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/jasprit-bumrah-injury-update-will-he-play-sri-lanka-tests-6a6cce008b0e7e66320ab2f8",
+          "lastmod": "2026-07-31T22:02:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/india-odi-record-at-newlands-cricket-ground-in-cape-town-before-2027-world-cup-6a6cc6802d81e7efd71874ce",
+          "lastmod": "2026-07-31T21:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/saransh-jain-or-tanush-kotian-did-indian-selectors-pick-the-right-all-rounder-for-sri-lanka-6a6cc2fc2d81e7efd71874bc",
+          "lastmod": "2026-07-31T21:15:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-stories/indian-teams-odi-record-at-kingsmead-cricket-ground-in-durban-before-2027-world-cup-6a6cbf782d81e7efd71874aa",
+          "lastmod": "2026-07-31T21:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-stories/indian-teams-odi-record-at-boland-park-paarl-before-2027-world-cup-6a6cb1682d81e7efd718749a",
+          "lastmod": "2026-07-31T20:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-stories/indian-teams-odi-record-at-the-wanderers-in-johannesburg-before-2027-world-cup-6a6ca3582d81e7efd718748a",
+          "lastmod": "2026-07-31T19:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ecb-flashes-ben-stokes-retirement-reversal-for-ashes-6a6ca13ef44836828a25dcc0",
+          "lastmod": "2026-07-31T18:51:02+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ecb-reveal-why-harry-brook-was-snubbed-as-england-test-captain-6a6c9d7c2d81e7efd7187478",
+          "lastmod": "2026-07-31T18:35:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-reactions/jemimah-rodrigues-breaks-major-protocol-as-internet-slams-her-for-handshake-with-pakistan-captain-6a6c9ab13d4d94605c17f27d",
+          "lastmod": "2026-07-31T18:27:05+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/indian-teams-odi-record-at-queens-sports-club-before-2027-world-cup-6a6c95482d81e7efd7187466",
+          "lastmod": "2026-07-31T18:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/hardik-pandya-going-to-csk-kkr-or-dc-which-decision-suits-him-best-6a6c8c1a3d4d94605c15ea57",
+          "lastmod": "2026-07-31T17:20:50+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ravichandran-ashwin-picks-indias-2027-world-cup-squad-shocking-exits-made-6a6c83b42d81e7efd7187452",
+          "lastmod": "2026-07-31T16:45:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-listicles/dpls-road-to-ipl-players-who-can-use-dpl-2026-to-seal-ipl-retentions-6a6c81623d4d94605c1459c0",
+          "lastmod": "2026-07-31T16:35:06+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "squad news": 54,
+        "news article": 580,
+        "injury news": 20,
+        "other": 254,
+        "analysis article": 107,
+        "records/statistics": 16,
+        "streaming information": 13,
+        "team": 1,
+        "playing XI": 5,
+        "pitch report": 27,
+        "match report": 13,
+        "prediction": 2,
+        "weather": 1
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_archive_2026_08.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 306,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "lastmod": "2026-08-10T17:35:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "lastmod": "2026-08-10T17:27:22+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/england-batter-hits-six-consecutive-sixes-but-fails-to-enter-elite-list-featuring-yuvraj-singh-gary-sobers-6a79b489d783af4a0ff219f3",
+          "lastmod": "2026-08-10T16:52:49+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/india-stars-snubbed-as-icc-announces-player-of-the-month-nominees-for-july-2026-6a79a851d783af4a0ff041cb",
+          "lastmod": "2026-08-10T16:23:45+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ex-rcb-star-feels-ab-de-villiers-was-more-lethal-than-kohli-rohit-dhoni-explains-why-6a79acd82d81e7efd718804a",
+          "lastmod": "2026-08-10T16:20:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/gujarat-titans-player-openly-wishes-to-join-ms-dhonis-csk-in-ipl-6a79a28fd783af4a0fef6c6a",
+          "lastmod": "2026-08-10T15:36:07+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/bcci-mulls-shifting-indian-tournament-from-bengaluru-due-to-government-restrictions-6a799fffd783af4a0fef0f9a",
+          "lastmod": "2026-08-10T15:25:11+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-records/mitchell-marsh-enters-virat-kohli-ab-de-villiers-league-with-special-t20-feat-6a799ca8d783af4a0fee8d44",
+          "lastmod": "2026-08-10T15:10:56+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/sarfaraz-khan-vs-dhruv-jurel-from-shared-debut-to-a-new-battle-for-indias-test-spot-6a7993102d81e7efd7188030",
+          "lastmod": "2026-08-10T14:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/zaheer-khan-sends-straightforward-message-to-mohammed-shami-amid-team-india-snub-6a7985002d81e7efd718801f",
+          "lastmod": "2026-08-10T13:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/yuzvendra-chahal-throws-his-hat-into-the-ring-for-2027-world-cup-selection-6a797df82d81e7efd7188008",
+          "lastmod": "2026-08-10T13:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/vvs-laxman-reveals-how-jay-shah-helped-gautam-gambhir-become-indias-head-coach-6a797a742d81e7efd7187ff5",
+          "lastmod": "2026-08-10T12:45:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/sarfaraz-khan-creates-headache-for-gambhir-indias-selection-conundrums-for-1st-test-vs-sl-6a7976f02d81e7efd7187fe3",
+          "lastmod": "2026-08-10T12:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/sarfaraz-khan-out-of-major-tournament-after-joining-india-squad-for-sri-lanka-tests-6a7973e8d783af4a0fea142f",
+          "lastmod": "2026-08-10T12:17:04+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-news/why-kuldeep-yadav-didnt-bowl-on-day-3-of-indias-warm-up-match-official-update-arrives-6a796e97d783af4a0fe982a3",
+          "lastmod": "2026-08-10T11:54:38+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "news article": 174,
+        "other": 53,
+        "analysis article": 32,
+        "squad news": 14,
+        "pitch report": 6,
+        "playing XI": 1,
+        "injury news": 14,
+        "streaming information": 5,
+        "prediction": 2,
+        "weather": 1,
+        "match report": 2,
+        "records/statistics": 2
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/player.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "urlset",
+      "count": 15955,
+      "sample": [
+        {
+          "loc": "https://crex.com/player/shubman-gill-O5",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/babar-azam-F2",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/abdullah-shafique-4QM",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/dharmendra-jadeja-5MV",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/sachin-b-BPI",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/ns-harish-6OS",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/shahrukh-khan-3VF",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/b-iyappan-BQ8",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/abhinav-kannan-PQO",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/m-silambarasan-6LA",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/abhishek-tanwar-6LT",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/ramsingh-sonu-yadav-5IT",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/narayan-jagadeesan-E6",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/hi-waseem-ahmed-E7K",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/r-ram-arvindh-6QT",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 15955
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/rankings.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "urlset",
+      "count": 28,
+      "sample": [
+        {
+          "loc": "https://crex.com/rankings/men/teams",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/women/teams",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/batter",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/bowler",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/allrounder",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/teams/odi",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/teams/t20",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/teams/test",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/women/batter",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/women/bowler",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/women/allrounder",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/women/teams/odi",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/women/teams/t20",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/batter/odi",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/batter/t20",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "team": 7,
+        "other": 21
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/team.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "urlset",
+      "count": 1444,
+      "sample": [
+        {
+          "loc": "https://crex.com/team",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/india-O",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/sri-lanka-a-RK",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/west-indies-V",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/pakistan-U",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/india-women-16",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/south-africa-women-17",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/sri-lanka-women-1J",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/bangladesh-women-1M",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/pakistan-women-1K",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/thailand-women-2G",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/hong-kong-women-LG",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/uae-women-AB",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/indonesia-women-CI",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team/saurashtra-GT",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "team": 1444
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/cricket-live-score.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "urlset",
+      "count": 22877,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-live-score",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/kk-vs-ss-4th-match-tamil-nadu-premier-league-2026-match-updates-12YY",
+          "lastmod": "2026-08-06T20:40:01+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/csg-vs-nrk-3rd-match-tamil-nadu-premier-league-2026-match-updates-12YX",
+          "lastmod": "2026-08-05T19:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/csg-vs-itt-5th-match-tamil-nadu-premier-league-2026-match-updates-12YZ",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/ls-vs-mil-23rd-match-the-hundred-2026-men-match-updates-ZL1",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/bp-vs-tr-22nd-match-the-hundred-2026-men-match-updates-ZL0",
+          "lastmod": "2026-08-05T23:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/ind-vs-sl-xi-warm-up-india-tour-of-sri-lanka-2026-match-updates-13H8",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/pak-vs-wi-2nd-test-pakistan-tour-of-west-indies-2026-match-updates-11B5",
+          "lastmod": "2026-08-02T19:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/ndt-vs-pd-13th-match-delhi-premier-t20-league-2026-match-updates-13BH",
+          "lastmod": "2026-08-06T20:40:16+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/odw-vs-sds-12th-match-delhi-premier-t20-league-2026-match-updates-13BG",
+          "lastmod": "2026-08-06T13:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/ck-vs-gg-qualifier-2nd-match-lanka-premier-league-2026-match-updates-1286",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/ck-vs-kr-eliminator-1st-match-lanka-premier-league-2026-match-updates-1285",
+          "lastmod": "2026-08-05T19:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/ls-w-vs-mil-w-23rd-match-the-hundred-2026-women-match-updates-ZL6",
+          "lastmod": "2026-08-06T20:40:23+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/bp-w-vs-tr-w-22nd-match-the-hundred-2026-women-match-updates-ZL5",
+          "lastmod": "2026-08-05T19:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/afg-vs-ire-2nd-odi-afghanistan-tour-of-ireland-2026-match-updates-114N",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "match": 22877
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/series.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "urlset",
+      "count": 2120,
+      "sample": [
+        {
+          "loc": "https://crex.com/series",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/tamil-nadu-premier-league-2026-2CX",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/the-hundred-2026-men-2AW",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/india-tour-of-sri-lanka-2026-2AS",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/pakistan-tour-of-west-indies-2026-2BC",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/delhi-premier-t20-league-2026-2E4",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/lanka-premier-league-2026-1SY",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/the-hundred-2026-women-2AX",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/afghanistan-tour-of-ireland-2026-2FQ",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/assam-premier-league-2026-2K7",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/ireland-women-super-50-series-2026-2IP",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/mens-cwc-league-2-2023-27-1JK",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/ecs-england-hornchurch-2026-2LA",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/england-domestic-one-day-cup-2026-2AM",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/india-women-tour-of-south-africa-2026-2BW",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "series": 2120
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/stats.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "urlset",
+      "count": 1625,
+      "sample": [
+        {
+          "loc": "https://crex.com/stats/most-runs-in-wt20-world-cup-2026?m=0&sn=1TG&vn=-1&tm=-1&fmt=2&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-runs-in-wt20-world-cup-2026?m=0&sn=1TG&vn=-1&tm=-1&fmt=-1&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-wickets-in-wt20-world-cup-2026?m=1&sn=1TG&vn=-1&tm=-1&fmt=-1&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/highest-strike-rate-in-wt20-world-cup-2026?m=5&sn=1TG&vn=-1&tm=-1&fmt=-1&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-hundreds-in-wt20-world-cup-2026?m=6&sn=1TG&vn=-1&tm=-1&fmt=-1&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-sixes-in-wt20-world-cup-2026?m=3&sn=1TG&vn=-1&tm=-1&fmt=-1&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-fours-in-wt20-world-cup-2026?m=4&sn=1TG&vn=-1&tm=-1&fmt=-1&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-fifties-in-wt20-world-cup-2026?m=2&sn=1TG&vn=-1&tm=-1&fmt=-1&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-runs-in-tnpl-2026?m=0&sn=2CX&vn=-1&tm=-1&fmt=2&isT=0&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-wickets-in-tnpl-2026?m=1&sn=2CX&vn=-1&tm=-1&fmt=2&isT=0&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-sixes-in-tnpl-2026?m=3&sn=2CX&vn=-1&tm=-1&fmt=2&isT=0&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/highest-strike-rate-in-tnpl-2026?m=5&sn=2CX&vn=-1&tm=-1&fmt=2&isT=0&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-runs-in-the-hundred-2026?m=0&sn=2AW&vn=-1&tm=-1&fmt=5&isT=0&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-wickets-in-the-hundred-2026?m=1&sn=2AW&vn=-1&tm=-1&fmt=5&isT=0&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-sixes-in-the-hundred-2026?m=3&sn=2AW&vn=-1&tm=-1&fmt=5&isT=0&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 1625
+      }
+    },
+    {
+      "url": "https://crex.com/crex_sitemap/news_sitemap.xml",
+      "status": 200,
+      "content_type": "application/xml; charset=utf-8",
+      "kind": "urlset",
+      "count": 59,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+          "lastmod": "2026-08-10T18:26:22+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T18:22:37+05:30",
+          "news_title": "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+          "lastmod": "2026-08-10T18:10:03+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T18:10:03+05:30",
+          "news_title": "Not Hemang Badani, CSK Drops Massive Hint On Next Head Coach"
+        },
+        {
+          "loc": "https://crex.com/cricket-stories/who-is-tushar-raheja-and-why-should-kkr-mi-and-dc-keep-an-eye-on-him-in-tnpl-2026-6a79c4482d81e7efd718806e",
+          "lastmod": "2026-08-10T18:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T18:00:00+05:30",
+          "news_title": "Who Is Tushar Raheja, and Why Should KKR, MI and DC Keep an Eye on Him in TNPL 2026?"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "lastmod": "2026-08-10T17:35:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T17:35:00+05:30",
+          "news_title": "Indian Cricketers Taking Drastic Steps For Physical Transformation"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "lastmod": "2026-08-10T17:27:22+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T17:27:22+05:30",
+          "news_title": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour"
+        },
+        {
+          "loc": "https://crex.com/cricket-records/england-batter-hits-six-consecutive-sixes-but-fails-to-enter-elite-list-featuring-yuvraj-singh-gary-sobers-6a79b489d783af4a0ff219f3",
+          "lastmod": "2026-08-10T16:52:49+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:52:49+05:30",
+          "news_title": "England Batter Hits Six Consecutive Sixes But Fails To Enter Elite List Featuring Yuvraj Singh, Gary Sobers"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/india-stars-snubbed-as-icc-announces-player-of-the-month-nominees-for-july-2026-6a79a851d783af4a0ff041cb",
+          "lastmod": "2026-08-10T16:23:45+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:00:41+05:30",
+          "news_title": "India Stars Snubbed As ICC Announces Player Of The Month Nominees For July 2026"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/ex-rcb-star-feels-ab-de-villiers-was-more-lethal-than-kohli-rohit-dhoni-explains-why-6a79acd82d81e7efd718804a",
+          "lastmod": "2026-08-10T16:20:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T16:20:00+05:30",
+          "news_title": "Ex-RCB Star Feels AB de Villiers Was More Lethal Than Kohli, Rohit, Dhoni; Explains Why"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/gujarat-titans-player-openly-wishes-to-join-ms-dhonis-csk-in-ipl-6a79a28fd783af4a0fef6c6a",
+          "lastmod": "2026-08-10T15:36:07+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:36:07+05:30",
+          "news_title": "Gujarat Titans Player Openly Wishes To Join MS Dhoni's CSK In IPL"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/bcci-mulls-shifting-indian-tournament-from-bengaluru-due-to-government-restrictions-6a799fffd783af4a0fef0f9a",
+          "lastmod": "2026-08-10T15:25:11+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:25:11+05:30",
+          "news_title": "BCCI Mulls Shifting Indian Tournament From Bengaluru Due To Government Restrictions"
+        },
+        {
+          "loc": "https://crex.com/cricket-records/mitchell-marsh-enters-virat-kohli-ab-de-villiers-league-with-special-t20-feat-6a799ca8d783af4a0fee8d44",
+          "lastmod": "2026-08-10T15:10:56+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T15:10:56+05:30",
+          "news_title": "Mitchell Marsh Enters Virat Kohli, AB de Villiers' League With Special T20 Feat"
+        },
+        {
+          "loc": "https://crex.com/cricket-analysis/sarfaraz-khan-vs-dhruv-jurel-from-shared-debut-to-a-new-battle-for-indias-test-spot-6a7993102d81e7efd7188030",
+          "lastmod": "2026-08-10T14:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T14:30:00+05:30",
+          "news_title": "Sarfaraz Khan vs Dhruv Jurel: From Shared Debut To A New Battle For India's Test Spot"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/zaheer-khan-sends-straightforward-message-to-mohammed-shami-amid-team-india-snub-6a7985002d81e7efd718801f",
+          "lastmod": "2026-08-10T13:30:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T13:30:00+05:30",
+          "news_title": "Zaheer Khan Sends Straightforward Message To Mohammed Shami Amid Team India Snub"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/yuzvendra-chahal-throws-his-hat-into-the-ring-for-2027-world-cup-selection-6a797df82d81e7efd7188008",
+          "lastmod": "2026-08-10T13:00:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T13:00:00+05:30",
+          "news_title": "Yuzvendra Chahal Throws His Hat Into The Ring For 2027 World Cup Selection"
+        },
+        {
+          "loc": "https://crex.com/cricket-news/vvs-laxman-reveals-how-jay-shah-helped-gautam-gambhir-become-indias-head-coach-6a797a742d81e7efd7187ff5",
+          "lastmod": "2026-08-10T12:45:00+05:30",
+          "has_news": true,
+          "news_publication": "CREX",
+          "news_publication_date": "2026-08-10T12:45:00+05:30",
+          "news_title": "VVS Laxman Reveals How Jay Shah Helped Gautam Gambhir Become India's Head Coach"
+        }
+      ],
+      "has_news_namespace": true,
+      "url_type_counts": {
+        "news article": 26,
+        "other": 11,
+        "analysis article": 6,
+        "squad news": 2,
+        "playing XI": 1,
+        "injury news": 4,
+        "match": 9
+      }
+    },
+    {
+      "url": "https://a286825.sitemaphosting6.com/4510197/sitemap_4510197_1.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "urlset",
+      "count": 30000,
+      "sample": [
+        {
+          "loc": "https://crex.com/",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/team",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/schedule",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/stats/most-runs-in-wt20-world-cup-2026?m=0&sn=1TG&vn=-1&tm=-1&fmt=2&isT=7&yr=2026",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/rankings/men/teams",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/tamil-nadu-premier-league-2026-2CX",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/kk-vs-ss-4th-match-tamil-nadu-premier-league-2026-match-updates-12YY",
+          "lastmod": "2026-08-06T20:40:01+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/csg-vs-nrk-3rd-match-tamil-nadu-premier-league-2026-match-updates-12YX",
+          "lastmod": "2026-08-05T19:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/csg-vs-itt-5th-match-tamil-nadu-premier-league-2026-match-updates-12YZ",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/the-hundred-2026-men-2AW",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/ls-vs-mil-23rd-match-the-hundred-2026-men-match-updates-ZL1",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/bp-vs-tr-22nd-match-the-hundred-2026-men-match-updates-ZL0",
+          "lastmod": "2026-08-05T23:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/series/india-tour-of-sri-lanka-2026-2AS",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "other": 13352,
+        "series": 1634,
+        "team": 832,
+        "schedule": 1,
+        "match": 14181
+      }
+    },
+    {
+      "url": "https://a286825.sitemaphosting6.com/4510197/sitemap_4510197_2.xml",
+      "status": 200,
+      "content_type": "application/xml",
+      "kind": "urlset",
+      "count": 20000,
+      "sample": [
+        {
+          "loc": "https://crex.com/cricket-live-score/amb-vs-vaw-10th-match-navi-mumbai-premier-league-t20-2026-match-updates-11N0",
+          "lastmod": "2026-04-08T18:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/beb-vs-vaw-6th-match-navi-mumbai-premier-league-t20-2026-match-updates-11MW",
+          "lastmod": "2026-04-06T18:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/amandeep-khare-5L8/matches",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/chg-vs-mah-83rd-match-vijay-hazare-trophy-elite-2025-26-match-updates-XWD",
+          "lastmod": "2026-01-06T09:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/chg-vs-jk-28th-match-vijay-hazare-trophy-2016-17-match-updates-10CE",
+          "lastmod": "2017-02-28T09:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/sanjeet-jitendra-desai-7CI/matches",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/rp-vs-st-11th-match-chhattisgarh-premier-league-2026-match-updates-12AY",
+          "lastmod": "2026-06-08T19:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/chg-vs-mum-35th-match-vijay-hazare-trophy-elite-2025-26-match-updates-WP0",
+          "lastmod": "2025-12-29T09:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/bca-vs-pc-5th-match-senior-elite-group-t20-tournament-2025-match-updates-UB8",
+          "lastmod": "2025-04-28T07:45:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/paras-dogra-20/matches",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/kar-vs-pdc-30th-match-ranji-trophy-2022-23-match-updates-HIW",
+          "lastmod": "2022-12-20T09:30:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/pdc-vs-sikm-109th-match-vijay-hazare-trophy-2018-19-match-updates-107C",
+          "lastmod": "2018-10-02T09:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/hp-vs-tn-26th-match-vijay-hazare-trophy-2016-17-match-updates-10CC",
+          "lastmod": "2017-02-28T09:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/player/qamran-iqbal-5IK/matches",
+          "lastmod": "2026-08-08T13:43:31+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        },
+        {
+          "loc": "https://crex.com/cricket-live-score/jk-vs-kar-10th-match-vijay-hazare-trophy-2023-match-updates-M4W",
+          "lastmod": "2023-11-23T09:00:00+05:30",
+          "has_news": false,
+          "news_publication": null,
+          "news_publication_date": null,
+          "news_title": null
+        }
+      ],
+      "has_news_namespace": false,
+      "url_type_counts": {
+        "match": 8696,
+        "other": 10199,
+        "team": 619,
+        "series": 486
+      }
+    }
+  ],
+  "crex_article_url_count_seen": 7295,
+  "crex_match_url_count_seen": 45772,
+  "crex_sampled_pages": [
+    {
+      "url": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "final_url": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 179315,
+      "title": "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure | CREX",
+      "description": "Cricket Scotland and the Royal Dutch Cricket Association release a joint statement, questioning the timing of changes in the 2027 World Cup structure.",
+      "canonical": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "robots": "index, follow, max-image-preview:large",
+      "h1": [
+        "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure"
+      ],
+      "schema_types": [
+        "BreadcrumbList",
+        "ItemList",
+        "NewsArticle",
+        "NewsMediaOrganization",
+        "WebPage"
+      ],
+      "anchor_count": 50,
+      "match_links": [],
+      "article_links": [
+        {
+          "href": "https://crex.com/cricket-news/odi-world-cup-2027-dates-out-tournament-to-run-for-48-days-6a2aa035f56c5674dfa3a667",
+          "text": "next year's World Cup in Africa"
+        },
+        {
+          "href": "https://crex.com/cricket-news/icc-slammed-for-new-format-as-world-cup-teams-break-silence-6a5b2ca42d81e7efd7186139",
+          "text": "This received widespread criticism"
+        },
+        {
+          "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "text": "Indian Cricketers Taking Drastic Steps For Physical Transformation Indian cricketers are embracing drastic fitness trans"
+        },
+        {
+          "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "text": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour Bangladesh face a daunting challenge agains"
+        },
+        {
+          "href": "https://crex.com/cricket-news/rishabh-pants-tweet-causes-stir-uttarakhand-chief-minister-gets-involved-6a76c9bb4efa7769205c5069",
+          "text": "Rishabh Pant's Tweet Causes Stir! Uttarakhand Chief Minister Gets Involved Aug 8 2026, 6:16 AM"
+        },
+        {
+          "href": "https://crex.com/cricket-news/kl-rahuls-plan-revealed-to-counter-sri-lankan-spinners-in-upcoming-test-series-6a74ab374efa7769202223f8",
+          "text": "KL Rahul\u2019s Plan Revealed To Counter Sri Lankan Spinners In Upcoming Test Series Aug 6 2026, 3:41 PM"
+        },
+        {
+          "href": "https://crex.com/cricket-news/how-can-ireland-qualify-for-2027-world-cup-after-direct-qualification-miss-6a741eb453cce6e7619ef5f2",
+          "text": "How Can Ireland Qualify For 2027 World Cup After Direct Qualification Miss? Aug 6 2026, 5:42 AM"
+        },
+        {
+          "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "text": "Indian Cricketers Taking Drastic Steps For Physical Transformation 52 minutes ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "text": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour 1 hour ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+          "text": "CREX"
+        }
+      ],
+      "word_count": 940
+    },
+    {
+      "url": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+      "final_url": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 342424,
+      "title": "IRE 181-8 (43.1) (Jai Moondra 22(27), Gavin Hoey 24(55)) vs Afghanistan 3rd-ODI | Afghanistan tour of Ireland 2026 - CREX",
+      "description": "Track Ireland vs Afghanistan 3rd-ODI Afghanistan tour of Ireland 2026 match live score and updates from Civil Service Cricket Club, Belfast with ball by ball commentary, real-time insights, match highlights and today match details at CREX.",
+      "canonical": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+      "robots": "index, follow, max-image-preview:large",
+      "h1": [
+        "AFG vs IRE, 3rd ODI, AFG vs IRE 2026 live"
+      ],
+      "schema_types": [
+        "BreadcrumbList",
+        "ItemList",
+        "LiveBlogPosting",
+        "NewsArticle",
+        "NewsMediaOrganization",
+        "SportsEvent",
+        "WebPage"
+      ],
+      "anchor_count": 29,
+      "match_links": [
+        {
+          "href": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+          "text": "Live"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+          "text": "CREX"
+        }
+      ],
+      "article_links": [],
+      "word_count": 436
+    },
+    {
+      "url": "https://crex.com/",
+      "final_url": "https://crex.com/",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 810210,
+      "title": "CREX: Cricket Live Scores, Latest Cricket News, Commentary, Player Stats and ICC Rankings",
+      "description": "CREX brings you cricket live action with live score, ball by ball commentary, cricket news, cricket stats, rankings, domestic and international series coverage.",
+      "canonical": null,
+      "robots": "index, follow, max-image-preview:large",
+      "h1": [],
+      "schema_types": [
+        "ItemList",
+        "NewsMediaOrganization",
+        "WebPage",
+        "WebSite"
+      ],
+      "anchor_count": 137,
+      "match_links": [
+        {
+          "href": "https://crex.com/cricket-live-score",
+          "text": "Live (4)"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/ind-vs-sl-xi-warm-up-india-tour-of-sri-lanka-2026-match-updates-13H8",
+          "text": "Warm Up Test , Nondescripts Cricket Club Ground, Colombo Sri Lanka SL-XI 363-8 d & 200/6 d IND 357-6 d & 214/4 IND won b"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+          "text": "29th 100B , Trent Bridge, Nottingham Trent Rockets Southern Brave Today 5:30 PM"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/bp-vs-ls-28th-match-the-hundred-2026-men-match-updates-ZLG",
+          "text": "28th 100B , Lord's Cricket Ground, London BP 162-4 100b LS 166-3 82b LS won by 7 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+          "text": "11th T20 , NPR College Ground, Dindigul Salem Spartans Madurai Panthers Starting In 52m : 07s"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/csg-vs-dd-9th-match-tamil-nadu-premier-league-2026-match-updates-12Z3",
+          "text": "9th T20 , NPR College Ground, Dindigul DD 126-8 20.0 CSG 131-3 16.2 CSG won by 7 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+          "text": "20th T20 , Arun Jaitley Stadium, Delhi EDR 95-5 15.0 WDL 3-0 0.3 55 runs needed in 39 balls"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+          "text": "21st T20 , Arun Jaitley Stadium, Delhi PD ODW Toss delayed"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+          "text": "3rd ODI , Civil Service Cricket Club, Belfast IRE 181-8 43.1 AFG Yet to bat AFG opt to bowl"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/sb-w-vs-tr-w-29th-match-the-hundred-2026-women-match-updates-ZLC",
+          "text": "29th 100B , Trent Bridge, Nottingham Trent Rockets Women Southern Brave Women Starting In 52m : 07s"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/bp-w-vs-ls-w-28th-match-the-hundred-2026-women-match-updates-ZLB",
+          "text": "28th 100B , Lord's Cricket Ground, London LS-W 140-4 100b BP-W 108-8 100b LS-W won by 32 runs"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/gg-vs-jk-final-lanka-premier-league-2026-match-updates-1287",
+          "text": "Final T20 , R. Premadasa Stadium, Colombo JK 123 19.3 GG 126-5 15.5 GG won by 5 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/abf-vs-slk-3rd-match-caribbean-premier-league-2026-match-updates-11TY",
+          "text": "3rd T20 , Arnos Vale Stadium, Kingstown, St Vincent SLK 187-8 20.0 ABF 183-7 20.0 SLK won by 4 runs"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/dw-vs-gr-20th-match-assam-premier-league-2026-match-updates-13AF",
+          "text": "20th T20 , Barsapara Stadium Guwahati, Assam Dibrugarh Warriors Guwahati Royals Starting In 22m : 07s"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/js-vs-tt-19th-match-assam-premier-league-2026-match-updates-13AE",
+          "text": "19th T20 , Barsapara Stadium Guwahati, Assam TT 160-6 20.0 JS 162-1 18.1 JS won by 9 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/brn-vs-ita-32nd-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GU",
+          "text": "32nd List A , University of Dar-es-Salaam Ground ITA 200 49.2 BRN 132 41.1 ITA won by 68 runs"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/sco-vs-uae-125th-match-mens-cwc-league-2-2023-27-match-updates-1370",
+          "text": "125th ODI , Forthill Park Cricket Ground, Dundee UAE 231-8 40.0 SCO 235-9 39.5 SCO won by 1 wicket"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/dg-w-vs-typ-w-3rd-odi-ireland-women-super-50-series-2026-match-updates-12CZ",
+          "text": "3rd One Day , Bready Cricket Club Ground TYP-W 281-8 50.0 DG-W Yet to bat Innings Break"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/goa-vs-oma-1st-t20-goa-tour-of-oman-2026-match-updates-13IH",
+          "text": "1st T20 , Al Amerat Cricket Ground (Ministry Turf 1) Oman Goa Starting In 01h : 22m"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/lancs-vs-warks-57th-match-england-domestic-one-day-cup-2026-match-updates-ZZL",
+          "text": "57th One Day , Rugby School Ground, Rugby LANCS 311-5 50.0 WARKS 314-8 48.5 WARKS won by 2 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/glcs-vs-nots-61st-match-england-domestic-one-day-cup-2026-match-updates-ZZP",
+          "text": "61st One Day , College Ground, Cheltenham NOTS 279 48.3 GLCS 282-6 49.1 GLCS won by 4 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/dbs-vs-mdx-64th-match-england-domestic-one-day-cup-2026-match-updates-ZZS",
+          "text": "64th One Day , County Cricket Ground, Derby MDX 327-6 50.0 DBS 240 43.5 MDX won by 87 runs"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/cdk-vs-odw-4th-match-delhi-premier-t20-league-2026-match-updates-13B8",
+          "text": "4th T20 , Arun Jaitley Stadium, Delhi ODW 130-5 10.0 CDK 133-6 9.5 CDK won by 4 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/ind-vs-sl-xi-warm-up-india-tour-of-sri-lanka-2026-match-updates-13H8",
+          "text": "Warm Up Test , Nondescripts Cricket Club Ground, Colombo Sri Lanka SL-X.. 363-8 d & 200/6 d IND.. 357-6 d & 214/4 IND wo"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+          "text": "29th 100B , Trent Bridge, Nottingham Trent Rockets Southern Brave Today 5:30 PM"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/bp-vs-ls-28th-match-the-hundred-2026-men-match-updates-ZLG",
+          "text": "28th 100B , Lord's Cricket Ground, London BP 162-4 100b LS 166-3 82b LS won by 7 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+          "text": "11th T20 , NPR College Ground, Dindigul Salem Spartans Madurai Panthers Starting In 52m : 07s"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/csg-vs-dd-9th-match-tamil-nadu-premier-league-2026-match-updates-12Z3",
+          "text": "9th T20 , NPR College Ground, Dindigul DD 126-8 20.0 CSG 131-3 16.2 CSG won by 7 wickets"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+          "text": "20th T20 , Arun Jaitley Stadium, Delhi EDR 95-5 15.0 WDL 3-0 0.3 Live 55 runs needed in 39 balls"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+          "text": "21st T20 , Arun Jaitley Stadium, Delhi PD ODW Live Toss delayed"
+        }
+      ],
+      "article_links": [
+        {
+          "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+          "text": "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure Cricket Scotland and the Royal Dutch Cri"
+        },
+        {
+          "href": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+          "text": "Not Hemang Badani, CSK Drops Massive Hint On Next Head Coach The CSK franchise drops a massive hint in regards to their "
+        },
+        {
+          "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "text": "Indian Cricketers Taking Drastic Steps For Physical Transformation Indian cricketers are embracing drastic fitness trans"
+        },
+        {
+          "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "text": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour Bangladesh face a daunting challenge agains"
+        }
+      ],
+      "word_count": 1334
+    },
+    {
+      "url": "https://crex.com/news",
+      "final_url": "https://crex.com/news",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 367149,
+      "title": "Cricket News & Updates - CREX",
+      "description": "CREX is your go-to channel for all things cricket. We believe in creating content that is engaging and accessible to all. Not only do we cover the latest in cricket, but we also weave stories with passion and reverence for the sport.",
+      "canonical": "https://crex.com/news",
+      "robots": "index, follow, max-image-preview:large",
+      "h1": [],
+      "schema_types": [
+        "BreadcrumbList",
+        "ItemList",
+        "NewsMediaOrganization",
+        "WebPage"
+      ],
+      "anchor_count": 157,
+      "match_links": [],
+      "article_links": [
+        {
+          "href": "https://crex.com/cricket-news/bcci-names-sarfaraz-khan-as-sai-sudharsans-replacement-in-india-squad-for-sri-lanka-tests-6a788d73271b0959992680e8",
+          "text": "BCCI Names Sarfaraz Khan As Sai Sudharsan's Replacement In India Squad For Sri Lanka Tests Debashis \u2219 23 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/bcci-names-sarfaraz-khan-as-sai-sudharsans-replacement-in-india-squad-for-sri-lanka-tests-6a788d73271b0959992680e8",
+          "text": "BCCI Names Sarfaraz Khan As Sai Sudharsan's Replacement In India Squad For Sri Lanka Tests Debashis \u2219 23 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/indias-strongest-playing-xi-for-first-test-vs-sri-lanka-after-warm-up-fixture-6a7880d82d81e7efd7187f58",
+          "text": "India's Strongest Playing XI For First Test Vs Sri Lanka After Warm Up Fixture Anurag \u2219 9 Aug 2026"
+        },
+        {
+          "href": "https://crex.com/cricket-news/bcci-names-sarfaraz-khan-as-sai-sudharsans-replacement-in-india-squad-for-sri-lanka-tests-6a788d73271b0959992680e8",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/bhuvneshwar-kumar-makes-himself-available-for-2027-world-cup-6a796662d783af4a0fe8adb5",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/sarfaraz-khan-out-of-major-tournament-after-joining-india-squad-for-sri-lanka-tests-6a7973e8d783af4a0fea142f",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/sher-e-punjab-t20-cup-2026-auction-players-list-sold-most-expensive-teams-6a7945b82d81e7efd7187fce",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/belfast-pitch-report-weather-report-for-ire-vs-afg-3rd-odi-afghanistan-tour-of-ireland-2026-6a7937a82d81e7efd7187fbb",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/india-stars-snubbed-as-icc-announces-player-of-the-month-nominees-for-july-2026-6a79a851d783af4a0ff041cb",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/devdutt-padikkals-century-and-spin-game-strengthen-his-no3-case-for-sri-lanka-tests-6a78ab082d81e7efd7187f8f",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/bcci-names-sarfaraz-khan-as-sai-sudharsans-replacement-in-india-squad-for-sri-lanka-tests-6a788d73271b0959992680e8",
+          "text": "BCCI Names Sarfaraz Khan As Sai Sudharsan's Replacement In India Squad For Sri Lanka Tests Debashis \u2219 23 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/bhuvneshwar-kumar-makes-himself-available-for-2027-world-cup-6a796662d783af4a0fe8adb5",
+          "text": "Bhuvneshwar Kumar Makes Himself Available For 2027 World Cup Arjun \u2219 8 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/sarfaraz-khan-out-of-major-tournament-after-joining-india-squad-for-sri-lanka-tests-6a7973e8d783af4a0fea142f",
+          "text": "Sarfaraz Khan Out Of Major Tournament After Joining India Squad For Sri Lanka Tests Abhinav \u2219 7 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/sher-e-punjab-t20-cup-2026-auction-players-list-sold-most-expensive-teams-6a7945b82d81e7efd7187fce",
+          "text": "Sher-E-Punjab T20 Cup 2026 Auction- Players List, Sold, Most Expensive, Teams Aakash \u2219 10 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/belfast-pitch-report-weather-report-for-ire-vs-afg-3rd-odi-afghanistan-tour-of-ireland-2026-6a7937a82d81e7efd7187fbb",
+          "text": "Belfast Pitch Report, Weather Report For IRE vs AFG 3rd ODI, Afghanistan Tour Of Ireland 2026 Sakshi \u2219 11 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/india-stars-snubbed-as-icc-announces-player-of-the-month-nominees-for-july-2026-6a79a851d783af4a0ff041cb",
+          "text": "India Stars Snubbed As ICC Announces Player Of The Month Nominees For July 2026 Abhinav \u2219 3 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/devdutt-padikkals-century-and-spin-game-strengthen-his-no3-case-for-sri-lanka-tests-6a78ab082d81e7efd7187f8f",
+          "text": "Devdutt Padikkal\u2019s Century And Spin Game Strengthen His No.3 Case For Sri Lanka Tests Darpan \u2219 21 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+          "text": "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure Mayank \u2219 15 mins ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+          "text": "Indian Cricketers Taking Drastic Steps For Physical Transformation Soumyajit \u2219 1 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+          "text": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour Akshita \u2219 2 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/sarfaraz-khan-vs-dhruv-jurel-from-shared-debut-to-a-new-battle-for-indias-test-spot-6a7993102d81e7efd7188030",
+          "text": "Sarfaraz Khan vs Dhruv Jurel: From Shared Debut To A New Battle For India's Test Spot Soumyajit \u2219 4 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/sarfaraz-khan-creates-headache-for-gambhir-indias-selection-conundrums-for-1st-test-vs-sl-6a7976f02d81e7efd7187fe3",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/sarfaraz-khan-creates-headache-for-gambhir-indias-selection-conundrums-for-1st-test-vs-sl-6a7976f02d81e7efd7187fe3",
+          "text": "Sarfaraz Khan Creates Headache For Gambhir: India's Selection Conundrums For 1st Test vs SL Anurag \u2219 6 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/devdutt-padikkals-century-and-spin-game-strengthen-his-no3-case-for-sri-lanka-tests-6a78ab082d81e7efd7187f8f",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/devdutt-padikkals-century-and-spin-game-strengthen-his-no3-case-for-sri-lanka-tests-6a78ab082d81e7efd7187f8f",
+          "text": "Devdutt Padikkal\u2019s Century And Spin Game Strengthen His No.3 Case For Sri Lanka Tests Darpan \u2219 21 hrs ago"
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/indias-strongest-playing-xi-for-first-test-vs-sri-lanka-after-warm-up-fixture-6a7880d82d81e7efd7187f58",
+          "text": ""
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/indias-strongest-playing-xi-for-first-test-vs-sri-lanka-after-warm-up-fixture-6a7880d82d81e7efd7187f58",
+          "text": "India's Strongest Playing XI For First Test Vs Sri Lanka After Warm Up Fixture Anurag \u2219 9 Aug 2026"
+        },
+        {
+          "href": "https://crex.com/cricket-analysis/lpl-2026-team-of-the-tournament-6a7864b82d81e7efd7187f27",
+          "text": ""
+        }
+      ],
+      "word_count": 1532
+    },
+    {
+      "url": "https://crex.com/scoreboard",
+      "final_url": "https://crex.com/scoreboard",
+      "status": 404,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 63048,
+      "title": "Page Not Found",
+      "description": null,
+      "canonical": null,
+      "robots": "index, follow, max-image-preview:large",
+      "h1": [],
+      "schema_types": [],
+      "anchor_count": 20,
+      "match_links": [],
+      "article_links": [],
+      "word_count": 69
+    },
+    {
+      "url": "https://crex.com/fixtures/match-list",
+      "final_url": "https://crex.com/schedule",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 179860,
+      "title": "CREX Cricket Schedule: Today Match, Upcoming Fixtures, ICC & Upcoming Cricket Fixtures",
+      "description": "Get Datewise, Serieswise and Teamwise Schedules of all International and Domestic Fixtures, Match Info and Results of All Upcoming and Finished Matches ",
+      "canonical": null,
+      "robots": "index, follow, max-image-preview:large",
+      "h1": [
+        "Cricket Schedule & Fixtures"
+      ],
+      "schema_types": [
+        "BreadcrumbList",
+        "CollectionPage",
+        "ItemList",
+        "NewsMediaOrganization",
+        "WebPage"
+      ],
+      "anchor_count": 40,
+      "match_links": [
+        {
+          "href": "https://crex.com/cricket-live-score/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+          "text": "WDL Yet to bat Innings Break EDR 95/5 15.0"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/js-vs-tt-19th-match-assam-premier-league-2026-match-updates-13AE",
+          "text": "TT 160/6 20.0 JS Won 19th T20 , Assam T20 2026 JS 162/1 18.1"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+          "text": "IRE 170/8 40.5 Live AFG Yet to bat"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/dg-w-vs-typ-w-3rd-odi-ireland-women-super-50-series-2026-match-updates-12CZ",
+          "text": "TYP-W 273/8 48.4 Live DG-W Yet to bat"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/dw-vs-gr-20th-match-assam-premier-league-2026-match-updates-13AF",
+          "text": "Dibrugarh Warriors 1:30 PM 20th T20 , Assam T20 2026 Guwahati Royals"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+          "text": "Purani Dilli-6 1:30 PM 21st T20 , DPL 2026 Outer Delhi Warriors"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/sb-w-vs-tr-w-29th-match-the-hundred-2026-women-match-updates-ZLC",
+          "text": "Trent Rockets Women 2:00 PM 29th 100B , The Hundred W 2026 Southern Brave Women"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+          "text": "Salem Spartans 2:00 PM 11th T20 , TNPL 2026 Madurai Panthers"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/goa-vs-oma-1st-t20-goa-tour-of-oman-2026-match-updates-13IH",
+          "text": "Oman 2:30 PM 1st T20 , GOA vs OMA 2026 Goa"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+          "text": "Trent Rockets 5:30 PM 29th 100B , The Hundred 2026 Southern Brave"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/hk-vs-tan-34th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GW",
+          "text": "Tanzania 6:00 AM 34th List A , CWC League B 2024-26 Hong Kong"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/ita-vs-ugn-35th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GX",
+          "text": "Italy 6:00 AM 35th List A , CWC League B 2024-26 Uganda"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/cdk-vs-ndt-22nd-match-delhi-premier-t20-league-2026-match-updates-13BQ",
+          "text": "Central Delhi Kings 8:00 AM 22nd T20 , DPL 2026 New Delhi Tigers"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/cs-vs-gr-21st-match-assam-premier-league-2026-match-updates-13AG",
+          "text": "Charaideo Sunrisers 8:30 AM 21st T20 , Assam T20 2026 Guwahati Royals"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/dur-vs-wor-65th-match-england-domestic-one-day-cup-2026-match-updates-ZZT",
+          "text": "Worcestershire 10:00 AM 65th One Day , England One Day Cup 2026 Durham"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/kt-vs-warks-66th-match-england-domestic-one-day-cup-2026-match-updates-ZZU",
+          "text": "Warwickshire 10:00 AM 66th One Day , England One Day Cup 2026 Kent"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/nots-vs-sur-67th-match-england-domestic-one-day-cup-2026-match-updates-ZZV",
+          "text": "Surrey 10:00 AM 67th One Day , England One Day Cup 2026 Nottinghamshire"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/lancs-vs-som-68th-match-england-domestic-one-day-cup-2026-match-updates-ZZW",
+          "text": "Somerset 10:00 AM 68th One Day , England One Day Cup 2026 Lancashire"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/mdx-vs-sus-69th-match-england-domestic-one-day-cup-2026-match-updates-ZZX",
+          "text": "Middlesex 10:00 AM 69th One Day , England One Day Cup 2026 Sussex"
+        },
+        {
+          "href": "https://crex.com/cricket-live-score/dbs-vs-ham-70th-match-england-domestic-one-day-cup-2026-match-updates-ZZY",
+          "text": "Hampshire 10:00 AM 70th One Day , England One Day Cup 2026 Derbyshire"
+        }
+      ],
+      "article_links": [],
+      "word_count": 325
+    },
+    {
+      "url": "https://www.crickzen.com/",
+      "final_url": "https://www.crickzen.com/",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 101451,
+      "title": "Crickzen | Live Cricket Scores & Real-time Updates | International & Domestic Matches",
+      "description": "Stay updated with live cricket scores and real-time updates from international and domestic matches on Crickzen. Get ball-by-ball commentary, match analysis, and comprehensive cricket coverage.",
+      "canonical": "https://www.crickzen.com/",
+      "robots": "index,follow",
+      "h1": [
+        "Live cricket scores"
+      ],
+      "schema_types": [
+        "ItemList",
+        "WebPage"
+      ],
+      "anchor_count": 30,
+      "match_links": [],
+      "article_links": [],
+      "word_count": 454
+    },
+    {
+      "url": "https://www.crickzen.com/live-score",
+      "final_url": "https://www.crickzen.com/live-score",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 71930,
+      "title": "Live Cricket Matches & Scores Today | Crickzen",
+      "description": "Follow live cricket matches and live scores today with direct links for scorecards, toss updates, playing XI, venue stats, and match results.",
+      "canonical": "https://www.crickzen.com/live-score",
+      "robots": "index,follow",
+      "h1": [
+        "Live Cricket Matches & Scores Today"
+      ],
+      "schema_types": [
+        "BreadcrumbList",
+        "CollectionPage",
+        "FAQPage",
+        "ItemList"
+      ],
+      "anchor_count": 53,
+      "match_links": [
+        {
+          "href": "https://www.crickzen.com/cric-live/abf-vs-slk-3rd-match-caribbean-premier-league-2026-match-updates-11TY",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/js-vs-tt-19th-match-assam-premier-league-2026-match-updates-13AE",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/dg-w-vs-typ-w-3rd-odi-ireland-women-super-50-series-2026-match-updates-12CZ",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/dw-vs-gr-20th-match-assam-premier-league-2026-match-updates-13AF",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/sb-w-vs-tr-w-29th-match-the-hundred-2026-women-match-updates-ZLC",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/hk-vs-tan-34th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GW",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/ita-vs-ugn-35th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GX",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/cdk-vs-ndt-22nd-match-delhi-premier-t20-league-2026-match-updates-13BQ",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/cs-vs-gr-21st-match-assam-premier-league-2026-match-updates-13AG",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/dur-vs-wor-65th-match-england-domestic-one-day-cup-2026-match-updates-ZZT",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/kt-vs-warks-66th-match-england-domestic-one-day-cup-2026-match-updates-ZZU",
+          "text": "TBD vs TBD match preview"
+        }
+      ],
+      "article_links": [],
+      "word_count": 346
+    },
+    {
+      "url": "https://www.crickzen.com/cricket-schedule/today",
+      "final_url": "https://www.crickzen.com/cricket-schedule/today",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "html_bytes": 71401,
+      "title": "Cricket Schedule Today | Crickzen",
+      "description": "Browse cricket schedule today with today cricket match time, today match list, cricket fixtures today, venue, tournament, and live score links.",
+      "canonical": "https://www.crickzen.com/cricket-schedule/today",
+      "robots": "index,follow",
+      "h1": [
+        "Cricket Schedule Today"
+      ],
+      "schema_types": [
+        "BreadcrumbList",
+        "CollectionPage",
+        "FAQPage",
+        "ItemList"
+      ],
+      "anchor_count": 53,
+      "match_links": [
+        {
+          "href": "https://www.crickzen.com/cric-live/abf-vs-slk-3rd-match-caribbean-premier-league-2026-match-updates-11TY",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/js-vs-tt-19th-match-assam-premier-league-2026-match-updates-13AE",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/dg-w-vs-typ-w-3rd-odi-ireland-women-super-50-series-2026-match-updates-12CZ",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/dw-vs-gr-20th-match-assam-premier-league-2026-match-updates-13AF",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/sb-w-vs-tr-w-29th-match-the-hundred-2026-women-match-updates-ZLC",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/hk-vs-tan-34th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GW",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/ita-vs-ugn-35th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GX",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/cdk-vs-ndt-22nd-match-delhi-premier-t20-league-2026-match-updates-13BQ",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/cs-vs-gr-21st-match-assam-premier-league-2026-match-updates-13AG",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/dur-vs-wor-65th-match-england-domestic-one-day-cup-2026-match-updates-ZZT",
+          "text": "TBD vs TBD match preview"
+        },
+        {
+          "href": "https://www.crickzen.com/cric-live/kt-vs-warks-66th-match-england-domestic-one-day-cup-2026-match-updates-ZZU",
+          "text": "TBD vs TBD match preview"
+        }
+      ],
+      "article_links": [],
+      "word_count": 333
+    }
+  ],
+  "crickzen_sitemap": {
+    "url": "https://www.crickzen.com/sitemap.xml",
+    "status": 200,
+    "kind": "sitemapindex",
+    "count": 3,
+    "sample": [
+      {
+        "loc": "https://www.crickzen.com/sitemaps/sitemap-matches-0001.xml",
+        "lastmod": "2026-08-09T11:32:16Z"
+      },
+      {
+        "loc": "https://www.crickzen.com/sitemaps/sitemap-matches-0002.xml",
+        "lastmod": "2026-08-09T11:32:16Z"
+      },
+      {
+        "loc": "https://www.crickzen.com/sitemaps/sitemap-matches-0003.xml",
+        "lastmod": "2026-08-09T11:32:16Z"
+      }
+    ],
+    "url_type_counts": {
+      "other": 3
+    }
+  }
+}

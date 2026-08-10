@@ -1,0 +1,143 @@
+{
+  "url": "https://crex.com/news",
+  "final_url": "https://crex.com/news",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "html_bytes": 367149,
+  "title": "Cricket News & Updates - CREX",
+  "description": "CREX is your go-to channel for all things cricket. We believe in creating content that is engaging and accessible to all. Not only do we cover the latest in cricket, but we also weave stories with passion and reverence for the sport.",
+  "canonical": "https://crex.com/news",
+  "robots": "index, follow, max-image-preview:large",
+  "h1": [],
+  "schema_types": [
+    "BreadcrumbList",
+    "ItemList",
+    "NewsMediaOrganization",
+    "WebPage"
+  ],
+  "anchor_count": 157,
+  "match_links": [],
+  "article_links": [
+    {
+      "href": "https://crex.com/cricket-news/bcci-names-sarfaraz-khan-as-sai-sudharsans-replacement-in-india-squad-for-sri-lanka-tests-6a788d73271b0959992680e8",
+      "text": "BCCI Names Sarfaraz Khan As Sai Sudharsan's Replacement In India Squad For Sri Lanka Tests Debashis \u2219 23 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/bcci-names-sarfaraz-khan-as-sai-sudharsans-replacement-in-india-squad-for-sri-lanka-tests-6a788d73271b0959992680e8",
+      "text": "BCCI Names Sarfaraz Khan As Sai Sudharsan's Replacement In India Squad For Sri Lanka Tests Debashis \u2219 23 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/indias-strongest-playing-xi-for-first-test-vs-sri-lanka-after-warm-up-fixture-6a7880d82d81e7efd7187f58",
+      "text": "India's Strongest Playing XI For First Test Vs Sri Lanka After Warm Up Fixture Anurag \u2219 9 Aug 2026"
+    },
+    {
+      "href": "https://crex.com/cricket-news/bcci-names-sarfaraz-khan-as-sai-sudharsans-replacement-in-india-squad-for-sri-lanka-tests-6a788d73271b0959992680e8",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/bhuvneshwar-kumar-makes-himself-available-for-2027-world-cup-6a796662d783af4a0fe8adb5",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/sarfaraz-khan-out-of-major-tournament-after-joining-india-squad-for-sri-lanka-tests-6a7973e8d783af4a0fea142f",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/sher-e-punjab-t20-cup-2026-auction-players-list-sold-most-expensive-teams-6a7945b82d81e7efd7187fce",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/belfast-pitch-report-weather-report-for-ire-vs-afg-3rd-odi-afghanistan-tour-of-ireland-2026-6a7937a82d81e7efd7187fbb",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/india-stars-snubbed-as-icc-announces-player-of-the-month-nominees-for-july-2026-6a79a851d783af4a0ff041cb",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/devdutt-padikkals-century-and-spin-game-strengthen-his-no3-case-for-sri-lanka-tests-6a78ab082d81e7efd7187f8f",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/bcci-names-sarfaraz-khan-as-sai-sudharsans-replacement-in-india-squad-for-sri-lanka-tests-6a788d73271b0959992680e8",
+      "text": "BCCI Names Sarfaraz Khan As Sai Sudharsan's Replacement In India Squad For Sri Lanka Tests Debashis \u2219 23 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/bhuvneshwar-kumar-makes-himself-available-for-2027-world-cup-6a796662d783af4a0fe8adb5",
+      "text": "Bhuvneshwar Kumar Makes Himself Available For 2027 World Cup Arjun \u2219 8 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/sarfaraz-khan-out-of-major-tournament-after-joining-india-squad-for-sri-lanka-tests-6a7973e8d783af4a0fea142f",
+      "text": "Sarfaraz Khan Out Of Major Tournament After Joining India Squad For Sri Lanka Tests Abhinav \u2219 7 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/sher-e-punjab-t20-cup-2026-auction-players-list-sold-most-expensive-teams-6a7945b82d81e7efd7187fce",
+      "text": "Sher-E-Punjab T20 Cup 2026 Auction- Players List, Sold, Most Expensive, Teams Aakash \u2219 10 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/belfast-pitch-report-weather-report-for-ire-vs-afg-3rd-odi-afghanistan-tour-of-ireland-2026-6a7937a82d81e7efd7187fbb",
+      "text": "Belfast Pitch Report, Weather Report For IRE vs AFG 3rd ODI, Afghanistan Tour Of Ireland 2026 Sakshi \u2219 11 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/india-stars-snubbed-as-icc-announces-player-of-the-month-nominees-for-july-2026-6a79a851d783af4a0ff041cb",
+      "text": "India Stars Snubbed As ICC Announces Player Of The Month Nominees For July 2026 Abhinav \u2219 3 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/devdutt-padikkals-century-and-spin-game-strengthen-his-no3-case-for-sri-lanka-tests-6a78ab082d81e7efd7187f8f",
+      "text": "Devdutt Padikkal\u2019s Century And Spin Game Strengthen His No.3 Case For Sri Lanka Tests Darpan \u2219 21 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "text": "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure Mayank \u2219 15 mins ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+      "text": "Indian Cricketers Taking Drastic Steps For Physical Transformation Soumyajit \u2219 1 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+      "text": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour Akshita \u2219 2 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/sarfaraz-khan-vs-dhruv-jurel-from-shared-debut-to-a-new-battle-for-indias-test-spot-6a7993102d81e7efd7188030",
+      "text": "Sarfaraz Khan vs Dhruv Jurel: From Shared Debut To A New Battle For India's Test Spot Soumyajit \u2219 4 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/sarfaraz-khan-creates-headache-for-gambhir-indias-selection-conundrums-for-1st-test-vs-sl-6a7976f02d81e7efd7187fe3",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/sarfaraz-khan-creates-headache-for-gambhir-indias-selection-conundrums-for-1st-test-vs-sl-6a7976f02d81e7efd7187fe3",
+      "text": "Sarfaraz Khan Creates Headache For Gambhir: India's Selection Conundrums For 1st Test vs SL Anurag \u2219 6 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/devdutt-padikkals-century-and-spin-game-strengthen-his-no3-case-for-sri-lanka-tests-6a78ab082d81e7efd7187f8f",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/devdutt-padikkals-century-and-spin-game-strengthen-his-no3-case-for-sri-lanka-tests-6a78ab082d81e7efd7187f8f",
+      "text": "Devdutt Padikkal\u2019s Century And Spin Game Strengthen His No.3 Case For Sri Lanka Tests Darpan \u2219 21 hrs ago"
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/indias-strongest-playing-xi-for-first-test-vs-sri-lanka-after-warm-up-fixture-6a7880d82d81e7efd7187f58",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/indias-strongest-playing-xi-for-first-test-vs-sri-lanka-after-warm-up-fixture-6a7880d82d81e7efd7187f58",
+      "text": "India's Strongest Playing XI For First Test Vs Sri Lanka After Warm Up Fixture Anurag \u2219 9 Aug 2026"
+    },
+    {
+      "href": "https://crex.com/cricket-analysis/lpl-2026-team-of-the-tournament-6a7864b82d81e7efd7187f27",
+      "text": ""
+    }
+  ],
+  "word_count": 1532
+}

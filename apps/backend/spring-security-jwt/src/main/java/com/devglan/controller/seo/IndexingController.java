@@ -51,7 +51,7 @@ public class IndexingController {
         status.put("siteUrl", gscService.getSiteUrl());
         status.put("schedulerStatus", sitemapScheduler.getStatus());
         status.put("liveMatchIndexerStatus", liveMatchIndexingScheduler.getStatus());
-        status.put("indexedMatchCount", liveMatchIndexingScheduler.getIndexedCount());
+        status.put("indexingNotificationCount", liveMatchIndexingScheduler.getNotificationCount());
         
         return ResponseEntity.ok(status);
     }
@@ -180,38 +180,40 @@ public class IndexingController {
     }
     
     /**
-     * Manually trigger live match indexing (runs every 15 min automatically)
+     * Manually trigger eligible live-match API notifications.
+     * Ordinary SportsEvent match pages use sitemap and crawlable SSR links for discovery.
      */
     @PostMapping("/live-matches/trigger")
     public ResponseEntity<Map<String, Object>> triggerLiveMatchIndexing() {
-        logger.info("[IndexingController] Manual live match indexing triggered");
+        logger.info("[IndexingController] Manual live match notification run requested");
         
         Map<String, Object> result = new HashMap<>();
         
-        if (!gscService.isIndexingInitialized()) {
+        if (!liveMatchIndexingScheduler.areIndexingApiNotificationsEnabled()) {
             result.put("success", false);
-            result.put("message", "Indexing API is not initialized");
+            result.put("message", "Indexing API notifications are disabled for ordinary match pages; use sitemap, SSR links, and URL Inspection coverage");
             return ResponseEntity.ok(result);
         }
         
         liveMatchIndexingScheduler.triggerManualIndexing();
         
         result.put("success", true);
-        result.put("message", "Live match indexing triggered");
-        result.put("indexedCount", liveMatchIndexingScheduler.getIndexedCount());
+        result.put("message", "Eligible live-match API notification run triggered; this does not prove Google indexing");
+        result.put("notificationCount", liveMatchIndexingScheduler.getNotificationCount());
         
         return ResponseEntity.ok(result);
     }
     
     /**
-     * Get live match indexing status
+     * Get live-match discovery status.
      */
     @GetMapping("/live-matches/status")
     public ResponseEntity<Map<String, Object>> getLiveMatchIndexingStatus() {
         Map<String, Object> result = new HashMap<>();
         result.put("status", liveMatchIndexingScheduler.getStatus());
-        result.put("indexedCount", liveMatchIndexingScheduler.getIndexedCount());
-        result.put("schedule", "Every 15 minutes");
+        result.put("notificationCount", liveMatchIndexingScheduler.getNotificationCount());
+        result.put("indexingApiNotificationsEnabled", liveMatchIndexingScheduler.areIndexingApiNotificationsEnabled());
+        result.put("standardDiscovery", "sitemap + crawlable SSR links + URL Inspection coverage");
         
         return ResponseEntity.ok(result);
     }

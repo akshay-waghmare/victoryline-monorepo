@@ -1,0 +1,55 @@
+{
+  "url": "https://crex.com/",
+  "final_url": "https://crex.com/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "html_bytes": 806391,
+  "title": "CREX: Cricket Live Scores, Latest Cricket News, Commentary, Player Stats and ICC Rankings",
+  "description": "CREX brings you cricket live action with live score, ball by ball commentary, cricket news, cricket stats, rankings, domestic and international series coverage.",
+  "canonical": null,
+  "robots": "index, follow, max-image-preview:large",
+  "h1": [],
+  "schema_types": [
+    "ItemList",
+    "NewsMediaOrganization",
+    "WebPage",
+    "WebSite"
+  ],
+  "anchor_count": 137,
+  "match_links": [],
+  "article_links": [
+    {
+      "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "text": "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure Cricket Scotland and the Royal Dutch Cri"
+    },
+    {
+      "href": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+      "text": "Not Hemang Badani, CSK Drops Massive Hint On Next Head Coach The CSK franchise drops a massive hint in regards to their "
+    },
+    {
+      "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+      "text": "Indian Cricketers Taking Drastic Steps For Physical Transformation Indian cricketers are embracing drastic fitness trans"
+    },
+    {
+      "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+      "text": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour Bangladesh face a daunting challenge agains"
+    }
+  ],
+  "word_count": 1340
+}

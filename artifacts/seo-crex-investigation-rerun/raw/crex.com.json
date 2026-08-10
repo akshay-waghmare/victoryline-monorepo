@@ -1,0 +1,176 @@
+{
+  "url": "https://crex.com/",
+  "final_url": "https://crex.com/",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "html_bytes": 810210,
+  "title": "CREX: Cricket Live Scores, Latest Cricket News, Commentary, Player Stats and ICC Rankings",
+  "description": "CREX brings you cricket live action with live score, ball by ball commentary, cricket news, cricket stats, rankings, domestic and international series coverage.",
+  "canonical": null,
+  "robots": "index, follow, max-image-preview:large",
+  "h1": [],
+  "schema_types": [
+    "ItemList",
+    "NewsMediaOrganization",
+    "WebPage",
+    "WebSite"
+  ],
+  "anchor_count": 137,
+  "match_links": [
+    {
+      "href": "https://crex.com/cricket-live-score",
+      "text": "Live (4)"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/ind-vs-sl-xi-warm-up-india-tour-of-sri-lanka-2026-match-updates-13H8",
+      "text": "Warm Up Test , Nondescripts Cricket Club Ground, Colombo Sri Lanka SL-XI 363-8 d & 200/6 d IND 357-6 d & 214/4 IND won b"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+      "text": "29th 100B , Trent Bridge, Nottingham Trent Rockets Southern Brave Today 5:30 PM"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/bp-vs-ls-28th-match-the-hundred-2026-men-match-updates-ZLG",
+      "text": "28th 100B , Lord's Cricket Ground, London BP 162-4 100b LS 166-3 82b LS won by 7 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+      "text": "11th T20 , NPR College Ground, Dindigul Salem Spartans Madurai Panthers Starting In 52m : 07s"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/csg-vs-dd-9th-match-tamil-nadu-premier-league-2026-match-updates-12Z3",
+      "text": "9th T20 , NPR College Ground, Dindigul DD 126-8 20.0 CSG 131-3 16.2 CSG won by 7 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+      "text": "20th T20 , Arun Jaitley Stadium, Delhi EDR 95-5 15.0 WDL 3-0 0.3 55 runs needed in 39 balls"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+      "text": "21st T20 , Arun Jaitley Stadium, Delhi PD ODW Toss delayed"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+      "text": "3rd ODI , Civil Service Cricket Club, Belfast IRE 181-8 43.1 AFG Yet to bat AFG opt to bowl"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/sb-w-vs-tr-w-29th-match-the-hundred-2026-women-match-updates-ZLC",
+      "text": "29th 100B , Trent Bridge, Nottingham Trent Rockets Women Southern Brave Women Starting In 52m : 07s"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/bp-w-vs-ls-w-28th-match-the-hundred-2026-women-match-updates-ZLB",
+      "text": "28th 100B , Lord's Cricket Ground, London LS-W 140-4 100b BP-W 108-8 100b LS-W won by 32 runs"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/gg-vs-jk-final-lanka-premier-league-2026-match-updates-1287",
+      "text": "Final T20 , R. Premadasa Stadium, Colombo JK 123 19.3 GG 126-5 15.5 GG won by 5 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/abf-vs-slk-3rd-match-caribbean-premier-league-2026-match-updates-11TY",
+      "text": "3rd T20 , Arnos Vale Stadium, Kingstown, St Vincent SLK 187-8 20.0 ABF 183-7 20.0 SLK won by 4 runs"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/dw-vs-gr-20th-match-assam-premier-league-2026-match-updates-13AF",
+      "text": "20th T20 , Barsapara Stadium Guwahati, Assam Dibrugarh Warriors Guwahati Royals Starting In 22m : 07s"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/js-vs-tt-19th-match-assam-premier-league-2026-match-updates-13AE",
+      "text": "19th T20 , Barsapara Stadium Guwahati, Assam TT 160-6 20.0 JS 162-1 18.1 JS won by 9 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/brn-vs-ita-32nd-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GU",
+      "text": "32nd List A , University of Dar-es-Salaam Ground ITA 200 49.2 BRN 132 41.1 ITA won by 68 runs"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/sco-vs-uae-125th-match-mens-cwc-league-2-2023-27-match-updates-1370",
+      "text": "125th ODI , Forthill Park Cricket Ground, Dundee UAE 231-8 40.0 SCO 235-9 39.5 SCO won by 1 wicket"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/dg-w-vs-typ-w-3rd-odi-ireland-women-super-50-series-2026-match-updates-12CZ",
+      "text": "3rd One Day , Bready Cricket Club Ground TYP-W 281-8 50.0 DG-W Yet to bat Innings Break"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/goa-vs-oma-1st-t20-goa-tour-of-oman-2026-match-updates-13IH",
+      "text": "1st T20 , Al Amerat Cricket Ground (Ministry Turf 1) Oman Goa Starting In 01h : 22m"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/lancs-vs-warks-57th-match-england-domestic-one-day-cup-2026-match-updates-ZZL",
+      "text": "57th One Day , Rugby School Ground, Rugby LANCS 311-5 50.0 WARKS 314-8 48.5 WARKS won by 2 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/glcs-vs-nots-61st-match-england-domestic-one-day-cup-2026-match-updates-ZZP",
+      "text": "61st One Day , College Ground, Cheltenham NOTS 279 48.3 GLCS 282-6 49.1 GLCS won by 4 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/dbs-vs-mdx-64th-match-england-domestic-one-day-cup-2026-match-updates-ZZS",
+      "text": "64th One Day , County Cricket Ground, Derby MDX 327-6 50.0 DBS 240 43.5 MDX won by 87 runs"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/cdk-vs-odw-4th-match-delhi-premier-t20-league-2026-match-updates-13B8",
+      "text": "4th T20 , Arun Jaitley Stadium, Delhi ODW 130-5 10.0 CDK 133-6 9.5 CDK won by 4 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/ind-vs-sl-xi-warm-up-india-tour-of-sri-lanka-2026-match-updates-13H8",
+      "text": "Warm Up Test , Nondescripts Cricket Club Ground, Colombo Sri Lanka SL-X.. 363-8 d & 200/6 d IND.. 357-6 d & 214/4 IND wo"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+      "text": "29th 100B , Trent Bridge, Nottingham Trent Rockets Southern Brave Today 5:30 PM"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/bp-vs-ls-28th-match-the-hundred-2026-men-match-updates-ZLG",
+      "text": "28th 100B , Lord's Cricket Ground, London BP 162-4 100b LS 166-3 82b LS won by 7 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+      "text": "11th T20 , NPR College Ground, Dindigul Salem Spartans Madurai Panthers Starting In 52m : 07s"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/csg-vs-dd-9th-match-tamil-nadu-premier-league-2026-match-updates-12Z3",
+      "text": "9th T20 , NPR College Ground, Dindigul DD 126-8 20.0 CSG 131-3 16.2 CSG won by 7 wickets"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+      "text": "20th T20 , Arun Jaitley Stadium, Delhi EDR 95-5 15.0 WDL 3-0 0.3 Live 55 runs needed in 39 balls"
+    },
+    {
+      "href": "https://crex.com/cricket-live-score/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+      "text": "21st T20 , Arun Jaitley Stadium, Delhi PD ODW Live Toss delayed"
+    }
+  ],
+  "article_links": [
+    {
+      "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/cricket-boards-issue-joint-statement-criticising-changes-in-world-cup-structure-6a79c995d783af4a0ff523f1",
+      "text": "Cricket Boards Issue Joint Statement Criticising Changes In World Cup Structure Cricket Scotland and the Royal Dutch Cri"
+    },
+    {
+      "href": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/not-hemang-badani-csk-drops-massive-hint-on-next-head-coach-6a79c6a3d783af4a0ff4ad9e",
+      "text": "Not Hemang Badani, CSK Drops Massive Hint On Next Head Coach The CSK franchise drops a massive hint in regards to their "
+    },
+    {
+      "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/indian-cricketers-taking-drastic-steps-for-physical-transformation-6a79be6c2d81e7efd718805f",
+      "text": "Indian Cricketers Taking Drastic Steps For Physical Transformation Indian cricketers are embracing drastic fitness trans"
+    },
+    {
+      "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+      "text": ""
+    },
+    {
+      "href": "https://crex.com/cricket-news/taskin-ahmed-reveals-what-can-stop-bangladesh-from-winning-on-australia-tour-6a79bca2d783af4a0ff33662",
+      "text": "Taskin Ahmed Reveals What Can Stop Bangladesh From Winning On Australia Tour Bangladesh face a daunting challenge agains"
+    }
+  ],
+  "word_count": 1334
+}

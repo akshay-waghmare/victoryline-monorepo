@@ -31,6 +31,15 @@ public class CrexMatchUrlHelperTest {
     }
 
     @Test
+    public void extractsStableApiKeyOnlyFromCurrentCrexMatchSlug() {
+        String baseUrl = "https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC";
+
+        assertThat(CrexMatchUrlHelper.extractCrexApiKey(baseUrl)).isEqualTo("11CC");
+        assertThat(CrexMatchUrlHelper.extractCrexApiKey(baseUrl + "/match-details")).isNull();
+        assertThat(CrexMatchUrlHelper.extractCrexApiKey("https://crex.com/cricket-live-score/vs-match-updates-")).isNull();
+    }
+
+    @Test
     public void convertsBetweenLegacyAndNewDetailPagesWithoutChangingSlug() {
         String newBaseUrl = "https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC";
         String legacyLiveUrl = "https://crex.com/scoreboard/X1M/1YQ/1st-TEST/Z/W/ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025/live";

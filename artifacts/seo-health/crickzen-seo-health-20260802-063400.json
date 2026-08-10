@@ -1,0 +1,180 @@
+﻿{
+    "generatedAt":  "2026-08-02T06:34:00.0010586Z",
+    "baseUrl":  "https://www.crickzen.com",
+    "configuration":  {
+                          "repeatedRouteAttempts":  1,
+                          "matchSampleSize":  2,
+                          "requestTimeoutSeconds":  12
+                      },
+    "summary":  {
+                    "sitemapPartitions":  3,
+                    "sitemapTotal":  2838,
+                    "sitemapUnique":  2838,
+                    "sitemapDuplicates":  0,
+                    "sitemapMatchUrls":  2828,
+                    "maxDiscoveryMatchLinks":  147,
+                    "failures":  0
+                },
+    "patterns":  [
+                     "SSR_TIMEOUT_HEADROOM: at least one discovery-page render took 7 seconds or more against the 8-second fallback threshold."
+                 ],
+    "failures":  [
+
+                 ],
+    "duplicateUrls":  [
+
+                      ],
+    "knownInvalidStaticUrls":  [
+
+                               ],
+    "endpoints":  [
+                      {
+                          "url":  "https://www.crickzen.com/robots.txt",
+                          "finalUrl":  "https://www.crickzen.com/robots.txt",
+                          "status":  200,
+                          "elapsedMs":  1389,
+                          "bytes":  927,
+                          "canonicalCount":  0,
+                          "title":  "",
+                          "description":  "",
+                          "h1Count":  0,
+                          "jsonLdCount":  0,
+                          "noindexCount":  0,
+                          "matchLinkCount":  0
+                      },
+                      {
+                          "url":  "https://www.crickzen.com/sitemap.xml",
+                          "finalUrl":  "https://www.crickzen.com/sitemap.xml",
+                          "status":  200,
+                          "elapsedMs":  504,
+                          "bytes":  500,
+                          "canonicalCount":  0,
+                          "title":  "",
+                          "description":  "",
+                          "h1Count":  0,
+                          "jsonLdCount":  0,
+                          "noindexCount":  0,
+                          "matchLinkCount":  0
+                      },
+                      {
+                          "url":  "https://www.crickzen.com/api/v1/seo/indexing/status",
+                          "finalUrl":  "https://www.crickzen.com/api/v1/seo/indexing/status",
+                          "status":  200,
+                          "elapsedMs":  249,
+                          "bytes":  916,
+                          "canonicalCount":  0,
+                          "title":  "",
+                          "description":  "",
+                          "h1Count":  0,
+                          "jsonLdCount":  0,
+                          "noindexCount":  0,
+                          "matchLinkCount":  0
+                      },
+                      {
+                          "url":  "https://www.crickzen.com/api/ws/info",
+                          "finalUrl":  "https://www.crickzen.com/api/ws/info",
+                          "status":  200,
+                          "elapsedMs":  242,
+                          "bytes":  78,
+                          "canonicalCount":  0,
+                          "title":  "",
+                          "description":  "",
+                          "h1Count":  0,
+                          "jsonLdCount":  0,
+                          "noindexCount":  0,
+                          "matchLinkCount":  0
+                      },
+                      {
+                          "url":  "https://www.crickzen.com/this-page-should-not-exist",
+                          "finalUrl":  "https://www.crickzen.com/this-page-should-not-exist",
+                          "status":  404,
+                          "elapsedMs":  793,
+                          "bytes":  0,
+                          "canonicalCount":  0,
+                          "title":  "",
+                          "description":  "",
+                          "h1Count":  0,
+                          "jsonLdCount":  0,
+                          "noindexCount":  0,
+                          "matchLinkCount":  0,
+                          "error":  "The remote server returned an error: (404) Not Found."
+                      }
+                  ],
+    "discoveryPages":  [
+                           {
+                               "url":  "https://www.crickzen.com/",
+                               "finalUrl":  "https://www.crickzen.com/",
+                               "status":  200,
+                               "elapsedMs":  8827,
+                               "bytes":  2669174,
+                               "canonicalCount":  1,
+                               "title":  "Crickzen | Live Cricket Scores \u0026 Real-time Updates | International \u0026 Domestic Matches",
+                               "description":  "Stay updated with live cricket scores and real-time updates from international and domestic matches on Crickzen. Get ball-by-ball commentary, match analysis, and comprehensive cricket coverage.",
+                               "h1Count":  1,
+                               "jsonLdCount":  6,
+                               "noindexCount":  0,
+                               "matchLinkCount":  35,
+                               "attempt":  1
+                           },
+                           {
+                               "url":  "https://www.crickzen.com/matches",
+                               "finalUrl":  "https://www.crickzen.com/matches",
+                               "status":  200,
+                               "elapsedMs":  1301,
+                               "bytes":  121170,
+                               "canonicalCount":  1,
+                               "title":  "Cricket Matches | Live, Upcoming \u0026 Completed | Crickzen",
+                               "description":  "Browse live, upcoming, and recently completed cricket matches with direct links to scores, commentary, scorecards, and match updates.",
+                               "h1Count":  1,
+                               "jsonLdCount":  7,
+                               "noindexCount":  0,
+                               "matchLinkCount":  51,
+                               "attempt":  1
+                           },
+                           {
+                               "url":  "https://www.crickzen.com/live-cricket-score",
+                               "finalUrl":  "https://www.crickzen.com/live-cricket-score",
+                               "status":  200,
+                               "elapsedMs":  1417,
+                               "bytes":  192263,
+                               "canonicalCount":  1,
+                               "title":  "Live Cricket Score | Crickzen",
+                               "description":  "Track live cricket score, live score cricket, ball-by-ball match updates, scorecard, toss update, playing XI, venue stats, and cricket match result links.",
+                               "h1Count":  1,
+                               "jsonLdCount":  7,
+                               "noindexCount":  0,
+                               "matchLinkCount":  147,
+                               "attempt":  1
+                           }
+                       ],
+    "sampledMatchPages":  [
+                              {
+                                  "url":  "https://www.crickzen.com/cric-live/a1-vs-b2-11th-match-mens-t20-world-cup-east-asia-pacific-qualifier-2026-match-updates-11YM",
+                                  "finalUrl":  "https://www.crickzen.com/cric-live/a1-vs-b2-11th-match-mens-t20-world-cup-east-asia-pacific-qualifier-2026-match-updates-11YM",
+                                  "status":  200,
+                                  "elapsedMs":  3710,
+                                  "bytes":  283865,
+                                  "canonicalCount":  1,
+                                  "title":  "A1 vs B2 Live Score, Commentary \u0026 Scorecard",
+                                  "description":  "Follow A1 vs B2 live score, ball-by-ball commentary, scorecard, toss, playing XI, venue, and match result in Mens T20 World Cup East Asia Pacific Qualifier 2026. A1 vs B2 commentary and scorecard stay on this canonical match page.",
+                                  "h1Count":  1,
+                                  "jsonLdCount":  5,
+                                  "noindexCount":  0,
+                                  "matchLinkCount":  5
+                              },
+                              {
+                                  "url":  "https://www.crickzen.com/cric-live/ham-w-vs-lan-w-43rd-match-t20-blast-women-2026-match-updates-ZTK",
+                                  "finalUrl":  "https://www.crickzen.com/cric-live/ham-w-vs-lan-w-43rd-match-t20-blast-women-2026-match-updates-ZTK",
+                                  "status":  200,
+                                  "elapsedMs":  3603,
+                                  "bytes":  307671,
+                                  "canonicalCount":  1,
+                                  "title":  "HAM W vs LAN W Match Result \u0026 Full Scorecard",
+                                  "description":  "Get HAM W vs LAN W match result, full scorecard, innings summary, venue details, and key updates from T20 Blast Women 2026. HAM W vs LAN W result coverage stays on this canonical match page.",
+                                  "h1Count":  1,
+                                  "jsonLdCount":  5,
+                                  "noindexCount":  0,
+                                  "matchLinkCount":  5
+                              }
+                          ]
+}

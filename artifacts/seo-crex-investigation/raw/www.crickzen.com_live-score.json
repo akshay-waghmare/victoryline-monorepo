@@ -1,0 +1,89 @@
+{
+  "url": "https://www.crickzen.com/live-score",
+  "final_url": "https://www.crickzen.com/live-score",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "html_bytes": 71930,
+  "title": "Live Cricket Matches & Scores Today | Crickzen",
+  "description": "Follow live cricket matches and live scores today with direct links for scorecards, toss updates, playing XI, venue stats, and match results.",
+  "canonical": "https://www.crickzen.com/live-score",
+  "robots": "index,follow",
+  "h1": [
+    "Live Cricket Matches & Scores Today"
+  ],
+  "schema_types": [
+    "BreadcrumbList",
+    "CollectionPage",
+    "FAQPage",
+    "ItemList"
+  ],
+  "anchor_count": 53,
+  "match_links": [
+    {
+      "href": "https://www.crickzen.com/cric-live/abf-vs-slk-3rd-match-caribbean-premier-league-2026-match-updates-11TY",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/edr-vs-wdl-20th-match-delhi-premier-t20-league-2026-match-updates-13BO",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/js-vs-tt-19th-match-assam-premier-league-2026-match-updates-13AE",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/afg-vs-ire-3rd-odi-afghanistan-tour-of-ireland-2026-match-updates-114O",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/dg-w-vs-typ-w-3rd-odi-ireland-women-super-50-series-2026-match-updates-12CZ",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/dw-vs-gr-20th-match-assam-premier-league-2026-match-updates-13AF",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/odw-vs-pd-21st-match-delhi-premier-t20-league-2026-match-updates-13BP",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/sb-w-vs-tr-w-29th-match-the-hundred-2026-women-match-updates-ZLC",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/mp-vs-ss-11th-match-tamil-nadu-premier-league-2026-match-updates-12Z5",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/sb-vs-tr-29th-match-the-hundred-2026-men-match-updates-ZLH",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/hk-vs-tan-34th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GW",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/ita-vs-ugn-35th-match-mens-cwc-challenge-league-b-2024-26-match-updates-13GX",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/cdk-vs-ndt-22nd-match-delhi-premier-t20-league-2026-match-updates-13BQ",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/cs-vs-gr-21st-match-assam-premier-league-2026-match-updates-13AG",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/dur-vs-wor-65th-match-england-domestic-one-day-cup-2026-match-updates-ZZT",
+      "text": "TBD vs TBD match preview"
+    },
+    {
+      "href": "https://www.crickzen.com/cric-live/kt-vs-warks-66th-match-england-domestic-one-day-cup-2026-match-updates-ZZU",
+      "text": "TBD vs TBD match preview"
+    }
+  ],
+  "article_links": [],
+  "word_count": 346
+}

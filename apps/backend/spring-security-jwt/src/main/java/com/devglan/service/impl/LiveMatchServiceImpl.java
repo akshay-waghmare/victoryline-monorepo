@@ -7,12 +7,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import javax.annotation.PostConstruct;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -99,7 +101,11 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
 			for (String url : urls) {
                 String normalizedUrl = normalizeUrl(url);
-                String externalKey = extractExternalMatchKey(normalizedUrl);
+                if (!isValidCatalogMatchUrl(normalizedUrl)) {
+                    logger.warn("Ignoring malformed CREX live-match URL: {}", normalizedUrl);
+                    continue;
+                }
+                String externalKey = extractCatalogMatchKey(normalizedUrl);
                 LiveMatch liveMatch = findExistingMatch(externalKey, normalizedUrl);
                 boolean isNew = liveMatch == null;
                 if (isNew) {
@@ -107,6 +113,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                     liveMatch.setExternalMatchKey(externalKey);
                 } else {
                     liveMatch.setUrl(normalizedUrl);
+                    liveMatch.setExternalMatchKey(externalKey);
                     if (liveMatch.getStatus() != null && liveMatch.getStatus().isTerminal()) {
                         // CREX live discovery is the authoritative signal for the active
                         // catalog. A schedule scrape can occasionally classify a live
@@ -128,6 +135,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 					logger.info("URL already exists, refreshed lifecycle state: {}", normalizedUrl);
 				}
 			}
+            reconcileDuplicateMatchRows();
 
 		logger.info("Live matches saved successfully!");
 	}
@@ -144,9 +152,16 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             }
 
             String normalizedUrl = normalizeUrl(dto.getUrl());
-            String externalKey = dto.getExternalMatchKey();
+            if (!isValidCatalogMatchUrl(normalizedUrl)) {
+                logger.warn("Ignoring malformed CREX schedule URL: {}", normalizedUrl);
+                continue;
+            }
+            String externalKey = CrexMatchUrlHelper.extractCrexApiKey(normalizedUrl);
+            if (externalKey == null) {
+                externalKey = sanitizeCatalogText(dto.getExternalMatchKey());
+            }
             if (externalKey == null || externalKey.trim().isEmpty()) {
-                externalKey = extractExternalMatchKey(normalizedUrl);
+                externalKey = extractCatalogMatchKey(normalizedUrl);
             }
 
             MatchLifecycleStatus incomingStatus = MatchLifecycleStatus.fromString(dto.getStatus());
@@ -167,28 +182,34 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             if (dto.getScheduledStartTime() != null) {
                 match.setScheduledStartTime(dto.getScheduledStartTime());
             }
-            if (dto.getTeam1Name() != null && !dto.getTeam1Name().trim().isEmpty()) {
-                match.setTeam1Name(dto.getTeam1Name());
+            String team1Name = sanitizeCatalogText(dto.getTeam1Name());
+            String team2Name = sanitizeCatalogText(dto.getTeam2Name());
+            String seriesName = sanitizeCatalogText(dto.getSeriesName());
+            String matchFormat = sanitizeCatalogText(dto.getMatchFormat());
+            String venue = sanitizeCatalogText(dto.getVenue());
+            String resultSummary = sanitizeCatalogText(dto.getResultSummary());
+            if (team1Name != null) {
+                match.setTeam1Name(team1Name);
             }
-            if (dto.getTeam2Name() != null && !dto.getTeam2Name().trim().isEmpty()) {
-                match.setTeam2Name(dto.getTeam2Name());
+            if (team2Name != null) {
+                match.setTeam2Name(team2Name);
             }
-            if (dto.getSeriesName() != null && !dto.getSeriesName().trim().isEmpty()) {
-                match.setSeriesName(dto.getSeriesName());
+            if (seriesName != null) {
+                match.setSeriesName(seriesName);
             }
-            if (dto.getMatchFormat() != null && !dto.getMatchFormat().trim().isEmpty()) {
-                match.setMatchFormat(dto.getMatchFormat());
+            if (matchFormat != null) {
+                match.setMatchFormat(matchFormat);
             }
-            if (dto.getVenue() != null && !dto.getVenue().trim().isEmpty()) {
-                match.setVenue(dto.getVenue());
+            if (venue != null) {
+                match.setVenue(venue);
             }
-            if (dto.getResultSummary() != null && !dto.getResultSummary().trim().isEmpty()) {
-                match.setResultSummary(dto.getResultSummary());
+            if (resultSummary != null) {
+                match.setResultSummary(resultSummary);
                 if (match.getLastKnownState() == null || match.getLastKnownState().trim().isEmpty()) {
-                    match.setLastKnownState(dto.getResultSummary());
+                    match.setLastKnownState(resultSummary);
                 }
                 if (incomingStatus == null || !incomingStatus.isTerminal()) {
-                    incomingStatus = inferTerminalStatus(dto.getResultSummary());
+                    incomingStatus = inferTerminalStatus(resultSummary);
                 }
             }
 
@@ -278,6 +299,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 		return liveMatchRepository.findByDeletionAttemptsLessThanAndIsDeletedFalse(Integer.valueOf(2))
                 .stream()
                 .filter(this::isLiveLike)
+                .filter(this::isValidCatalogMatch)
                 .map(this::enrichLiveMatchFromSnapshot)
                 .collect(Collectors.toList());
 	}
@@ -298,13 +320,14 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 .toEpochMilli();
         return liveMatchRepository.findUpcomingMatchesStartingAtOrAfter(
                 Arrays.asList(MatchLifecycleStatus.UPCOMING),
-                startOfToday);
+                startOfToday).stream().filter(this::isValidCatalogMatch).collect(Collectors.toList());
     }
 
     @Override
     public List<LiveMatch> findCompletedMatches() {
         return liveMatchRepository.findByStatusInOrderByLastStateUpdatedAtDesc(
-                Arrays.asList(MatchLifecycleStatus.COMPLETED, MatchLifecycleStatus.ABANDONED));
+                Arrays.asList(MatchLifecycleStatus.COMPLETED, MatchLifecycleStatus.ABANDONED))
+                .stream().filter(this::isValidCatalogMatch).collect(Collectors.toList());
     }
 	
 	public LiveMatch findByUrl(String url) {
@@ -351,6 +374,81 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
     private String extractExternalMatchKey(String url) {
         return CrexMatchUrlHelper.extractMatchKey(url);
+    }
+
+    private String extractCatalogMatchKey(String url) {
+        String apiKey = CrexMatchUrlHelper.extractCrexApiKey(url);
+        return apiKey != null ? apiKey : extractExternalMatchKey(url);
+    }
+
+    @PostConstruct
+    public void reconcileDuplicateMatchRowsOnStartup() {
+        reconcileDuplicateMatchRows();
+    }
+
+    private void reconcileDuplicateMatchRows() {
+        List<LiveMatch> matches = liveMatchRepository.findByIsDeletedFalse();
+        for (LiveMatch match : matches) {
+            normalizeStoredCatalogText(match);
+        }
+        Map<String, List<LiveMatch>> byExternalKey = matches.stream()
+                .filter(match -> !isBlank(match.getExternalMatchKey()))
+                .collect(Collectors.groupingBy(LiveMatch::getExternalMatchKey));
+        for (Map.Entry<String, List<LiveMatch>> entry : byExternalKey.entrySet()) {
+            if (entry.getValue().size() < 2) {
+                continue;
+            }
+            LiveMatch keeper = entry.getValue().stream().max(Comparator
+                    .comparing(this::hasUsableSlugAndTeams)
+                    .thenComparing(match -> match.getLastStateUpdatedAt() == null ? 0L : match.getLastStateUpdatedAt()))
+                    .get();
+            for (LiveMatch duplicate : entry.getValue()) {
+                if (duplicate.getId() != null && duplicate.getId().equals(keeper.getId())) {
+                    continue;
+                }
+                duplicate.setDeleted(true);
+                duplicate.setDeletionAttempts(2);
+                liveMatchRepository.save(duplicate);
+                logger.warn("Soft-deleted duplicate catalog row {} for CREX key {}; keeping {}", duplicate.getId(), entry.getKey(), keeper.getId());
+            }
+        }
+    }
+
+    private void normalizeStoredCatalogText(LiveMatch match) {
+        String team1 = sanitizeCatalogText(match.getTeam1Name());
+        String team2 = sanitizeCatalogText(match.getTeam2Name());
+        String externalKey = extractCatalogMatchKey(match.getUrl());
+        if (!java.util.Objects.equals(team1, match.getTeam1Name()) || !java.util.Objects.equals(team2, match.getTeam2Name())
+                || !java.util.Objects.equals(externalKey, match.getExternalMatchKey())) {
+            match.setTeam1Name(team1);
+            match.setTeam2Name(team2);
+            match.setExternalMatchKey(externalKey);
+            liveMatchRepository.save(match);
+        }
+    }
+
+    private boolean hasUsableSlugAndTeams(LiveMatch match) {
+        return isValidCatalogMatchUrl(match.getUrl()) && !isBlank(match.getTeam1Name()) && !isBlank(match.getTeam2Name());
+    }
+
+    private boolean isValidCatalogMatch(LiveMatch match) {
+        return match != null && isValidCatalogMatchUrl(match.getUrl());
+    }
+
+    private boolean isValidCatalogMatchUrl(String url) {
+        if (isBlank(url) || !url.toLowerCase().contains("/cricket-live-score/")) {
+            return true;
+        }
+        String slug = CrexMatchUrlHelper.extractMatchKey(url);
+        return !isBlank(slug) && slug.toLowerCase().contains("-vs-");
+    }
+
+    private String sanitizeCatalogText(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() || "null".equalsIgnoreCase(trimmed) || "undefined".equalsIgnoreCase(trimmed) ? null : trimmed;
     }
 
     private LiveMatch findExistingMatch(String externalKey, String url) {
@@ -513,7 +611,6 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 return teams;
             }
         }
-
         return teams;
     }
 

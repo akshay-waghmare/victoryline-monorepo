@@ -1,0 +1,25 @@
+{
+  "url": "https://crex.com/fixtures/match-list",
+  "final_url": "https://crex.com/schedule",
+  "status": 200,
+  "content_type": "text/html; charset=utf-8",
+  "html_bytes": 179860,
+  "title": "CREX Cricket Schedule: Today Match, Upcoming Fixtures, ICC & Upcoming Cricket Fixtures",
+  "description": "Get Datewise, Serieswise and Teamwise Schedules of all International and Domestic Fixtures, Match Info and Results of All Upcoming and Finished Matches ",
+  "canonical": null,
+  "robots": "index, follow, max-image-preview:large",
+  "h1": [
+    "Cricket Schedule & Fixtures"
+  ],
+  "schema_types": [
+    "BreadcrumbList",
+    "CollectionPage",
+    "ItemList",
+    "NewsMediaOrganization",
+    "WebPage"
+  ],
+  "anchor_count": 40,
+  "match_links": [],
+  "article_links": [],
+  "word_count": 325
+}
