@@ -29,4 +29,17 @@ Status legend: `[ ]` queued, `[-]` in progress, `[x]` complete, `[!]` blocked.
 - [!] T013 Run available focused frontend unit tests, or record the existing Angular/Karma blocker if the local runner cannot target this spec cleanly.
   Evidence: pure helper execution passed with `TS_NODE_COMPILER_OPTIONS='{ "module": "commonjs" }' npx ts-node -e ...`, producing `HK vs TAN match preview | HK vs TAN match preview | EDR vs WDL live score | TBD vs TBD live score`. Focused Jasmine assertions were also added. Karma remains a local runner gate: `npx ng test --watch=false --browsers=ChromeHeadless --include=src/app/core/utils/match-utils.spec.ts` fails because Angular CLI 7 rejects `--include`; untargeted `npx ng test --watch=false --browsers=ChromeHeadless` produced no test output after roughly two minutes and was stopped.
 - [x] T014 Record production rollout and GSC outcome proof as pending gates rather than source-complete claims.
-  Evidence: this slice is source-verified only; production rollout, raw SSR hub proof, and GSC T-24/T-12 outcome proof remain pending.
+  Evidence: source completion was not treated as Google indexing proof. The frontend rollout and raw SSR hub proof are now complete; GSC T-24/T-12 outcome proof remains pending.
+
+## Phase 5: Production Rollout
+
+- [x] T015 Commit and push the narrow frontend/spec source snapshot.
+  Evidence: commit `3a6dc08` (`Fix prematch crawl anchor placeholders`) pushed to `origin/008-match-title-seo`.
+- [x] T016 Build and push a frontend-only image from the committed source.
+  Evidence: local Docker build produced `macubex/victoryline-frontend:20260810-crawl-anchor-r1-3a6dc08` with browser hash `145cf74e068f6013e954` and server hash `52bf14c365afc1a79eef`; pushed digest `sha256:2e03413932b1f26f0c9f9d3afcc9e5a9084063c80e0913c4982a27e49445f9cc`.
+- [x] T017 Deploy only the production frontend service.
+  Evidence: production `.env` backed up as `.env.bak.20260810-crawl-anchor-r1-3a6dc08`, `FRONTEND_IMAGE=macubex/victoryline-frontend:20260810-crawl-anchor-r1-3a6dc08`, and `victoryline-frontend` is healthy on that image.
+- [x] T018 Verify raw production SSR hub anchors.
+  Evidence: cache-busted Googlebot/normal probes for `/live-score`, `/live-score/today`, and `/cricket-schedule/today` each returned 200 with 48 `/cric-live/` links, `TBD vs TBD=0`, and `Team 1|Team 2=0`. Sample anchors include `HK vs TAN match preview`, `ITA vs UGN match preview`, `EDR vs WDL match preview`, and `AFG vs IRE match preview`.
+- [ ] T019 Measure the next GSC cohort outcome.
+  Gate: wait for StartupOS/GSC observations at T-24/T-12/T-1h and compare discovered/indexed outcomes without claiming causation from crawl-anchor proof alone.
