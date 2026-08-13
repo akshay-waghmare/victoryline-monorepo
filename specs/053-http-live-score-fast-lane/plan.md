@@ -52,3 +52,11 @@ The HTTP lane never owns rich data and never creates a browser. It is an optiona
 - Separate persistent Chromium browser: failed production gate due resource contention.
 - Shared persistent browser: normal recovery can close the fast lane.
 - Scrapling as the primary client: adds a Python 3.10+ dependency and does not improve the already-working JSON contract. Evaluate only as an isolated future fallback if direct HTTP begins being rejected.
+
+## Production result — 2026-08-13
+
+- Released only the scraper as `macubex/victoryline-scraper:20260813-http-sv3-fastlane-r3`, digest `sha256:bac34ee1828909984673dd607f051a64ab61c40515e9aabfcf3ddb384efe843b`.
+- The image is an overlay of committed code on the exact former production base `20260802-schedule-lookahead-r4`; it therefore avoids unrelated browser/runtime drift. Commits: `72f1961` (lane) and `2483738` (staggered fallback).
+- First two canaries, built on a different persistent-pages base, were rolled back immediately after the normal fallback degraded. That isolated the issue to base-image drift, not direct HTTP or CREX blocking.
+- Final canary passed 15 minutes with: health score 100; zero normal failures; 3/3 selected/covered; 251 changed immediate updates; 0 direct-feed errors/403/429/blocks; circuit closed; at most 40 requests/minute; normal rich scrapes continuing; about 79–115 PIDs and 67–94 MB (no growth from the old ~115-PID baseline).
+- Browser fallbacks are staggered one at a time at `45 / selected_count` seconds, retaining rich-data hydration while avoiding a cold-load burst. Production keeps persistent pages off and `MAX_LIVE_MATCHES=3`.

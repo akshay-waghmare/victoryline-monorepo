@@ -19,14 +19,14 @@
 - [x] T009 Unit-test update/dedup, identity readiness, removal, interval policy, and no persistent-page creation.
 - [x] T010 Unit-test `403`/`429`/malformed/timeout circuit-breaker behavior and recovery cooldown.
 - [x] T011 Run focused scraper tests and a real one-match HTTP runtime probe without browser contexts.
-- [ ] T012 Build runtime-only scraper image and verify image tests.
+- [x] T012 Build runtime-only scraper image and verify image tests.
 
 ## Phase 4 — Controlled production release
 
-- [ ] T013 Deploy only the scraper image with max three matches, HTTP lane enabled, persistent pages disabled.
-- [ ] T014 Observe the 15-minute production gate: healthy/zero failures, three eligible matches, bounded PIDs, no upstream block, and advancing public timestamps.
-- [ ] T015 Roll back scraper-only configuration immediately if any gate fails; otherwise record the exact artifact and evidence.
+- [x] T013 Deploy only the scraper image with max three matches, HTTP lane enabled, persistent pages disabled.
+- [x] T014 Observe the 15-minute production gate: healthy/zero failures, three eligible matches, bounded PIDs, no upstream block, and advancing public timestamps.
+- [x] T015 Roll back scraper-only configuration immediately if any gate fails; otherwise record the exact artifact and evidence.
 
 ## Phase 5 — Durable handoff
 
-- [ ] T016 Update the Crickzen wiki checkpoint, index, hot context, and log with verified final outcome.
+- [x] T016 Update the Crickzen wiki checkpoint, index, hot context, and log with verified final outcome.
