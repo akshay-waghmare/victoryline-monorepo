@@ -6,14 +6,13 @@
 
 import { Injectable, Optional } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { Observable, of, combineLatest, timer, merge, EMPTY, forkJoin } from 'rxjs';
+import { Observable, of, combineLatest, timer, merge, EMPTY } from 'rxjs';
 import { map, switchMap, catchError, shareReplay, timeout, debounceTime, filter, startWith, distinctUntilChanged } from 'rxjs/operators';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
 import { EventListService } from '../../../component/event-list.service';
 import { getStatusDisplayText, formatTimeDisplay, calculateStaleness } from '../models/match-status';
 import { ballsToOvers, extractSlugFromUrl, sortMatchesByPriority } from '../../../core/utils/match-utils';
-import { CricketService } from '../../../cricket-odds/cricket-odds.service';
 
 interface ScheduleResponse {
   success?: boolean;
@@ -31,7 +30,10 @@ export class MatchesService {
   // local proxy can take longer than five seconds while a scraper refresh is
   // in flight; timing out one lane made the series centre look empty despite
   // the backend already having fixtures.
-  private readonly matchesRequestTimeoutMs = 12000;
+  // Keep catalog SSR inside the frontend's eight-second render budget. A
+  // catalog snapshot is useful even when one upstream lane is slow; optional
+  // scorecard/detail data must not extend this critical path.
+  private readonly matchesRequestTimeoutMs = 5000;
 
   // Singleton shared stream — all components subscribe to the same timer + WebSocket triggers.
   // This prevents multiple components (Home, MatchesList) from each creating their own
@@ -40,7 +42,6 @@ export class MatchesService {
 
   constructor(
     private eventListService: EventListService,
-    private cricketOddsService: CricketService,
     @Optional() private router?: Router
   ) {
     // WebSocket-triggered refresh: backend pushes to /topic/live-matches on every scraper update.
@@ -138,16 +139,10 @@ export class MatchesService {
           return of([]);
         }
 
-        // The catalog feed is metadata-only, but the homepage card must still
-        // show the same live score already available on the match page.
-        return forkJoin(activeMatches.map((match: any) => {
-          return this.cricketOddsService.getScorecardInfo(match.url).pipe(
-            timeout(this.matchesRequestTimeoutMs),
-            catchError(() => of(null))
-          );
-        })).pipe(
-          map((scorecards: any[]) => this.transformActiveMatches(activeMatches, scorecards))
-        );
+        // The catalog feed is intentionally metadata-only. Scorecards are
+        // loaded by the detail/scorecard surface for one selected match; they
+        // must never be fetched for every live match on every catalog refresh.
+        return of(this.transformActiveMatches(activeMatches, activeMatches.map(() => null)));
       }),
       catchError(() => {
         return of([]);

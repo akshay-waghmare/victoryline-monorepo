@@ -35,7 +35,6 @@ interface HomeGlanceCard {
 }
 
 const HOME_MATCHES_STATE_KEY = makeStateKey<MatchCardViewModel[]>('crickzen_home_matches');
-const HOME_NEWS_STATE_KEY = makeStateKey<NewsItem[]>('crickzen_home_news');
 
 @Component({
   selector: 'app-home',
@@ -117,17 +116,15 @@ export class HomeComponent implements OnInit, OnDestroy {
       // The SSR transfer-state script is emitted after the browser bundles.
       // Wait one task so it exists before the first client hydration read.
       setTimeout(() => {
-        const hydratedNews = this.getHydratedState<NewsItem[]>(HOME_NEWS_STATE_KEY);
-        if (hydratedNews) {
-          this.transferState.remove(HOME_NEWS_STATE_KEY);
-          this.applyNews(hydratedNews);
-        } else {
-          this.loadNews();
-        }
+        // News/blog is secondary content and must not delay the first useful
+        // homepage HTML. Load it after hydration alongside the live refresh.
+        this.loadNews();
         this.loadMatches();
       }, 0);
     } else {
-      this.loadNews();
+      // Keep news/blog out of the SSR critical path. The browser loads it
+      // after the match rail has hydrated.
+      this.isLoadingNews = false;
       this.loadMatches();
     }
   }
@@ -135,15 +132,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   private loadNews(): void {
     this.newsService.getNews().subscribe(
       (items) => {
-        if (!this.isBrowser) {
-          this.transferState.set(HOME_NEWS_STATE_KEY, items || []);
-        }
         this.applyNews(items);
       },
       () => {
-        if (!this.isBrowser) {
-          this.transferState.set(HOME_NEWS_STATE_KEY, []);
-        }
         this.applyNews([]);
       }
     );
