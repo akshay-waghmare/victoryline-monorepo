@@ -16,6 +16,9 @@ def test_default_settings_standard_profile():
     assert settings.persistent_page_max_count == 30
     assert settings.fast_poll_reconcile_interval_seconds == 0.8
     assert settings.live_match_rescrape_interval_seconds == 15.0
+    assert settings.enable_http_sv3_fast_lane is False
+    assert settings.http_sv3_base_interval_seconds == 5.0
+    assert settings.http_sv3_fallback_scrape_seconds == 45.0
     assert settings.enable_player_stats_crawler is False
     assert settings.player_stats_worker_count == 3
 
@@ -55,6 +58,8 @@ def test_overrides_and_types():
         "PLAYER_STATS_LIVE_COOLDOWN_SECONDS": "180",
         "FAST_POLL_RECONCILE_INTERVAL_SECONDS": "0.6",
         "LIVE_MATCH_RESCRAPE_INTERVAL_SECONDS": "12",
+        "ENABLE_HTTP_SV3_FAST_LANE": "true",
+        "HTTP_SV3_MAX_REQUESTS_PER_MINUTE": "36",
     }
     settings = load_settings(env)
     assert settings.max_lifetime_hours == 7.5
@@ -80,6 +85,8 @@ def test_overrides_and_types():
     assert settings.player_stats_live_cooldown_seconds == 180
     assert settings.fast_poll_reconcile_interval_seconds == 0.6
     assert settings.live_match_rescrape_interval_seconds == 12.0
+    assert settings.enable_http_sv3_fast_lane is True
+    assert settings.http_sv3_max_requests_per_minute == 36
 
 
 @pytest.mark.parametrize(

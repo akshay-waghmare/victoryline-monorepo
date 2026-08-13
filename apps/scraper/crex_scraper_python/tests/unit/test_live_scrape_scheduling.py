@@ -2,6 +2,8 @@ import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
+import pytest
+
 from crex_scraper_python.src.crex_scraper import CrexScraperService
 
 
@@ -13,6 +15,7 @@ def _build_service():
     return service
 
 
+@pytest.mark.asyncio
 async def test_should_submit_live_task_when_persistent_page_inactive():
     service = _build_service()
     service.persistent_page_pool.is_page_active.return_value = False
@@ -20,6 +23,7 @@ async def test_should_submit_live_task_when_persistent_page_inactive():
     assert await service._should_submit_live_task("crex:test-match") is True
 
 
+@pytest.mark.asyncio
 async def test_should_skip_live_task_when_fast_page_is_already_hot():
     service = _build_service()
     service.persistent_page_pool.is_page_active.return_value = True
@@ -28,6 +32,7 @@ async def test_should_skip_live_task_when_fast_page_is_already_hot():
     assert await service._should_submit_live_task("crex:test-match") is False
 
 
+@pytest.mark.asyncio
 async def test_should_submit_live_task_after_rescrape_interval_expires():
     service = _build_service()
     service.persistent_page_pool.is_page_active.return_value = True

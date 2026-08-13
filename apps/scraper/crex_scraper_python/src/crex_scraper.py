@@ -43,6 +43,7 @@ class CrexScraperService:
         self._monitor_task: Optional[asyncio.Task] = None
         self._poll_task: Optional[asyncio.Task] = None
         self._fast_poll_task: Optional[asyncio.Task] = None  # Persistent pages poll loop
+        self._http_sv3_task: Optional[asyncio.Task] = None
         self._auth_token: Optional[str] = None
         self._last_full_live_scrape_at: Dict[str, float] = {}
         self._restart_lock = threading.Lock()
@@ -56,6 +57,7 @@ class CrexScraperService:
         self.persistent_page_pool = None
         self.fast_poll_service = None
         self._active_match_ids: set = set()  # Track matches being polled
+        self.http_sv3_fast_lane = None
         
         if self.settings.enable_persistent_pages:
             from .core.persistent_page_pool import PersistentPagePool
@@ -71,6 +73,15 @@ class CrexScraperService:
                 timeout_ms=5000,
             )
             logger.info("Persistent pages feature enabled")
+
+        if self.settings.enable_http_sv3_fast_lane and self.settings.enable_immediate_push:
+            from .core.http_sv3_fast_lane import HttpSv3FastLane
+            self.http_sv3_fast_lane = HttpSv3FastLane(
+                self.settings, self.cache, self._on_http_sv3_update,
+            )
+            logger.info("HTTP sV3 fast lane enabled (no persistent browser pages)")
+        elif self.settings.enable_http_sv3_fast_lane:
+            logger.warning("HTTP sV3 fast lane requested but immediate push is disabled; leaving it off")
         
         # Fast update manager (Feature 007)
         # Must be initialized before registry so we can wire callbacks
@@ -146,6 +157,10 @@ class CrexScraperService:
         if self.persistent_page_pool and self.fast_poll_service:
             self._fast_poll_task = asyncio.create_task(self._fast_poll_loop())
             logger.info("Fast poll loop started for persistent pages")
+        if self.http_sv3_fast_lane:
+            await self.http_sv3_fast_lane.start()
+            self._http_sv3_task = asyncio.create_task(self._http_sv3_loop())
+            logger.info("HTTP sV3 fast lane loop started")
 
         # Start discovery task
         await self.discovery.start()
@@ -170,6 +185,8 @@ class CrexScraperService:
         
         if self._fast_poll_task:
             self._fast_poll_task.cancel()
+        if self._http_sv3_task:
+            self._http_sv3_task.cancel()
 
         await self.discovery.stop()
 
@@ -189,11 +206,15 @@ class CrexScraperService:
         if self.persistent_page_pool:
             await self.persistent_page_pool.close_all()
             logger.info("PersistentPagePool closed.")
+        if self.http_sv3_fast_lane:
+            await self.http_sv3_fast_lane.stop()
+            logger.info("HTTP sV3 fast lane stopped.")
 
         try:
             if self._monitor_task: await self._monitor_task
             if self._poll_task: await self._poll_task
             if self._fast_poll_task: await self._fast_poll_task
+            if self._http_sv3_task: await self._http_sv3_task
         except asyncio.CancelledError:
             pass
 
@@ -256,28 +277,36 @@ class CrexScraperService:
             int(getattr(self, "_last_managed_live_match_count", live_matches)),
             0,
         )
+        http_lane = getattr(self, "http_sv3_fast_lane", None)
+        http_stats = http_lane.get_stats() if http_lane else {}
         pool_stats = self.persistent_page_pool.get_stats() if self.persistent_page_pool else {}
         intercept_stats = self.fast_poll_service.get_stats() if self.fast_poll_service else {}
-        covered_matches = int(pool_stats.get("size", 0))
-        coverage_ratio = 1.0 if live_matches == 0 else min(covered_matches / live_matches, 1.0)
+        covered_matches = int(http_stats.get("covered_matches", pool_stats.get("size", 0)))
+        coverage_target = managed_live_matches if http_lane else live_matches
+        coverage_ratio = 1.0 if coverage_target == 0 else min(covered_matches / coverage_target, 1.0)
 
-        return {
+        status = {
             "enabled": bool(
-                self.settings.enable_fast_updates
+                http_lane
+                or (self.settings.enable_fast_updates
                 and self.settings.enable_immediate_push
                 and self.settings.enable_persistent_pages
                 and self.persistent_page_pool
-                and self.fast_poll_service
+                and self.fast_poll_service)
             ),
             "live_matches": live_matches,
             "managed_live_matches": managed_live_matches,
             "covered_matches": covered_matches,
             "coverage_ratio": round(coverage_ratio, 3),
-            "capacity": int(pool_stats.get("max_size", self.settings.persistent_page_max_count)),
+            "capacity": int(http_stats.get("selected_matches", pool_stats.get("max_size", self.settings.persistent_page_max_count))),
             "pool_errors": int(pool_stats.get("total_errors", 0)),
             "active_interceptors": int(intercept_stats.get("active_pages", 0)),
             "cached_matches": int(intercept_stats.get("cached_matches", 0)),
         }
+        if http_lane:
+            status["transport"] = "http-sv3"
+            status["http_sv3"] = http_stats
+        return status
 
     @staticmethod
     def _extract_live_urls(matches: list[Any]) -> list[str]:
@@ -370,6 +399,8 @@ class CrexScraperService:
                 live_urls = self._extract_live_urls(matches)
                 self._last_managed_live_match_count = len(live_urls)
                 self._last_managed_live_urls = list(live_urls)
+                if self.http_sv3_fast_lane:
+                    await self.http_sv3_fast_lane.reconcile(live_urls)
 
                 for url in live_urls:
                     if url:
@@ -522,6 +553,30 @@ class CrexScraperService:
             except Exception as e:
                 logger.error(f"[FASTPOLL] Fast poll loop error: {e}")
                 await asyncio.sleep(2)
+
+    async def _http_sv3_loop(self):
+        """Tick the single-client HTTP fast lane; it never creates browser pages."""
+        while self._running and self.http_sv3_fast_lane:
+            try:
+                await self.http_sv3_fast_lane.tick()
+                await asyncio.sleep(0.25)
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.warning("http_sv3.loop_error: %s", exc)
+                await asyncio.sleep(1)
+
+    async def _on_http_sv3_update(self, match_url: str, data: Dict[str, Any], local_storage: Dict[str, str]) -> bool:
+        """Reuse the existing merge-safe immediate patch contract for HTTP sV3 data."""
+        if not self._auth_token:
+            return False
+        return await asyncio.to_thread(
+            CricketDataService.push_immediate_sv3,
+            data,
+            self._auth_token,
+            match_url,
+            local_storage,
+        )
     
     async def _on_sv3_intercepted(self, match_url: str, data: Dict):
         """Callback when sV3 data is intercepted from a persistent page."""
@@ -828,11 +883,15 @@ class CrexScraperService:
 
     async def _should_submit_live_task(self, match_id: str) -> bool:
         """Use the heavy full scrape path sparingly once a match is already covered by a persistent page."""
-        if not self.persistent_page_pool or not await self.persistent_page_pool.is_page_active(match_id):
+        if getattr(self, "http_sv3_fast_lane", None):
+            interval = self.settings.http_sv3_fallback_scrape_seconds
+        elif not self.persistent_page_pool or not await self.persistent_page_pool.is_page_active(match_id):
             return True
+        else:
+            interval = self.settings.live_match_rescrape_interval_seconds
 
         last_full_scrape = self._last_full_live_scrape_at.get(match_id)
         if last_full_scrape is None:
             return True
 
-        return (time.monotonic() - last_full_scrape) >= self.settings.live_match_rescrape_interval_seconds
+        return (time.monotonic() - last_full_scrape) >= interval

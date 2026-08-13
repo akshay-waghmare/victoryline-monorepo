@@ -144,6 +144,15 @@ class ScraperSettings:
     fast_poll_reconcile_interval_seconds: float = 0.8  # How often to attach/detach persistent pages
     live_match_rescrape_interval_seconds: float = 15.0  # Slow full re-scrape cadence once fast pages are active
 
+    # HTTP sV3 Fast Lane (Spec 053). Disabled until the production gate passes.
+    enable_http_sv3_fast_lane: bool = False
+    http_sv3_base_interval_seconds: float = 5.0
+    http_sv3_active_interval_seconds: float = 3.0
+    http_sv3_fallback_scrape_seconds: float = 45.0
+    http_sv3_max_requests_per_minute: int = 40
+    http_sv3_breaker_failure_threshold: int = 3
+    http_sv3_breaker_cooldown_seconds: float = 300.0
+
     # Player Stats Crawler Config
     enable_player_stats_crawler: bool = False
     player_stats_polling_interval_seconds: float = 300.0
@@ -230,6 +239,13 @@ class ScraperSettings:
             "fast_poll_interval_ms": self.fast_poll_interval_ms,
             "fast_poll_reconcile_interval_seconds": self.fast_poll_reconcile_interval_seconds,
             "live_match_rescrape_interval_seconds": self.live_match_rescrape_interval_seconds,
+            "enable_http_sv3_fast_lane": self.enable_http_sv3_fast_lane,
+            "http_sv3_base_interval_seconds": self.http_sv3_base_interval_seconds,
+            "http_sv3_active_interval_seconds": self.http_sv3_active_interval_seconds,
+            "http_sv3_fallback_scrape_seconds": self.http_sv3_fallback_scrape_seconds,
+            "http_sv3_max_requests_per_minute": self.http_sv3_max_requests_per_minute,
+            "http_sv3_breaker_failure_threshold": self.http_sv3_breaker_failure_threshold,
+            "http_sv3_breaker_cooldown_seconds": self.http_sv3_breaker_cooldown_seconds,
             "enable_player_stats_crawler": self.enable_player_stats_crawler,
             "player_stats_polling_interval_seconds": self.player_stats_polling_interval_seconds,
             "player_stats_batch_size": self.player_stats_batch_size,
@@ -325,6 +341,23 @@ class ScraperSettings:
             env.get("LIVE_MATCH_RESCRAPE_INTERVAL_SECONDS"),
             15.0,
             minimum=1.0,
+        )
+        enable_http_sv3_fast_lane = _coerce_bool(env.get("ENABLE_HTTP_SV3_FAST_LANE"), False)
+        http_sv3_base_interval_seconds = _coerce_float(env.get("HTTP_SV3_BASE_INTERVAL_SECONDS"), 5.0, minimum=1.0)
+        http_sv3_active_interval_seconds = _coerce_float(
+            env.get("HTTP_SV3_ACTIVE_INTERVAL_SECONDS"), 3.0, minimum=1.0
+        )
+        http_sv3_fallback_scrape_seconds = _coerce_float(
+            env.get("HTTP_SV3_FALLBACK_SCRAPE_SECONDS"), 45.0, minimum=15.0
+        )
+        http_sv3_max_requests_per_minute = _coerce_int(
+            env.get("HTTP_SV3_MAX_REQUESTS_PER_MINUTE"), 40, minimum=3
+        )
+        http_sv3_breaker_failure_threshold = _coerce_int(
+            env.get("HTTP_SV3_BREAKER_FAILURE_THRESHOLD"), 3, minimum=1
+        )
+        http_sv3_breaker_cooldown_seconds = _coerce_float(
+            env.get("HTTP_SV3_BREAKER_COOLDOWN_SECONDS"), 300.0, minimum=30.0
         )
 
         # Player Stats Crawler Config
@@ -437,6 +470,13 @@ class ScraperSettings:
             fast_poll_interval_ms=fast_poll_interval_ms,
             fast_poll_reconcile_interval_seconds=fast_poll_reconcile_interval_seconds,
             live_match_rescrape_interval_seconds=live_match_rescrape_interval_seconds,
+            enable_http_sv3_fast_lane=enable_http_sv3_fast_lane,
+            http_sv3_base_interval_seconds=http_sv3_base_interval_seconds,
+            http_sv3_active_interval_seconds=http_sv3_active_interval_seconds,
+            http_sv3_fallback_scrape_seconds=http_sv3_fallback_scrape_seconds,
+            http_sv3_max_requests_per_minute=http_sv3_max_requests_per_minute,
+            http_sv3_breaker_failure_threshold=http_sv3_breaker_failure_threshold,
+            http_sv3_breaker_cooldown_seconds=http_sv3_breaker_cooldown_seconds,
             enable_player_stats_crawler=enable_player_stats_crawler,
             player_stats_polling_interval_seconds=player_stats_polling_interval_seconds,
             player_stats_batch_size=player_stats_batch_size,
