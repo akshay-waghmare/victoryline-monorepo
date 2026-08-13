@@ -35,6 +35,7 @@ interface HomeGlanceCard {
 }
 
 const HOME_MATCHES_STATE_KEY = makeStateKey<MatchCardViewModel[]>('crickzen_home_matches');
+const HOME_NEWS_STATE_KEY = makeStateKey<NewsItem[]>('crickzen_home_news');
 
 @Component({
   selector: 'app-home',
@@ -116,15 +117,17 @@ export class HomeComponent implements OnInit, OnDestroy {
       // The SSR transfer-state script is emitted after the browser bundles.
       // Wait one task so it exists before the first client hydration read.
       setTimeout(() => {
-        // News/blog is secondary content and must not delay the first useful
-        // homepage HTML. Load it after hydration alongside the live refresh.
-        this.loadNews();
+        const hydratedNews = this.getHydratedState<NewsItem[]>(HOME_NEWS_STATE_KEY);
+        if (hydratedNews) {
+          this.transferState.remove(HOME_NEWS_STATE_KEY);
+          this.applyNews(hydratedNews);
+        } else {
+          this.loadNews();
+        }
         this.loadMatches();
       }, 0);
     } else {
-      // Keep news/blog out of the SSR critical path. The browser loads it
-      // after the match rail has hydrated.
-      this.isLoadingNews = false;
+      this.loadNews();
       this.loadMatches();
     }
   }
@@ -132,9 +135,15 @@ export class HomeComponent implements OnInit, OnDestroy {
   private loadNews(): void {
     this.newsService.getNews().subscribe(
       (items) => {
+        if (!this.isBrowser) {
+          this.transferState.set(HOME_NEWS_STATE_KEY, items || []);
+        }
         this.applyNews(items);
       },
       () => {
+        if (!this.isBrowser) {
+          this.transferState.set(HOME_NEWS_STATE_KEY, []);
+        }
         this.applyNews([]);
       }
     );
@@ -200,13 +209,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
       (matches) => {
-        const homeMatches = this.limitHomeMatches(matches || []);
         if (!this.isBrowser) {
-          // Do not serialize the full discovery catalogue into homepage SSR.
-          // The homepage renders at most six cards per lifecycle tab; sending
-          // thousands of completed rows made the first HTML response several
-          // megabytes larger than the visible surface.
-          this.transferState.set(HOME_MATCHES_STATE_KEY, homeMatches);
+          this.transferState.set(HOME_MATCHES_STATE_KEY, matches || []);
         }
         // Keep the SSR/hydrated cards visible when the first browser refresh
         // briefly returns an empty snapshot while the backend is warming up.
@@ -217,7 +221,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           this.changeDetectorRef.markForCheck();
           return;
         }
-        this.applyMatches(homeMatches);
+        this.applyMatches(matches);
       },
       (error) => {
         console.error('Error loading matches:', error);
@@ -235,25 +239,6 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.changeDetectorRef.markForCheck();
       }
     );
-  }
-
-  private limitHomeMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
-    const selected: MatchCardViewModel[] = [];
-    const seen: { [key: string]: boolean } = {};
-    const append = (items: MatchCardViewModel[]): void => {
-      items.slice(0, this.maxHomeMatchesPerTab).forEach((match) => {
-        const key = match.matchUrl || match.id;
-        if (!seen[key]) {
-          seen[key] = true;
-          selected.push(match);
-        }
-      });
-    };
-
-    append(filterLiveMatches(matches));
-    append(filterUpcomingMatches(matches));
-    append(filterCompletedMatches(matches));
-    return selected;
   }
 
   private getHydratedState<T>(key: any): T | null {
