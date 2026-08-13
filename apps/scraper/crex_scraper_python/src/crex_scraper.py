@@ -46,6 +46,7 @@ class CrexScraperService:
         self._http_sv3_task: Optional[asyncio.Task] = None
         self._auth_token: Optional[str] = None
         self._last_full_live_scrape_at: Dict[str, float] = {}
+        self._http_sv3_fallback_next_at: float = 0.0
         self._restart_lock = threading.Lock()
         self._container_restart_scheduled = False
         self._last_live_match_count = 0
@@ -405,7 +406,10 @@ class CrexScraperService:
                 for url in live_urls:
                     if url:
                         match_id = self._extract_match_id(url) or url
-                        if await self._should_submit_live_task(match_id):
+                        if (
+                            await self._should_submit_live_task(match_id)
+                            and self._should_enqueue_http_sv3_fallback(len(live_urls))
+                        ):
                             if await self.submit_task(match_id, url, "LIVE"):
                                 self._last_full_live_scrape_at[match_id] = time.monotonic()
 
@@ -895,3 +899,25 @@ class CrexScraperService:
             return True
 
         return (time.monotonic() - last_full_scrape) >= interval
+
+    def _should_enqueue_http_sv3_fallback(self, selected_count: int) -> bool:
+        """Stagger browser fallbacks so a direct-lane poll never creates a browser burst.
+
+        With three selected live matches and a 45-second fallback interval this permits
+        one rich browser refresh every 15 seconds. Each match still receives a full
+        scrape within the configured interval, but the normal browser pool is never
+        asked to cold-load all visible matches simultaneously.
+        """
+        if not getattr(self, "http_sv3_fast_lane", None):
+            return True
+
+        now = time.monotonic()
+        if now < self._http_sv3_fallback_next_at:
+            return False
+
+        spacing = max(
+            1.0,
+            float(self.settings.http_sv3_fallback_scrape_seconds) / max(selected_count, 1),
+        )
+        self._http_sv3_fallback_next_at = now + spacing
+        return True
