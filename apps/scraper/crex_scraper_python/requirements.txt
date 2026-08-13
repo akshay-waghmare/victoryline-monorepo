@@ -1,7 +1,9 @@
 Flask==2.2.2
 Flask-Cors==3.0.10
 Werkzeug==2.2.2
-playwright==1.40.0
+# 1.40.0 can raise `NameError: Page is not defined` from its internal frame
+# navigation close handler. Persistent pages exercise that path repeatedly.
+playwright==1.41.2
 pytest-playwright==0.4.3
 psutil==5.9.8
 prometheus-client==0.19.0

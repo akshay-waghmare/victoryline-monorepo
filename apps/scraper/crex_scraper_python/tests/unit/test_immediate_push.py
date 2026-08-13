@@ -26,9 +26,12 @@ def test_immediate_push_uses_non_persistent_live_patch_endpoint(monkeypatch):
     assert captured["payload"]["over"] == 4.2
 
 
-def test_persistent_page_pool_capacity_remains_bounded():
+async def _assert_persistent_page_pool_capacity_is_bounded():
     pool = PersistentPagePool(max_pages=3)
-
-    asyncio.run(pool.ensure_capacity(12))
+    await pool.ensure_capacity(12)
 
     assert pool.get_stats()["max_size"] == 3
+
+
+def test_persistent_page_pool_capacity_remains_bounded():
+    asyncio.run(_assert_persistent_page_pool_capacity_is_bounded())
