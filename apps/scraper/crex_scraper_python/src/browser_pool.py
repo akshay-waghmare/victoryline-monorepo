@@ -54,6 +54,11 @@ class AsyncBrowserPool:
         self.settings = get_settings()
         self._playwright: Optional[Playwright] = None
         self._browser: Optional[Browser] = None
+        # Persistent live pages must not share the normal scrape browser. A
+        # recoverable failure in an ordinary scrape recycles that browser; if
+        # the live pages share it, all interceptors disappear together.
+        self._persistent_playwright: Optional[Playwright] = None
+        self._persistent_browser: Optional[Browser] = None
         self._semaphore: Optional[asyncio.Semaphore] = None
         self._active_contexts: List[BrowserContext] = []
         self._lock: Optional[asyncio.Lock] = None
@@ -90,20 +95,33 @@ class AsyncBrowserPool:
             )
         logger.info("Browser launched successfully.")
 
+    @staticmethod
+    def _launch_args() -> List[str]:
+        return [
+            "--disable-gpu",
+            "--disable-dev-shm-usage",
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-extensions",
+        ]
+
+    async def _new_configured_context(self, browser: Browser) -> BrowserContext:
+        """Create one configured context in the supplied browser process."""
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            viewport={"width": 1920, "height": 1080},
+            java_script_enabled=True,
+        )
+        await context.route("**/*.{png,jpg,jpeg,gif,webp,svg,css,woff,woff2}", lambda route: route.abort())
+        return context
+
     async def _create_context(self) -> BrowserContext:
-        """Create a new configured context."""
+        """Create a configured context in the ordinary scrape browser."""
         if not self._browser:
             await self.setup()
-            
+
         try:
-            context = await self._browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-                viewport={"width": 1920, "height": 1080},
-                java_script_enabled=True
-            )
-            # Block resources to save bandwidth
-            await context.route("**/*.{png,jpg,jpeg,gif,webp,svg,css,woff,woff2}", lambda route: route.abort())
-            return context
+            return await self._new_configured_context(self._browser)
         except Exception as e:
             logger.error(f"Failed to create context: {e}")
             # Invalidate browser so it gets recreated
@@ -193,17 +211,37 @@ class AsyncBrowserPool:
                         except Exception as e:
                             logger.debug(f"Error closing context: {e}")
 
+    async def create_persistent_context(self) -> BrowserContext:
+        """
+        Create a context in an isolated browser process for live interceptors.
+
+        The caller owns the context and must close it explicitly. Keeping this
+        browser separate means normal scrape recovery cannot invalidate the
+        persistent fast lane.
+        """
+        if self._shutting_down:
+            raise RuntimeError("Browser pool is shutting down")
+        try:
+            if not self._persistent_playwright:
+                self._persistent_playwright = await async_playwright().start()
+            if not self._persistent_browser:
+                self._persistent_browser = await self._persistent_playwright.chromium.launch(
+                    headless=True,
+                    args=self._launch_args(),
+                )
+            return await self._new_configured_context(self._persistent_browser)
+        except Exception:
+            if self._persistent_browser:
+                try:
+                    await self._persistent_browser.close()
+                except Exception:
+                    pass
+                self._persistent_browser = None
+            raise
+
     async def create_dedicated_context(self) -> BrowserContext:
-        """
-        Create a dedicated browser context NOT managed by the pool.
-        
-        The caller owns this context and must close it explicitly.
-        Use this for persistent pages that need the context to stay alive
-        for the entire page lifetime (unlike get_context which recycles).
-        """
-        if not self._browser:
-            await self.setup()
-        return await self._create_context()
+        """Compatibility alias for the isolated persistent-page context."""
+        return await self.create_persistent_context()
 
     async def shutdown(self):
         """Gracefully shutdown the browser pool."""
@@ -230,10 +268,18 @@ class AsyncBrowserPool:
         if self._browser:
             await self._browser.close()
             self._browser = None
+
+        if self._persistent_browser:
+            await self._persistent_browser.close()
+            self._persistent_browser = None
             
         if self._playwright:
             await self._playwright.stop()
             self._playwright = None
+
+        if self._persistent_playwright:
+            await self._persistent_playwright.stop()
+            self._persistent_playwright = None
             
         logger.info("AsyncBrowserPool shutdown complete.")
 
