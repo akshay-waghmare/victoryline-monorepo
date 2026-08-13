@@ -200,8 +200,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
     this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
       (matches) => {
+        const homeMatches = this.limitHomeMatches(matches || []);
         if (!this.isBrowser) {
-          this.transferState.set(HOME_MATCHES_STATE_KEY, matches || []);
+          // Do not serialize the full discovery catalogue into homepage SSR.
+          // The homepage renders at most six cards per lifecycle tab; sending
+          // thousands of completed rows made the first HTML response several
+          // megabytes larger than the visible surface.
+          this.transferState.set(HOME_MATCHES_STATE_KEY, homeMatches);
         }
         // Keep the SSR/hydrated cards visible when the first browser refresh
         // briefly returns an empty snapshot while the backend is warming up.
@@ -212,7 +217,7 @@ export class HomeComponent implements OnInit, OnDestroy {
           this.changeDetectorRef.markForCheck();
           return;
         }
-        this.applyMatches(matches);
+        this.applyMatches(homeMatches);
       },
       (error) => {
         console.error('Error loading matches:', error);
@@ -230,6 +235,25 @@ export class HomeComponent implements OnInit, OnDestroy {
         this.changeDetectorRef.markForCheck();
       }
     );
+  }
+
+  private limitHomeMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    const selected: MatchCardViewModel[] = [];
+    const seen: { [key: string]: boolean } = {};
+    const append = (items: MatchCardViewModel[]): void => {
+      items.slice(0, this.maxHomeMatchesPerTab).forEach((match) => {
+        const key = match.matchUrl || match.id;
+        if (!seen[key]) {
+          seen[key] = true;
+          selected.push(match);
+        }
+      });
+    };
+
+    append(filterLiveMatches(matches));
+    append(filterUpcomingMatches(matches));
+    append(filterCompletedMatches(matches));
+    return selected;
   }
 
   private getHydratedState<T>(key: any): T | null {
