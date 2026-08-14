@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -87,8 +88,20 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                         if ((match.getResultSummary() == null || match.getResultSummary().trim().isEmpty()) && match.getLastKnownState() != null) {
                             match.setResultSummary(match.getLastKnownState());
                         }
+						MatchLifecycleStatus inferredStatus = inferTerminalStatus(match.getResultSummary());
+                        // A multi-day match can disappear from CREX's live carousel at
+                        // stumps. Absence is not a completion signal: retain the rich
+                        // state and keep the match indexable as an innings break.
+                        if (!inferredStatus.isTerminal()) {
+                            match.setDeleted(false);
+                            match.setDeletionAttempts(0);
+                            match.setStatus(inferredStatus);
+                            match.setLastStateUpdatedAt(System.currentTimeMillis());
+                            liveMatchRepository.save(match);
+                            continue;
+                        }
 						match.setDeleted(true);
-                        match.setStatus(inferTerminalStatus(match.getResultSummary()));
+                        match.setStatus(inferredStatus);
                         match.setLastStateUpdatedAt(System.currentTimeMillis());
 						liveMatchRepository.save(match);
 						stopScraping(match.getUrl());
@@ -213,6 +226,12 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 }
             }
 
+            // A provider lifecycle flag without a terminal result is not enough to
+            // publish a completed match. This prevents a stale schedule card from
+            // converting "Day 2 stumps" into "Match completed".
+            if (incomingStatus != null && incomingStatus.isTerminal() && !hasTerminalResultSignal(resultSummary)) {
+                incomingStatus = lifecycleFromEvidence(match);
+            }
             MatchLifecycleStatus mergedStatus = isNew ? incomingStatus : mergeLifecycleStatus(match.getStatus(), incomingStatus);
             match.setStatus(mergedStatus);
             match.setDeleted(mergedStatus != null && mergedStatus.isTerminal());
@@ -296,16 +315,14 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	}
 	
 	public List<LiveMatch> findAllLiveMatches() {
-		return liveMatchRepository.findByDeletionAttemptsLessThanAndIsDeletedFalse(Integer.valueOf(2))
-                .stream()
+        return resolvedCanonicalCatalogue().stream()
                 .filter(this::isLiveLike)
-                .filter(this::isValidCatalogMatch)
                 .map(this::enrichLiveMatchFromSnapshot)
                 .collect(Collectors.toList());
 	}
 
 	public List<LiveMatch> findAllMatches() {
-		return liveMatchRepository.findAll();
+		return resolvedCanonicalCatalogue();
 	}
 
 	public List<LiveMatch> findAllFinishedMatches() {
@@ -318,10 +335,9 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 .atStartOfDay(MATCH_DISPLAY_ZONE)
                 .toInstant()
                 .toEpochMilli();
-        return liveMatchRepository.findUpcomingMatchesStartingAtOrAfter(
-                Arrays.asList(MatchLifecycleStatus.UPCOMING),
-                startOfToday).stream()
-                .filter(this::isValidCatalogMatch)
+        return resolvedCanonicalCatalogue().stream()
+                .filter(match -> match.getStatus() == MatchLifecycleStatus.UPCOMING)
+                .filter(match -> match.getScheduledStartTime() != null && match.getScheduledStartTime() >= startOfToday)
                 // Upcoming rows are often written from a compact schedule card. Hydrate
                 // only missing identity facts from the stored canonical snapshot so SSR
                 // can show a real venue without inventing one or changing the source URL.
@@ -331,9 +347,10 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
     @Override
     public List<LiveMatch> findCompletedMatches() {
-        return liveMatchRepository.findByStatusInOrderByLastStateUpdatedAtDesc(
-                Arrays.asList(MatchLifecycleStatus.COMPLETED, MatchLifecycleStatus.ABANDONED))
-                .stream().filter(this::isValidCatalogMatch).collect(Collectors.toList());
+        return resolvedCanonicalCatalogue().stream()
+                .filter(match -> match.getStatus() != null && match.getStatus().isTerminal())
+                .sorted(Comparator.comparing((LiveMatch match) -> match.getLastStateUpdatedAt() == null ? 0L : match.getLastStateUpdatedAt()).reversed())
+                .collect(Collectors.toList());
     }
 	
 	public LiveMatch findByUrl(String url) {
@@ -476,15 +493,123 @@ public class LiveMatchServiceImpl implements LiveMatchService {
     }
 
     private MatchLifecycleStatus inferTerminalStatus(String resultSummary) {
-        if (resultSummary == null || resultSummary.trim().isEmpty()) {
-            return MatchLifecycleStatus.COMPLETED;
-        }
-
-        String normalized = resultSummary.toLowerCase();
+        String normalized = resultSummary == null ? "" : resultSummary.toLowerCase();
         if (normalized.contains("abandoned") || normalized.contains("no result")) {
             return MatchLifecycleStatus.ABANDONED;
         }
-        return MatchLifecycleStatus.COMPLETED;
+        if (hasCompletedResultSignal(normalized)) {
+            return MatchLifecycleStatus.COMPLETED;
+        }
+        if (hasInningsBreakSignal(normalized)) {
+            return MatchLifecycleStatus.INNINGS_BREAK;
+        }
+        // Never turn an unavailable or ambiguous provider response into a false
+        // terminal lifecycle. It remains eligible for the retained rich snapshot.
+        return MatchLifecycleStatus.INNINGS_BREAK;
+    }
+
+    /**
+     * Resolves one public lifecycle per CREX match ID. Catalogue feeds, the
+     * canonical-match endpoint and sitemap generation all consume this method,
+     * so an alias cannot advertise a different phase from the canonical owner.
+     */
+    private List<LiveMatch> resolvedCanonicalCatalogue() {
+        Map<String, List<LiveMatch>> matchesByIdentity = liveMatchRepository.findAll().stream()
+                .filter(this::isValidCatalogMatch)
+                .collect(Collectors.groupingBy(
+                        match -> isBlank(extractCatalogMatchKey(match.getUrl()))
+                                ? "row:" + match.getId()
+                                : extractCatalogMatchKey(match.getUrl()),
+                        LinkedHashMap::new,
+                        Collectors.toList()));
+
+        List<LiveMatch> resolved = new ArrayList<>();
+        for (List<LiveMatch> aliases : matchesByIdentity.values()) {
+            LiveMatch owner = aliases.stream().min(Comparator
+                    .comparing(LiveMatch::isDeleted)
+                    .thenComparing(match -> match.getId() == null ? Long.MAX_VALUE : match.getId()))
+                    .orElse(null);
+            LiveMatch freshest = aliases.stream().max(Comparator
+                    .comparing(match -> match.getLastStateUpdatedAt() == null ? 0L : match.getLastStateUpdatedAt()))
+                    .orElse(owner);
+            if (owner == null) {
+                continue;
+            }
+
+            LiveMatch snapshot = copyForPublication(owner);
+            copyRicherEvidence(snapshot, freshest);
+            MatchLifecycleStatus status = lifecycleFromEvidence(snapshot);
+            snapshot.setStatus(status);
+            snapshot.setDeleted(status != null && status.isTerminal());
+            resolved.add(snapshot);
+        }
+        return resolved;
+    }
+
+    private MatchLifecycleStatus lifecycleFromEvidence(LiveMatch match) {
+        String normalized = (firstNonBlank(match.getResultSummary(), "") + " "
+                + firstNonBlank(match.getLastKnownState(), "")).toLowerCase();
+        if (normalized.contains("abandoned") || normalized.contains("no result")) {
+            return MatchLifecycleStatus.ABANDONED;
+        }
+        // A current stumps/lead signal wins over an older stale terminal summary
+        // retained on an alias row.
+        if (hasInningsBreakSignal(normalized)) {
+            return MatchLifecycleStatus.INNINGS_BREAK;
+        }
+        if (hasCompletedResultSignal(normalized)) {
+            return MatchLifecycleStatus.COMPLETED;
+        }
+        return match.getStatus() == null ? MatchLifecycleStatus.UPCOMING : match.getStatus();
+    }
+
+    private boolean hasCompletedResultSignal(String value) {
+        return value.contains("won by") || value.contains("match drawn") || value.contains("match tied")
+                || value.matches(".*\\b(match )?draw\\b.*") || value.matches(".*\\b(match )?tied\\b.*");
+    }
+
+    private boolean hasTerminalResultSignal(String value) {
+        String normalized = value == null ? "" : value.toLowerCase();
+        return normalized.contains("abandoned") || normalized.contains("no result") || hasCompletedResultSignal(normalized);
+    }
+
+    private boolean hasInningsBreakSignal(String value) {
+        return value.contains("stumps") || value.contains("lead by") || value.contains("innings break");
+    }
+
+    private LiveMatch copyForPublication(LiveMatch source) {
+        LiveMatch copy = new LiveMatch(source.getUrl());
+        copy.setId(source.getId());
+        copy.setExternalMatchKey(source.getExternalMatchKey());
+        copy.setDeleted(source.isDeleted());
+        copy.setLastKnownState(source.getLastKnownState());
+        copy.setDeletionAttempts(source.getDeletionAttempts());
+        copy.setStatus(source.getStatus());
+        copy.setScheduledStartTime(source.getScheduledStartTime());
+        copy.setTeam1Name(source.getTeam1Name());
+        copy.setTeam2Name(source.getTeam2Name());
+        copy.setSeriesName(source.getSeriesName());
+        copy.setMatchFormat(source.getMatchFormat());
+        copy.setResultSummary(source.getResultSummary());
+        copy.setLastStateUpdatedAt(source.getLastStateUpdatedAt());
+        copy.setVenue(source.getVenue());
+        copy.setDistributionDone(source.isDistributionDone());
+        return copy;
+    }
+
+    private void copyRicherEvidence(LiveMatch target, LiveMatch source) {
+        if (source == null) {
+            return;
+        }
+        if (!isBlank(source.getLastKnownState())) {
+            target.setLastKnownState(source.getLastKnownState());
+        }
+        if (!isBlank(source.getResultSummary())) {
+            target.setResultSummary(source.getResultSummary());
+        }
+        if (source.getLastStateUpdatedAt() != null) {
+            target.setLastStateUpdatedAt(source.getLastStateUpdatedAt());
+        }
     }
 
     private MatchLifecycleStatus mergeLifecycleStatus(MatchLifecycleStatus current, MatchLifecycleStatus incoming) {

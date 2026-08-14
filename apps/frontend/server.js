@@ -26,6 +26,10 @@ const SSR_SNAPSHOT_CACHE_TTL_MS = process.env.SSR_SNAPSHOT_CACHE_TTL_MS ? Number
 const SSR_LIVE_SNAPSHOT_MAX_AGE_MS = process.env.SSR_LIVE_SNAPSHOT_MAX_AGE_MS ? Number(process.env.SSR_LIVE_SNAPSHOT_MAX_AGE_MS) : 180000;
 const SSR_RETAINED_ENTITY_TIMEOUT_MS = process.env.SSR_RETAINED_ENTITY_TIMEOUT_MS ? Number(process.env.SSR_RETAINED_ENTITY_TIMEOUT_MS) : 1200;
 const ssrSnapshotCache = new Map();
+// Availability must never downgrade an indexable match page to generic copy.
+// Keep the last complete match document for this SSR process until a newer
+// canonical snapshot replaces it.
+const ssrLastKnownRichSnapshot = new Map();
 const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/$/,
   /^\/Home\/?$/,
@@ -325,7 +329,8 @@ async function fetchCanonicalMatchSnapshot(match) {
     return invalid;
   }
   if (response.status < 200 || response.status >= 300 || !response.data || typeof response.data !== 'object') {
-    return { validity: 'unknown' };
+    const retained = ssrLastKnownRichSnapshot.get(match.slug);
+    return retained ? Object.assign({}, retained, { source: 'last-known-rich-snapshot', retained: true }) : { validity: 'unknown' };
   }
 
   const data = response.data;
@@ -350,6 +355,9 @@ async function fetchCanonicalMatchSnapshot(match) {
     snapshot.scheduledAt = formatSnapshotSchedule(snapshot.scheduledAtMs);
   }
   ssrSnapshotCache.set(match.slug, { createdAt: Date.now(), value: snapshot });
+  if (isRichCanonicalSnapshot(snapshot)) {
+    ssrLastKnownRichSnapshot.set(match.slug, snapshot);
+  }
   return snapshot;
 }
 
@@ -447,6 +455,11 @@ function hasFreshLiveScore(snapshot, lifecycle) {
   return Date.now() - snapshot.stateUpdatedAt <= SSR_LIVE_SNAPSHOT_MAX_AGE_MS;
 }
 
+function isRichCanonicalSnapshot(snapshot) {
+  if (!snapshot || snapshot.validity !== 'valid' || deriveSnapshotLifecycle(snapshot) === 'neutral') return false;
+  return !!(snapshot.series || snapshot.score || snapshot.result || snapshot.lastKnownState || snapshot.scheduledAt);
+}
+
 function lifecycleSummary(match, snapshot) {
   const lifecycle = deriveSnapshotLifecycle(snapshot);
   const scoreIsFresh = hasFreshLiveScore(snapshot, lifecycle);
@@ -467,7 +480,7 @@ function lifecycleSummary(match, snapshot) {
 
 function buildCanonicalMatchFallbackHtml(req, snapshot) {
   const match = parseCanonicalMatchSlug(req.path);
-  if (!match) {
+  if (!match || !isRichCanonicalSnapshot(snapshot)) {
     return null;
   }
 
@@ -533,6 +546,13 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     .replace(/<app-root><\/app-root>/i, `<app-root>${body}</app-root>`);
 }
 
+function buildCanonicalMatchUnavailableHtml() {
+  const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8').replace(/<meta\s+name="description"[^>]*>\s*/i, '');
+  const head = '<title>Match data temporarily unavailable | Crickzen</title><meta name="robots" content="noindex,follow"><meta name="description" content="Match data is temporarily unavailable. Please retry shortly.">';
+  return indexHtml.replace(/<title>[^<]*<\/title>/i, head)
+    .replace(/<app-root><\/app-root>/i, '<app-root><main id="canonical-match-unavailable"><h1>Match data temporarily unavailable</h1><p>Please retry shortly.</p></main></app-root>');
+}
+
 function buildCanonicalMatchNotFoundHtml(req) {
   const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8').replace(/<meta\s+name="description"[^>]*>\s*/i, '');
   const head = '<title>Cricket Match Not Found | Crickzen</title><meta name="robots" content="noindex,follow"><meta name="description" content="This cricket match URL could not be resolved.">';
@@ -556,6 +576,13 @@ async function sendSsrFallback(req, res, routeStatus, reason) {
     res.setHeader('X-SSR-Fallback-Level', snapshot && snapshot.validity === 'valid' ? 'snapshot' : 'route');
     res.setHeader('X-SSR-Lifecycle', lifecycle);
     res.status(200).send(canonicalFallback);
+    return;
+  }
+
+  if (routeMatch) {
+    res.setHeader('Retry-After', '60');
+    res.setHeader('X-SSR-Fallback', 'unavailable-no-rich-snapshot');
+    res.status(503).send(buildCanonicalMatchUnavailableHtml());
     return;
   }
 
