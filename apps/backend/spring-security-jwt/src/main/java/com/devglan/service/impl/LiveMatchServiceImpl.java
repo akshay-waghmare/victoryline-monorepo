@@ -40,6 +40,9 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
 	private static final Logger logger = LoggerFactory.getLogger(LiveMatchServiceImpl.class);
 	private static final ZoneId MATCH_DISPLAY_ZONE = ZoneId.of("Asia/Kolkata");
+	private static final long ONE_DAY_MS = 24L * 60L * 60L * 1000L;
+	private static final long LIMITED_OVERS_LIFECYCLE_WINDOW_MS = 2L * ONE_DAY_MS;
+	private static final long UNSCHEDULED_LIVE_STATE_WINDOW_MS = 36L * 60L * 60L * 1000L;
 
 	private final LiveMatchRepository liveMatchRepository;
 	private final CricketDataService cricketDataService;
@@ -88,7 +91,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                         if ((match.getResultSummary() == null || match.getResultSummary().trim().isEmpty()) && match.getLastKnownState() != null) {
                             match.setResultSummary(match.getLastKnownState());
                         }
-						MatchLifecycleStatus inferredStatus = inferTerminalStatus(match.getResultSummary());
+						MatchLifecycleStatus inferredStatus = lifecycleFromEvidence(match);
                         // A multi-day match can disappear from CREX's live carousel at
                         // stumps. Absence is not a completion signal: retain the rich
                         // state and keep the match indexable as an innings break.
@@ -503,9 +506,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         if (hasInningsBreakSignal(normalized)) {
             return MatchLifecycleStatus.INNINGS_BREAK;
         }
-        // Never turn an unavailable or ambiguous provider response into a false
-        // terminal lifecycle. It remains eligible for the retained rich snapshot.
-        return MatchLifecycleStatus.INNINGS_BREAK;
+        return MatchLifecycleStatus.COMPLETED;
     }
 
     /**
@@ -553,14 +554,51 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             return MatchLifecycleStatus.ABANDONED;
         }
         // A current stumps/lead signal wins over an older stale terminal summary
-        // retained on an alias row.
+        // retained on an alias row, but only while the match can still be
+        // running. Otherwise old scorecards accumulate in the live lane.
         if (hasInningsBreakSignal(normalized)) {
-            return MatchLifecycleStatus.INNINGS_BREAK;
+            return isLifecycleWindowOpen(match)
+                    ? MatchLifecycleStatus.INNINGS_BREAK
+                    : MatchLifecycleStatus.COMPLETED;
         }
         if (hasCompletedResultSignal(normalized)) {
             return MatchLifecycleStatus.COMPLETED;
         }
-        return match.getStatus() == null ? MatchLifecycleStatus.UPCOMING : match.getStatus();
+        MatchLifecycleStatus stored = match.getStatus() == null ? MatchLifecycleStatus.UPCOMING : match.getStatus();
+        if (stored.isLiveLike() && !isLifecycleWindowOpen(match)) {
+            return MatchLifecycleStatus.COMPLETED;
+        }
+        return stored;
+    }
+
+    private boolean isLifecycleWindowOpen(LiveMatch match) {
+        if (match == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        Long scheduledStart = match.getScheduledStartTime();
+        if (scheduledStart != null && scheduledStart > 0L) {
+            return now <= scheduledStart + lifecycleWindowFor(match);
+        }
+        Long lastUpdated = match.getLastStateUpdatedAt();
+        return lastUpdated != null && lastUpdated > 0L && now - lastUpdated <= UNSCHEDULED_LIVE_STATE_WINDOW_MS;
+    }
+
+    private long lifecycleWindowFor(LiveMatch match) {
+        String context = (String.valueOf(match.getMatchFormat()) + " "
+                + String.valueOf(match.getSeriesName()) + " "
+                + String.valueOf(match.getUrl())).toLowerCase();
+        if (context.contains("test") || context.contains("first-class") || context.contains("4-day")
+                || context.contains("four-day")) {
+            return 8L * ONE_DAY_MS;
+        }
+        if (context.contains("3-day") || context.contains("three-day")) {
+            return 6L * ONE_DAY_MS;
+        }
+        if (context.contains("2-day") || context.contains("two-day")) {
+            return 4L * ONE_DAY_MS;
+        }
+        return LIMITED_OVERS_LIFECYCLE_WINDOW_MS;
     }
 
     private boolean hasCompletedResultSignal(String value) {
