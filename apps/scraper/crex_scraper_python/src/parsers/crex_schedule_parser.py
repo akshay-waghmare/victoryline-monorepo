@@ -26,6 +26,10 @@ _CANONICAL_LIVE_SCORE_PATH_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _MAX_MATCH_NAME_ENRICHMENTS = 12
+_PLACEHOLDER_VENUE_PATTERN = re.compile(
+    r"^(?:venue\s+)?(?:null|tbd|n/?a|na|unknown|not\s+available|no\s+venue(?:\s+info)?)$",
+    re.IGNORECASE,
+)
 
 
 def extract_external_match_key(url: str) -> Optional[str]:
@@ -56,6 +60,14 @@ def classify_match_status(text: str) -> str:
 
 def normalize_text(value: Optional[str]) -> str:
     return re.sub(r"\s+", " ", (value or "")).strip()
+
+
+def normalize_schedule_venue(value: Optional[str]) -> Optional[str]:
+    """Return a source venue, but never turn a placeholder into schema data."""
+    normalized = normalize_text(value)
+    if not normalized or _PLACEHOLDER_VENUE_PATTERN.fullmatch(normalized):
+        return None
+    return normalized
 
 
 def parse_epoch_millis(raw_value: Optional[str]) -> Optional[int]:
@@ -370,6 +382,7 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
             const seen = new Set();
             const scheduleDates = {};
             const scheduleEventNames = {};
+            const scheduleVenues = {};
             const scheduleDateScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
 
             scheduleDateScripts.forEach((script) => {
@@ -384,6 +397,14 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
                         const url = event && event.url ? event.url : '';
                         const startDate = event && event.startDate ? event.startDate : '';
                         const eventName = event && event.name ? event.name : '';
+                        const location = event && event.location ? event.location : '';
+                        const venue = typeof location === 'string'
+                            ? location
+                            : location && location.name
+                                ? location.name
+                                : location && location.address && typeof location.address === 'string'
+                                    ? location.address
+                                    : '';
                         if (!url || !startDate) {
                             return;
                         }
@@ -395,6 +416,9 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
                         scheduleDates[absoluteUrl] = startDate;
                         if (eventName) {
                             scheduleEventNames[absoluteUrl] = normalize(eventName);
+                        }
+                        if (venue) {
+                            scheduleVenues[absoluteUrl] = normalize(venue);
                         }
                     });
                 } catch (error) {
@@ -434,12 +458,19 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
                         ''
                     )
                     : '';
+                const venueNode = card.querySelector(
+                    '[data-venue], [data-ground], .match-venue, .venue, a[href*="cricket-grounds"]'
+                );
+                const venueValue = venueNode
+                    ? normalize(venueNode.getAttribute('data-venue') || venueNode.innerText || venueNode.textContent || '')
+                    : '';
 
                 cards.push({
                     url: absoluteUrl,
                     text,
                     title: normalize(anchor.innerText || ''),
                     eventName: scheduleEventNames[absoluteUrl] || '',
+                    venue: scheduleVenues[absoluteUrl] || venueValue,
                     timeValue,
                     startDate: scheduleDates[absoluteUrl] || ''
                 });
@@ -495,6 +526,7 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
             "team2Name": team_names["team2Name"],
             "seriesName": extract_series_name(card.get("eventName"), card.get("text")),
             "matchFormat": extract_match_format(combined_text),
+            "venue": normalize_schedule_venue(card.get("venue")),
             "resultSummary": extract_result_summary(card.get("text") or ""),
             "lastStateUpdatedAt": int(datetime.utcnow().timestamp() * 1000),
         }

@@ -320,7 +320,13 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 .toEpochMilli();
         return liveMatchRepository.findUpcomingMatchesStartingAtOrAfter(
                 Arrays.asList(MatchLifecycleStatus.UPCOMING),
-                startOfToday).stream().filter(this::isValidCatalogMatch).collect(Collectors.toList());
+                startOfToday).stream()
+                .filter(this::isValidCatalogMatch)
+                // Upcoming rows are often written from a compact schedule card. Hydrate
+                // only missing identity facts from the stored canonical snapshot so SSR
+                // can show a real venue without inventing one or changing the source URL.
+                .map(this::enrichLiveMatchFromSnapshot)
+                .collect(Collectors.toList());
     }
 
     @Override

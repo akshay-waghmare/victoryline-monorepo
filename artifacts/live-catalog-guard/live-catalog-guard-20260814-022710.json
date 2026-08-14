@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-08-13T20:57:10.5778969Z",
+  "baseUrl": "https://www.crickzen.com",
+  "liveCatalog": {
+    "status": 200,
+    "elapsedMs": 870,
+    "count": 0,
+    "maxExpected": 20,
+    "duplicateUrls": []
+  },
+  "homepageChecks": [
+    {
+      "attempt": 1,
+      "status": 200,
+      "elapsedMs": 3553,
+      "bytes": 2831372,
+      "h1Count": 1,
+      "matchLinkCount": 38,
+      "error": null
+    },
+    {
+      "attempt": 2,
+      "status": 200,
+      "elapsedMs": 4180,
+      "bytes": 2831217,
+      "h1Count": 1,
+      "matchLinkCount": 38,
+      "error": null
+    },
+    {
+      "attempt": 3,
+      "status": 200,
+      "elapsedMs": 3136,
+      "bytes": 2831372,
+      "h1Count": 1,
+      "matchLinkCount": 38,
+      "error": null
+    }
+  ],
+  "productionEvidence": [
+    "victoryline-scraper|Up 4 hours (healthy)|macubex/victoryline-scraper:20260813-http-sv3-fastlane-r3",
+    "victoryline-frontend|Up 7 hours (healthy)|macubex/victoryline-frontend:20260810-crawl-anchor-r1-3a6dc08",
+    "postiz|Up 2 days (healthy)|postiz-app-facebook:local",
+    "temporal-ui|Up 2 days (healthy)|temporalio/ui:2.34.0",
+    "temporal-admin-tools|Up 2 days|temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1",
+    "temporal|Up 2 days (healthy)|temporalio/auto-setup:1.28.1",
+    "temporal-elasticsearch|Up 2 days (healthy)|elasticsearch:7.17.27",
+    "postiz-postgres|Up 2 days (healthy)|postgres:17-alpine",
+    "postiz-redis|Up 2 days (healthy)|redis:7.2",
+    "temporal-postgresql|Up 2 days (healthy)|postgres:16",
+    "crickzen-dashboard|Up 34 hours (healthy)|machine_learning_bbl-dashboard:20260801-opening-r1",
+    "victoryline-backend|Up 2 days (healthy)|macubex/victoryline-backend:20260801-historic-lifecycle-r1",
+    "victoryline-proxy|Up 3 weeks|caddy:2",
+    "victoryline-redis|Up 4 weeks (healthy)|redis:7-alpine",
+    "cricket-ledger-mongodb|Up 4 weeks|mongo:6",
+    "LOGS"
+  ],
+  "warnings": [],
+  "failures": [],
+  "passed": true
+}

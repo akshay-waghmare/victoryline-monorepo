@@ -1,7 +1,10 @@
 package com.devglan.controller;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -47,6 +50,7 @@ import com.devglan.service.MatchDetailHydrationService;
 import com.devglan.service.MatchInfoService;
 import com.devglan.service.RssFeedService;
 import com.devglan.service.CricketNewsService;
+import com.devglan.service.CrexMatchUrlHelper;
 import com.devglan.model.CricketNews;
 import com.devglan.service.ScorecardService;
 import com.devglan.service.UserService;
@@ -585,8 +589,9 @@ public class CricketDataController {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
 		}
 
-		LiveMatch match = liveMatchService.findByUrl(normalizedSlug);
-		if (match == null || !matchesCanonicalSlug(match, normalizedSlug)) {
+		CanonicalMatchResolution resolution = resolveCanonicalMatch(normalizedSlug);
+		LiveMatch match = resolution == null ? null : resolution.canonicalMatch;
+		if (match == null) {
 			String storedInfo = matchInfoService.getMatchInfo(normalizedSlug);
 			if (storedInfo == null || storedInfo.trim().isEmpty()) {
 				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
@@ -613,7 +618,9 @@ public class CricketDataController {
 		}
 
 		Map<String, Object> response = new HashMap<>();
-		response.put("slug", normalizedSlug);
+		String canonicalSlug = CrexMatchUrlHelper.extractMatchKey(match.getUrl());
+		response.put("slug", canonicalSlug);
+		response.put("canonicalSlug", canonicalSlug);
 		response.put("status", match.getStatus() == null ? null : match.getStatus().name());
 		response.put("scheduledAt", match.getScheduledStartTime());
 		response.put("team1", match.getTeam1Name());
@@ -624,6 +631,7 @@ public class CricketDataController {
 		response.put("lastKnownState", match.getLastKnownState());
 		response.put("snapshotTimestamp", match.getLastStateUpdatedAt());
 		response.put("source", "stored-match-record");
+		applyFreshestLifecycleEvidence(response, resolution == null ? null : resolution.freshestMatch);
 
 		// Match-info is the authoritative static identity source when present.
 		// It is read from storage only; this endpoint must never trigger hydration.
@@ -664,6 +672,61 @@ public class CricketDataController {
 		}
 
 		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * A CREX API key identifies one match even when its human-readable wording
+	 * changes (for example, "1st test" to "1st match").  The URL slug is an
+	 * alias, never the identity.  Choose one non-deleted catalogue owner and
+	 * retain the freshest sibling state only as lifecycle evidence.
+	 */
+	private CanonicalMatchResolution resolveCanonicalMatch(String requestedSlug) {
+		String stableKey = CrexMatchUrlHelper.extractCrexApiKey(requestedSlug);
+		if (stableKey == null) {
+		return null;
+		}
+		List<LiveMatch> siblings = new ArrayList<LiveMatch>();
+		for (LiveMatch candidate : liveMatchService.findAllMatches()) {
+			if (candidate != null && stableKey.equalsIgnoreCase(CrexMatchUrlHelper.extractCrexApiKey(candidate.getUrl()))) {
+				siblings.add(candidate);
+			}
+		}
+		if (siblings.isEmpty()) {
+			return null;
+		}
+		Collections.sort(siblings, new Comparator<LiveMatch>() {
+			@Override public int compare(LiveMatch left, LiveMatch right) {
+				int active = Boolean.compare(left.isDeleted(), right.isDeleted());
+				if (active != 0) return active;
+				return Long.compare(left.getId() == null ? Long.MAX_VALUE : left.getId(), right.getId() == null ? Long.MAX_VALUE : right.getId());
+			}
+		});
+		LiveMatch freshest = Collections.max(siblings, Comparator.comparingLong(match ->
+				match.getLastStateUpdatedAt() == null ? Long.MIN_VALUE : match.getLastStateUpdatedAt()));
+		return new CanonicalMatchResolution(siblings.get(0), freshest);
+	}
+
+	private void applyFreshestLifecycleEvidence(Map<String, Object> response, LiveMatch freshest) {
+		if (freshest == null) return;
+		String evidence = (String.valueOf(freshest.getLastKnownState()) + " " + String.valueOf(freshest.getResultSummary())).toLowerCase();
+		// A multi-day match at stumps is still live.  Never allow a stale deletion
+		// sweep to turn this evidence into a completed SEO document.
+		if ((evidence.contains("stumps") || evidence.contains("lead by"))
+				&& !evidence.contains("won by") && !evidence.contains("draw") && !evidence.contains("abandoned")) {
+			response.put("status", "INNINGS_BREAK");
+			response.put("lastKnownState", freshest.getLastKnownState());
+			response.put("result", freshest.getResultSummary());
+			response.put("snapshotTimestamp", freshest.getLastStateUpdatedAt());
+		}
+	}
+
+	private static final class CanonicalMatchResolution {
+		private final LiveMatch canonicalMatch;
+		private final LiveMatch freshestMatch;
+		private CanonicalMatchResolution(LiveMatch canonicalMatch, LiveMatch freshestMatch) {
+			this.canonicalMatch = canonicalMatch;
+			this.freshestMatch = freshestMatch;
+		}
 	}
 
 	private boolean matchesCanonicalSlug(LiveMatch match, String slug) {

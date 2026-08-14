@@ -345,6 +345,7 @@ async function fetchCanonicalMatchSnapshot(match) {
     stateUpdatedAt: Number(data.stateUpdatedAt || data.snapshotTimestamp) || null,
     source: cleanSnapshotText(data.source)
   };
+  snapshot.canonicalSlug = cleanSnapshotText(data.canonicalSlug);
   if (!snapshot.scheduledAt) {
     snapshot.scheduledAt = formatSnapshotSchedule(snapshot.scheduledAtMs);
   }
@@ -422,6 +423,9 @@ async function fetchRetainedEntityNavigation(match) {
 function deriveSnapshotLifecycle(snapshot) {
   const status = cleanSnapshotText(snapshot && snapshot.status).toUpperCase();
   const detail = `${cleanSnapshotText(snapshot && snapshot.result)} ${cleanSnapshotText(snapshot && snapshot.lastKnownState)}`.toLowerCase();
+  // Multi-day matches at stumps remain active.  This evidence must win over a
+  // stale schedule row or an alias that was incorrectly retired as completed.
+  if (/stumps|lead by/.test(detail) && !/won by|match (?:drawn|tied)|abandoned|no result/.test(detail)) return 'innings-break';
   if (status === 'UPCOMING') return 'upcoming';
   if (status === 'LIVE') return 'live';
   if (status === 'INNINGS_BREAK') return 'innings-break';
@@ -429,6 +433,12 @@ function deriveSnapshotLifecycle(snapshot) {
   if (status === 'ABANDONED' || /abandoned|no result/.test(detail)) return 'abandoned';
   if (status === 'COMPLETED' || /won by|match (?:drawn|tied)|result/.test(detail)) return 'completed';
   return 'neutral';
+}
+
+function canonicalizeMatchRequestUrl(originalUrl, requestedSlug, canonicalSlug) {
+  if (!requestedSlug || !canonicalSlug || requestedSlug === canonicalSlug) return null;
+  const escaped = requestedSlug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return String(originalUrl || '').replace(new RegExp('(/cric-live/)' + escaped + '(?=/|\\?|#|$)', 'i'), '$1' + canonicalSlug);
 }
 
 function hasFreshLiveScore(snapshot, lifecycle) {
@@ -629,6 +639,12 @@ app.get('*', async (req, res) => {
     if (req.canonicalMatchSnapshot && req.canonicalMatchSnapshot.validity === 'invalid') {
       console.warn('[SSR] Canonical match route not found', { url: req.originalUrl });
       res.status(404).send(buildCanonicalMatchNotFoundHtml(req));
+      return;
+    }
+    const redirectTo = canonicalizeMatchRequestUrl(req.originalUrl, canonicalMatch.slug,
+      req.canonicalMatchSnapshot && req.canonicalMatchSnapshot.canonicalSlug);
+    if (redirectTo) {
+      res.redirect(301, redirectTo);
       return;
     }
     // Retained result pages need exact series/team IDs in their first HTML

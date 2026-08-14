@@ -174,7 +174,10 @@ public class SitemapService {
         }
 
         List<LiveMatchesService.LiveMatchEntry> liveMatches = loadSitemapMatches();
-        List<LiveMatchesService.LiveMatchEntry> prioritizedMatches = new ArrayList<>(liveMatches);
+        // The human-readable CREX slug can change while the source match key
+        // stays fixed.  A sitemap must publish the same one-owner identity rule
+        // as SSR, never both aliases.
+        List<LiveMatchesService.LiveMatchEntry> prioritizedMatches = canonicalizeMatchIdentities(liveMatches);
         Collections.sort(prioritizedMatches, Comparator.comparingLong(this::sitemapPrioritySortValue));
         for (LiveMatchesService.LiveMatchEntry match : prioritizedMatches) {
             String canonicalPath = deriveCanonicalMatchPath(match);
@@ -284,6 +287,30 @@ public class SitemapService {
             slug = match.getExternalMatchKey();
         }
         return isCanonicalMatchSlug(slug) ? "/cric-live/" + slug : null;
+    }
+
+    private List<LiveMatchesService.LiveMatchEntry> canonicalizeMatchIdentities(List<LiveMatchesService.LiveMatchEntry> matches) {
+        Map<String, LiveMatchesService.LiveMatchEntry> ownerByIdentity = new LinkedHashMap<>();
+        for (LiveMatchesService.LiveMatchEntry candidate : matches) {
+            if (candidate == null) continue;
+            String identity = CrexMatchUrlHelper.extractCrexApiKey(candidate.getUrl());
+            if (identity == null) {
+                identity = "slug:" + String.valueOf(liveMatchesService.extractSlugFromUrl(candidate.getUrl()));
+            }
+            LiveMatchesService.LiveMatchEntry current = ownerByIdentity.get(identity);
+            if (current == null || prefersCanonicalOwner(candidate, current)) {
+                ownerByIdentity.put(identity, candidate);
+            }
+        }
+        return new ArrayList<>(ownerByIdentity.values());
+    }
+
+    private boolean prefersCanonicalOwner(LiveMatchesService.LiveMatchEntry candidate, LiveMatchesService.LiveMatchEntry current) {
+        if (candidate.isFinished() != current.isFinished()) return !candidate.isFinished();
+        long candidateUpdated = candidate.getLastStateUpdatedAt() == null ? Long.MIN_VALUE : candidate.getLastStateUpdatedAt();
+        long currentUpdated = current.getLastStateUpdatedAt() == null ? Long.MIN_VALUE : current.getLastStateUpdatedAt();
+        if (candidateUpdated != currentUpdated) return candidateUpdated > currentUpdated;
+        return String.valueOf(candidate.getUrl()).compareTo(String.valueOf(current.getUrl())) < 0;
     }
 
     private String deriveLiveMatchLastMod(LiveMatchesService.LiveMatchEntry match, SitemapWriter writer) {

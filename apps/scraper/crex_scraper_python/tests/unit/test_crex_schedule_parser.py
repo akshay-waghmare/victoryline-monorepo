@@ -5,6 +5,7 @@ from src.parsers.crex_schedule_parser import (
     extract_external_match_key,
     extract_series_name,
     extract_team_names,
+    normalize_schedule_venue,
 )
 
 
@@ -74,3 +75,16 @@ def test_match_page_candidates_support_new_crex_live_score_variants():
         "https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC/match-scorecard",
         url,
     ]
+
+
+def test_normalize_schedule_venue_keeps_real_source_venue():
+    assert normalize_schedule_venue("  Arun Jaitley Stadium, Delhi  ") == "Arun Jaitley Stadium, Delhi"
+
+
+def test_normalize_schedule_venue_rejects_placeholders():
+    assert normalize_schedule_venue("Venue TBD") is None
+    assert normalize_schedule_venue("null") is None
+
+
+def test_normalize_schedule_venue_rejects_empty_value():
+    assert normalize_schedule_venue(None) is None

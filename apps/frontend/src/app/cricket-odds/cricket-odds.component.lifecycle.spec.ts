@@ -13,6 +13,7 @@ function createComponent(): CricketOddsComponent {
   var structuredDataService = {
     breadcrumbs: function(items: any) { return { '@type': 'BreadcrumbList', itemListElement: items }; },
     article: function(input: any) { return Object.assign({ '@type': 'Article' }, input); },
+    newsArticle: function(input: any) { return Object.assign({ '@type': 'NewsArticle' }, input); },
     itemList: function(input: any) { return Object.assign({ '@type': 'ItemList' }, input); },
     faqPage: function(items: any) { return { '@type': 'FAQPage', mainEntity: items }; },
     sportsEvent: function(input: any) { return Object.assign({ '@type': 'SportsEvent' }, input); },
@@ -565,6 +566,44 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
 
     expect(types).toContain('FAQPage');
     expect(types).toContain('LiveBlogPosting');
+    expect(types).toContain('NewsArticle');
+    expect((component as any).getNewsArticleEligibilityReason((component as any).getLiveMatchUpdates())).toBe('eligible');
+  });
+
+  it('keeps upcoming match pages on the normal Article contract', () => {
+    var component = createComponent();
+    component.matchInfo = {
+      match_status: 'UPCOMING',
+      updated_at: '2026-06-29T12:30:00.000Z',
+      match_date: '2026-06-29T14:00:00.000Z',
+      venue: 'Wankhede Stadium'
+    } as any;
+    component.matchSeo = {
+      canonicalPath: '/cric-live/ind-vs-aus-world-cup-final-123A',
+      canonicalUrl: 'https://www.crickzen.com/cric-live/ind-vs-aus-world-cup-final-123A',
+      title: 'India vs Australia Upcoming Match',
+      description: 'See the India vs Australia match schedule and venue.',
+      ogImageUrl: 'https://www.crickzen.com/assets/icons/icon-512x512.png',
+      h1: 'India vs Australia Upcoming Match',
+      robots: 'index,follow',
+      teams: 'India vs Australia',
+      team1: 'India',
+      team2: 'Australia',
+      team1Short: 'IND',
+      team2Short: 'AUS',
+      shortTeams: 'IND vs AUS',
+      series: 'World Cup Final',
+      breadcrumbSeries: 'World Cup',
+      statusLabel: 'Upcoming',
+      summary: 'India vs Australia match schedule and venue.',
+      isIndexable: true
+    } as any;
+
+    var items = (component as any).buildStructuredDataItems();
+    var types = (items || []).map(function(item: any) { return item['@type']; });
+
+    expect(types).toContain('Article');
+    expect(types).not.toContain('NewsArticle');
   });
 
   it('does not emit LiveBlogPosting for low-value sparse canonical pages', () => {
@@ -577,21 +616,21 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     component.matchSeo = {
       canonicalPath: '/cric-live/team-a-vs-team-b-123A',
       canonicalUrl: 'https://www.crickzen.com/cric-live/team-a-vs-team-b-123A',
-      title: 'Team A vs Team B Live Score',
-      description: 'Follow Team A vs Team B live score.',
+      title: 'Canada vs Nepal Live Score',
+      description: 'Follow Canada vs Nepal live score.',
       ogImageUrl: 'https://www.crickzen.com/assets/icons/icon-512x512.png',
-      h1: 'Team A vs Team B Live Score',
+      h1: 'Canada vs Nepal Live Score',
       robots: 'index,follow',
-      teams: 'Team A vs Team B',
-      team1: 'Team A',
-      team2: 'Team B',
-      team1Short: 'TA',
-      team2Short: 'TB',
-      shortTeams: 'TA vs TB',
+      teams: 'Canada vs Nepal',
+      team1: 'Canada',
+      team2: 'Nepal',
+      team1Short: 'CAN',
+      team2Short: 'NEP',
+      shortTeams: 'CAN vs NEP',
       series: 'Regional Cup',
       breadcrumbSeries: 'Regional Cup',
       statusLabel: 'Live',
-      summary: 'Team A vs Team B live score.',
+      summary: 'Canada vs Nepal live score.',
       isIndexable: true
     } as any;
     component.commentaryEntries = [
@@ -602,6 +641,48 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     var types = (items || []).map(function(item: any) { return item['@type']; });
 
     expect(types).not.toContain('LiveBlogPosting');
+    expect(types).toContain('Article');
+    expect(types).not.toContain('NewsArticle');
+    expect((component as any).getNewsArticleEligibilityReason((component as any).getLiveMatchUpdates())).toBe('not_high_value_coverage');
+  });
+
+  it('does not treat synthetic summaries as editorial NewsArticle evidence', () => {
+    var component = createComponent();
+    component.matchInfo = {
+      match_status: 'LIVE',
+      venue: 'Wankhede Stadium'
+    } as any;
+    component.matchSeo = {
+      teams: 'India vs Australia',
+      series: 'World Cup Final',
+      title: 'India vs Australia Live Score',
+      isIndexable: true
+    } as any;
+
+    var syntheticUpdates = [
+      { id: 'synthetic-1', body: 'Toss update is available from the official feed.', timestamp: '2026-06-29T12:30:00.000Z', source: 'synthetic' },
+      { id: 'synthetic-2', body: 'Live score context will update as play progresses.', timestamp: '2026-06-29T12:31:00.000Z', source: 'synthetic' },
+      { id: 'synthetic-3', body: 'Result context is being confirmed by the official feed.', timestamp: '2026-06-29T12:32:00.000Z', source: 'synthetic' }
+    ];
+
+    expect((component as any).getNewsArticleEligibilityReason(syntheticUpdates)).toBe('insufficient_timestamped_commentary');
+    expect((component as any).shouldEmitNewsArticle(syntheticUpdates)).toBe(false);
+  });
+
+  it('requires a real modification timestamp even with substantive commentary', () => {
+    var component = createComponent();
+    component.matchInfo = { match_status: 'LIVE', venue: 'Wankhede Stadium' } as any;
+    component.matchSeo = { teams: 'India vs Australia', series: 'World Cup Final' } as any;
+    var updates = [1, 2, 3].map(function(index) {
+      return {
+        id: 'commentary-' + index,
+        body: 'A substantive official commentary update with context ' + index,
+        timestamp: '2026-06-29T12:3' + index + ':00.000Z',
+        source: 'commentary'
+      };
+    });
+
+    expect((component as any).getNewsArticleEligibilityReason(updates)).toBe('missing_real_modification_time');
   });
 });
 

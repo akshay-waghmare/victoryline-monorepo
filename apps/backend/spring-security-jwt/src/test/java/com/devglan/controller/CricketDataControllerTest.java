@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
+import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -132,6 +133,33 @@ public class CricketDataControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(body.get("venue")).isEqualTo("Moara Vlasiei Cricket Ground, Ilfov County");
         assertThat(body.get("series")).isEqualTo("European Cup 2026");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void canonicalSnapshotMapsSlugAliasesToOneActiveOwnerAndKeepsStumpsLive() throws Exception {
+        String canonical = "aus-vs-ban-1st-test-bangladesh-tour-of-australia-2026-match-updates-10MT";
+        String alias = "aus-vs-ban-1st-match-bangladesh-tour-of-australia-2026-match-updates-10MT";
+        LiveMatch active = new LiveMatch("https://crex.com/cricket-live-score/" + canonical);
+        active.setId(1L);
+        active.setDeleted(false);
+        LiveMatch staleAlias = new LiveMatch("https://crex.com/cricket-live-score/" + alias);
+        staleAlias.setId(2L);
+        staleAlias.setDeleted(true);
+        staleAlias.setLastKnownState("Stumps");
+        staleAlias.setResultSummary("BAN lead by 153 runs");
+        staleAlias.setLastStateUpdatedAt(1786694740401L);
+
+        when(liveMatchService.findAllMatches()).thenReturn(Arrays.asList(active, staleAlias));
+        when(matchInfoService.getMatchInfo(alias)).thenReturn(null);
+
+        ResponseEntity<?> response = controller.getCanonicalMatchSnapshot(alias);
+        Map<String, Object> body = (Map<String, Object>) response.getBody();
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(body.get("canonicalSlug")).isEqualTo(canonical);
+        assertThat(body.get("status")).isEqualTo("INNINGS_BREAK");
+        assertThat(body.get("result")).isEqualTo("BAN lead by 153 runs");
     }
 
     @SuppressWarnings("unchecked")

@@ -187,6 +187,8 @@ export interface LiveMatchUpdate {
   over?: string;
   score?: string;
   important?: boolean;
+  /** Internal provenance used to keep synthetic score summaries out of NewsArticle eligibility. */
+  source?: 'commentary' | 'synthetic';
 }
 
 // Staleness tier (per Constitution)

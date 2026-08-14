@@ -4219,7 +4219,47 @@ private shouldEmitLiveBlogPosting(updates: LiveMatchUpdate[]): boolean {
     return false;
   }
 
-  return updates.filter((update) => update.body.replace(/[0-9/().:-]/g, '').trim().length >= 20).length >= 3;
+  return this.hasSubstantiveEditorialCoverage(updates);
+}
+
+private shouldEmitNewsArticle(updates: LiveMatchUpdate[]): boolean {
+  return this.getNewsArticleEligibilityReason(updates) === 'eligible';
+}
+
+private getNewsArticleEligibilityReason(updates: LiveMatchUpdate[]): string {
+  // NewsArticle describes genuine editorial coverage, not a thin upcoming
+  // scoreboard. Keep this reasoned gate separate from the event-facts schema.
+  if (this.isUpcomingStatus(this.getResolvedMatchStatus())) {
+    return 'upcoming_lifecycle';
+  }
+
+  if (!this.isHighValueLiveCoverageMatch()) {
+    return 'not_high_value_coverage';
+  }
+
+  if (!this.hasSubstantiveEditorialCoverage(updates)) {
+    return 'insufficient_timestamped_commentary';
+  }
+
+  if (!this.getStructuredDataDateModified(null)) {
+    return 'missing_real_modification_time';
+  }
+
+  return 'eligible';
+}
+
+private hasSubstantiveEditorialCoverage(updates: LiveMatchUpdate[]): boolean {
+  if (!updates || updates.length < 3) {
+    return false;
+  }
+
+  return updates.filter((update) => {
+    if (!update || update.source !== 'commentary' || !this.toIsoDate(update.timestamp)) {
+      return false;
+    }
+
+    return update.body.replace(/[0-9/().:-]/g, '').trim().length >= 20;
+  }).length >= 3;
 }
 
 private isHighValueLiveCoverageMatch(): boolean {
@@ -4276,7 +4316,9 @@ private buildSyntheticLiveMatchUpdates(): LiveMatchUpdate[] {
     });
   }
 
-  return updates;
+  return updates.map(function(update) {
+    return Object.assign({}, update, { source: 'synthetic' });
+  });
 }
 
 private buildLiveMatchUpdateFromCommentary(entry: any, index: number): LiveMatchUpdate | null {
@@ -4301,7 +4343,8 @@ private buildLiveMatchUpdateFromCommentary(entry: any, index: number): LiveMatch
     innings: entry && entry.inningsNumber ? Number(entry.inningsNumber) : undefined,
     over: this.resolveLiveUpdateOver(entry),
     score: this.resolveLiveUpdateScore(entry),
-    important: this.isImportantLiveUpdateType(type)
+    important: this.isImportantLiveUpdateType(type),
+    source: 'commentary'
   };
 }
 
@@ -4765,15 +4808,21 @@ private titleCaseSlug(value: string): string {
       sportsEventSchema['@id'] = matchEntityId;
     }
 
-    items.unshift(this.structuredDataService.article({
+    var newsArticleEligible = this.shouldEmitNewsArticle(liveMatchUpdates);
+    var articleInput = {
       headline: this.matchSeo.title,
       description: this.matchSeo.description,
       url: this.matchSeo.canonicalUrl,
       image: this.matchSeo.ogImageUrl,
       datePublished: startDate || dateModified || undefined,
       dateModified: dateModified || startDate || undefined,
-      authorName: 'Crickzen Sports Desk'
-    }));
+      authorName: 'Crickzen Sports Desk',
+      articleSection: newsArticleEligible ? 'Live Match Updates' : undefined,
+      isAccessibleForFree: true
+    };
+    items.unshift(newsArticleEligible
+      ? this.structuredDataService.newsArticle(articleInput)
+      : this.structuredDataService.article(articleInput));
 
     // Keep support and freshness links in visible SSR HTML, but do not model
     // them as ItemLists. Google evaluates those lists as Carousel candidates,
