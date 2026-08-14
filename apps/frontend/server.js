@@ -182,6 +182,47 @@ function applyRetainedEntitySsrLinks(html, navigation) {
   );
 }
 
+function schemaEventStatusForLifecycle(lifecycle) {
+  switch (lifecycle) {
+    case 'live':
+    case 'innings-break': return 'https://schema.org/EventInProgress';
+    case 'completed': return 'https://schema.org/EventCompleted';
+    case 'abandoned': return 'https://schema.org/EventCancelled';
+    default: return 'https://schema.org/EventScheduled';
+  }
+}
+
+// Angular SSR can use delayed match-info hydration for its page schema. The
+// backend canonical snapshot is the shared lifecycle authority, so apply its
+// resolved phase to the final HTML before it reaches a crawler. This keeps the
+// human SSR label and SportsEvent status aligned with catalogue and sitemap.
+function applyCanonicalSnapshotToSsrHtml(html, snapshot) {
+  if (!html || !isRichCanonicalSnapshot(snapshot)) {
+    return html;
+  }
+  const lifecycle = deriveSnapshotLifecycle(snapshot);
+  const eventStatus = schemaEventStatusForLifecycle(lifecycle);
+  const scriptPattern = /(<script\b[^>]*type=["']application\/ld\+json["'][^>]*>)([\s\S]*?)(<\/script>)/gi;
+  const normalized = html.replace(scriptPattern, (whole, open, raw, close) => {
+    try {
+      const data = JSON.parse(raw);
+      if (data && data['@type'] === 'SportsEvent') {
+        data.eventStatus = eventStatus;
+        return open + JSON.stringify(data).replace(/</g, '\\u003c') + close;
+      }
+    } catch (_) {
+      // Keep an unrelated or malformed JSON-LD block untouched.
+    }
+    return whole;
+  });
+  if (lifecycle === 'innings-break') {
+    return normalized
+      .replace(/>\s*Upcoming match\s*</gi, '>Innings break<')
+      .replace(/>\s*Match completed\s*</gi, '>Innings break<');
+  }
+  return normalized;
+}
+
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -729,7 +770,10 @@ app.get('*', async (req, res) => {
       sendSsrFallback(req, res, routeStatus, 'render-error');
       return;
     }
-    res.status(routeStatus).send(moveTransferStateBeforeBundles(applyRetainedEntitySsrLinks(html, req.retainedEntityNavigation)));
+    const canonicalizedHtml = canonicalMatch
+      ? applyCanonicalSnapshotToSsrHtml(html, req.canonicalMatchSnapshot)
+      : html;
+    res.status(routeStatus).send(moveTransferStateBeforeBundles(applyRetainedEntitySsrLinks(canonicalizedHtml, req.retainedEntityNavigation)));
   });
 });
 
