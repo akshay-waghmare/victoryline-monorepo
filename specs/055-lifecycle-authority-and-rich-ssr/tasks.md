@@ -14,3 +14,9 @@
 - The same match appears once in the live feed and zero times in upcoming/completed feeds.
 - The alternate `1st-match` slug returns a permanent redirect to the `1st-test` owner. The published sitemap contains the owner once and the alias zero times.
 - Final SSR verification: the canonical `SportsEvent` schema publishes `EventInProgress`, matching the `INNINGS_BREAK` resolver outcome; the raw HTML contains neither `Upcoming match`, `Match completed`, nor the temporary-loading fallback.
+
+## Live catalogue regression repair — 2026-08-15
+
+- The initial absent-provider safeguard incorrectly retained old ambiguous rows as `INNINGS_BREAK`, causing 50 completed records to appear in the homepage live lane.
+- Backend `20260815-lifecycle-authority-r2` now bounds live-like lifecycle state by match format and scheduled start: Test/first-class rows retain their valid multi-day window, while stale limited-overs or unscheduled rows resolve to `COMPLETED`.
+- Post-rollout production proof: live feed count `1`; the only row is canonical `10MT`, with `INNINGS_BREAK`, `Stumps`, and `BAN lead by 153 runs`; no live row has a terminal-result signal.
