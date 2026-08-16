@@ -516,7 +516,7 @@ function canonicalSnapshotFingerprint(snapshot) {
 }
 
 function renderedMatchDocumentKey(snapshot, pathname) {
-  return `${snapshot?.canonicalSlug || snapshot?.slug || ''}|${pathname || ''}`;
+  return `${(snapshot && (snapshot.canonicalSlug || snapshot.slug)) || ''}|${pathname || ''}`;
 }
 
 function getRenderedMatchDocument(snapshot, pathname) {
