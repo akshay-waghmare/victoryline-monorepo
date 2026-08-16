@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import com.devglan.dao.CricketDataDTO;
 import com.devglan.dao.ScheduledMatchDTO;
 import com.devglan.model.LiveMatch;
+import com.devglan.model.MatchLifecycleCohort;
 
 public interface LiveMatchService {
 	void syncLiveMatches(String[] urls);
@@ -22,6 +23,7 @@ public interface LiveMatchService {
     public List<LiveMatch> findCompletedMatches();
 	public LiveMatch findByUrl(String url);
 	public List<LiveMatch> findAllLiveMatches();
+	List<LiveMatch> findMatchesByCohort(MatchLifecycleCohort cohort);
 	LiveMatch update(LiveMatch match);
     
 }

@@ -22,6 +22,13 @@ interface ScheduleResponse {
   source?: string;
 }
 
+interface MatchCohortResponse {
+  live?: any[];
+  upcoming?: any[];
+  recent?: any[];
+  archive?: any[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -170,19 +177,33 @@ export class MatchesService {
   }
 
   getAllMatches(): Observable<MatchCardViewModel[]> {
-    return combineLatest([
-      this.getLiveMatches(),
-      this.getUpcomingMatches(),
-      this.getCompletedMatches()
-    ]).pipe(
-      map(([liveMatches, upcomingMatches, completedMatches]) =>
-        sortMatchesByPriority(this.dedupeMatches([
-          ...liveMatches,
-          ...upcomingMatches,
-          ...completedMatches
-        ]))
-      )
+    // All discovery surfaces consume one server-resolved lifecycle contract.
+    // This replaces independent live/upcoming/completed requests whose local
+    // filters could disagree during a provider lifecycle transition.
+    return this.eventListService.getMatchCohorts().pipe(
+      timeout(this.matchesRequestTimeoutMs),
+      switchMap((response: MatchCohortResponse) => this.transformCohortResponse(response || {})),
+      catchError(() => of([]))
     );
+  }
+
+  private transformCohortResponse(response: MatchCohortResponse): Observable<MatchCardViewModel[]> {
+    const liveRows = Array.isArray(response.live) ? response.live : [];
+    const upcomingRows = Array.isArray(response.upcoming) ? response.upcoming : [];
+    const recentRows = Array.isArray(response.recent) ? response.recent : [];
+    const archiveRows = Array.isArray(response.archive) ? response.archive : [];
+
+    const liveCards$ = liveRows.length === 0
+      ? of([] as MatchCardViewModel[])
+      : forkJoin(liveRows.map((match: any) => this.cricketOddsService.getScorecardInfo(match.url).pipe(
+          timeout(this.matchesRequestTimeoutMs), catchError(() => of(null))
+        ))).pipe(map((scorecards: any[]) => this.transformActiveMatches(liveRows, scorecards)));
+
+    return liveCards$.pipe(map((liveCards) => sortMatchesByPriority(this.dedupeMatches([
+      ...liveCards,
+      ...this.transformScheduleMatches({ data: upcomingRows }, MatchStatus.UPCOMING),
+      ...this.transformScheduleMatches({ data: recentRows.concat(archiveRows) }, MatchStatus.COMPLETED)
+    ]))));
   }
 
   private getUpcomingMatches(): Observable<MatchCardViewModel[]> {

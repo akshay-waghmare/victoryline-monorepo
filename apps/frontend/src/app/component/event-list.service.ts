@@ -13,6 +13,7 @@ export class EventListService {
   private live_matches_url = environment.REST_API_URL + 'cricket-data/' + 'live-matches';
   private upcoming_matches_url = environment.REST_API_URL + 'cricket-data/' + 'upcoming-matches';
   private completed_matches_url = environment.REST_API_URL + 'cricket-data/' + 'completed-matches';
+  private match_cohorts_url = environment.REST_API_URL + 'cricket-data/' + 'match-cohorts';
   private entity_url = environment.REST_API_URL + 'events';
   private readonly noCacheHeaders = new HttpHeaders({
     'Cache-Control': 'no-cache',
@@ -38,6 +39,10 @@ export class EventListService {
 
   getCompletedMatches() {
     return this.getNoCache(this.completed_matches_url);
+  }
+
+  getMatchCohorts() {
+    return this.getNoCache(this.match_cohorts_url);
   }
 
   subscribeToEventsTopic(): Observable<any> {

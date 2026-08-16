@@ -29,6 +29,7 @@ import com.devglan.dao.CricketDataDTO;
 import com.devglan.dao.ScheduledMatchDTO;
 import com.devglan.model.LiveMatch;
 import com.devglan.model.MatchLifecycleStatus;
+import com.devglan.model.MatchLifecycleCohort;
 import com.devglan.repository.LiveMatchRepository;
 import com.devglan.service.CrexMatchUrlHelper;
 import com.devglan.service.LiveMatchService;
@@ -324,6 +325,17 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 .collect(Collectors.toList());
 	}
 
+    @Override
+    public List<LiveMatch> findMatchesByCohort(MatchLifecycleCohort cohort) {
+        if (cohort == null) {
+            return new ArrayList<>();
+        }
+        return resolvedCanonicalCatalogue().stream()
+                .filter(match -> cohort == cohortFor(match))
+                .map(match -> cohort == MatchLifecycleCohort.LIVE ? enrichLiveMatchFromSnapshot(match) : match)
+                .collect(Collectors.toList());
+    }
+
 	public List<LiveMatch> findAllMatches() {
 		return resolvedCanonicalCatalogue();
 	}
@@ -554,6 +566,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             MatchLifecycleStatus status = lifecycleFromEvidence(snapshot);
             snapshot.setStatus(status);
             snapshot.setDeleted(status != null && status.isTerminal());
+            snapshot.setLifecycleCohort(cohortFor(snapshot).wireName());
             resolved.add(snapshot);
         }
         return resolved;
@@ -620,6 +633,17 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         return 1;
     }
 
+    private MatchLifecycleCohort cohortFor(LiveMatch match) {
+        MatchLifecycleStatus status = match == null ? null : match.getStatus();
+        if (status != null && status.isLiveLike()) return MatchLifecycleCohort.LIVE;
+        if (status == MatchLifecycleStatus.UPCOMING) return MatchLifecycleCohort.UPCOMING;
+        long changedAt = match != null && match.getSeoContentModifiedAt() != null
+                ? match.getSeoContentModifiedAt()
+                : match != null && match.getLastStateUpdatedAt() != null ? match.getLastStateUpdatedAt() : 0L;
+        return changedAt > 0L && System.currentTimeMillis() - changedAt <= 30L * ONE_DAY_MS
+                ? MatchLifecycleCohort.RECENT : MatchLifecycleCohort.ARCHIVE;
+    }
+
     private boolean hasCompletedResultSignal(String value) {
         return value.contains("won by") || value.contains("match drawn") || value.contains("match tied")
                 || value.matches(".*\\b(match )?draw\\b.*") || value.matches(".*\\b(match )?tied\\b.*");
@@ -651,6 +675,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         copy.setLastStateUpdatedAt(source.getLastStateUpdatedAt());
         copy.setSeoContentFingerprint(source.getSeoContentFingerprint());
         copy.setSeoContentModifiedAt(source.getSeoContentModifiedAt());
+        copy.setLifecycleCohort(source.getLifecycleCohort());
         copy.setVenue(source.getVenue());
         copy.setDistributionDone(source.isDistributionDone());
         return copy;

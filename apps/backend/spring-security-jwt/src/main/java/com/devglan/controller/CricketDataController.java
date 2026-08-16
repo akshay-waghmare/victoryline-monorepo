@@ -43,6 +43,7 @@ import com.devglan.model.Bets;
 import com.devglan.model.BlogPost;
 import com.devglan.model.ExposureResult;
 import com.devglan.model.LiveMatch;
+import com.devglan.model.MatchLifecycleCohort;
 import com.devglan.model.User;
 import com.devglan.service.BetService;
 import com.devglan.service.LiveMatchService;
@@ -540,6 +541,16 @@ public class CricketDataController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ScheduleResponseDTO(false, null, System.currentTimeMillis(), "completed"));
         }
+    }
+
+    @GetMapping("/match-cohorts")
+    public ResponseEntity<Map<String, Object>> getMatchCohorts() {
+        Map<String, Object> response = new HashMap<>();
+        for (MatchLifecycleCohort cohort : MatchLifecycleCohort.values()) {
+            response.put(cohort.wireName(), liveMatchService.findMatchesByCohort(cohort));
+        }
+        response.put("generatedAt", System.currentTimeMillis());
+        return ResponseEntity.ok(response);
     }
 
 	@GetMapping("/live-matches") // Map to "/cricket-data/live-matches"

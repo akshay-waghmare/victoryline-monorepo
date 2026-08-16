@@ -383,6 +383,11 @@ public class SitemapService {
     }
 
     private String sitemapCohort(LiveMatchesService.LiveMatchEntry match) {
+        String resolved = String.valueOf(match.getLifecycleCohort()).trim().toLowerCase();
+        if ("live".equals(resolved) || "upcoming".equals(resolved)
+                || "recent".equals(resolved) || "archive".equals(resolved)) {
+            return "sitemap-" + resolved;
+        }
         if (match.isLive()) return "sitemap-live";
         String status = String.valueOf(match.getStatus()).trim().toUpperCase();
         if ("UPCOMING".equals(status)) return "sitemap-upcoming";

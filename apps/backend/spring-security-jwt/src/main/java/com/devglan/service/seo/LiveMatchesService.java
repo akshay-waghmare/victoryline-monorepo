@@ -144,6 +144,7 @@ public class LiveMatchesService {
         entry.setExternalMatchKey(node.has("externalMatchKey") ? node.get("externalMatchKey").asText() : null);
         entry.setLastKnownState(node.has("lastKnownState") ? node.get("lastKnownState").asText() : null);
         entry.setStatus(node.has("status") ? node.get("status").asText() : null);
+        entry.setLifecycleCohort(node.has("lifecycleCohort") ? node.get("lifecycleCohort").asText() : null);
         entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
         entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
         entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
@@ -191,6 +192,7 @@ public class LiveMatchesService {
         private String externalMatchKey;
         private String lastKnownState;
         private String status;
+        private String lifecycleCohort;
         private String resultSummary;
         private boolean finished;
         private Long scheduledStartTime;
@@ -210,6 +212,9 @@ public class LiveMatchesService {
 
         public String getStatus() { return status; }
         public void setStatus(String status) { this.status = status; }
+
+        public String getLifecycleCohort() { return lifecycleCohort; }
+        public void setLifecycleCohort(String lifecycleCohort) { this.lifecycleCohort = lifecycleCohort; }
 
         public String getResultSummary() { return resultSummary; }
         public void setResultSummary(String resultSummary) { this.resultSummary = resultSummary; }

@@ -247,7 +247,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private loadSitemapLinks(): void {
-    this.http.get('/sitemaps/sitemap-matches-0001.xml', { responseType: 'text' })
+    this.http.get('/sitemaps/sitemap-archive-0001.xml', { responseType: 'text' })
       .pipe(
         timeout(this.sitemapRequestTimeoutMs),
         map((xml) => this.parseSitemapLinks(xml || '')),
@@ -263,11 +263,11 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private loadPrematchDiscoveryLinks(): void {
-    this.http.get('/api/cricket-data/upcoming-matches', { params: { _ts: Date.now().toString() } })
+    this.http.get('/api/cricket-data/match-cohorts', { params: { _ts: Date.now().toString() } })
       .pipe(
         timeout(this.sitemapRequestTimeoutMs),
         map((response: any) => {
-          var rows = Array.isArray(response) ? response : response && Array.isArray(response.data) ? response.data : [];
+          var rows = response && Array.isArray(response.upcoming) ? response.upcoming : [];
           return rows
             .map((match: any) => {
               var href = buildCanonicalMatchPath(match);

@@ -11,6 +11,7 @@ import javax.persistence.Index;
 import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -64,6 +65,9 @@ public class LiveMatch {
 
     @Column(name = "seo_content_modified_at")
     private Long seoContentModifiedAt;
+
+    @Transient
+    private String lifecycleCohort;
 
     @Column(name = "venue")
     private String venue;
@@ -244,6 +248,9 @@ public class LiveMatch {
 
     public Long getSeoContentModifiedAt() { return seoContentModifiedAt; }
     public void setSeoContentModifiedAt(Long seoContentModifiedAt) { this.seoContentModifiedAt = seoContentModifiedAt; }
+
+    public String getLifecycleCohort() { return lifecycleCohort; }
+    public void setLifecycleCohort(String lifecycleCohort) { this.lifecycleCohort = lifecycleCohort; }
 
     public String getVenue() {
         return venue;
