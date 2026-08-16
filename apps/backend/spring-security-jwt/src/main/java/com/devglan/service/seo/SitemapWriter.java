@@ -36,7 +36,7 @@ public class SitemapWriter {
         sb.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
         for (SitemapUrl u : urls) {
             sb.append("<url><loc>")
-              .append(u.loc)
+              .append(xmlEscape(u.loc))
               .append("</loc><lastmod>")
               .append(u.lastmod)
               .append("</lastmod><changefreq>")
@@ -81,6 +81,15 @@ public class SitemapWriter {
             return "/";
         }
         return path.startsWith("/") ? path : "/" + path;
+    }
+
+    private String xmlEscape(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&apos;");
     }
 
     private String resolveIndexLoc(String path) {

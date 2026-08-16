@@ -343,6 +343,17 @@ public class SitemapPartitionTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    public void sitemap_escapes_special_characters_in_match_urls() {
+        LiveMatchesService.LiveMatchEntry entry = new LiveMatchesService.LiveMatchEntry();
+        entry.setUrl("https://crex.com/cricket-live-score/j&k-vs-mah-8th-match-test-cup-2026-match-updates-1ABC");
+        entry.setStatus("COMPLETED");
+        entry.setLastKnownState("J&K won by 5 wickets");
+        liveMatchesService.setMatches(java.util.Collections.singletonList(entry));
+
+        assertThat(service.getPartitionXml(1)).contains("j&amp;k-vs-mah");
+    }
+
     // Helper methods
     
     private List<Matches> createMatchList(int count) {
