@@ -36,17 +36,18 @@ public class PublicSitemapController {
     @GetMapping(value = "/sitemaps/{name}.xml", produces = "application/xml")
     public ResponseEntity<String> getSitemapPartition(@PathVariable("name") String name) {
         log.debug("Received request for sitemap partition {}", name);
-        if (name == null || !name.matches("sitemap-matches-\\d{4}")) {
+        if (name == null || !(name.matches("sitemap-matches-\\d{4}")
+                || name.matches("sitemap-(static|live|upcoming|recent|archive)-\\d{4}"))) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .header(HttpHeaders.CACHE_CONTROL, "no-store")
                     .build();
         }
-        Integer part = Integer.parseInt(name.substring(name.length() - 4));
-
-        String xml = sitemapService.getPartitionXml(part);
+        boolean legacyNumberedShard = name.matches("sitemap-matches-\\d{4}");
+        Integer part = legacyNumberedShard ? Integer.parseInt(name.substring(name.length() - 4)) : null;
+        String xml = legacyNumberedShard ? sitemapService.getPartitionXml(part) : sitemapService.getPartitionXml(name);
         if (xml == null || xml.isEmpty()) {
             if (!sitemapService.hasPublishedManifest()) {
-                log.error("No valid sitemap manifest is available for partition {}; returning 503 without caching", part);
+                log.error("No valid sitemap manifest is available for partition {}; returning 503 without caching", name);
                 return unavailable();
             }
             return ResponseEntity.status(HttpStatus.NOT_FOUND)

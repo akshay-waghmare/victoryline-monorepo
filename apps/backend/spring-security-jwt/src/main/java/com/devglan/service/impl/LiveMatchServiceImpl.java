@@ -527,7 +527,12 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         List<LiveMatch> resolved = new ArrayList<>();
         for (List<LiveMatch> aliases : matchesByIdentity.values()) {
             LiveMatch owner = aliases.stream().min(Comparator
-                    .comparing(LiveMatch::isDeleted)
+                    // Keep the most specific stable URL when a provider emits
+                    // both "1st Test" and the lossy "1st match" alias. A
+                    // deleted alias is still a better owner than publishing a
+                    // second, weaker identity for the same source match key.
+                    .comparingInt(this::canonicalSlugSpecificity).reversed()
+                    .thenComparing(LiveMatch::isDeleted)
                     .thenComparing(match -> match.getId() == null ? Long.MAX_VALUE : match.getId()))
                     .orElse(null);
             LiveMatch freshest = aliases.stream().max(Comparator
@@ -538,6 +543,13 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             }
 
             LiveMatch snapshot = copyForPublication(owner);
+            // Canonical wording is allowed to change, but the public owner must
+            // retain identity and format facts from every stable-key sibling.
+            // Otherwise an alias such as "1st match" can erase "1st Test" and
+            // incorrectly receive a limited-overs expiry window.
+            aliases.stream().sorted(Comparator.comparing(match ->
+                    match.getLastStateUpdatedAt() == null ? 0L : match.getLastStateUpdatedAt()))
+                    .forEach(source -> copyStaticEvidence(snapshot, source));
             copyRicherEvidence(snapshot, freshest);
             MatchLifecycleStatus status = lifecycleFromEvidence(snapshot);
             snapshot.setStatus(status);
@@ -601,6 +613,13 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         return LIMITED_OVERS_LIFECYCLE_WINDOW_MS;
     }
 
+    private int canonicalSlugSpecificity(LiveMatch match) {
+        String value = String.valueOf(match == null ? null : match.getUrl()).toLowerCase();
+        if (value.contains("test") || value.contains("first-class") || value.contains("four-day") || value.contains("4-day")) return 3;
+        if (value.contains("t20") || value.contains("odi") || value.contains("one-day") || value.contains("hundred")) return 2;
+        return 1;
+    }
+
     private boolean hasCompletedResultSignal(String value) {
         return value.contains("won by") || value.contains("match drawn") || value.contains("match tied")
                 || value.matches(".*\\b(match )?draw\\b.*") || value.matches(".*\\b(match )?tied\\b.*");
@@ -630,6 +649,8 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         copy.setMatchFormat(source.getMatchFormat());
         copy.setResultSummary(source.getResultSummary());
         copy.setLastStateUpdatedAt(source.getLastStateUpdatedAt());
+        copy.setSeoContentFingerprint(source.getSeoContentFingerprint());
+        copy.setSeoContentModifiedAt(source.getSeoContentModifiedAt());
         copy.setVenue(source.getVenue());
         copy.setDistributionDone(source.isDistributionDone());
         return copy;
@@ -647,6 +668,20 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         }
         if (source.getLastStateUpdatedAt() != null) {
             target.setLastStateUpdatedAt(source.getLastStateUpdatedAt());
+        }
+    }
+
+    private void copyStaticEvidence(LiveMatch target, LiveMatch source) {
+        if (source == null) {
+            return;
+        }
+        if (isBlank(target.getMatchFormat()) && !isBlank(source.getMatchFormat())) target.setMatchFormat(source.getMatchFormat());
+        if (isBlank(target.getSeriesName()) && !isBlank(source.getSeriesName())) target.setSeriesName(source.getSeriesName());
+        if (isBlank(target.getTeam1Name()) && !isBlank(source.getTeam1Name())) target.setTeam1Name(source.getTeam1Name());
+        if (isBlank(target.getTeam2Name()) && !isBlank(source.getTeam2Name())) target.setTeam2Name(source.getTeam2Name());
+        if (isBlank(target.getVenue()) && !isBlank(source.getVenue())) target.setVenue(source.getVenue());
+        if (target.getScheduledStartTime() == null && source.getScheduledStartTime() != null) {
+            target.setScheduledStartTime(source.getScheduledStartTime());
         }
     }
 

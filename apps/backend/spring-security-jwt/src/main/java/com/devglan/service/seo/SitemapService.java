@@ -93,6 +93,11 @@ public class SitemapService {
         return manifest == null ? null : manifest.partitionXmlByNumber.get(part);
     }
 
+    public String getPartitionXml(String name) {
+        SitemapManifest manifest = getOrRefreshManifest();
+        return manifest == null ? null : manifest.partitionXmlByName.get(name);
+    }
+
     public boolean hasPublishedManifest() {
         return currentManifest.get() != null;
     }
@@ -168,9 +173,17 @@ public class SitemapService {
     private SitemapManifest buildManifest(long generationId, long startedAt) {
         SitemapWriter writer = new SitemapWriter();
         List<SitemapWriter.SitemapUrl> allUrls = new ArrayList<>();
+        Map<String, List<SitemapWriter.SitemapUrl>> cohortUrls = new LinkedHashMap<>();
+        cohortUrls.put("sitemap-static", new ArrayList<>());
+        cohortUrls.put("sitemap-live", new ArrayList<>());
+        cohortUrls.put("sitemap-upcoming", new ArrayList<>());
+        cohortUrls.put("sitemap-recent", new ArrayList<>());
+        cohortUrls.put("sitemap-archive", new ArrayList<>());
 
         for (String staticPath : STATIC_SITEMAP_PATHS) {
-            allUrls.add(writer.url(staticPath, deriveStaticChangeFreq(staticPath), deriveStaticPriority(staticPath)));
+            SitemapWriter.SitemapUrl url = writer.url(staticPath, deriveStaticChangeFreq(staticPath), deriveStaticPriority(staticPath));
+            allUrls.add(url);
+            cohortUrls.get("sitemap-static").add(url);
         }
 
         List<LiveMatchesService.LiveMatchEntry> liveMatches = loadSitemapMatches();
@@ -184,9 +197,12 @@ public class SitemapService {
             if (canonicalPath == null) {
                 continue;
             }
-            String changefreq = match.isLive() ? "hourly" : "daily";
-            double priority = match.isLive() ? 0.9 : 0.8;
-            allUrls.add(writer.urlWithLastMod(canonicalPath, deriveLiveMatchLastMod(match, writer), changefreq, priority));
+            String cohort = sitemapCohort(match);
+            String changefreq = "sitemap-live".equals(cohort) ? "hourly" : "daily";
+            double priority = "sitemap-live".equals(cohort) ? 0.9 : "sitemap-upcoming".equals(cohort) ? 0.85 : 0.8;
+            SitemapWriter.SitemapUrl url = writer.urlWithLastMod(canonicalPath, deriveLiveMatchLastMod(match, writer), changefreq, priority);
+            allUrls.add(url);
+            cohortUrls.get(cohort).add(url);
         }
 
         allUrls = deduplicateUrls(allUrls);
@@ -207,12 +223,27 @@ public class SitemapService {
             partitionPaths.add(SeoConstants.SITEMAP_PARTITION_PREFIX + formatPartitionName(part) + ".xml");
         }
 
+        // Named cohorts make crawl cadence auditable without removing the old
+        // numbered shards that may still be cached by search engines.
+        Map<String, String> partitionXmlByName = new LinkedHashMap<>();
+        List<String> cohortPaths = new ArrayList<>();
+        for (Map.Entry<String, List<SitemapWriter.SitemapUrl>> cohort : cohortUrls.entrySet()) {
+            List<SitemapWriter.SitemapUrl> urls = deduplicateUrls(cohort.getValue());
+            if (urls.isEmpty()) continue;
+            for (int start = 0, part = 1; start < urls.size(); start += urlsPerPartition, part++) {
+                int endExclusive = Math.min(urls.size(), start + urlsPerPartition);
+                String name = cohort.getKey() + "-" + formatPartitionName(part);
+                partitionXmlByName.put(name, writer.buildPartition(new ArrayList<>(urls.subList(start, endExclusive))));
+                cohortPaths.add("/sitemaps/" + name + ".xml");
+            }
+        }
+
         if (partitionXmlByNumber.isEmpty()) {
             throw new IllegalStateException("Refusing to publish a sitemap index without child partitions");
         }
 
-        return new SitemapManifest(generationId, startedAt, writer.buildIndex(partitionPaths),
-                Collections.unmodifiableMap(partitionXmlByNumber), allUrls.size());
+        return new SitemapManifest(generationId, startedAt, writer.buildIndex(cohortPaths),
+                Collections.unmodifiableMap(partitionXmlByNumber), Collections.unmodifiableMap(partitionXmlByName), allUrls.size());
     }
 
     private List<LiveMatchesService.LiveMatchEntry> loadSitemapMatches() {
@@ -317,6 +348,12 @@ public class SitemapService {
         if (match == null) {
             return writer.isoFromEpochMillis(null);
         }
+        // This timestamp advances only when score, lifecycle, result, or
+        // public match identity changes. Do not claim sitemap freshness for a
+        // poll that merely refreshed an upstream heartbeat.
+        if (match.getSeoContentModifiedAt() != null && match.getSeoContentModifiedAt() > 0) {
+            return writer.isoFromEpochMillis(match.getSeoContentModifiedAt());
+        }
         if (match.getLastStateUpdatedAt() != null && match.getLastStateUpdatedAt() > 0) {
             return writer.isoFromEpochMillis(match.getLastStateUpdatedAt());
         }
@@ -343,6 +380,19 @@ public class SitemapService {
         }
 
         return writer.isoFromEpochMillis(null);
+    }
+
+    private String sitemapCohort(LiveMatchesService.LiveMatchEntry match) {
+        if (match.isLive()) return "sitemap-live";
+        String status = String.valueOf(match.getStatus()).trim().toUpperCase();
+        if ("UPCOMING".equals(status)) return "sitemap-upcoming";
+        Long meaningfulChange = match.getSeoContentModifiedAt() != null
+                ? match.getSeoContentModifiedAt() : match.getLastStateUpdatedAt();
+        if (meaningfulChange != null && meaningfulChange > 0L
+                && System.currentTimeMillis() - meaningfulChange <= 30L * 24L * 60L * 60L * 1000L) {
+            return "sitemap-recent";
+        }
+        return "sitemap-archive";
     }
 
     private String parseLiveMatchStartDate(String value) {
@@ -466,14 +516,17 @@ public class SitemapService {
         private final long generatedAtEpochMs;
         private final String indexXml;
         private final Map<Integer, String> partitionXmlByNumber;
+        private final Map<String, String> partitionXmlByName;
         private final int urlCount;
 
         private SitemapManifest(long generationId, long generatedAtEpochMs, String indexXml,
-                                Map<Integer, String> partitionXmlByNumber, int urlCount) {
+                                Map<Integer, String> partitionXmlByNumber, Map<String, String> partitionXmlByName,
+                                int urlCount) {
             this.generationId = generationId;
             this.generatedAtEpochMs = generatedAtEpochMs;
             this.indexXml = indexXml;
             this.partitionXmlByNumber = partitionXmlByNumber;
+            this.partitionXmlByName = partitionXmlByName;
             this.urlCount = urlCount;
         }
     }

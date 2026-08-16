@@ -30,6 +30,8 @@ const ssrSnapshotCache = new Map();
 // Keep the last complete match document for this SSR process until a newer
 // canonical snapshot replaces it.
 const ssrLastKnownRichSnapshot = new Map();
+const ssrRenderedMatchDocumentCache = new Map();
+const SSR_RENDERED_MATCH_DOCUMENT_TTL_MS = process.env.SSR_RENDERED_MATCH_DOCUMENT_TTL_MS ? Number(process.env.SSR_RENDERED_MATCH_DOCUMENT_TTL_MS) : 120000;
 const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/$/,
   /^\/Home\/?$/,
@@ -501,6 +503,40 @@ function isRichCanonicalSnapshot(snapshot) {
   return !!(snapshot.series || snapshot.score || snapshot.result || snapshot.lastKnownState || snapshot.scheduledAt);
 }
 
+function canonicalSnapshotFingerprint(snapshot) {
+  if (!snapshot) return '';
+  return JSON.stringify({
+    slug: snapshot.canonicalSlug || snapshot.slug,
+    status: snapshot.status, team1: snapshot.team1, team2: snapshot.team2,
+    series: snapshot.series, venue: snapshot.venue, toss: snapshot.toss,
+    scheduledAt: snapshot.scheduledAt, score: snapshot.score, overs: snapshot.overs,
+    battingTeam: snapshot.battingTeam, result: snapshot.result,
+    finalResult: snapshot.finalResult, lastKnownState: snapshot.lastKnownState
+  });
+}
+
+function renderedMatchDocumentKey(snapshot, pathname) {
+  return `${snapshot?.canonicalSlug || snapshot?.slug || ''}|${pathname || ''}`;
+}
+
+function getRenderedMatchDocument(snapshot, pathname) {
+  if (!isRichCanonicalSnapshot(snapshot)) return null;
+  const key = renderedMatchDocumentKey(snapshot, pathname);
+  const cached = key && ssrRenderedMatchDocumentCache.get(key);
+  if (!cached || cached.fingerprint !== canonicalSnapshotFingerprint(snapshot)
+      || Date.now() - cached.cachedAt > SSR_RENDERED_MATCH_DOCUMENT_TTL_MS) return null;
+  return cached.html;
+}
+
+function rememberRenderedMatchDocument(snapshot, pathname, html) {
+  if (!isRichCanonicalSnapshot(snapshot) || !html) return;
+  ssrRenderedMatchDocumentCache.set(renderedMatchDocumentKey(snapshot, pathname), {
+    html,
+    cachedAt: Date.now(),
+    fingerprint: canonicalSnapshotFingerprint(snapshot),
+  });
+}
+
 function lifecycleSummary(match, snapshot) {
   const lifecycle = deriveSnapshotLifecycle(snapshot);
   const scoreIsFresh = hasFreshLiveScore(snapshot, lifecycle);
@@ -715,6 +751,16 @@ app.get('*', async (req, res) => {
       res.redirect(301, redirectTo);
       return;
     }
+    // A rich, canonical document is safe to reuse only while the lifecycle
+    // snapshot it was rendered from is unchanged. This keeps all SSR content
+    // (rather than a reduced fallback) available to crawlers at cache speed.
+    const cachedDocument = getRenderedMatchDocument(req.canonicalMatchSnapshot, req.path);
+    if (cachedDocument) {
+      applyRouteCacheHeaders(req, res);
+      res.setHeader('X-SSR-Document-Cache', 'hit');
+      res.status(200).send(cachedDocument);
+      return;
+    }
     // Retained result pages need exact series/team IDs in their first HTML
     // response. Resolve only a unique exact series and its own standings
     // before Angular begins SSR; any uncertainty safely leaves this unset.
@@ -773,7 +819,12 @@ app.get('*', async (req, res) => {
     const canonicalizedHtml = canonicalMatch
       ? applyCanonicalSnapshotToSsrHtml(html, req.canonicalMatchSnapshot)
       : html;
-    res.status(routeStatus).send(moveTransferStateBeforeBundles(applyRetainedEntitySsrLinks(canonicalizedHtml, req.retainedEntityNavigation)));
+    const finalHtml = moveTransferStateBeforeBundles(applyRetainedEntitySsrLinks(canonicalizedHtml, req.retainedEntityNavigation));
+    if (canonicalMatch && routeStatus === 200) {
+      rememberRenderedMatchDocument(req.canonicalMatchSnapshot, req.path, finalHtml);
+      res.setHeader('X-SSR-Document-Cache', 'miss');
+    }
+    res.status(routeStatus).send(finalHtml);
   });
 });
 

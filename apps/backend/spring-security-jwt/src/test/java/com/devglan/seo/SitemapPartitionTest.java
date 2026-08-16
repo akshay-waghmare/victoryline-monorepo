@@ -50,11 +50,13 @@ public class SitemapPartitionTest {
         // When: Get sitemap index
         String indexXml = service.getSitemapIndexXml();
         
-        // Then: Should have 3 partitions after static URLs are included
+        // Then: large archive/recent cohorts are still partitioned at the
+        // sitemap URL limit, and the public index advertises named cohorts.
         assertThat(indexXml).contains("<sitemapindex");
-        assertThat(indexXml).contains("sitemap-matches-0001.xml");
-        assertThat(indexXml).contains("sitemap-matches-0002.xml");
-        assertThat(indexXml).contains("sitemap-matches-0003.xml");
+        assertThat(indexXml).contains("sitemap-static-0001.xml");
+        assertThat(indexXml).contains("sitemap-recent-0001.xml");
+        assertThat(indexXml).contains("sitemap-recent-0002.xml");
+        assertThat(indexXml).contains("sitemap-recent-0003.xml");
     }
 
     @Test
@@ -130,7 +132,7 @@ public class SitemapPartitionTest {
         // Then: The index must not advertise this shard and callers must not
         // receive a cacheable empty XML document.
         assertThat(partition5Xml).isNull();
-        assertThat(service.getSitemapIndexXml()).doesNotContain("sitemap-matches-0005.xml");
+        assertThat(service.getSitemapIndexXml()).doesNotContain("sitemap-recent-0005.xml");
     }
 
     @Test
@@ -334,8 +336,8 @@ public class SitemapPartitionTest {
         String indexXml = service.getSitemapIndexXml();
         String partitionXml = service.getPartitionXml(1);
 
-        assertThat(indexXml).contains("sitemap-matches-0001.xml");
-        assertThat(indexXml).doesNotContain("sitemap-matches-0002.xml");
+        assertThat(indexXml).contains("sitemap-static-0001.xml");
+        assertThat(indexXml).doesNotContain("sitemap-recent-0002.xml");
         assertThat(countOccurrences(partitionXml,
                 "https://www.crickzen.com/cric-live/ind-vs-aus-2nd-test-2026-match-updates-222B</loc>"))
                 .isEqualTo(1);

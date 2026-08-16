@@ -8,7 +8,12 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Index;
+import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.persistence.Table;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 @Entity
 @Table(name = "LIVE_MATCH", indexes = {
@@ -53,6 +58,12 @@ public class LiveMatch {
 
     @Column(name = "last_state_updated_at")
     private Long lastStateUpdatedAt;
+
+    @Column(name = "seo_content_fingerprint", length = 64)
+    private String seoContentFingerprint;
+
+    @Column(name = "seo_content_modified_at")
+    private Long seoContentModifiedAt;
 
     @Column(name = "venue")
     private String venue;
@@ -100,6 +111,41 @@ public class LiveMatch {
 		this.url = url;
         this.lastStateUpdatedAt = System.currentTimeMillis();
 	}
+
+    /**
+     * Sitemap freshness is a record of an audience-visible match change, not
+     * a scraper heartbeat. The stored fingerprint lets updates such as retry
+     * counters or poll timestamps leave lastmod unchanged.
+     */
+    @PrePersist
+    @PreUpdate
+    private void updateSeoContentFreshness() {
+        String nextFingerprint = semanticContentFingerprint();
+        if (seoContentFingerprint == null || !seoContentFingerprint.equals(nextFingerprint)) {
+            seoContentModifiedAt = System.currentTimeMillis();
+            seoContentFingerprint = nextFingerprint;
+        }
+    }
+
+    private String semanticContentFingerprint() {
+        String source = String.join("|",
+                safe(url), safe(externalMatchKey), safe(status == null ? null : status.name()),
+                Boolean.toString(isDeleted), safe(lastKnownState), safe(resultSummary),
+                safe(scheduledStartTime), safe(team1Name), safe(team2Name), safe(seriesName),
+                safe(matchFormat), safe(venue));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(source.getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(64);
+            for (byte value : digest) hex.append(String.format("%02x", value));
+            return hex.toString();
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 unavailable", impossible);
+        }
+    }
+
+    private String safe(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
 
 	public Long getId() {
 		return id;
@@ -192,6 +238,12 @@ public class LiveMatch {
     public void setLastStateUpdatedAt(Long lastStateUpdatedAt) {
         this.lastStateUpdatedAt = lastStateUpdatedAt;
     }
+
+    public String getSeoContentFingerprint() { return seoContentFingerprint; }
+    public void setSeoContentFingerprint(String seoContentFingerprint) { this.seoContentFingerprint = seoContentFingerprint; }
+
+    public Long getSeoContentModifiedAt() { return seoContentModifiedAt; }
+    public void setSeoContentModifiedAt(Long seoContentModifiedAt) { this.seoContentModifiedAt = seoContentModifiedAt; }
 
     public String getVenue() {
         return venue;

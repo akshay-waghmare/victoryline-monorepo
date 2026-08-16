@@ -148,6 +148,7 @@ public class LiveMatchesService {
         entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
         entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
         entry.setLastStateUpdatedAt(readLong(node, "lastStateUpdatedAt", "last_state_updated_at"));
+        entry.setSeoContentModifiedAt(readLong(node, "seoContentModifiedAt", "seo_content_modified_at"));
         entry.setId(node.has("id") ? node.get("id").asLong() : null);
         String startDate = null;
         if (node.has("match_date")) {
@@ -194,6 +195,7 @@ public class LiveMatchesService {
         private boolean finished;
         private Long scheduledStartTime;
         private Long lastStateUpdatedAt;
+        private Long seoContentModifiedAt;
         private Long id;
         private String startDate;
         
@@ -220,6 +222,9 @@ public class LiveMatchesService {
 
         public Long getLastStateUpdatedAt() { return lastStateUpdatedAt; }
         public void setLastStateUpdatedAt(Long lastStateUpdatedAt) { this.lastStateUpdatedAt = lastStateUpdatedAt; }
+
+        public Long getSeoContentModifiedAt() { return seoContentModifiedAt; }
+        public void setSeoContentModifiedAt(Long seoContentModifiedAt) { this.seoContentModifiedAt = seoContentModifiedAt; }
         
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
