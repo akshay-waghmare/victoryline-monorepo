@@ -16,3 +16,11 @@
 ## Production gate
 
 Verify AUS–BAN has one 301 owner; API, SSR, JSON-LD, and sitemap agree on innings break; one cohort entry has semantic `lastmod`; and the second SSR request reports `X-SSR-Document-Cache: hit` below two seconds.
+
+## Rollout update — 2026-08-16
+
+- Backend image `macubex/victoryline-backend:20260816-cohorts-r2` is healthy in production.
+- Frontend image `macubex/victoryline-frontend:20260816-cohorts-r3` is healthy in production. The intermediate r2 frontend was rolled back after Node 12 rejected optional chaining; r3 removes that runtime incompatibility.
+- Public `/sitemap.xml` returned HTTP 200 and parsed as XML. The index advertises named lifecycle cohorts.
+- Public `/api/cricket-data/match-cohorts` returned HTTP 200 with live, upcoming, recent, and archive buckets.
+- The canonical AUS–BAN route returned HTTP 200 with the full rich document and `X-SSR-Document-Cache: hit` on warm requests. The exact 301 alias and lifecycle-content proof remain a follow-up assertion to capture in the next canary run.
