@@ -210,7 +210,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.matchSubscription = this.matchesService.getLiveMatchesWithAutoRefresh().subscribe(
       (matches) => {
         if (!this.isBrowser) {
-          this.transferState.set(HOME_MATCHES_STATE_KEY, matches || []);
+          // The homepage renders a small, curated set of cards. Do not place
+          // the complete live/upcoming/recent/archive catalogue in TransferState:
+          // that turns a small SSR document into a multi-megabyte download and
+          // leaves the visible cards behind the loading skeleton on slow links.
+          this.transferState.set(HOME_MATCHES_STATE_KEY, this.buildHomeHydrationSnapshot(matches || []));
         }
         // Keep the SSR/hydrated cards visible when the first browser refresh
         // briefly returns an empty snapshot while the backend is warming up.
@@ -288,6 +292,13 @@ export class HomeComponent implements OnInit, OnDestroy {
       startTime: match.startTime ? new Date(match.startTime as any) : match.startTime,
       lastUpdated: match.lastUpdated ? new Date(match.lastUpdated as any) : match.lastUpdated
     }));
+  }
+
+  private buildHomeHydrationSnapshot(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    var live = filterLiveMatches(matches);
+    var upcoming = prioritizeUpcomingMatchesForDiscovery(filterUpcomingMatches(matches), 12, 48).slice(0, 48);
+    var recent = filterCompletedMatches(matches).slice(0, 6);
+    return ([] as MatchCardViewModel[]).concat(live, upcoming, recent);
   }
 
   private applyMatches(matches: MatchCardViewModel[]): void {
