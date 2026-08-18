@@ -348,7 +348,11 @@ export class CricketService {
       }),
       catchError(err => {
         console.warn('SWR: HTTP error fetching scorecard, using cache if available', err.status);
-        return EMPTY;
+        // A missing scorecard must not complete the observable without a value.
+        // MatchesService combines live scorecards with forkJoin; EMPTY would
+        // suppress the entire match-card emission when one provider row 404s.
+        // Emit null so the catalogue metadata can still render that card.
+        return of(null);
       })
     );
 
