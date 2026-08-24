@@ -44,6 +44,10 @@ const HOME_NEWS_STATE_KEY = makeStateKey<NewsItem[]>('crickzen_home_news');
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HomeComponent implements OnInit, OnDestroy {
+  // Keep the homepage live lane aligned with the scraper's finite three-match
+  // budget. Upcoming/results can remain broader without reintroducing a live
+  // catalogue flood when a stale backend snapshot is served.
+  private readonly maxHomeLiveMatches = 3;
   private readonly maxHomeMatchesPerTab = 6;
   private carouselElement: HTMLDivElement | null = null;
   private readonly carouselScrollListener = () => this.updateCarouselControls();
@@ -295,14 +299,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private buildHomeHydrationSnapshot(matches: MatchCardViewModel[]): MatchCardViewModel[] {
-    var live = filterLiveMatches(matches);
+    var live = filterLiveMatches(matches).slice(0, this.maxHomeLiveMatches);
     var upcoming = prioritizeUpcomingMatchesForDiscovery(filterUpcomingMatches(matches), 12, 48).slice(0, 48);
     var recent = filterCompletedMatches(matches).slice(0, 6);
     return ([] as MatchCardViewModel[]).concat(live, upcoming, recent);
   }
 
   private applyMatches(matches: MatchCardViewModel[]): void {
-    this.liveMatches = filterLiveMatches(matches);
+    this.liveMatches = filterLiveMatches(matches).slice(0, this.maxHomeLiveMatches);
     this.allUpcomingMatches = filterUpcomingMatches(matches);
     this.upcomingMatches = this.allUpcomingMatches.slice(0, 6);
     this.recentMatches = filterCompletedMatches(matches).slice(0, 6);
@@ -698,7 +702,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     switch (this.activeTab) {
       case 'live':
         // Protect homepage SSR from rendering an unexpectedly inflated catalog.
-        this.activeMatches = this.filterSeries(this.liveMatches).slice(0, this.maxHomeMatchesPerTab);
+        this.activeMatches = this.filterSeries(this.liveMatches).slice(0, this.maxHomeLiveMatches);
         break;
       case 'upcoming':
         this.activeMatches = this.filterSeries(this.upcomingMatches).slice(0, this.maxHomeMatchesPerTab);

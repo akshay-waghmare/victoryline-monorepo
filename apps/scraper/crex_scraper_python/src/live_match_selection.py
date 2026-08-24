@@ -18,6 +18,23 @@ _INTERNATIONAL_MARKERS = (
     "bilateral-series",
 )
 
+_TERMINAL_STATUS_MARKERS = (
+    "completed",
+    "finished",
+    "abandoned",
+    "no_result",
+    "no result",
+    "match tied",
+    "drawn",
+)
+
+_TERMINAL_TEXT_RE = re.compile(
+    r"\b(?:won\s+by|won\s+the\s+match|match\s+(?:finished|completed|tied)|"
+    r"(?:match\s+)?(?:abandoned|no\s+result|drawn|finished|completed))\b",
+    re.IGNORECASE,
+)
+_SCORE_RE = re.compile(r"\b\d+\s*/\s*\d+(?:\.\d+)?\b")
+
 
 def _value(match: Any, *keys: str) -> str:
     if isinstance(match, dict):
@@ -43,6 +60,49 @@ def _is_international(match: Any) -> bool:
         )
     ).lower()
     return any(marker in text for marker in _INTERNATIONAL_MARKERS)
+
+
+def _looks_terminal(match: Any) -> bool:
+    """Return whether a catalogue row contains strong terminal evidence.
+
+    The backend live catalogue is a persisted snapshot and can outlive the
+    provider's live card.  Do not send rows with a result back through the
+    live sync path: that endpoint intentionally marks every incoming URL as
+    LIVE.  ``Stumps`` and ``INNINGS_BREAK`` remain valid multi-day states; only
+    explicit result/status evidence is rejected here.
+    """
+    if not isinstance(match, dict):
+        return False
+
+    status = _value(match, "status", "lifecycleStatus", "lifecycle_status").strip().lower()
+    if status.replace("-", "_") in _TERMINAL_STATUS_MARKERS:
+        return True
+
+    evidence = " ".join(
+        str(match.get(key))
+        for key in (
+            "lastKnownState",
+            "last_known_state",
+            "resultSummary",
+            "result_summary",
+            "scoreUpdate",
+            "score_update",
+            "finalResultText",
+            "final_result_text",
+        )
+        if match.get(key)
+    )
+    if not evidence:
+        return False
+
+    if _TERMINAL_TEXT_RE.search(evidence):
+        return True
+
+    # Some provider snapshots put the winner between two innings scores (for
+    # example ``TEAM 83/68.2 TEAM Won ... OTHER 172/620.0``) without the words
+    # ``won by``.  Treat that shape as terminal, while leaving a live "won the
+    # toss" message alone.
+    return bool(re.search(r"\bwon\b", evidence, re.IGNORECASE) and len(_SCORE_RE.findall(evidence)) >= 2)
 
 
 def _series_key(match: Any) -> str:
@@ -76,7 +136,8 @@ def select_live_matches(
     if per_series_cap <= 0:
         raise ValueError("per_series_cap must be positive")
 
-    ordered = sorted(list(matches), key=lambda match: 0 if _is_international(match) else 1)
+    eligible = [match for match in matches if not _looks_terminal(match)]
+    ordered = sorted(eligible, key=lambda match: 0 if _is_international(match) else 1)
     selected: List[Any] = []
     series_counts = {}
     for match in ordered:

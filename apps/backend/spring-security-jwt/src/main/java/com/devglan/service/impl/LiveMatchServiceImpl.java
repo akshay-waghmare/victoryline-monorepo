@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -44,6 +46,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	private static final long ONE_DAY_MS = 24L * 60L * 60L * 1000L;
 	private static final long LIMITED_OVERS_LIFECYCLE_WINDOW_MS = 2L * ONE_DAY_MS;
 	private static final long UNSCHEDULED_LIVE_STATE_WINDOW_MS = 36L * 60L * 60L * 1000L;
+	private static final Pattern SCORE_TOKEN_PATTERN = Pattern.compile("\\b\\d+\\s*/\\s*\\d+(?:\\.\\d+)?\\b");
 
 	private final LiveMatchRepository liveMatchRepository;
 	private final CricketDataService cricketDataService;
@@ -645,8 +648,23 @@ public class LiveMatchServiceImpl implements LiveMatchService {
     }
 
     private boolean hasCompletedResultSignal(String value) {
+        if (value == null) {
+            return false;
+        }
         return value.contains("won by") || value.contains("match drawn") || value.contains("match tied")
-                || value.matches(".*\\b(match )?draw\\b.*") || value.matches(".*\\b(match )?tied\\b.*");
+                || value.matches(".*\\b(match )?draw\\b.*") || value.matches(".*\\b(match )?tied\\b.*")
+                // CREX sometimes embeds the final winner between both innings
+                // scores ("TEAM Won ... OTHER 172/6") without "won by".
+                || (value.matches(".*\\bwon\\b.*") && scoreTokenCount(value) >= 2);
+    }
+
+    private int scoreTokenCount(String value) {
+        Matcher matcher = SCORE_TOKEN_PATTERN.matcher(value);
+        int count = 0;
+        while (matcher.find()) {
+            count++;
+        }
+        return count;
     }
 
     private boolean hasTerminalResultSignal(String value) {
