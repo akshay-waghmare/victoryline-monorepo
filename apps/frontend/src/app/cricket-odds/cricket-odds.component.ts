@@ -371,7 +371,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     if (this.isBrowser()) {
       const ssrMatchInfo = this.getHydratedState<any>(MATCH_INFO_KEY);
       if (ssrMatchInfo) {
-        this.matchInfo = ssrMatchInfo;
+        this.matchInfo = this.normalizeMatchDateFields(ssrMatchInfo);
         this.isFallbackMatchInfo = false;
         this.canonicalMatchAeoDataState = 'populated';
       }
@@ -432,6 +432,48 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     }
 
     return hydrated;
+  }
+
+  /**
+   * Angular TransferState serializes Date-like values as strings. Numeric
+   * epoch strings are not reliably parsed by `new Date(string)` across
+   * runtimes, so normalize them before they reach the schedule/schema helpers.
+   */
+  private normalizeMatchDateValue(value: any): any {
+    if (typeof value === 'string' && /^\d{10,13}$/.test(value.trim())) {
+      return Number(value.trim());
+    }
+    return value;
+  }
+
+  private normalizeMatchDateFields(value: any): any {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return value;
+    }
+
+    var normalized = Object.assign({}, value);
+    [
+      'scheduledStartTime', 'startTime', 'match_date', 'start_date',
+      'updated_at', 'updatedAt', 'lastUpdated', 'lastStateUpdatedAt'
+    ].forEach((key) => {
+      if (normalized[key] !== null && normalized[key] !== undefined) {
+        normalized[key] = this.normalizeMatchDateValue(normalized[key]);
+      }
+    });
+    return normalized;
+  }
+
+  private getCanonicalScheduleValue(value: any): number | string | null {
+    var normalized = this.normalizeMatchDateValue(value);
+    if (typeof normalized === 'number') {
+      return isFinite(normalized) && normalized > 0 ? normalized : null;
+    }
+
+    if (typeof normalized === 'string' && /^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(normalized)) {
+      return isNaN(new Date(normalized).getTime()) ? null : normalized;
+    }
+
+    return null;
   }
 
   private fetchCricketData() {
@@ -626,11 +668,37 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Check if 'data' has a 'body' property
-    if(data && 'body' in data){
-      this.cricObj = JSON.parse(data.body);
-    } else {
-      this.cricObj = data;
+    var incoming = data;
+    if (data && typeof data === 'object' && 'body' in data) {
+      try {
+        incoming = typeof data.body === 'string' ? JSON.parse(data.body) : data.body;
+      } catch (_) {
+        return;
+      }
+    }
+
+    if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
+      return;
+    }
+
+    // WebSocket/API refreshes are often partial. Ignore null, blank, empty
+    // array, and empty object fields so a stale/empty response cannot erase a
+    // verified SSR snapshot or a previously received live score.
+    var meaningfulKeys = Object.keys(incoming).filter((key) => this.isMeaningfulCricketPayloadValue(incoming[key]));
+    if (meaningfulKeys.length === 0) {
+      return;
+    }
+
+    var previous = this.cricObj && typeof this.cricObj === 'object' && !Array.isArray(this.cricObj)
+      ? this.cricObj
+      : {};
+    this.cricObj = Object.assign({}, previous);
+    meaningfulKeys.forEach((key) => {
+      this.cricObj[key] = incoming[key];
+    });
+
+    if (!this.cricObj) {
+      return;
     }
 
     // Store parsed cricket data in TransferState on the server for client hydration
@@ -835,6 +903,22 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     } else {
       console.log("No cricket data received.");
     }
+  }
+
+  private isMeaningfulCricketPayloadValue(value: any): boolean {
+    if (value === null || value === undefined) {
+      return false;
+    }
+    if (typeof value === 'string' && value.trim() === '') {
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    if (typeof value === 'object') {
+      return Object.keys(value).length > 0;
+    }
+    return true;
   }
 
   // Function to show betting options
@@ -1383,6 +1467,7 @@ fetchMatchInfo(matchUrl:string) {
         this.syncMatchTabSelection();
         return;
       }
+      data = this.normalizeMatchDateFields(data);
       this.matchInfo = data;
       this.isFallbackMatchInfo = false;
       this.canonicalMatchAeoDataState = 'populated';
@@ -1396,10 +1481,12 @@ fetchMatchInfo(matchUrl:string) {
           ? Object.keys(data.team_comparison).filter((code) => !!String(code || '').trim())
           : [];
         var existingMatch = this.currentMatch || {};
+        var scheduleValue = this.getCanonicalScheduleValue(data.match_date || data.start_date);
         this.currentMatch = Object.assign({}, this.currentMatch || {}, {
           status: resolvedStatus,
           url: data.url || (this.currentMatch && (this.currentMatch.url || this.currentMatch.matchUrl)) || matchUrl,
           seriesName: data.series_name || data.match_name || existingMatch.seriesName,
+          scheduledStartTime: scheduleValue || existingMatch.scheduledStartTime,
           team1: metadataTeamCodes[0] ? Object.assign({}, existingMatch.team1 || {}, { shortName: metadataTeamCodes[0] }) : existingMatch.team1,
           team2: metadataTeamCodes[1] ? Object.assign({}, existingMatch.team2 || {}, { shortName: metadataTeamCodes[1] }) : existingMatch.team2
         });
@@ -1552,7 +1639,8 @@ private applyRouteMatchHint(match: any): void {
     return;
   }
 
-  this.currentMatch = match;
+  this.currentMatch = this.normalizeMatchDateFields(match);
+  match = this.currentMatch;
   this.showLiveHero = this.isLiveLikeStatus(match.status);
   this.heroFallbackView = this.buildHeroFallbackView(match);
   this.updateSeriesFallbackContext(match);
@@ -2883,11 +2971,13 @@ private populateFallbackMatchInfo(match: any = this.currentMatch): void {
     };
   }
 
+  match = this.normalizeMatchDateFields(match);
+  var scheduleValue = this.getCanonicalScheduleValue(match.scheduledStartTime || match.startTime);
   this.matchInfo = {
     url: match.url || this.matchUrl,
     match_name: this.buildFallbackMatchTitle(match),
     series_name: match.seriesName || match.venue || this.buildFallbackSeriesName(match),
-    match_date: match.scheduledStartTime ? new Date(match.scheduledStartTime).toISOString() : null,
+    match_date: scheduleValue ? new Date(scheduleValue).toISOString() : null,
     venue: match.venue || match.seriesName || 'Venue TBD',
     toss_info: match.resultSummary || match.lastKnownState || this.buildFallbackStatusLabel(match.status),
     final_result_text: match.resultSummary || match.lastKnownState || null,
@@ -3624,6 +3714,7 @@ getCanonicalEntitySeriesHref(): string {
       return '/series/' + encodeURIComponent(this.resolvedSeriesContext.externalId) + '/' + this.slugifySeriesName(retainedSeriesName);
     }
   }
+
   return this.getSeriesSurfaceHref();
 }
 
@@ -4069,8 +4160,8 @@ getSeoTournamentLabel(): string {
 
 getSeoDateTimeLabel(): string {
   var catalogueDate = this.currentMatch
-    && (this.currentMatch.scheduledStartTime || this.currentMatch.startTime);
-  var storedDate = this.matchInfo && this.matchInfo.match_date;
+    && this.normalizeMatchDateValue(this.currentMatch.scheduledStartTime || this.currentMatch.startTime);
+  var storedDate = this.matchInfo && this.normalizeMatchDateValue(this.matchInfo.match_date);
   // A stored pre-match label can outlive the catalogue row and silently put
   // an old date back into an upcoming page. Once lifecycle says UPCOMING,
   // accept only the numeric/ISO schedule carried by the authoritative row.
@@ -4082,7 +4173,7 @@ getSeoDateTimeLabel(): string {
     return 'Match date and start time will be confirmed from the official schedule feed.';
   }
 
-  var parsed = new Date(value);
+  var parsed = new Date(this.normalizeMatchDateValue(value));
   if (isNaN(parsed.getTime())) {
     return String(value);
   }
@@ -4298,7 +4389,7 @@ private formatCoverageDateTime(value: any): string | null {
     return null;
   }
 
-  var parsed = new Date(value);
+  var parsed = new Date(this.normalizeMatchDateValue(value));
   if (isNaN(parsed.getTime())) {
     return null;
   }
@@ -5140,7 +5231,7 @@ private titleCaseSlug(value: string): string {
       return null;
     }
 
-    var normalizedValue = value;
+    var normalizedValue = this.normalizeMatchDateValue(value);
     if (typeof value === 'string' && !/\b(?:19|20)\d{2}\b/.test(value)) {
       // CREX-style match labels often contain a weekday, day, month and time,
       // but no year (for example "Tuesday, 28 July, 5:30 AM").  Date.parse

@@ -118,8 +118,11 @@ function Get-PageMetrics {
   $h1Count = ([regex]::Matches($Body, '<h1\b', 'IgnoreCase')).Count
   $jsonLdCount = ([regex]::Matches($Body, 'application/ld\+json', 'IgnoreCase')).Count
   $noindex = [bool]($Body -match '<meta\b[^>]*name=["'']robots["''][^>]*content=["''][^"'']*noindex')
-  $matchAeo = [bool]($Body -match 'id=["'']canonical-match-aeo["'']')
+  $matchAeoMatch = [regex]::Match($Body, '<section\b[^>]*id=["'']canonical-match-aeo["''][\s\S]*?</section>', 'IgnoreCase')
   $lifecycleMatch = [regex]::Match($Body, 'id=["'']canonical-match-aeo["''][^>]*data-lifecycle=["'']([^"'']+)', 'IgnoreCase')
+  $anchorMatches = [regex]::Matches($Body, '<a\b[^>]*\bhref=["''][^"'']+["'']', 'IgnoreCase')
+  $internalAnchorCount = @($anchorMatches | Where-Object { $_.Value -match 'href=["''](?:/|https://www\.crickzen\.com/)' }).Count
+  $aeoText = if ($matchAeoMatch.Success) { [regex]::Replace($matchAeoMatch.Value, '<[^>]+>', ' ') } else { '' }
 
   return [ordered]@{
     decodedBytes = $DecodedBytes
@@ -127,7 +130,10 @@ function Get-PageMetrics {
     h1Count = $h1Count
     jsonLdCount = $jsonLdCount
     noindex = $noindex
-    canonicalMatchAeo = $matchAeo
+    canonicalMatchAeo = $matchAeoMatch.Success
+    canonicalAeoFacts = [bool]($aeoText -match '(?i)\bTeams\b' -and $aeoText -match '(?i)\bStatus\b')
+    anchorCount = $anchorMatches.Count
+    internalAnchorCount = $internalAnchorCount
     lifecycle = if ($lifecycleMatch.Success) { $lifecycleMatch.Groups[1].Value } else { $null }
     placeholder = [bool]($Body -match '(?i)\b(?:Team 1|Team 2|Team A|Team B|TBD vs TBD)\b')
     temporaryCopy = [bool]($Body -match '(?i)temporarily unavailable|temporarily loading|will update with runs|updates will appear shortly')
@@ -228,9 +234,9 @@ foreach ($result in $notFoundResults | Where-Object { $_.status -ne 404 }) {
   $failures += "Negative-route failure: $($result.url) returned $($result.status), expected 404."
 }
 foreach ($result in $matchResults | Where-Object {
-  $_.status -ne 200 -or $_.metrics.canonicalCount -ne 1 -or $_.metrics.h1Count -ne 1 -or $_.metrics.noindex -or $_.metrics.placeholder -or $_.metrics.temporaryCopy
+  $_.status -ne 200 -or $_.metrics.canonicalCount -ne 1 -or $_.metrics.h1Count -ne 1 -or $_.metrics.noindex -or $_.metrics.placeholder -or $_.metrics.temporaryCopy -or -not $_.metrics.canonicalMatchAeo -or -not $_.metrics.canonicalAeoFacts -or $_.metrics.anchorCount -lt 1 -or $_.metrics.internalAnchorCount -lt 1
 }) {
-  $failures += "Match crawlability failure: $($result.profile) $($result.url), status=$($result.status), canonical=$($result.metrics.canonicalCount), h1=$($result.metrics.h1Count), noindex=$($result.metrics.noindex), placeholder=$($result.metrics.placeholder), temporary=$($result.metrics.temporaryCopy)."
+  $failures += "Match crawlability failure: $($result.profile) $($result.url), status=$($result.status), canonical=$($result.metrics.canonicalCount), h1=$($result.metrics.h1Count), noindex=$($result.metrics.noindex), aeo=$($result.metrics.canonicalMatchAeo), facts=$($result.metrics.canonicalAeoFacts), anchors=$($result.metrics.anchorCount), internalAnchors=$($result.metrics.internalAnchorCount), placeholder=$($result.metrics.placeholder), temporary=$($result.metrics.temporaryCopy)."
 }
 
 foreach ($target in @($targets | Where-Object { $_.kind -ne 'robots' -and $_.kind -ne 'sitemap' -and $_.kind -ne 'not-found' })) {

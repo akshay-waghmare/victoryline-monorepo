@@ -212,9 +212,50 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     } as any;
 
     (component as any).parseCricObjData(null);
+    (component as any).parseCricObjData({});
+    (component as any).parseCricObjData({ score: null, current_ball: '' });
 
     expect(component.cricObj.score).toBe('265-8');
     expect(component.cricObj.current_ball).toBe('Stumps');
+  });
+
+  it('merges meaningful partial refreshes without dropping the transferred score context', () => {
+    var component = createComponent();
+    component.cricObj = {
+      score: '265-8',
+      batting_team: 'SL',
+      over: 83.4,
+      current_ball: 'Stumps'
+    } as any;
+
+    (component as any).parseCricObjData({ score: '266-8', over: 84.1 });
+
+    expect(component.cricObj.score).toBe('266-8');
+    expect(component.cricObj.over).toBe(84.1);
+    expect(component.cricObj.batting_team).toBe('SL');
+    expect(component.cricObj.current_ball).toBe('Stumps');
+  });
+
+  it('normalizes serialized epoch schedules and ignores stale human labels for upcoming pages', () => {
+    var component = createComponent();
+    component.currentMatch = {
+      status: 'UPCOMING',
+      scheduledStartTime: '1787785200000',
+      startTime: 'Wed, Aug 26, 11:00 PM'
+    } as any;
+    component.matchInfo = {
+      match_status: 'UPCOMING',
+      match_date: 'Wed, Aug 26, 11:00 PM'
+    } as any;
+
+    component.currentMatch = (component as any).normalizeMatchDateFields(component.currentMatch);
+    component.matchInfo = (component as any).normalizeMatchDateFields(component.matchInfo);
+    var label = component.getSeoDateTimeLabel();
+
+    expect(component.currentMatch.scheduledStartTime).toBe(1787785200000);
+    expect(label).toContain('27 Aug, 2026');
+    expect(label).not.toContain('1970');
+    expect(label).not.toContain('Wed, Aug 26, 11:00 PM');
   });
 
   it('tracks the canonical page view when browser hydration reuses match-info', () => {
