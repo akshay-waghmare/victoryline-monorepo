@@ -246,7 +246,8 @@ function applyCanonicalSnapshotToSsrHtml(html, snapshot) {
   // authoritative text instead of exposing a blank answer surface.
   if (!/id=["']canonical-match-aeo["']/i.test(parityHtml)) {
     const canonicalSlug = cleanSnapshotText(snapshot.canonicalSlug || snapshot.slug);
-    const match = canonicalSlug ? parseCanonicalMatchSlug(`/cric-live/${canonicalSlug}`) : null;
+    const parsedMatch = canonicalSlug ? parseCanonicalMatchSlug(`/cric-live/${canonicalSlug}`) : null;
+    const match = applySnapshotMatchIdentity(parsedMatch, snapshot);
     const summary = match ? lifecycleSummary(match, snapshot) : null;
     const aeoBlock = match && summary ? buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) : '';
     if (aeoBlock) {
@@ -637,6 +638,8 @@ async function fetchCanonicalMatchSnapshot(match) {
   const data = response.data;
   const snapshot = {
     validity: 'valid',
+    team1: cleanSnapshotIdentityText(data.team1),
+    team2: cleanSnapshotIdentityText(data.team2),
     series: cleanSnapshotIdentityText(data.series),
     venue: cleanSnapshotIdentityText(data.venue),
     scheduledAt: cleanSnapshotIdentityText(data.scheduledLabel),
@@ -660,6 +663,24 @@ async function fetchCanonicalMatchSnapshot(match) {
     ssrLastKnownRichSnapshot.set(match.slug, snapshot);
   }
   return snapshot;
+}
+
+function applySnapshotMatchIdentity(match, snapshot) {
+  if (!match || !snapshot) {
+    return match;
+  }
+
+  const team1 = cleanSnapshotIdentityText(snapshot.team1) || match.team1;
+  const team2 = cleanSnapshotIdentityText(snapshot.team2) || match.team2;
+  if (!team1 || !team2) {
+    return match;
+  }
+
+  return Object.assign({}, match, {
+    team1,
+    team2,
+    teams: `${team1} vs ${team2}`
+  });
 }
 
 function normalizeEntityText(value) {
@@ -839,7 +860,8 @@ function buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) {
 }
 
 function buildCanonicalMatchFallbackHtml(req, snapshot) {
-  const match = parseCanonicalMatchSlug(req.path);
+  const parsedMatch = parseCanonicalMatchSlug(req.path);
+  const match = applySnapshotMatchIdentity(parsedMatch, snapshot);
   if (!match || !isRichCanonicalSnapshot(snapshot)) {
     return null;
   }
