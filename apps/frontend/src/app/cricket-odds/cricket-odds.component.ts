@@ -3334,11 +3334,26 @@ private parseOversValue(value: string): number {
 }
 
 getFallbackResultSummary(): string | null {
-  if (!this.currentMatch) {
-    return null;
+  // Direct-route hydration can have authoritative match-info before the
+  // catalogue resolver has enriched currentMatch. Prefer the terminal result
+  // from that source so a route-only 0/0 hero shell cannot become the visible
+  // completed answer.
+  if (this.isCompletedStatus(this.getResolvedMatchStatus()) && this.matchInfo) {
+    var matchInfoResult = this.matchInfo.final_result_text || this.matchInfo.lastKnownState;
+    if (matchInfoResult && String(matchInfoResult).trim()) {
+      return String(matchInfoResult).trim();
+    }
   }
 
-  return this.currentMatch.resultSummary || this.currentMatch.lastKnownState || null;
+  if (this.currentMatch) {
+    var catalogueResult = this.currentMatch.resultSummary || this.currentMatch.lastKnownState;
+    if (catalogueResult && String(catalogueResult).trim()) {
+      return String(catalogueResult).trim();
+    }
+  }
+
+  var fallbackResult = this.matchInfo && (this.matchInfo.final_result_text || this.matchInfo.lastKnownState);
+  return fallbackResult && String(fallbackResult).trim() ? String(fallbackResult).trim() : null;
 }
 
 getMatchShellTitle(): string {
@@ -4200,8 +4215,11 @@ getSeoVenueLabel(): string {
 }
 
 getSeoLiveScoreLabel(): string {
-  if (this.isCompletedStatus(this.getResolvedMatchStatus()) && this.getFallbackResultSummary()) {
-    return this.getFallbackResultSummary() || '';
+  if (this.isCompletedStatus(this.getResolvedMatchStatus())) {
+    // A completed result is not a live score. Returning the route-only hero
+    // fallback here would publish an invalid KAS vs NOI 0/0 fact after
+    // hydration even when the authoritative result is present.
+    return '';
   }
 
   var liveScoreContext = [

@@ -87,6 +87,24 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(block && block.facts.some(function(fact) { return fact.label === 'Venue'; })).toBe(true);
   });
 
+  it('keeps a hydrated completed result from becoming a route-only 0/0 score', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.matchInfo = {
+      match_status: 'COMPLETED',
+      final_result_text: 'Noida Kings won by 5 wickets.'
+    } as any;
+    component.currentMatch = { status: null } as any;
+    component.heroFallbackView = {
+      score: { teamName: 'KAS vs NOI', runs: 0, wickets: 0, overs: '0.0' }
+    } as any;
+
+    var block = component.getCanonicalMatchAeoBlock();
+    expect(block && block.answer).toContain('Noida Kings won by 5 wickets.');
+    expect(block && block.answer).not.toContain('0/0');
+    expect(block && block.facts.some(function(fact) { return fact.label === 'Score'; })).toBe(false);
+  });
+
   it('keeps the lifecycle answer out of the indexable surface while match metadata is loading', () => {
     var component = createComponent();
     setIndexableMatchSeo(component);
