@@ -68,6 +68,9 @@ function Get-Metrics {
         lifecycle = if ($lifecycleMatch.Success) { $lifecycleMatch.Groups[1].Value } else { $null }
         aeoHasTeamsFact = [bool]($aeoText -match '(?i)\bTeams\b')
         aeoHasStatusFact = [bool]($aeoText -match '(?i)\bStatus\b')
+        aeoHasScore = [bool]($aeoText -match '\b\d+\s*[-/]\s*\d+\b')
+        aeoHasResult = [bool]($aeoText -match '(?i)result|won by|lead by|match completed|drawn|tied')
+        aeoHasInvalidScore = [bool]($aeoText -match '(?i)\b0\s*[-/]\s*0\b')
         anchors = $anchors.Count
         internalAnchors = @($anchors | Where-Object { $_.Value -match 'href=["''](?:/|https://www\.crickzen\.com/)' }).Count
         jsonLd = ([regex]::Matches($Body, 'application/ld\+json', 'IgnoreCase')).Count
@@ -101,8 +104,9 @@ for ($index = 0; $index -lt $Url.Count; $index++) {
     if ($hydratedMetrics.placeholder -or $hydratedMetrics.temporary) { throw "Hydrated placeholder/loading copy reached $targetUrl." }
 
     if ($expected -eq 'upcoming' -and -not $hydratedMetrics.schedule) { throw "Hydrated upcoming page has no schedule fact: $targetUrl" }
-    if (($expected -eq 'live' -or $expected -eq 'innings-break') -and -not $hydratedMetrics.score) { throw "Hydrated live page has no current score fact: $targetUrl" }
-    if ($expected -eq 'completed' -and -not $hydratedMetrics.result) { throw "Hydrated completed page has no result fact: $targetUrl" }
+    if (($expected -eq 'live' -or $expected -eq 'innings-break') -and -not $hydratedMetrics.aeoHasScore) { throw "Hydrated live page has no score in its canonical AEO facts: $targetUrl" }
+    if ($expected -eq 'completed' -and -not $hydratedMetrics.aeoHasResult) { throw "Hydrated completed page has no result in its canonical AEO facts: $targetUrl" }
+    if ($hydratedMetrics.aeoHasInvalidScore) { throw "Hydrated canonical AEO facts contain an invalid 0/0 score: $targetUrl" }
 
     if ($expectedTeamText) {
         foreach ($team in ($expectedTeamText -split '\s*\|\s*' | Where-Object { $_ })) {

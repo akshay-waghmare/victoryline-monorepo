@@ -791,6 +791,14 @@ function canonicalizeMatchRequestUrl(originalUrl, requestedSlug, canonicalSlug) 
 function hasFreshLiveScore(snapshot, lifecycle) {
   if (lifecycle !== 'live' && lifecycle !== 'innings-break') return false;
   if (!snapshot || !snapshot.score || !snapshot.stateUpdatedAt) return false;
+  // A multi-day match can legitimately remain at Stumps or carry a lead for
+  // more than the normal live-feed freshness window. Preserve a non-zero
+  // verified score in that state; empty 0/0 payloads still fail closed.
+  if (!/^0\s*[-/]\s*0\b/.test(String(snapshot.score))
+      && lifecycle === 'innings-break'
+      && /stumps|lead by/i.test(`${snapshot.lastKnownState || ''} ${snapshot.result || ''}`)) {
+    return true;
+  }
   return Date.now() - snapshot.stateUpdatedAt <= SSR_LIVE_SNAPSHOT_MAX_AGE_MS;
 }
 

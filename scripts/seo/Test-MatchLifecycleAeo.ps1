@@ -57,6 +57,9 @@ function Get-MatchAeoMetrics {
         aeoBlock = $aeoMatch.Success
         aeoHasTeamsFact = [bool]($aeoText -match '(?i)\bTeams\b')
         aeoHasStatusFact = [bool]($aeoText -match '(?i)\bStatus\b')
+        aeoHasScore = [bool]($aeoText -match '\b\d+\s*[-/]\s*\d+\b')
+        aeoHasResult = [bool]($aeoText -match '(?i)result|won by|lead by|match completed|drawn|tied')
+        aeoHasInvalidScore = [bool]($aeoText -match '(?i)\b0\s*[-/]\s*0\b')
         anchorCount = $anchorMatches.Count
         internalAnchorCount = $internalAnchorCount
         lifecycleHubLinkCount = $lifecycleHubLinkCount
@@ -116,10 +119,11 @@ for ($urlIndex = 0; $urlIndex -lt $Url.Count; $urlIndex++) {
     if ($expected -and $baseline.status -eq 200) {
         switch ($expected.ToLowerInvariant()) {
             'upcoming' { if (-not $baseline.metrics.hasSchedule) { throw "Upcoming page has no schedule fact: $targetUrl" } }
-            'live' { if (-not $baseline.metrics.hasScore) { throw "Live page has no current score fact: $targetUrl" } }
-            'innings-break' { if (-not $baseline.metrics.hasScore) { throw "Innings-break page has no current score fact: $targetUrl" } }
-            'completed' { if (-not $baseline.metrics.hasResult) { throw "Completed page has no result fact: $targetUrl" } }
+            'live' { if (-not $baseline.metrics.aeoHasScore) { throw "Live page has no score in its canonical AEO facts: $targetUrl" } }
+            'innings-break' { if (-not $baseline.metrics.aeoHasScore) { throw "Innings-break page has no score in its canonical AEO facts: $targetUrl" } }
+            'completed' { if (-not $baseline.metrics.aeoHasResult) { throw "Completed page has no result in its canonical AEO facts: $targetUrl" } }
         }
+        if ($baseline.metrics.aeoHasInvalidScore) { throw "Canonical AEO facts contain an invalid 0/0 score: $targetUrl" }
     }
     $expectedTeamText = if ($ExpectedTeams -and $urlIndex -lt $ExpectedTeams.Count) { $ExpectedTeams[$urlIndex] } else { $null }
     if ($expectedTeamText -and $baseline.status -eq 200) {
