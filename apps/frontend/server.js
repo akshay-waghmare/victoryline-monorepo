@@ -224,6 +224,21 @@ function applyCanonicalSnapshotToSsrHtml(html, snapshot) {
       const data = JSON.parse(raw);
       if (data && data['@type'] === 'SportsEvent') {
         data.eventStatus = eventStatus;
+        const team1 = cleanSnapshotIdentityText(snapshot.team1);
+        const team2 = cleanSnapshotIdentityText(snapshot.team2);
+        if (team1 && team2) {
+          data.name = `${team1} vs ${team2}`;
+          data.competitor = [
+            { '@type': 'SportsTeam', name: team1 },
+            { '@type': 'SportsTeam', name: team2 }
+          ];
+        }
+        if (snapshot.scheduledAtMs) {
+          data.startDate = new Date(snapshot.scheduledAtMs).toISOString();
+        }
+        if (snapshot.venue) {
+          data.location = { '@type': 'Place', name: snapshot.venue };
+        }
         return open + JSON.stringify(data).replace(/</g, '\\u003c') + close;
       }
     } catch (_) {
@@ -238,21 +253,22 @@ function applyCanonicalSnapshotToSsrHtml(html, snapshot) {
       .replace(/>\s*Match completed\s*</gi, '>Innings break<');
   }
 
-  // A live SSR render can complete with the match shell and JSON-LD already
-  // present while match-info arrives just after the first Angular template
-  // pass. Keep the crawler-facing answer deterministic by applying the same
-  // backend snapshot used for lifecycle/schema parity whenever the component
-  // did not emit its block yet. Browser hydration can then reuse the same
-  // authoritative text instead of exposing a blank answer surface.
-  if (!/id=["']canonical-match-aeo["']/i.test(parityHtml)) {
-    const canonicalSlug = cleanSnapshotText(snapshot.canonicalSlug || snapshot.slug);
-    const parsedMatch = canonicalSlug ? parseCanonicalMatchSlug(`/cric-live/${canonicalSlug}`) : null;
-    const match = applySnapshotMatchIdentity(parsedMatch, snapshot);
-    const summary = match ? lifecycleSummary(match, snapshot) : null;
-    const aeoBlock = match && summary ? buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) : '';
-    if (aeoBlock) {
-      parityHtml = parityHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i, (heading) => heading + aeoBlock);
-    }
+  // Angular can finish with a stale or sparse match-info answer even though
+  // the compact backend snapshot already resolved the canonical lifecycle and
+  // identity. Replace the whole crawler-facing answer whenever the snapshot
+  // is rich, rather than only injecting a block when Angular emitted none.
+  // This prevents stale 0/0, abbreviated teams, and old result text from
+  // surviving in the indexable answer after hydration.
+  const canonicalSlug = cleanSnapshotText(snapshot.canonicalSlug || snapshot.slug);
+  const parsedMatch = canonicalSlug ? parseCanonicalMatchSlug(`/cric-live/${canonicalSlug}`) : null;
+  const match = applySnapshotMatchIdentity(parsedMatch, snapshot);
+  const summary = match ? lifecycleSummary(match, snapshot) : null;
+  const aeoBlock = match && summary ? buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) : '';
+  if (aeoBlock) {
+    const aeoPattern = /<section\b[^>]*id=["']canonical-match-aeo["'][\s\S]*?<\/section>/i;
+    parityHtml = aeoPattern.test(parityHtml)
+      ? parityHtml.replace(aeoPattern, aeoBlock)
+      : parityHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i, (heading) => heading + aeoBlock);
   }
 
   return parityHtml;
