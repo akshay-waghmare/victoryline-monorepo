@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { catchError, map, takeUntil, timeout } from 'rxjs/operators';
 
-import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches, prioritizeUpcomingMatchesForDiscovery, sortMatchesByPriority } from '../../../core/utils/match-utils';
+import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, filterCompletedMatches, filterLiveMatches, filterUpcomingMatches, filterUpcomingMatchesInHours, prioritizeUpcomingMatchesForDiscovery, sortMatchesByPriority } from '../../../core/utils/match-utils';
 import { MatchCardViewModel, MatchStatus } from '../../matches/models/match-card.models';
 import { MatchesService } from '../../matches/services/matches.service';
 import { MetaTagsService } from '../../../seo/meta-tags.service';
@@ -51,6 +51,8 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   private readonly archivePageSize = 80;
   private readonly sitemapRequestTimeoutMs = 2500;
   private readonly discoveryUpcomingWindowHours = 48;
+  readonly displayTimezone = 'Asia/Kolkata';
+  readonly displayTimezoneLabel = 'IST';
 
   config: HubConfig = this.getConfig('liveScore');
   allMatches: MatchCardViewModel[] = [];
@@ -178,7 +180,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     }
 
     if (match.status === MatchStatus.UPCOMING) {
-      return 'Upcoming live score';
+      return this.config.type === 'scheduleToday' ? 'Upcoming fixture' : 'Upcoming live score';
     }
     if (match.status === MatchStatus.COMPLETED || match.status === MatchStatus.ABANDONED) {
       return 'Result';
@@ -200,7 +202,8 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     var venue = match.venue || 'Venue TBD';
 
     if (this.config.type === 'scheduleToday') {
-      return series + ' fixture with today match time, venue, teams, and live score link.';
+      var timingIntent = this.isTodayMatch(match) ? 'today match time' : 'match date and time';
+      return series + ' fixture with ' + timingIntent + ', venue, teams, and live score link.';
     }
 
     if (this.config.type === 'iplSchedule') {
@@ -227,8 +230,16 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     this.liveSectionMatches = this.limitUnique(filterLiveMatches(matches), 12);
     this.upcomingSectionMatches = this.limitUnique(this.getUpcomingPriorityMatches(matches), this.config.type === 'scheduleToday' ? 18 : 14);
     this.recentSectionMatches = this.limitUnique(filterCompletedMatches(matches), 12);
-    this.discoveryMatches = this.limitUnique(this.buildDiscoveryMatches(matches), 120);
-    this.resultSupportLinks = this.buildResultSupportLinks(matches);
+    var primaryHrefs = this.collectMatchHrefs(
+      ([] as MatchCardViewModel[])
+        .concat(this.liveSectionMatches)
+        .concat(this.upcomingSectionMatches)
+        .concat(this.recentSectionMatches)
+    );
+    this.resultSupportLinks = this.buildResultSupportLinks(matches)
+      .filter((link) => !!link && !primaryHrefs[link.href]);
+    var renderedHrefs = this.extendHrefSet(primaryHrefs, this.resultSupportLinks);
+    this.discoveryMatches = this.limitUnique(this.buildDiscoveryMatches(matches, renderedHrefs), 120);
     this.visibleSitemapLinks = this.getVisibleSitemapLinks();
     this.fallbackSitemapMatches = this.shouldUseSitemapFallback()
       ? this.getPrimaryFallbackLinks()
@@ -269,6 +280,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
         map((response: any) => {
           var rows = response && Array.isArray(response.upcoming) ? response.upcoming : [];
           return rows
+            .filter((match: any) => this.isEligiblePrematchRecord(match))
             .map((match: any) => {
               var href = buildCanonicalMatchPath(match);
               if (!href) {
@@ -291,6 +303,32 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
         }
         this.applyMatches();
       });
+  }
+
+  private isEligiblePrematchRecord(match: any): boolean {
+    if (!match || String(match.status || match.lifecycleCohort || '').toUpperCase() !== MatchStatus.UPCOMING) {
+      return false;
+    }
+
+    var canonicalRecord = {
+      matchUrl: match.matchUrl || match.url || match.match_link || match.matchLink,
+      externalMatchKey: match.externalMatchKey || match.external_match_key,
+      id: match.id
+    };
+    var href = buildCanonicalMatchPath(canonicalRecord as any);
+    if (!href) {
+      return false;
+    }
+
+    var rawStart = match.scheduledStartTime || match.startTime || match.matchDate || match.match_date
+      || match.startDate || match.start_date;
+    var rawStartText = String(rawStart || '').trim();
+    var start = /^\d+$/.test(rawStartText) ? parseInt(rawStartText, 10) : Date.parse(rawStartText);
+    if (start > 0 && start < 100000000000) {
+      start *= 1000;
+    }
+
+    return isFinite(start) && start > Date.now();
   }
 
   private parseSitemapLinks(xml: string): HubFallbackLink[] {
@@ -326,11 +364,11 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     }
 
     if (this.config.type === 'scheduleToday') {
-      return links.slice(80, 200).length > 0 ? links.slice(80, 200) : links.slice(0, 120);
+      return [];
     }
 
     if (this.config.type === 'today') {
-      return links.slice(0, 120);
+      return [];
     }
 
     return links.slice(0, 140);
@@ -357,11 +395,11 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     }
 
     if (this.config.type === 'scheduleToday') {
-      return links.slice(200, 420).length > 0 ? links.slice(200, 420) : links.slice(0, 220);
+      return [];
     }
 
     if (this.config.type === 'today') {
-      return links.slice(120, 340).length > 0 ? links.slice(120, 340) : links.slice(0, 220);
+      return [];
     }
 
     return links.slice(40, 260).length > 0 ? links.slice(40, 260) : links.slice(0, 220);
@@ -466,6 +504,13 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private getUpcomingPriorityMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
+    if (this.config.type === 'today' || this.config.type === 'scheduleToday') {
+      return this.limitUnique(
+        filterUpcomingMatchesInHours(matches, 0, this.discoveryUpcomingWindowHours),
+        48
+      );
+    }
+
     var todayUpcoming = filterUpcomingMatches(matches).filter((match) => this.isTodayMatch(match));
     var prioritizedUpcoming = prioritizeUpcomingMatchesForDiscovery(matches, 12, this.discoveryUpcomingWindowHours);
 
@@ -475,12 +520,38 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
       .concat(filterUpcomingMatches(matches)), 48);
   }
 
-  private buildDiscoveryMatches(matches: MatchCardViewModel[]): MatchCardViewModel[] {
-    return ([] as MatchCardViewModel[])
-      .concat(this.liveSectionMatches)
-      .concat(this.upcomingSectionMatches)
-      .concat(this.recentSectionMatches)
-      .concat(matches);
+  private buildDiscoveryMatches(matches: MatchCardViewModel[], excludedHrefs: { [key: string]: boolean } = {}): MatchCardViewModel[] {
+    var seen: { [key: string]: boolean } = {};
+    return (matches || []).filter((match) => {
+      var href = buildCanonicalMatchPath(match);
+      if (!href || excludedHrefs[href] || seen[href]) {
+        return false;
+      }
+      seen[href] = true;
+      return true;
+    });
+  }
+
+  private collectMatchHrefs(matches: MatchCardViewModel[]): { [key: string]: boolean } {
+    var hrefs: { [key: string]: boolean } = {};
+    (matches || []).forEach((match) => {
+      var href = buildCanonicalMatchPath(match);
+      if (href) {
+        hrefs[href] = true;
+      }
+    });
+    return hrefs;
+  }
+
+  private extendHrefSet(base: { [key: string]: boolean }, links: MatchFreshnessLink[]): { [key: string]: boolean } {
+    var result: { [key: string]: boolean } = {};
+    Object.keys(base || {}).forEach((href) => result[href] = true);
+    (links || []).forEach((link) => {
+      if (link && link.href) {
+        result[link.href] = true;
+      }
+    });
+    return result;
   }
 
   private buildResultSupportLinks(matches: MatchCardViewModel[]): MatchFreshnessLink[] {
@@ -496,7 +567,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private shouldUseSitemapFallback(): boolean {
-    if (this.config.type === 'archive') {
+    if (this.config.type === 'archive' || this.config.type === 'today' || this.config.type === 'scheduleToday') {
       return false;
     }
 

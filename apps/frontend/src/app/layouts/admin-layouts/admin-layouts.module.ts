@@ -96,6 +96,7 @@ import { MatchFallbackService } from 'src/app/cricket-odds/match-fallback.servic
 import { MatchLiveModule } from 'src/app/match-live';
 import { ssrSafeRxStompServiceFactory } from 'src/app/ssr/server-rx-stomp.service';
 import { PublicLayoutComponent } from '../public-layout/public-layout.component';
+import { PublicPredictionComponent } from 'src/app/public-prediction/public-prediction.component';
 
 
 
@@ -194,6 +195,7 @@ const myRxStompConfig: InjectableRxStompConfig = {
     LiveScoreHubComponent,
     LoginComponent,
     PublicLayoutComponent,
+    PublicPredictionComponent,
   ],
   providers: [
     {

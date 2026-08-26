@@ -123,6 +123,7 @@ public class CricketDataControllerTest {
         sparseLiveState.setVenue(null);
 
         when(liveMatchService.findByUrl(slug)).thenReturn(match);
+        when(liveMatchService.findIndexableMatches()).thenReturn(Arrays.asList(match));
         when(matchInfoService.getMatchInfo(slug)).thenReturn(
                 "{\"match_name\":\"European Cup 2026\",\"match_date\":\"Tuesday, 28 July, 5:30 AM\",\"venue\":\"Moara Vlasiei Cricket Ground, Ilfov County\"}");
         when(cricketDataService.getLastUpdatedData(match.getUrl())).thenReturn(sparseLiveState);
@@ -150,7 +151,7 @@ public class CricketDataControllerTest {
         staleAlias.setResultSummary("BAN lead by 153 runs");
         staleAlias.setLastStateUpdatedAt(1786694740401L);
 
-        when(liveMatchService.findAllMatches()).thenReturn(Arrays.asList(active, staleAlias));
+        when(liveMatchService.findIndexableMatches()).thenReturn(Arrays.asList(active, staleAlias));
         when(matchInfoService.getMatchInfo(alias)).thenReturn(null);
 
         ResponseEntity<?> response = controller.getCanonicalMatchSnapshot(alias);

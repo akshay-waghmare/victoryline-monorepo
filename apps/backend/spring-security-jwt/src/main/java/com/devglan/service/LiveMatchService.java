@@ -14,6 +14,7 @@ public interface LiveMatchService {
     void syncScheduleMatches(List<ScheduledMatchDTO> matches);
 
 	public List<LiveMatch> findAllMatches();
+    public List<LiveMatch> findIndexableMatches();
     List<LiveMatch> findAll();
     public ResponseEntity<CricketDataDTO> fetchAndSendData(String url);
     public String appendBaseUrl(String url);

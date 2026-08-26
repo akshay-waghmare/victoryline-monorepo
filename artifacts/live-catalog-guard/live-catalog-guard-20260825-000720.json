@@ -1,0 +1,61 @@
+{
+  "generatedAt": "2026-08-24T18:37:20.1504793Z",
+  "baseUrl": "https://www.crickzen.com",
+  "liveCatalog": {
+    "status": 200,
+    "elapsedMs": 1249,
+    "count": 6,
+    "maxExpected": 20,
+    "duplicateUrls": []
+  },
+  "homepageChecks": [
+    {
+      "attempt": 1,
+      "status": 200,
+      "elapsedMs": 3891,
+      "bytes": 211210,
+      "h1Count": 1,
+      "matchLinkCount": 41,
+      "error": null
+    },
+    {
+      "attempt": 2,
+      "status": 200,
+      "elapsedMs": 3631,
+      "bytes": 211103,
+      "h1Count": 1,
+      "matchLinkCount": 41,
+      "error": null
+    },
+    {
+      "attempt": 3,
+      "status": 200,
+      "elapsedMs": 3465,
+      "bytes": 211113,
+      "h1Count": 1,
+      "matchLinkCount": 41,
+      "error": null
+    }
+  ],
+  "productionEvidence": [
+    "victoryline-frontend|Up About an hour (healthy)|macubex/victoryline-frontend:20260824-seo-url-hygiene-r2",
+    "victoryline-backend|Up About an hour (healthy)|macubex/victoryline-backend:20260824-seo-url-hygiene-r3",
+    "victoryline-scraper|Up 2 hours (healthy)|macubex/victoryline-scraper:20260824-live-catalog-guard",
+    "crickzen-dashboard|Up 3 days (healthy)|machine_learning_bbl-dashboard:20260801-predictor-cleanup-0425234",
+    "postiz|Up 12 days (healthy)|postiz-app-facebook:local",
+    "temporal-ui|Up 12 days (healthy)|temporalio/ui:2.34.0",
+    "temporal-admin-tools|Up 12 days|temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1",
+    "temporal|Up 12 days (healthy)|temporalio/auto-setup:1.28.1",
+    "temporal-elasticsearch|Up 13 days (healthy)|elasticsearch:7.17.27",
+    "postiz-postgres|Up 13 days (healthy)|postgres:17-alpine",
+    "postiz-redis|Up 13 days (healthy)|redis:7.2",
+    "temporal-postgresql|Up 13 days (healthy)|postgres:16",
+    "victoryline-proxy|Up 4 weeks|caddy:2",
+    "victoryline-redis|Up 6 weeks (healthy)|redis:7-alpine",
+    "cricket-ledger-mongodb|Up 6 weeks|mongo:6",
+    "LOGS"
+  ],
+  "warnings": [],
+  "failures": [],
+  "passed": true
+}

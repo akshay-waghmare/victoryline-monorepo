@@ -36,6 +36,7 @@ import { Error404Component } from 'src/app/shared/components/error-404/error-404
 import { normalizeMatchRoutePath } from 'src/app/core/utils/match-utils';
 import { AdminLayoutsComponent } from './admin-layouts.component';
 import { PublicLayoutComponent } from '../public-layout/public-layout.component';
+import { PublicPredictionComponent } from 'src/app/public-prediction/public-prediction.component';
 
 export function cricLiveMatcher(segments: UrlSegment[]): UrlMatchResult | null {
   if (segments.length < 2 || segments[0].path !== 'cric-live') {
@@ -69,6 +70,16 @@ export function cricLiveMatcher(segments: UrlSegment[]): UrlMatchResult | null {
 
 const publicRoutes: Routes = [
   { path: '', component: HomeComponent, pathMatch: 'full' },
+  { path: 'prediction', component: PublicPredictionComponent, data: { page: 'home' } },
+  { path: 'how-it-works', component: PublicPredictionComponent, data: { page: 'how-it-works' } },
+  { path: 'history', component: PublicPredictionComponent, data: { page: 'history' } },
+  { path: 'history/:archiveId', component: PublicPredictionComponent, data: { page: 'history-detail' } },
+  { path: 'creator-packs', component: PublicPredictionComponent, data: { page: 'creator-packs' } },
+  { path: 'partners', component: PublicPredictionComponent, data: { page: 'partners' } },
+  { path: 'media-kit', component: PublicPredictionComponent, data: { page: 'media-kit' } },
+  { path: 'developers', component: PublicPredictionComponent, data: { page: 'developers' } },
+  { path: 'share/:slug', component: PublicPredictionComponent, data: { page: 'share' } },
+  { path: 'embed/:slug', component: PublicPredictionComponent, data: { page: 'embed' } },
   { path: 'Home', component: HomeComponent },
   { path: 'login', component: LoginComponent },
   { path: 'live-cricket-score', component: LiveScoreHubComponent, data: { hubType: 'liveCricketScore' } },

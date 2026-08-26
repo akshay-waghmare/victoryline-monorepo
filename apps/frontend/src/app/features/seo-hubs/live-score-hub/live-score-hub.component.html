@@ -85,7 +85,7 @@
             </h3>
             <p>{{ getMatchCardDescription(match) }}</p>
             <p class="seo-hub__match-meta">
-              {{ match.startTime | date:'medium' }}<span *ngIf="match.venue"> at {{ match.venue }}</span>
+              {{ match.startTime | date:'EEE, d MMM y, h:mm a':displayTimezone }} {{ displayTimezoneLabel }}<span *ngIf="match.venue"> at {{ match.venue }}</span>
             </p>
           </article>
         </div>
@@ -104,7 +104,7 @@
             </h3>
             <p>{{ getMatchCardDescription(match) }}</p>
             <p class="seo-hub__match-meta">
-              Starts at {{ match.startTime | date:'medium' }}<span *ngIf="match.venue"> · {{ match.venue }}</span>
+              Starts {{ match.startTime | date:'EEE, d MMM y, h:mm a':displayTimezone }} {{ displayTimezoneLabel }}<span *ngIf="match.venue"> · {{ match.venue }}</span>
             </p>
           </article>
         </div>
@@ -123,7 +123,7 @@
             </h3>
             <p>{{ getMatchCardDescription(match) }}</p>
             <p class="seo-hub__match-meta">
-              {{ match.startTime | date:'medium' }}<span *ngIf="match.venue"> at {{ match.venue }}</span>
+              {{ match.startTime | date:'EEE, d MMM y, h:mm a':displayTimezone }} {{ displayTimezoneLabel }}<span *ngIf="match.venue"> at {{ match.venue }}</span>
             </p>
           </article>
         </div>

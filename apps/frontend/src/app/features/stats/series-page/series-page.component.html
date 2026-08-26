@@ -104,7 +104,7 @@
           <div class="series-detail-header-info">
             <span *ngIf="isProfileRoute" class="series-profile__eyebrow">Crickzen series centre</span>
             <h1 *ngIf="isProfileRoute; else seriesDetailName" class="stats-detail-panel__name" tabindex="-1">
-              {{ selectedSeries?.series?.name || selectedSeriesSummary?.name || 'Series details' }}
+              {{ getSeriesProfileHeading() }}
             </h1>
             <ng-template #seriesDetailName><h2 class="stats-detail-panel__name">
               {{ selectedSeries?.series?.name || selectedSeriesSummary?.name || 'Series Details' }}
@@ -121,6 +121,10 @@
           </div>
         </div>
 
+        <section *ngIf="isProfileRoute" class="series-profile__answer" aria-label="Series answer">
+          <p>{{ getSeriesProfileBluf() }}</p>
+        </section>
+
         <nav *ngIf="isProfileRoute" class="series-profile__tabs" aria-label="Series sections">
           <a [routerLink]="['/series', selectedSeriesSummary?.externalId, toSlug(selectedSeriesSummary?.name || 'series')]"
              [class.series-profile__tab--active]="activeSection === 'matches'">Matches</a>
@@ -134,10 +138,11 @@
           <div class="series-profile__section-heading">
             <div>
               <span class="series-profile__eyebrow">Match centre</span>
-              <h2>Matches</h2>
+              <h2>{{ getSeriesDisplayName() }} fixtures and results</h2>
             </div>
             <a href="/matches">All matches</a>
           </div>
+          <p class="series-profile__section-answer">{{ getSeriesMatchesAnswer() }}</p>
 
           <div *ngIf="getSeriesLiveMatches().length > 0" class="series-profile__lane">
             <h3><span class="series-profile__live-dot"></span>Live now</h3>
@@ -173,7 +178,8 @@
 
         <!-- Points Table -->
         <div *ngIf="activeSection === 'table' && getSeriesStandingsRows().length > 0" class="stats-detail-panel__section">
-          <h3>Points Table</h3>
+          <h2>{{ getSeriesDisplayName() }} points table</h2>
+          <p class="series-profile__section-answer">{{ getSeriesStandingsAnswer() }}</p>
           <div class="points-table-wrapper">
             <table class="points-table">
               <thead>
@@ -215,11 +221,15 @@
         </div>
 
         <div *ngIf="activeSection === 'table' && getSeriesStandingsRows().length === 0" class="series-profile__empty-state">
-          <h2>Points table unavailable</h2>
-          <p>The table has not been received from the source yet. We will show it here once the series data is available.</p>
+          <h2>{{ getSeriesDisplayName() }} points table unavailable</h2>
+          <p class="series-profile__section-answer">{{ getSeriesStandingsAnswer() }}</p>
         </div>
 
         <!-- All other stat sections -->
+        <section *ngIf="activeSection === 'stats'" class="stats-detail-panel__section series-profile__stats-answer" aria-label="Series team statistics">
+          <h2>{{ getSeriesDisplayName() }} team statistics</h2>
+          <p class="series-profile__section-answer">{{ getSeriesStatsAnswer() }}</p>
+        </section>
         <ng-container *ngFor="let stat of getSeriesOtherStats()">
           <div *ngIf="activeSection === 'stats'" class="stats-detail-panel__section">
             <h3>{{ stat.label || formatStatLabel(stat.category) }}</h3>
@@ -248,8 +258,8 @@
           </div>
         </ng-container>
         <div *ngIf="activeSection === 'stats' && getSeriesOtherStats().length === 0" class="series-profile__empty-state">
-          <h2>Team stats unavailable</h2>
-          <p>Team-level series stats have not been received from the source yet. Check back after the next data refresh.</p>
+          <h2>{{ getSeriesDisplayName() }} team stats unavailable</h2>
+          <p class="series-profile__section-answer">{{ getSeriesStatsAnswer() }}</p>
         </div>
 
         <!-- Empty state -->

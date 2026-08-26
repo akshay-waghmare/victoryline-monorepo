@@ -1,0 +1,19 @@
+{
+  "schema_version": "crickzen-public-pack-v1",
+  "pack_id": "pd-vs-odw-20260826",
+  "generated_at": "2026-08-26T13:55:34.944407Z",
+  "match": "Purani Dilli-6 vs Outer Delhi Warriors",
+  "canonical_match_url": "https://www.crickzen.com/cric-live/odw-vs-pd-eliminator-1st-match-delhi-premier-t20-league-2026-match-updates-13CA",
+  "public_prediction_url": "https://prediction.crickzen.com/share/odw-vs-pd-t20-win-probability",
+  "source": "CrickZen public match intelligence",
+  "disclosure": "Fixed public sample generated from a verified CrickZen snapshot on 2026-08-26. The live card may change after this snapshot.",
+  "artifacts": {
+    "video": { "path": "/assets/public-packs/pd-vs-odw-20260826/match_card_reel.mp4", "sha256": "99a05c305710a282c6a65f6343ca387773fcad382b463f1371f5bbdbcb41a1c9" },
+    "thumbnail": { "path": "/assets/public-packs/pd-vs-odw-20260826/match_card_thumbnail.jpg", "sha256": "d18d8bd7f2ff1ddd44f68508ecc8422d7d49ddfe3f613a7db9211d8f80279c14" },
+    "card": { "path": "/assets/public-packs/pd-vs-odw-20260826/match_card.json", "sha256": "77b09d5ec5845cb2f6fa4c2971d831a243aa6ad7558d61274384795fa49857c4" },
+    "report": { "path": "/assets/public-packs/pd-vs-odw-20260826/match_intelligence_report.json", "sha256": "828e417a6f5dad88ae49d7ea2114ae0872422cf8aea441602da9b2c59df926a7" },
+    "caption": { "path": "/assets/public-packs/pd-vs-odw-20260826/social_caption.txt", "sha256": "0eeeee340ec89883024c02965ca3c90321338be5aa151c578cfa5956efac8871" },
+    "caption_json": { "path": "/assets/public-packs/pd-vs-odw-20260826/social_caption.json", "sha256": "0219342fc98a3619106dc64267698acbc4273793775f2aa653905d25e2f3c3b9" },
+    "timed_captions": { "path": "/assets/public-packs/pd-vs-odw-20260826/captions.json", "sha256": "50d91e450e61078bf306f725ac857cad7eb58d93518063ef8f0c14432e7889de" }
+  }
+}

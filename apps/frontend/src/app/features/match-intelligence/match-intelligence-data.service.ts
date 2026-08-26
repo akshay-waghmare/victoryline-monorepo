@@ -9,11 +9,12 @@ import { environment } from 'src/environments/environment';
 
 declare const process: any;
 
-interface PublicPredictionMatch {
+export interface PublicPredictionMatch {
   slug: string;
   title: string;
   league?: string;
   status?: string;
+  probability_team?: string | null;
   score?: string | null;
   overs?: string | null;
   batting_team?: string | null;
@@ -21,7 +22,7 @@ interface PublicPredictionMatch {
   win_probability_pct?: number | null;
   projection_label?: string | null;
   insight?: string | null;
-  updated_at?: string | null;
+  updated_at?: string | number | null;
   detail_url?: string | null;
   match_url?: string | null;
   format_label?: string | null;
@@ -49,6 +50,10 @@ interface PublicPredictionMatch {
     turning_point?: { over?: string; score?: string; label?: string } | null;
     probability_swing?: { before?: number; after?: number; delta?: number | null } | null;
   };
+  historical_archive_id?: string | null;
+  historical_snapshot?: boolean;
+  prediction_snapshot_at?: string | null;
+  final_winner?: string | null;
 }
 
 interface PublicPredictionMatchesResponse {
@@ -57,6 +62,59 @@ interface PublicPredictionMatchesResponse {
 
 interface PublicPredictionMatchResponse {
   match?: PublicPredictionMatch;
+}
+
+export interface PublicPredictionHistoryRecord {
+  archive_id: string;
+  status: string;
+  archived_at?: string | null;
+  league?: string | null;
+  match_label: string;
+  match_url?: string | null;
+  public_slug_aliases?: string[];
+  prediction?: {
+    timestamp?: string | null;
+    predicted_side?: string | null;
+    predicted_probability_pct?: number | null;
+    model_label?: string | null;
+  };
+  outcome?: {
+    winner?: string | null;
+    evidence?: string | null;
+    verified_at?: string | null;
+  };
+  integrity?: {
+    source?: string | null;
+    source_sha256?: string | null;
+  };
+}
+
+export interface PublicPredictionCalibrationBucket {
+  lower: number;
+  upper: number;
+  forecast_mean?: number | null;
+  observed_rate?: number | null;
+  count: number;
+}
+
+export interface PublicPredictionHistorySummary {
+  status: 'not_ready' | 'collecting' | 'ready';
+  league: string;
+  record_count: number;
+  eligible_match_count: number;
+  excluded_record_count: number;
+  metrics: {
+    accuracy_pct?: number | null;
+    wins: number;
+    losses: number;
+    brier?: number | null;
+    ece?: number | null;
+    log_loss?: number | null;
+  };
+  calibration: PublicPredictionCalibrationBucket[];
+  definitions: { [key: string]: string };
+  generated_at?: string;
+  records?: PublicPredictionHistoryRecord[];
 }
 
 export interface MatchIntelligenceSnapshot {
@@ -237,7 +295,7 @@ export class MatchIntelligenceDataService {
     return Date.parse(timestamp);
   }
 
-  private loadPublicPredictionMatches(): Observable<PublicPredictionMatch[]> {
+  loadPublicPredictionMatches(): Observable<PublicPredictionMatch[]> {
     var publicPredictionApiUrl = this.getPublicPredictionApiUrl();
     if (!publicPredictionApiUrl) {
       return of([]);
@@ -250,7 +308,7 @@ export class MatchIntelligenceDataService {
     );
   }
 
-  private loadPublicPredictionDetail(slug: string): Observable<PublicPredictionMatch | null> {
+  loadPublicPredictionDetail(slug: string): Observable<PublicPredictionMatch | null> {
     var publicPredictionApiUrl = this.getPublicPredictionApiUrl();
     if (!publicPredictionApiUrl || !slug) {
       return of(null);
@@ -261,6 +319,33 @@ export class MatchIntelligenceDataService {
     ).pipe(
       timeout(4000),
       map((response) => response && response.match ? response.match : null),
+      catchError(() => of(null))
+    );
+  }
+
+  loadPublicPredictionHistory(league?: string): Observable<PublicPredictionHistorySummary | null> {
+    var publicPredictionApiUrl = this.getPublicPredictionApiUrl();
+    if (!publicPredictionApiUrl) {
+      return of(null);
+    }
+    var query = league ? '?league=' + encodeURIComponent(league) : '';
+    return this.http.get<PublicPredictionHistorySummary>(publicPredictionApiUrl + '/history' + query).pipe(
+      timeout(4000),
+      map((response) => response || null),
+      catchError(() => of(null))
+    );
+  }
+
+  loadPublicPredictionHistoricalDetail(archiveId: string): Observable<PublicPredictionHistoryRecord | null> {
+    var publicPredictionApiUrl = this.getPublicPredictionApiUrl();
+    if (!publicPredictionApiUrl || !archiveId) {
+      return of(null);
+    }
+    return this.http.get<{ record?: PublicPredictionHistoryRecord }>(
+      publicPredictionApiUrl + '/history/' + encodeURIComponent(archiveId)
+    ).pipe(
+      timeout(4000),
+      map((response) => response && response.record ? response.record : null),
       catchError(() => of(null))
     );
   }
@@ -296,6 +381,30 @@ export class MatchIntelligenceDataService {
     }
 
     return 'http://127.0.0.1:4000' + environment.MODEL_PUBLIC_API_URL;
+  }
+
+  /**
+   * Public surfaces must not display a percentage when its timestamp is
+   * missing or outside the contract's freshness window. Opening rows are
+   * bounded historical artifacts and use their longer, explicit TTL.
+   */
+  isPublicPredictionFresh(prediction: PublicPredictionMatch | null): boolean {
+    if (!prediction || !prediction.updated_at) {
+      return false;
+    }
+
+    var timestamp = typeof prediction.updated_at === 'number'
+      ? prediction.updated_at
+      : this.parseProviderTimestamp(prediction.updated_at);
+    if (isNaN(timestamp)) {
+      return false;
+    }
+
+    var status = String(prediction.status || '').toLowerCase();
+    var isOpeningArtifact = (status === 'upcoming' || status === 'scheduled')
+      && String(prediction.model_source || '').toLowerCase() === 'opening_team_strength';
+    var freshnessLimit = isOpeningArtifact ? this.openingArtifactFreshnessLimitMs : this.freshnessLimitMs;
+    return Date.now() - timestamp <= freshnessLimit;
   }
 
   private isBrowser(): boolean {

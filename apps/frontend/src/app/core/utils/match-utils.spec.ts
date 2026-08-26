@@ -128,6 +128,12 @@ describe('match-utils recent ball helpers', () => {
     } as any)).toBe('EDR vs WDL live score');
   });
 
+  it('rejects placeholder canonical match paths before emitting crawl anchors', () => {
+    expect(buildCanonicalMatchPath({
+      matchUrl: 'https://crex.com/cricket-live-score/tbc-vs-tbc-qualifier-1st-match-delhi-premier-t20-league-2026-match-updates-13C9'
+    } as any)).toBeNull();
+  });
+
   it('filters upcoming matches by a forward hour window', () => {
     var now = Date.now();
     var matches = [

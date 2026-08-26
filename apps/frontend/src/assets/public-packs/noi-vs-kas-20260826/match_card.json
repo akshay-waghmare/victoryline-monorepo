@@ -1,0 +1,60 @@
+{
+  "schema_version": "crickzen-report-card-v1",
+  "generated_at": "2026-08-26T14:03:14.863474+00:00",
+  "match": "Noida Kings vs Kashi Rudras",
+  "teams": {
+    "team1": {
+      "abbr": "NK",
+      "name": "Noida Kings"
+    },
+    "team2": {
+      "abbr": "KR",
+      "name": "Kashi Rudras"
+    }
+  },
+  "venue": {
+    "requested": null,
+    "canonical": null,
+    "summary": {
+      "avg_first_innings_score": 160.0,
+      "venue_behaviour": "Tracking above the venue baseline.",
+      "phase": "live",
+      "balls_per_over": 6,
+      "batting_side": "Noida Kings",
+      "current_score": "0/0",
+      "current_overs": "0.0",
+      "current_balls": 0,
+      "first_innings_team": null,
+      "first_innings_score": "0/0",
+      "first_innings_overs": "",
+      "first_innings_balls": null,
+      "target": 1,
+      "expected_final_score": 160,
+      "venue_average_score": 160.0,
+      "score_vs_par": 0.0,
+      "resource_pct": 100.0,
+      "required_run_rate": 0.0,
+      "pressure_index": 0.0,
+      "innings": 1,
+      "toss_state": "Toss delay",
+      "model_source": "combined_gender_aware_fallback",
+      "model_label": "T20 all-gender v2",
+      "model_insight": "Noida Kings projection is 160 runs below the venue average."
+    }
+  },
+  "prediction": {
+    "model_pick": "Kashi Rudras",
+    "probability": 51,
+    "inputs": {},
+    "source": "CrickZen public match intelligence"
+  },
+  "venue_behaviour": "Tracking above the venue baseline.",
+  "safe_players": [],
+  "risky_players": [],
+  "trump_pick": null,
+  "avoid_pick": null,
+  "notes": [
+    "CrickZen Match Intelligence report reel",
+    "This is descriptive match intelligence, not betting advice."
+  ]
+}

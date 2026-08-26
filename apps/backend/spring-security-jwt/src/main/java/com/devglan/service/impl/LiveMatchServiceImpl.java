@@ -92,13 +92,18 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                                 match.setResultSummary(lastUpdatedData.getFinalResultText());
                             }
 						}
-                        if ((match.getResultSummary() == null || match.getResultSummary().trim().isEmpty()) && match.getLastKnownState() != null) {
+						if ((match.getResultSummary() == null || match.getResultSummary().trim().isEmpty()) && match.getLastKnownState() != null) {
                             match.setResultSummary(match.getLastKnownState());
                         }
 						MatchLifecycleStatus inferredStatus = lifecycleFromEvidence(match);
                         // A multi-day match can disappear from CREX's live carousel at
-                        // stumps. Absence is not a completion signal: retain the rich
-                        // state and keep the match indexable as an innings break.
+                        // stumps. Retain only evidence-backed innings breaks (or a
+                        // clearly multi-day fixture); an absent limited-overs LIVE
+                        // row must leave the live catalogue instead of being kept by
+                        // the generic lifecycle window.
+                        if (!inferredStatus.isTerminal() && !shouldRetainAbsentLiveMatch(match, inferredStatus)) {
+                            inferredStatus = MatchLifecycleStatus.COMPLETED;
+                        }
                         if (!inferredStatus.isTerminal()) {
                             match.setDeleted(false);
                             match.setDeletionAttempts(0);
@@ -334,14 +339,22 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             return new ArrayList<>();
         }
         return resolvedCanonicalCatalogue().stream()
+                .filter(this::isPubliclyIndexable)
                 .filter(match -> cohort == cohortFor(match))
                 .map(match -> cohort == MatchLifecycleCohort.LIVE ? enrichLiveMatchFromSnapshot(match) : match)
                 .collect(Collectors.toList());
-    }
+	}
 
 	public List<LiveMatch> findAllMatches() {
 		return resolvedCanonicalCatalogue();
 	}
+
+    @Override
+    public List<LiveMatch> findIndexableMatches() {
+        return resolvedCanonicalCatalogue().stream()
+                .filter(this::isPubliclyIndexable)
+                .collect(Collectors.toList());
+    }
 
 	public List<LiveMatch> findAllFinishedMatches() {
 		return findCompletedMatches();
@@ -476,12 +489,25 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         return match != null && isValidCatalogMatchUrl(match.getUrl());
     }
 
+    private boolean isPubliclyIndexable(LiveMatch match) {
+        if (!isValidCatalogMatch(match) || match.getStatus() == null) {
+            return false;
+        }
+
+        if (match.getStatus() == MatchLifecycleStatus.UPCOMING) {
+            Long scheduledStart = match.getScheduledStartTime();
+            return scheduledStart != null && scheduledStart > System.currentTimeMillis();
+        }
+
+        return true;
+    }
+
     private boolean isValidCatalogMatchUrl(String url) {
-        if (isBlank(url) || !url.toLowerCase().contains("/cricket-live-score/")) {
-            return true;
+        if (isBlank(url)) {
+            return false;
         }
         String slug = CrexMatchUrlHelper.extractMatchKey(url);
-        return !isBlank(slug) && slug.toLowerCase().contains("-vs-");
+        return CrexMatchUrlHelper.isCanonicalMatchSlug(slug);
     }
 
     private String sanitizeCatalogText(String value) {
@@ -566,9 +592,15 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                     match.getLastStateUpdatedAt() == null ? 0L : match.getLastStateUpdatedAt()))
                     .forEach(source -> copyStaticEvidence(snapshot, source));
             copyRicherEvidence(snapshot, freshest);
-            MatchLifecycleStatus status = lifecycleFromEvidence(snapshot);
+            // A soft-deleted owner is an authoritative terminal decision from
+            // live-catalog reconciliation. Do not re-infer INNINGS_BREAK from
+            // its old snapshot merely because the lifecycle window is still
+            // open; that would republish a stale absent limited-overs row.
+            MatchLifecycleStatus status = owner.isDeleted()
+                    ? owner.getStatus()
+                    : lifecycleFromEvidence(snapshot);
             snapshot.setStatus(status);
-            snapshot.setDeleted(status != null && status.isTerminal());
+            snapshot.setDeleted(owner.isDeleted() || (status != null && status.isTerminal()));
             snapshot.setLifecycleCohort(cohortFor(snapshot).wireName());
             resolved.add(snapshot);
         }
@@ -597,6 +629,23 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             return MatchLifecycleStatus.COMPLETED;
         }
         return stored;
+    }
+
+    private boolean shouldRetainAbsentLiveMatch(LiveMatch match, MatchLifecycleStatus inferredStatus) {
+        if (match == null || inferredStatus != MatchLifecycleStatus.INNINGS_BREAK) {
+            return false;
+        }
+        String context = (String.valueOf(match.getMatchFormat()) + " "
+                + String.valueOf(match.getSeriesName()) + " "
+                + String.valueOf(match.getUrl())).toLowerCase();
+        // "Innings Break" is also emitted between innings in limited-overs
+        // matches. It is not enough evidence to retain an absent row in the
+        // live catalogue. Only clearly multi-day fixtures may survive an
+        // empty authoritative live discovery cycle.
+        return context.contains("test") || context.contains("first-class")
+                || context.contains("2-day") || context.contains("two-day")
+                || context.contains("3-day") || context.contains("three-day")
+                || context.contains("4-day") || context.contains("four-day");
     }
 
     private boolean isLifecycleWindowOpen(LiveMatch match) {

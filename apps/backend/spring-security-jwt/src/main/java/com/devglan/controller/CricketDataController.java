@@ -44,6 +44,7 @@ import com.devglan.model.BlogPost;
 import com.devglan.model.ExposureResult;
 import com.devglan.model.LiveMatch;
 import com.devglan.model.MatchLifecycleCohort;
+import com.devglan.model.MatchLifecycleStatus;
 import com.devglan.model.User;
 import com.devglan.service.BetService;
 import com.devglan.service.LiveMatchService;
@@ -341,23 +342,65 @@ public class CricketDataController {
 	public ResponseEntity<?> getMatchInfo(@RequestParam("url") String url) {
 	    try {
 	        String dataJson = matchInfoService.getMatchInfo(url);
-	        if (dataJson == null && matchDetailHydrationService.hydrate(url)) {
+	        if (dataJson == null && matchDetailHydrationService != null && matchDetailHydrationService.hydrate(url)) {
 	            dataJson = matchInfoService.getMatchInfo(url);
-	        }
-	        if (dataJson != null) {
-	            // Parse the JSON string back into an object
-	            ObjectMapper objectMapper = new ObjectMapper();
-	            Map<String, Object> data = objectMapper.readValue(dataJson, new TypeReference<Map<String, Object>>() {});
+		}
+		if (dataJson != null) {
+		    LiveMatch catalogueMatch = findCatalogueMatchForRequest(url);
+	            if (isUnscheduledUpcoming(catalogueMatch)) {
+	                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
+	            }
+		    // Parse the JSON string back into an object
+		    ObjectMapper objectMapper = new ObjectMapper();
+		    Map<String, Object> data = objectMapper.readValue(dataJson, new TypeReference<Map<String, Object>>() {});
+		    String requestedSlug = CrexMatchUrlHelper.extractMatchKey(url);
+		    boolean canonicalRequest = CrexMatchUrlHelper.isCanonicalMatchSlug(requestedSlug);
+		    if (canonicalRequest && !hasAuthoritativeStoredLifecycle(data)
+				    && !hasAuthoritativeCatalogueLifecycle(catalogueMatch)) {
+			    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
+		    }
+		    normalizeUpcomingMatchInfo(data, catalogueMatch);
 	            addTerminalLifecycleContext(data, url);
 
 	            return ResponseEntity.ok(data);
 	        } else {
+	            // Match-info is not guaranteed to exist when a provider removes a
+	            // fixture from its live carousel. Use the catalogue lifecycle and
+	            // identity record so a completed match cannot fall through to the
+	            // frontend's scheduled/live placeholder.
+	            LiveMatch catalogueMatch = liveMatchService.findByUrl(url);
+	            if (catalogueMatch != null) {
+	                return ResponseEntity.ok(buildCatalogueMatchInfoFallback(url, catalogueMatch));
+	            }
 	            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No data found for the given URL.");
 	        }
 	    } catch (Exception e) {
 	        e.printStackTrace();
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving match info.");
 	    }
+	}
+
+	private Map<String, Object> buildCatalogueMatchInfoFallback(String requestedUrl, LiveMatch match) {
+	    Map<String, Object> data = new HashMap<>();
+	    String status = match.getStatus() == null ? null : match.getStatus().name();
+	    String matchName = firstMeaningful(match.getSeriesName(), "Cricket match");
+	    String result = firstMeaningful(match.getResultSummary(), match.getLastKnownState());
+	    data.put("url", firstMeaningful(match.getUrl(), requestedUrl));
+	    data.put("match_name", matchName);
+	    data.put("series_name", match.getSeriesName());
+	    data.put("match_date", match.getScheduledStartTime());
+	    data.put("venue", match.getVenue());
+	    data.put("team1", match.getTeam1Name());
+	    data.put("team2", match.getTeam2Name());
+	    data.put("match_status", status);
+	    data.put("status", status);
+	    data.put("lastKnownState", match.getLastKnownState());
+	    data.put("final_result_text", result);
+	    data.put("finalResult", result);
+	    data.put("team_comparison", new HashMap<String, Object>());
+	    data.put("venue_stats", new HashMap<String, Object>());
+	    addTerminalLifecycleContext(data, requestedUrl);
+	    return data;
 	}
 
 	/**
@@ -577,7 +620,7 @@ public class CricketDataController {
 	@GetMapping("/matches")
 	public ResponseEntity<List<LiveMatch>> getAllMatches() {
 		try {
-			List<LiveMatch> allMatches = liveMatchService.findAllMatches();
+			List<LiveMatch> allMatches = liveMatchService.findIndexableMatches();
 			return ResponseEntity.ok(allMatches);
 		} catch (Exception e) {
 			log.error("Error fetching all matches for sitemap", e);
@@ -596,7 +639,7 @@ public class CricketDataController {
 	@GetMapping("/canonical-match-snapshot")
 	public ResponseEntity<?> getCanonicalMatchSnapshot(@RequestParam("slug") String slug) {
 		String normalizedSlug = slug == null ? "" : slug.trim();
-		if (normalizedSlug.isEmpty() || !normalizedSlug.matches("[A-Za-z0-9-]+") || !normalizedSlug.contains("-vs-")) {
+		if (!CrexMatchUrlHelper.isCanonicalMatchSlug(normalizedSlug)) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
 		}
 
@@ -608,8 +651,12 @@ public class CricketDataController {
 				return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
 			}
 			try {
-				Map<String, Object> info = springObjectMapper.readValue(storedInfo, new TypeReference<Map<String, Object>>() {});
-				if (!hasMeaningfulMatchInfo(info)) {
+				ObjectMapper objectMapper = springObjectMapper == null ? new ObjectMapper() : springObjectMapper;
+				Map<String, Object> info = objectMapper.readValue(storedInfo, new TypeReference<Map<String, Object>>() {});
+				// Match-info is a useful static supplement, not a lifecycle authority.
+				// Without a catalogue row or explicit terminal/live evidence, an old
+				// pre-match blob must not keep an unresolved URL indexable forever.
+				if (!hasMeaningfulMatchInfo(info) || !hasAuthoritativeStoredLifecycle(info)) {
 					return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Match not found");
 				}
 				Map<String, Object> response = new HashMap<>();
@@ -649,10 +696,13 @@ public class CricketDataController {
 		try {
 			String storedInfo = matchInfoService.getMatchInfo(normalizedSlug);
 			if (storedInfo != null && !storedInfo.trim().isEmpty()) {
-				Map<String, Object> info = springObjectMapper.readValue(storedInfo, new TypeReference<Map<String, Object>>() {});
+				ObjectMapper objectMapper = springObjectMapper == null ? new ObjectMapper() : springObjectMapper;
+				Map<String, Object> info = objectMapper.readValue(storedInfo, new TypeReference<Map<String, Object>>() {});
 				if (hasMeaningfulMatchInfo(info)) {
 					response.put("series", firstMeaningful(asText(info.get("match_name")), match.getSeriesName()));
-					response.put("scheduledLabel", asText(info.get("match_date")));
+					if (!isFutureScheduledUpcoming(match)) {
+						response.put("scheduledLabel", asText(info.get("match_date")));
+					}
 					response.put("venue", firstMeaningful(asText(info.get("venue")), match.getVenue()));
 					response.put("toss", asText(info.get("toss_info")));
 				}
@@ -662,13 +712,15 @@ public class CricketDataController {
 		}
 
 		try {
-			CricketDataDTO current = cricketDataService.getLastUpdatedData(match.getUrl());
+			CricketDataDTO current = cricketDataService == null ? null : cricketDataService.getLastUpdatedData(match.getUrl());
 			if (current != null) {
 				// Stored match-info is the authoritative static identity record. Live
 				// snapshots are allowed to fill a missing field, never erase a known
 				// venue/series/schedule with their frequently sparse payload.
 				response.put("series", firstMeaningful(asText(response.get("series")), current.getMatchName()));
-				response.put("scheduledLabel", firstMeaningful(asText(response.get("scheduledLabel")), current.getMatchDate()));
+				if (!isFutureScheduledUpcoming(match)) {
+					response.put("scheduledLabel", firstMeaningful(asText(response.get("scheduledLabel")), current.getMatchDate()));
+				}
 				response.put("venue", firstMeaningful(asText(response.get("venue")), current.getVenue()));
 				response.put("toss", firstMeaningful(current.getTossInfo(), asText(response.get("toss"))));
 				response.put("score", current.getScore());
@@ -693,12 +745,16 @@ public class CricketDataController {
 	 */
 	private CanonicalMatchResolution resolveCanonicalMatch(String requestedSlug) {
 		String stableKey = CrexMatchUrlHelper.extractCrexApiKey(requestedSlug);
-		if (stableKey == null) {
-		return null;
-		}
 		List<LiveMatch> siblings = new ArrayList<LiveMatch>();
-		for (LiveMatch candidate : liveMatchService.findAllMatches()) {
-			if (candidate != null && stableKey.equalsIgnoreCase(CrexMatchUrlHelper.extractCrexApiKey(candidate.getUrl()))) {
+		List<LiveMatch> indexableMatches = liveMatchService.findIndexableMatches();
+		if (indexableMatches == null) {
+			return null;
+		}
+		for (LiveMatch candidate : indexableMatches) {
+			boolean sameStableKey = stableKey != null
+					&& stableKey.equalsIgnoreCase(CrexMatchUrlHelper.extractCrexApiKey(candidate == null ? null : candidate.getUrl()));
+			if (candidate != null && hasCanonicalMatchData(candidate)
+					&& (sameStableKey || matchesCanonicalSlug(candidate, requestedSlug))) {
 				siblings.add(candidate);
 			}
 		}
@@ -715,6 +771,27 @@ public class CricketDataController {
 		LiveMatch freshest = Collections.max(siblings, Comparator.comparingLong(match ->
 				match.getLastStateUpdatedAt() == null ? Long.MIN_VALUE : match.getLastStateUpdatedAt()));
 		return new CanonicalMatchResolution(siblings.get(0), freshest);
+	}
+
+	private LiveMatch findCatalogueMatchForRequest(String requestedUrl) {
+		LiveMatch direct = liveMatchService.findByUrl(requestedUrl);
+		if (direct != null) {
+			return direct;
+		}
+		String requestedSlug = CrexMatchUrlHelper.extractMatchKey(requestedUrl);
+		if (!CrexMatchUrlHelper.isCanonicalMatchSlug(requestedSlug)) {
+			return null;
+		}
+		List<LiveMatch> allMatches = liveMatchService.findAllMatches();
+		if (allMatches == null) {
+			return null;
+		}
+		for (LiveMatch candidate : allMatches) {
+			if (matchesCanonicalSlug(candidate, requestedSlug)) {
+				return candidate;
+			}
+		}
+		return null;
 	}
 
 	private void applyFreshestLifecycleEvidence(Map<String, Object> response, LiveMatch freshest) {
@@ -741,10 +818,20 @@ public class CricketDataController {
 	}
 
 	private boolean matchesCanonicalSlug(LiveMatch match, String slug) {
-		if (match.getExternalMatchKey() != null && match.getExternalMatchKey().equals(slug)) {
+		if (match == null || slug == null) {
+			return false;
+		}
+		String candidateSlug = CrexMatchUrlHelper.extractMatchKey(match.getUrl());
+		if (slug.equalsIgnoreCase(candidateSlug)) {
 			return true;
 		}
-		return match.getUrl() != null && match.getUrl().contains(slug);
+		return match.getExternalMatchKey() != null && match.getExternalMatchKey().equalsIgnoreCase(slug);
+	}
+
+	private boolean hasCanonicalMatchData(LiveMatch match) {
+		return match != null && CrexMatchUrlHelper.hasCanonicalMatchData(
+				match.getTeam1Name(), match.getTeam2Name(), match.getSeriesName(), match.getVenue(),
+				match.getScheduledStartTime(), match.getResultSummary(), match.getLastKnownState(), null);
 	}
 
 	private boolean hasMeaningfulMatchInfo(Map<String, Object> info) {
@@ -754,6 +841,51 @@ public class CricketDataController {
 		}
 		String value = String.valueOf(matchName).trim();
 		return !value.isEmpty() && !"No match name".equalsIgnoreCase(value);
+	}
+
+	private boolean isUnscheduledUpcoming(LiveMatch match) {
+		return match != null && match.getStatus() == MatchLifecycleStatus.UPCOMING
+				&& !isFutureScheduledUpcoming(match);
+	}
+
+	private boolean isFutureScheduledUpcoming(LiveMatch match) {
+		return match != null && match.getStatus() == MatchLifecycleStatus.UPCOMING
+				&& match.getScheduledStartTime() != null
+				&& match.getScheduledStartTime() > System.currentTimeMillis();
+	}
+
+	private boolean hasAuthoritativeCatalogueLifecycle(LiveMatch match) {
+		if (match == null || match.getStatus() == null) {
+			return false;
+		}
+		return match.getStatus() != MatchLifecycleStatus.UPCOMING || isFutureScheduledUpcoming(match);
+	}
+
+	private void normalizeUpcomingMatchInfo(Map<String, Object> data, LiveMatch match) {
+		if (!isFutureScheduledUpcoming(match)) {
+			return;
+		}
+		// The catalogue timestamp is the only schedule value trusted for an
+		// upcoming page. Stored match-info often carries a stale human label.
+		data.put("match_date", match.getScheduledStartTime());
+		putIfBlank(data, "series_name", match.getSeriesName());
+		putIfBlank(data, "venue", match.getVenue());
+		data.put("match_status", MatchLifecycleStatus.UPCOMING.name());
+		data.put("status", MatchLifecycleStatus.UPCOMING.name());
+	}
+
+	private boolean hasAuthoritativeStoredLifecycle(Map<String, Object> info) {
+		String rawStatus = firstMeaningful(asText(info.get("match_status")), asText(info.get("status")));
+		MatchLifecycleStatus status = MatchLifecycleStatus.fromString(rawStatus);
+		if (status != null) {
+			return status != MatchLifecycleStatus.UPCOMING;
+		}
+		String evidence = (asText(info.get("final_result_text")) + " "
+				+ asText(info.get("finalResult")) + " "
+				+ asText(info.get("result")) + " "
+				+ asText(info.get("result_summary")) + " "
+				+ asText(info.get("lastKnownState"))).toLowerCase();
+		return evidence.matches(".*(won by|lost by|match drawn|match tied|no result|abandoned|cancelled).*" );
 	}
 
 	private String firstMeaningful(String primary, String fallback) {

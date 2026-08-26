@@ -216,6 +216,50 @@ public class SitemapPartitionTest {
     }
 
     @Test
+    public void sitemap_excludes_placeholder_match_identity() {
+        LiveMatchesService.LiveMatchEntry placeholder = new LiveMatchesService.LiveMatchEntry();
+        placeholder.setUrl("https://crex.com/cricket-live-score/null-vs-null-1st-match-test-cup-2026-match-updates-NULL");
+        placeholder.setStatus("UPCOMING");
+
+        LiveMatchesService.LiveMatchEntry real = new LiveMatchesService.LiveMatchEntry();
+        real.setUrl("https://crex.com/cricket-live-score/real-a-vs-real-b-1st-match-test-cup-2026-match-updates-REAL");
+        real.setStatus("UPCOMING");
+        real.setScheduledStartTime(System.currentTimeMillis() + 86400000L);
+
+        LiveMatchesService.LiveMatchEntry empty = new LiveMatchesService.LiveMatchEntry();
+        empty.setUrl("https://crex.com/cricket-live-score/empty-a-vs-empty-b-2nd-match-test-cup-2026-match-updates-EMPTY");
+        empty.setStatus("UPCOMING");
+
+        liveMatchesService.setMatches(java.util.Arrays.asList(placeholder, real, empty));
+
+        String partitionXml = service.getPartitionXml(1);
+
+        assertThat(partitionXml).doesNotContain("null-vs-null");
+        assertThat(partitionXml).contains("real-a-vs-real-b-1st-match-test-cup-2026-match-updates-REAL");
+        assertThat(partitionXml).doesNotContain("empty-a-vs-empty-b");
+    }
+
+    @Test
+    public void sitemap_excludes_upcoming_rows_without_a_future_schedule_even_with_metadata() {
+        LiveMatchesService.LiveMatchEntry stale = new LiveMatchesService.LiveMatchEntry();
+        stale.setUrl("https://crex.com/cricket-live-score/old-a-vs-old-b-1st-match-cup-2025");
+        stale.setStatus("UPCOMING");
+        stale.setResultSummary("Old cup fixture");
+
+        LiveMatchesService.LiveMatchEntry real = new LiveMatchesService.LiveMatchEntry();
+        real.setUrl("https://crex.com/cricket-live-score/real-a-vs-real-b-1st-match-cup-2026-match-updates-13ZZ");
+        real.setStatus("UPCOMING");
+        real.setScheduledStartTime(System.currentTimeMillis() + 86400000L);
+
+        liveMatchesService.setMatches(java.util.Arrays.asList(stale, real));
+
+        String partitionXml = service.getPartitionXml(1);
+
+        assertThat(partitionXml).doesNotContain("old-a-vs-old-b-1st-match-cup-2025");
+        assertThat(partitionXml).contains("real-a-vs-real-b-1st-match-cup-2026-match-updates-13ZZ");
+    }
+
+    @Test
     public void sitemap_uses_live_match_last_state_updated_at_for_lastmod() {
         LiveMatchesService.LiveMatchEntry live = new LiveMatchesService.LiveMatchEntry();
         live.setUrl("https://crex.com/cricket-live-score/ind-vs-aus-2nd-test-2026-match-updates-222B");
@@ -325,10 +369,14 @@ public class SitemapPartitionTest {
         List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
         LiveMatchesService.LiveMatchEntry first = new LiveMatchesService.LiveMatchEntry();
         first.setUrl("https://crex.com/cricket-live-score/ind-vs-aus-2nd-test-2026-match-updates-222B");
+        first.setStatus("LIVE");
+        first.setLastKnownState("India 42/1");
         entries.add(first);
 
         LiveMatchesService.LiveMatchEntry duplicate = new LiveMatchesService.LiveMatchEntry();
         duplicate.setExternalMatchKey("ind-vs-aus-2nd-test-2026-match-updates-222B");
+        duplicate.setStatus("LIVE");
+        duplicate.setLastKnownState("India 42/1");
         entries.add(duplicate);
 
         liveMatchesService.setMatches(entries);

@@ -32,6 +32,7 @@ import { MetaTagsService } from '../seo/meta-tags.service';
 import { getCommentaryUpdateIntent, getCommentaryUpdateLabel, isMeaningfulCommentaryUpdate } from '../seo/live-update-heuristics';
 import { StructuredDataLocationInput, StructuredDataService } from '../seo/structured-data.service';
 import { MatchFreshnessLink, buildFreshnessLinksFromMatch, buildFreshnessLinksFromSlug } from '../seo/match-freshness-links';
+import { buildMatchLifecycleAeoBlock, MatchLifecycleAeoBlock, MatchLifecycleAeoDataState } from '../seo/match-lifecycle-aeo';
 import { LiveMatchUpdate } from '../shared/models/match.models';
 import { AnalyticsService } from './analytics.service';
 import { MatchIntelligenceDataService, MatchIntelligenceSnapshot } from '../features/match-intelligence/match-intelligence-data.service';
@@ -208,6 +209,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   heroFallbackView: LiveHeroViewModel | null = null;
   private isFallbackMatchInfo: boolean = false;
   matchSeo: MatchSeoViewModel | null = null;
+  canonicalMatchAeoDataState: MatchLifecycleAeoDataState = 'loading';
   freshnessLinks: MatchFreshnessLink[] = [];
   private hasTrackedIntelligenceCtaImpression: boolean = false;
   private hasTrackedCanonicalMatchView: boolean = false;
@@ -371,6 +373,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (ssrMatchInfo) {
         this.matchInfo = ssrMatchInfo;
         this.isFallbackMatchInfo = false;
+        this.canonicalMatchAeoDataState = 'populated';
       }
       const ssrCricketData = this.getHydratedState<any>(CRICKET_DATA_KEY);
       if (ssrCricketData) {
@@ -469,6 +472,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.lastResolvedRouteSlug = match;
       this.hasTrackedIntelligenceCtaImpression = false;
       this.hasTrackedCanonicalMatchView = false;
+      this.canonicalMatchAeoDataState = 'loading';
     }
 
     // The first browser pass can arrive with authoritative SSR match-info.
@@ -488,7 +492,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     this.resolveRouteMatch(match);
 
     this.cricketService.getLastUpdatedData(match).subscribe(data => {
-      this.parseCricObjData(data);
+      // The SWR stream can resolve outside Angular's zone. Re-enter it so the
+      // canonical AEO answer is refreshed together with the live hero after
+      // the transferred/initial snapshot is replaced by the verified payload.
+      this.ngZone.run(() => this.parseCricObjData(data));
     });
     //watching live score for cricket data
     if (this.isBrowser()) {
@@ -611,6 +618,14 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   }
 
   private parseCricObjData(data) {
+    // An empty refresh response must not erase the authoritative SSR or
+    // TransferState snapshot while the live feed is retrying. The hero can
+    // continue rendering its existing verified score until a real update
+    // arrives.
+    if (data === null || data === undefined) {
+      return;
+    }
+
     // Check if 'data' has a 'body' property
     if(data && 'body' in data){
       this.cricObj = JSON.parse(data.body);
@@ -1346,6 +1361,7 @@ fetchMatchInfo(matchUrl:string) {
   }
 
   if (this.matchInfo && !this.isFallbackMatchInfo) {
+    this.canonicalMatchAeoDataState = 'populated';
     // SSR hydration has already supplied authoritative match metadata.  It
     // must still produce the one canonical browser page-view event; otherwise
     // only client-side refetches are visible in the analytics funnel.
@@ -1353,6 +1369,7 @@ fetchMatchInfo(matchUrl:string) {
     return;
   }
 
+  this.canonicalMatchAeoDataState = 'loading';
   this.isLoadingMatchInfo = true;
   this.cricketService.getMatchInfo(matchUrl).subscribe(
     data => {
@@ -1361,12 +1378,14 @@ fetchMatchInfo(matchUrl:string) {
         // when a mobile request is interrupted or the upstream returns an
         // empty response. Do not leave the Details tab on its spinner.
         this.isLoadingMatchInfo = false;
+        this.canonicalMatchAeoDataState = 'error';
         this.populateFallbackMatchInfo();
         this.syncMatchTabSelection();
         return;
       }
       this.matchInfo = data;
       this.isFallbackMatchInfo = false;
+      this.canonicalMatchAeoDataState = 'populated';
       this.isLoadingMatchInfo = false;
       var resolvedStatus = data && (data.match_status || data.status);
       if (resolvedStatus) {
@@ -1420,6 +1439,7 @@ fetchMatchInfo(matchUrl:string) {
     },
     error => {
       this.isLoadingMatchInfo = false;
+      this.canonicalMatchAeoDataState = 'error';
       console.error('Error fetching match info:', error);
       this.populateFallbackMatchInfo();
       this.syncMatchTabSelection();
@@ -1430,6 +1450,7 @@ fetchMatchInfo(matchUrl:string) {
       // therefore reaches complete rather than error; settle it here.
       if (this.isLoadingMatchInfo) {
         this.isLoadingMatchInfo = false;
+        this.canonicalMatchAeoDataState = 'error';
         this.populateFallbackMatchInfo();
         this.syncMatchTabSelection();
       }
@@ -3257,10 +3278,70 @@ getMatchShellVenue(): string | null {
 }
 
 getMatchShellContextNote(): string | null {
-  return (this.matchInfo && (this.matchInfo.toss_info || this.matchInfo.lastKnownState))
-    || this.getFallbackResultSummary()
-    || null;
-}
+    return (this.matchInfo && (this.matchInfo.toss_info || this.matchInfo.lastKnownState))
+      || this.getFallbackResultSummary()
+      || null;
+  }
+
+  getCanonicalMatchAeoState(): MatchLifecycleAeoDataState {
+    // The transferred cricket snapshot is an authoritative lifecycle/score
+    // source even when the secondary match-info request is retrying. Keep the
+    // canonical answer populated during that handoff so hydration cannot
+    // remove the server answer from the browser surface.
+    if (this.matchSeo && this.matchSeo.isIndexable && (this.cricObj
+      || (this.matchInfo && !this.isFallbackMatchInfo))) {
+      return 'populated';
+    }
+
+    if (this.canonicalMatchAeoDataState === 'error') {
+      return 'error';
+    }
+
+    if (this.isLoadingMatchInfo && (!this.matchInfo || this.isFallbackMatchInfo)) {
+      return 'loading';
+    }
+
+    if (this.matchInfo && !this.isFallbackMatchInfo && this.matchSeo && this.matchSeo.isIndexable) {
+      return 'populated';
+    }
+
+    return this.canonicalMatchAeoDataState;
+  }
+
+  getCanonicalMatchAeoBlock(): MatchLifecycleAeoBlock | null {
+    if (this.getCanonicalMatchAeoState() !== 'populated' || !this.matchSeo || !this.matchSeo.isIndexable) {
+      return null;
+    }
+
+    var intelligenceAnswer = this.canonicalIntelligence
+      ? 'CrickZen model: ' + this.canonicalIntelligence.headline
+        + (this.canonicalIntelligence.updatedAt ? ' Refreshed ' + this.canonicalIntelligence.updatedAt + '.' : '')
+        + ' Informational only; the live score and official result remain the source of match state.'
+      : null;
+
+    var lifecycleContext = [
+      this.matchInfo && this.matchInfo.match_status,
+      this.matchInfo && this.matchInfo.status,
+      this.matchInfo && this.matchInfo.lastKnownState,
+      this.currentMatch && this.currentMatch.status,
+      this.currentMatch && this.currentMatch.lastKnownState,
+      this.cricObj && this.cricObj.current_ball
+    ].filter(function(value) { return !!String(value || '').trim(); }).join(' ');
+
+    return buildMatchLifecycleAeoBlock({
+      teams: this.matchSeo.teams,
+      status: lifecycleContext || this.getResolvedMatchStatus(),
+      series: this.getMatchShellSeries() || this.matchSeo.series,
+      venue: this.getMatchShellVenue(),
+      scheduledLabel: this.getCoverageStartTimeLabel(),
+      score: this.getCoverageScoreSummaryValue(),
+      result: this.getFallbackResultSummary()
+        || (this.matchInfo && this.matchInfo.final_result_text)
+        || (this.matchInfo && this.matchInfo.lastKnownState),
+      toss: this.getCoverageTossSummaryValue(),
+      modelAnswer: intelligenceAnswer
+    });
+  }
 
 getMatchIntentFullPair(): string {
   return this.matchSeo ? this.matchSeo.teams : this.getMatchShellTitle();
@@ -3987,9 +4068,15 @@ getSeoTournamentLabel(): string {
 }
 
 getSeoDateTimeLabel(): string {
-  var value = (this.matchInfo && this.matchInfo.match_date)
-    || (this.currentMatch && (this.currentMatch.scheduledStartTime || this.currentMatch.startTime))
-    || null;
+  var catalogueDate = this.currentMatch
+    && (this.currentMatch.scheduledStartTime || this.currentMatch.startTime);
+  var storedDate = this.matchInfo && this.matchInfo.match_date;
+  // A stored pre-match label can outlive the catalogue row and silently put
+  // an old date back into an upcoming page. Once lifecycle says UPCOMING,
+  // accept only the numeric/ISO schedule carried by the authoritative row.
+  var value = this.isUpcomingStatus(this.getResolvedMatchStatus())
+    ? (catalogueDate || (typeof storedDate === 'number' ? storedDate : null))
+    : (storedDate || catalogueDate || null);
 
   if (!value) {
     return 'Match date and start time will be confirmed from the official schedule feed.';
@@ -4020,6 +4107,51 @@ getSeoLiveScoreLabel(): string {
     return this.getFallbackResultSummary() || '';
   }
 
+  var liveScoreContext = [
+    this.getResolvedMatchStatus(),
+    this.matchInfo && this.matchInfo.lastKnownState,
+    this.currentMatch && this.currentMatch.lastKnownState,
+    this.cricObj && this.cricObj.current_ball
+  ].filter(function(value) { return !!String(value || '').trim(); }).join(' ');
+  var hasLiveScoreContext = this.isLiveLikeStatus(this.getResolvedMatchStatus())
+    || /LIVE|INNINGS[\s_-]*BREAK|STUMPS|RAIN[\s_-]*DELAY/i.test(liveScoreContext);
+
+  // The live cricket snapshot is fresher than the catalogue fallback. Prefer
+  // its verified score so the canonical AEO block cannot contradict the live
+  // hero after browser hydration.
+  if (hasLiveScoreContext && this.cricObj) {
+    // `score_update` is often a ball-state label such as "Stumps". Prefer the
+    // structured score field and only use score_update when it looks like a
+    // real score, so the answer cannot publish a non-score or stale 0/0.
+    var liveSnapshotScore = this.cricObj.score || this.cricObj.score_update;
+    if (liveSnapshotScore) {
+      var liveScoreLabel = String(liveSnapshotScore).trim();
+      if (!/\d+\s*[-/]\s*\d+/.test(liveScoreLabel)) {
+        liveScoreLabel = '';
+      }
+      if (!liveScoreLabel) {
+        return 'Verified live score data is not present in the current match payload.';
+      }
+      if (/^\d+-\d+(?:\s|$)/.test(liveScoreLabel)) {
+        liveScoreLabel = liveScoreLabel.replace(/^(\d+)-(\d+)/, '$1/$2');
+      }
+      if (!/^[A-Za-z][A-Za-z\s-]*\s+\d+\/\d+/i.test(liveScoreLabel) && this.cricObj.batting_team) {
+        liveScoreLabel = String(this.cricObj.batting_team).trim() + ' ' + liveScoreLabel;
+      }
+      if (this.cricObj.over !== undefined && this.cricObj.over !== null
+        && liveScoreLabel.toLowerCase().indexOf(' ov') === -1) {
+        liveScoreLabel += ' (' + String(this.cricObj.over).trim() + ' ov)';
+      }
+      return liveScoreLabel;
+    }
+  }
+
+  // A catalogue fallback can contain an initial 0/0 shell while the live
+  // snapshot is unavailable. It is not evidence of the current score.
+  if (hasLiveScoreContext) {
+    return 'Verified live score data is not present in the current match payload.';
+  }
+
   if (this.heroFallbackView && this.heroFallbackView.score) {
     var heroScore = this.heroFallbackView.score;
     return heroScore.teamName + ' ' + heroScore.runs + '/' + heroScore.wickets + ' (' + heroScore.overs + ' ov)'
@@ -4038,7 +4170,7 @@ getSeoLiveScoreLabel(): string {
     return 'This fixture is scheduled and the live score block will switch into innings context as soon as play begins.';
   }
 
-  return 'Live score block will update with runs, wickets, overs, innings context, and match result as soon as the feed receives official data.';
+  return 'Verified live score data is not present in the current match payload.';
 }
 
 getSeoTossLabel(): string {
@@ -4054,7 +4186,7 @@ getSeoTossLabel(): string {
     return String(this.matchInfo.toss_info);
   }
 
-  return 'Toss update is not announced yet. We will update toss time, toss winner, and bat/ball decision here before the match starts.';
+  return 'Toss update is not present in the current official match payload.';
 }
 
 getSeoPlayingXiLabel(): string {
@@ -4062,7 +4194,7 @@ getSeoPlayingXiLabel(): string {
     return 'Playing XI is available in the Lineups tab with team squads and player roles.';
   }
 
-  return 'Playing XI is not confirmed yet. Expected playing 11 and final lineup updates will appear here when teams are announced.';
+  return 'Playing XI is not present in the current official match payload.';
 }
 
 getSeoScorecardLabel(): string {
@@ -4078,7 +4210,7 @@ getSeoScorecardLabel(): string {
     return 'Scorecard will populate after play begins, while fixture details, toss status, and lineup updates stay available ahead of start.';
   }
 
-  return 'Scorecard section will show batting score, bowling figures, fall of wickets, partnerships, and match result once data is available.';
+  return 'Scorecard data is not present in the current match payload; no batting, bowling, or result claim is shown.';
 }
 
 getSeoVenueStatsLabel(): string {
@@ -4086,7 +4218,7 @@ getSeoVenueStatsLabel(): string {
     return 'Venue stats are available for pitch behavior, bat-first trends, and chase context.';
   }
 
-  return 'Venue stats will be updated with pitch context, average scores, bat-first trend, and chase record when reliable data is available.';
+  return 'Venue stats are not present in the current match payload.';
 }
 
 getSeoTeamFormLabel(): string {
@@ -4097,7 +4229,7 @@ getSeoTeamFormLabel(): string {
     return 'Team form and head-to-head context is available in this match centre for recent results and matchup signals.';
   }
 
-  return 'Team form and head-to-head data will be added when recent-match and comparison feeds are available for both teams.';
+  return 'Team form and head-to-head data are not present in the current match payload.';
 }
 
 getSeoFaqMatchResultAnswer(): string {
@@ -4105,7 +4237,7 @@ getSeoFaqMatchResultAnswer(): string {
     return this.getFallbackResultSummary() || '';
   }
 
-  return 'The match result will be updated here after the final ball or official result confirmation.';
+  return 'The official match result is not present in the current match payload.';
 }
 
 getSeoLanguageKeywordCopy(): string {
@@ -4119,7 +4251,7 @@ private getCoverageScoreSummaryValue(): string | null {
     return null;
   }
 
-  if (/^This fixture is scheduled/i.test(value) || /^Live score block will update/i.test(value)) {
+  if (/^This fixture is scheduled/i.test(value) || /^Live score block will update/i.test(value) || /^Verified live score data is not present/i.test(value)) {
     return null;
   }
 

@@ -70,9 +70,56 @@ mat-card-content {
 .canonical-intelligence__probability span { display: block; color: #5e7481; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
 .canonical-intelligence__probability strong { color: #0f766e; font-size: 1.5rem; line-height: 1.1; }
 
+.canonical-match-aeo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(220px, .9fr);
+  gap: 16px;
+  margin: 12px 0;
+  padding: 18px 20px;
+  border: 1px solid rgba(14, 116, 144, .2);
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 72%);
+  text-align: left;
+}
+.canonical-match-aeo__kicker {
+  display: inline-flex;
+  margin-bottom: 6px;
+  color: #0e7490;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.canonical-match-aeo h2 { margin: 0; color: #123d45; font-size: 1.08rem; line-height: 1.35; }
+.canonical-match-aeo__copy > p { margin: 8px 0 0; color: #334e68; font-size: .92rem; line-height: 1.55; }
+.canonical-match-aeo__model { color: #0f766e !important; font-size: .8rem !important; }
+.canonical-match-aeo__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px 14px;
+  margin: 0;
+  padding: 0;
+  align-content: start;
+}
+.canonical-match-aeo__facts div { min-width: 0; }
+.canonical-match-aeo__facts dt { color: #5e7481; font-size: .67rem; font-weight: 800; text-transform: uppercase; }
+.canonical-match-aeo__facts dd { margin: 2px 0 0; color: #1f3b4d; font-size: .82rem; line-height: 1.35; overflow-wrap: anywhere; }
+.canonical-match-aeo-state {
+  margin: 12px 0;
+  padding: 16px 18px;
+  border-radius: 14px;
+  text-align: left;
+}
+.canonical-match-aeo-state strong { display: block; color: #173042; }
+.canonical-match-aeo-state p { margin: 6px 0 0; color: #526277; font-size: .88rem; line-height: 1.5; }
+.canonical-match-aeo-state--loading { background: #f8fafc; border: 1px solid #dbe4ee; }
+.canonical-match-aeo-state--error { background: #fff7ed; border: 1px solid #fed7aa; }
+
 @media (max-width: 560px) {
   .canonical-intelligence { align-items: flex-start; flex-direction: column; gap: 10px; }
   .canonical-intelligence__probability { min-width: 0; padding-left: 0; border-left: 0; text-align: left; }
+  .canonical-match-aeo { grid-template-columns: 1fr; }
+  .canonical-match-aeo__facts { grid-template-columns: 1fr 1fr; }
 }
 
 .cricket-odds__breadcrumb {

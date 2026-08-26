@@ -40,6 +40,19 @@ public class CrexMatchUrlHelperTest {
     }
 
     @Test
+    public void rejectsPlaceholderCanonicalMatchSlugs() {
+        assertThat(CrexMatchUrlHelper.isCanonicalMatchSlug("null-vs-null-1st-match-test-cup-2026")).isFalse();
+        assertThat(CrexMatchUrlHelper.isCanonicalMatchSlug("team-1-vs-team-2-1st-match-test-cup-2026")).isFalse();
+        assertThat(CrexMatchUrlHelper.isCanonicalMatchSlug("tbd-vs-a-1st-match-test-cup-2026")).isFalse();
+    }
+
+    @Test
+    public void acceptsRealBareAndStableKeyCanonicalMatchSlugs() {
+        assertThat(CrexMatchUrlHelper.isCanonicalMatchSlug("ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025")).isTrue();
+        assertThat(CrexMatchUrlHelper.isCanonicalMatchSlug("abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC")).isTrue();
+    }
+
+    @Test
     public void convertsBetweenLegacyAndNewDetailPagesWithoutChangingSlug() {
         String newBaseUrl = "https://crex.com/cricket-live-score/abd-vs-fuj-4th-match-emirates-d50-tournament-2026-match-updates-11CC";
         String legacyLiveUrl = "https://crex.com/scoreboard/X1M/1YQ/1st-TEST/Z/W/ban-vs-ire-1st-test-ireland-tour-of-bangladesh-2025/live";

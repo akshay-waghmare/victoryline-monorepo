@@ -1,0 +1,1912 @@
+﻿{
+    "checkedAtUtc":  "2026-08-26T19:46:08.1275870Z",
+    "baseUrl":  "https://www.crickzen.com",
+    "configuration":  {
+                          "probeCount":  2,
+                          "requestTimeoutSeconds":  30,
+                          "matchSamplePerCohort":  1,
+                          "slowResponseThresholdMs":  7000,
+                          "maximumDecodedBytes":  15728640,
+                          "profiles":  [
+                                           "normal",
+                                           "googlebot-desktop",
+                                           "googlebot-mobile"
+                                       ]
+                      },
+    "summary":  {
+                    "sitemapPartitions":  7,
+                    "targets":  10,
+                    "requests":  60,
+                    "p95ElapsedMs":  3402,
+                    "cacheSignalResponses":  60,
+                    "failures":  0
+                },
+    "claimBoundary":  "Technical crawler reachability, response stability, SSR parity, cache signals, and payload size only; not Google discovery, indexing, rankings, traffic, engagement, or AI citations.",
+    "sitemapSamples":  [
+                           {
+                               "url":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                               "cohort":  "live",
+                               "shard":  "https://www.crickzen.com/sitemaps/sitemap-live-0001.xml"
+                           },
+                           {
+                               "url":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                               "cohort":  "upcoming",
+                               "shard":  "https://www.crickzen.com/sitemaps/sitemap-upcoming-0001.xml"
+                           },
+                           {
+                               "url":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                               "cohort":  "recent",
+                               "shard":  "https://www.crickzen.com/sitemaps/sitemap-recent-0001.xml"
+                           },
+                           {
+                               "url":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                               "cohort":  "archive",
+                               "shard":  "https://www.crickzen.com/sitemaps/sitemap-archive-0001.xml"
+                           }
+                       ],
+    "results":  [
+                    {
+                        "url":  "https://www.crickzen.com/robots.txt",
+                        "kind":  "robots",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  261,
+                        "metrics":  {
+                                        "decodedBytes":  927,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "max-age=86400",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/robots.txt",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/robots.txt",
+                        "kind":  "robots",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  244,
+                        "metrics":  {
+                                        "decodedBytes":  927,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "max-age=86400",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/robots.txt",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/robots.txt",
+                        "kind":  "robots",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  245,
+                        "metrics":  {
+                                        "decodedBytes":  927,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "max-age=86400",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/robots.txt",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/robots.txt",
+                        "kind":  "robots",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  244,
+                        "metrics":  {
+                                        "decodedBytes":  927,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "max-age=86400",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/robots.txt",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/robots.txt",
+                        "kind":  "robots",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  247,
+                        "metrics":  {
+                                        "decodedBytes":  927,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "max-age=86400",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/robots.txt",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/robots.txt",
+                        "kind":  "robots",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  245,
+                        "metrics":  {
+                                        "decodedBytes":  927,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "max-age=86400",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/robots.txt",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/sitemap.xml",
+                        "kind":  "sitemap",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  251,
+                        "metrics":  {
+                                        "decodedBytes":  1004,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=60",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/sitemap.xml",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/sitemap.xml",
+                        "kind":  "sitemap",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  244,
+                        "metrics":  {
+                                        "decodedBytes":  1004,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=60",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/sitemap.xml",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/sitemap.xml",
+                        "kind":  "sitemap",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  246,
+                        "metrics":  {
+                                        "decodedBytes":  1004,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=60",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/sitemap.xml",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/sitemap.xml",
+                        "kind":  "sitemap",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  271,
+                        "metrics":  {
+                                        "decodedBytes":  1004,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=60",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/sitemap.xml",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/sitemap.xml",
+                        "kind":  "sitemap",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  273,
+                        "metrics":  {
+                                        "decodedBytes":  1004,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=60",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/sitemap.xml",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/sitemap.xml",
+                        "kind":  "sitemap",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  263,
+                        "metrics":  {
+                                        "decodedBytes":  1004,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=60",
+                                        "etag":  "",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/sitemap.xml",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  2680,
+                        "metrics":  {
+                                        "decodedBytes":  196982,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  6,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"30176-eVFRo1idQd0+PK61OAYGYZkQb2A\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  2796,
+                        "metrics":  {
+                                        "decodedBytes":  196869,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  6,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"30105-kji6G+DymfL0ZsOM8v8Rq5+hJQI\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  2612,
+                        "metrics":  {
+                                        "decodedBytes":  196964,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  6,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"30164-RTl6oOohyXPMMuqvFqfL3T7UAHY\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  4272,
+                        "metrics":  {
+                                        "decodedBytes":  196848,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  6,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"300f0-zqbymRn04tXDOZyxmITMEqh3f6U\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  3186,
+                        "metrics":  {
+                                        "decodedBytes":  196920,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  6,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"30138-w3zesA98+h2dCxUwGL92d31zgtc\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  2890,
+                        "metrics":  {
+                                        "decodedBytes":  197002,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  6,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"3018a-PQ+kZ0TVGggxRLvq3cwB1BxuAcA\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/matches",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  1856,
+                        "metrics":  {
+                                        "decodedBytes":  101182,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"18b3e-5h2wEJHXdQ/ZkJeLb+JhqxOaQTA\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/matches",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/matches",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  1929,
+                        "metrics":  {
+                                        "decodedBytes":  101621,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"18cf5-L/iFOhCJQfhLMkeMnL6HcxaTRkA\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/matches",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/matches",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  1942,
+                        "metrics":  {
+                                        "decodedBytes":  101314,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"18bc2-LfU+StwquHxnJVrpLjF7qqoTjF4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/matches",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/matches",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  1630,
+                        "metrics":  {
+                                        "decodedBytes":  101753,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"18d79-VHTI7RSIS4mK3vU0BqGruPQrmK4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/matches",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/matches",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  1673,
+                        "metrics":  {
+                                        "decodedBytes":  101637,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"18d05-8uMs6KmMK1nZ2RI9IiA2lw1ME5k\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/matches",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/matches",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  1674,
+                        "metrics":  {
+                                        "decodedBytes":  101430,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=60, stale-while-revalidate=300",
+                                        "etag":  "W/\"18c36-imw72Q/VwuBve55JcfI/zTa2YAM\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/matches",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cricket-schedule/today",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  2944,
+                        "metrics":  {
+                                        "decodedBytes":  145732,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=600",
+                                        "etag":  "W/\"23944-Xi5/2hH/OSjAFchmFAVVVsfJZy4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cricket-schedule/today",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cricket-schedule/today",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  2356,
+                        "metrics":  {
+                                        "decodedBytes":  145876,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=600",
+                                        "etag":  "W/\"239d4-rfw7tJKkateRAzJAanUGpnsnHAU\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cricket-schedule/today",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cricket-schedule/today",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  2432,
+                        "metrics":  {
+                                        "decodedBytes":  145453,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=600",
+                                        "etag":  "W/\"2382d-6xHOuui6gLuVBqCq2hyj8MEsLHw\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cricket-schedule/today",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cricket-schedule/today",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  2453,
+                        "metrics":  {
+                                        "decodedBytes":  145732,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=600",
+                                        "etag":  "W/\"23944-WdLi7VSp+qqW9AJOsDwOnPO7Qvw\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cricket-schedule/today",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cricket-schedule/today",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  2198,
+                        "metrics":  {
+                                        "decodedBytes":  145318,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=600",
+                                        "etag":  "W/\"237a6-1533E2DH+4Q/acAdcSZWdr0E93g\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cricket-schedule/today",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cricket-schedule/today",
+                        "kind":  "discovery",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  2154,
+                        "metrics":  {
+                                        "decodedBytes":  146386,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  7,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=300, stale-while-revalidate=600",
+                                        "etag":  "W/\"23bd2-U8tSSidmuk8gyw5jpM9jOZvORDk\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cricket-schedule/today",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "kind":  "not-found",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  404,
+                        "elapsedMs":  843,
+                        "metrics":  {
+                                        "decodedBytes":  0,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "no-store",
+                                        "etag":  "W/\"d341-gRUv4rRUG6HRRrKLdkKqb70D1QM\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "kind":  "not-found",
+                        "cohort":  null,
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  404,
+                        "elapsedMs":  700,
+                        "metrics":  {
+                                        "decodedBytes":  0,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "no-store",
+                                        "etag":  "W/\"d341-uiTdnuZJrZYtt0NTrevO8FJJwRM\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "kind":  "not-found",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  404,
+                        "elapsedMs":  710,
+                        "metrics":  {
+                                        "decodedBytes":  0,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "no-store",
+                                        "etag":  "W/\"d341-1UpnKZPo2R1ZPgwPNFN+drYRNJI\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "kind":  "not-found",
+                        "cohort":  null,
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  404,
+                        "elapsedMs":  734,
+                        "metrics":  {
+                                        "decodedBytes":  0,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "no-store",
+                                        "etag":  "W/\"d341-gcUBX6WQfcQH4jh3oleQppwHNM0\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "kind":  "not-found",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  404,
+                        "elapsedMs":  700,
+                        "metrics":  {
+                                        "decodedBytes":  0,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "no-store",
+                                        "etag":  "W/\"d341-ZOXF1XMf4dz+JGHfaf4HqsDgQmw\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "kind":  "not-found",
+                        "cohort":  null,
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  404,
+                        "elapsedMs":  747,
+                        "metrics":  {
+                                        "decodedBytes":  0,
+                                        "canonicalCount":  0,
+                                        "h1Count":  0,
+                                        "jsonLdCount":  0,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "no-store",
+                                        "etag":  "W/\"d341-SFSaDqgkGQJjSW/6Ko7GZoWe9I8\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/this-page-should-not-exist",
+                        "error":  "The remote server returned an error: (404) Not Found."
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "kind":  "match-live",
+                        "cohort":  "live",
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  3544,
+                        "metrics":  {
+                                        "decodedBytes":  289214,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"469be-UfauRpA0RinYTibb8ziUmUocGc8\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "miss",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "kind":  "match-live",
+                        "cohort":  "live",
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  736,
+                        "metrics":  {
+                                        "decodedBytes":  289214,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"469be-UfauRpA0RinYTibb8ziUmUocGc8\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "kind":  "match-live",
+                        "cohort":  "live",
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  586,
+                        "metrics":  {
+                                        "decodedBytes":  289214,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"469be-UfauRpA0RinYTibb8ziUmUocGc8\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "kind":  "match-live",
+                        "cohort":  "live",
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  538,
+                        "metrics":  {
+                                        "decodedBytes":  289214,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"469be-UfauRpA0RinYTibb8ziUmUocGc8\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "kind":  "match-live",
+                        "cohort":  "live",
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  539,
+                        "metrics":  {
+                                        "decodedBytes":  289214,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"469be-UfauRpA0RinYTibb8ziUmUocGc8\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "kind":  "match-live",
+                        "cohort":  "live",
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  664,
+                        "metrics":  {
+                                        "decodedBytes":  289214,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"469be-UfauRpA0RinYTibb8ziUmUocGc8\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/ind-vs-sl-2nd-test-india-tour-of-sri-lanka-2026-match-updates-12WY",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "kind":  "match-upcoming",
+                        "cohort":  "upcoming",
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  3402,
+                        "metrics":  {
+                                        "decodedBytes":  286820,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"46064-hgS3vf2EehHNGTHJ6+cid9AjZ4k\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "miss",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "kind":  "match-upcoming",
+                        "cohort":  "upcoming",
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  1652,
+                        "metrics":  {
+                                        "decodedBytes":  286820,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"46064-hgS3vf2EehHNGTHJ6+cid9AjZ4k\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "kind":  "match-upcoming",
+                        "cohort":  "upcoming",
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  1632,
+                        "metrics":  {
+                                        "decodedBytes":  286820,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"46064-hgS3vf2EehHNGTHJ6+cid9AjZ4k\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "kind":  "match-upcoming",
+                        "cohort":  "upcoming",
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  773,
+                        "metrics":  {
+                                        "decodedBytes":  286820,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"46064-hgS3vf2EehHNGTHJ6+cid9AjZ4k\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "kind":  "match-upcoming",
+                        "cohort":  "upcoming",
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  1208,
+                        "metrics":  {
+                                        "decodedBytes":  286820,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"46064-hgS3vf2EehHNGTHJ6+cid9AjZ4k\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "kind":  "match-upcoming",
+                        "cohort":  "upcoming",
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  1628,
+                        "metrics":  {
+                                        "decodedBytes":  286820,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"46064-hgS3vf2EehHNGTHJ6+cid9AjZ4k\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/slk-vs-tkr-17th-match-caribbean-premier-league-2026-match-updates-11UC",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "kind":  "match-recent",
+                        "cohort":  "recent",
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  2833,
+                        "metrics":  {
+                                        "decodedBytes":  342131,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"53873-62d6bC+lmHfNGXnZXjMSJt7Viz4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "miss",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "kind":  "match-recent",
+                        "cohort":  "recent",
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  654,
+                        "metrics":  {
+                                        "decodedBytes":  342131,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"53873-62d6bC+lmHfNGXnZXjMSJt7Viz4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "kind":  "match-recent",
+                        "cohort":  "recent",
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  594,
+                        "metrics":  {
+                                        "decodedBytes":  342131,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"53873-62d6bC+lmHfNGXnZXjMSJt7Viz4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "kind":  "match-recent",
+                        "cohort":  "recent",
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  643,
+                        "metrics":  {
+                                        "decodedBytes":  342131,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"53873-62d6bC+lmHfNGXnZXjMSJt7Viz4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "kind":  "match-recent",
+                        "cohort":  "recent",
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  627,
+                        "metrics":  {
+                                        "decodedBytes":  342131,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"53873-62d6bC+lmHfNGXnZXjMSJt7Viz4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "kind":  "match-recent",
+                        "cohort":  "recent",
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  784,
+                        "metrics":  {
+                                        "decodedBytes":  342131,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"53873-62d6bC+lmHfNGXnZXjMSJt7Viz4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "kind":  "match-archive",
+                        "cohort":  "archive",
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  3820,
+                        "metrics":  {
+                                        "decodedBytes":  310527,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"4bcff-1WQeXB0hbpmF8w3urzFfZW7NLl4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "miss",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "kind":  "match-archive",
+                        "cohort":  "archive",
+                        "profile":  "normal",
+                        "syntheticGooglebot":  false,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  521,
+                        "metrics":  {
+                                        "decodedBytes":  310527,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"4bcff-1WQeXB0hbpmF8w3urzFfZW7NLl4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "kind":  "match-archive",
+                        "cohort":  "archive",
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  616,
+                        "metrics":  {
+                                        "decodedBytes":  310527,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"4bcff-1WQeXB0hbpmF8w3urzFfZW7NLl4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "kind":  "match-archive",
+                        "cohort":  "archive",
+                        "profile":  "googlebot-desktop",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  521,
+                        "metrics":  {
+                                        "decodedBytes":  310527,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"4bcff-1WQeXB0hbpmF8w3urzFfZW7NLl4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "kind":  "match-archive",
+                        "cohort":  "archive",
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  1,
+                        "status":  200,
+                        "elapsedMs":  598,
+                        "metrics":  {
+                                        "decodedBytes":  310527,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"4bcff-1WQeXB0hbpmF8w3urzFfZW7NLl4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "error":  ""
+                    },
+                    {
+                        "url":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "kind":  "match-archive",
+                        "cohort":  "archive",
+                        "profile":  "googlebot-mobile",
+                        "syntheticGooglebot":  true,
+                        "attempt":  2,
+                        "status":  200,
+                        "elapsedMs":  562,
+                        "metrics":  {
+                                        "decodedBytes":  310527,
+                                        "canonicalCount":  1,
+                                        "h1Count":  1,
+                                        "jsonLdCount":  5,
+                                        "noindex":  false,
+                                        "canonicalMatchAeo":  false,
+                                        "lifecycle":  null,
+                                        "placeholder":  false,
+                                        "temporaryCopy":  false
+                                    },
+                        "headers":  {
+                                        "contentEncoding":  "",
+                                        "cacheControl":  "public, max-age=5, stale-while-revalidate=55",
+                                        "etag":  "W/\"4bcff-1WQeXB0hbpmF8w3urzFfZW7NLl4\"",
+                                        "vary":  "",
+                                        "ssrDocumentCache":  "hit",
+                                        "ssrFallback":  ""
+                                    },
+                        "finalUrl":  "https://www.crickzen.com/cric-live/mil-w-vs-sb-w-9th-match-the-hundred-2026-women-match-updates-ZK3",
+                        "error":  ""
+                    }
+                ],
+    "failures":  [
+
+                 ]
+}

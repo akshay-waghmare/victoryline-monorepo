@@ -43,6 +43,180 @@ function createComponent(): CricketOddsComponent {
 }
 
 describe('CricketOddsComponent lifecycle tab defaults', () => {
+  function setIndexableMatchSeo(component: CricketOddsComponent): void {
+    component.matchSeo = {
+      canonicalPath: '/cric-live/india-vs-australia-1st-match-world-cup-2026-match-updates-123A',
+      canonicalUrl: 'https://www.crickzen.com/cric-live/india-vs-australia-1st-match-world-cup-2026-match-updates-123A',
+      title: 'India vs Australia Live Score | Crickzen',
+      description: 'India vs Australia match coverage.',
+      ogImageUrl: 'https://www.crickzen.com/assets/icons/icon-512x512.png',
+      h1: 'India vs Australia Live Score',
+      robots: 'index,follow',
+      teams: 'India vs Australia',
+      team1: 'India',
+      team2: 'Australia',
+      team1Short: 'IND',
+      team2Short: 'AUS',
+      shortTeams: 'IND vs AUS',
+      series: 'World Cup 2026',
+      breadcrumbSeries: 'World Cup',
+      statusLabel: 'Live',
+      summary: 'India vs Australia match coverage.',
+      isIndexable: true,
+      routeIntent: {} as any,
+      canonicalDecision: {} as any
+    } as any;
+  }
+
+  it('renders one populated lifecycle answer with score, series, venue, and result facts', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.matchInfo = {
+      match_status: 'COMPLETED',
+      series_name: 'World Cup 2026',
+      venue: 'Wankhede Stadium',
+      final_result_text: 'India beat Australia by 5 wickets.',
+      match_date: '2026-08-25T13:30:00.000Z'
+    } as any;
+    component.currentMatch = { resultSummary: 'India beat Australia by 5 wickets.' } as any;
+
+    expect(component.getCanonicalMatchAeoState()).toBe('populated');
+    var block = component.getCanonicalMatchAeoBlock();
+    expect(block && block.lifecycle).toBe('completed');
+    expect(block && block.answer).toContain('India beat Australia by 5 wickets.');
+    expect(block && block.facts.some(function(fact) { return fact.label === 'Venue'; })).toBe(true);
+  });
+
+  it('keeps the lifecycle answer out of the indexable surface while match metadata is loading', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.matchInfo = null;
+    component.isLoadingMatchInfo = true;
+    (component as any).canonicalMatchAeoDataState = 'loading';
+
+    expect(component.getCanonicalMatchAeoState()).toBe('loading');
+    expect(component.getCanonicalMatchAeoBlock()).toBeNull();
+  });
+
+  it('keeps the lifecycle answer out of the indexable surface after an authoritative metadata error', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.matchInfo = null;
+    component.isLoadingMatchInfo = false;
+    (component as any).canonicalMatchAeoDataState = 'error';
+
+    expect(component.getCanonicalMatchAeoState()).toBe('error');
+    expect(component.getCanonicalMatchAeoBlock()).toBeNull();
+  });
+
+  it('hydrates the same populated match answer before any browser refetch', () => {
+    var component = createComponent();
+    var ssrMatchInfo = {
+      match_status: 'INNINGS_BREAK',
+      series_name: 'World Cup 2026',
+      venue: 'Wankhede Stadium',
+      match_date: '2026-08-25T13:30:00.000Z'
+    };
+    (component as any).transferState = {
+      get: jasmine.createSpy('get').and.returnValue(ssrMatchInfo),
+      remove: jasmine.createSpy('remove')
+    };
+    spyOn<any>(component, 'isBrowser').and.returnValue(true);
+    setIndexableMatchSeo(component);
+    component.matchInfo = (component as any).getHydratedState('cricket_match_info');
+    (component as any).canonicalMatchAeoDataState = 'populated';
+
+    var hydratedBlock = component.getCanonicalMatchAeoBlock();
+    expect((component as any).transferState.get).toHaveBeenCalledWith('cricket_match_info', null);
+    expect(hydratedBlock && hydratedBlock.lifecycle).toBe('innings-break');
+    expect(hydratedBlock && hydratedBlock.answer).toContain('India vs Australia');
+  });
+
+  it('keeps a transferred innings-break answer populated while match-info retries', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.matchInfo = { match_status: 'LIVE' } as any;
+    component.cricObj = {
+      current_ball: 'Stumps',
+      score: '265-8',
+      batting_team: 'SL',
+      over: 83.4
+    } as any;
+    (component as any).isFallbackMatchInfo = true;
+    (component as any).canonicalMatchAeoDataState = 'error';
+
+    expect(component.getCanonicalMatchAeoState()).toBe('populated');
+    var block = component.getCanonicalMatchAeoBlock();
+    expect(block && block.lifecycle).toBe('innings-break');
+    expect(block && block.answer).toContain('SL 265/8');
+  });
+
+  it('uses the verified live snapshot score instead of a stale catalogue fallback', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.matchInfo = { match_status: 'INNINGS_BREAK' } as any;
+    component.heroFallbackView = {
+      score: { teamName: 'IND vs SL', runs: 0, wickets: 0, overs: '0.0' }
+    } as any;
+    component.cricObj = {
+      current_ball: 'Stumps',
+      score: '265-8',
+      score_update: 'Stumps',
+      batting_team: 'SL',
+      over: 83.4
+    } as any;
+
+    var block = component.getCanonicalMatchAeoBlock();
+    expect(block && block.answer).toContain('SL 265/8');
+    expect(block && block.answer).not.toContain('0/0');
+    expect(block && block.facts.some(function(fact) {
+      return fact.label === 'Score' && fact.value.indexOf('SL 265/8') !== -1;
+    })).toBe(true);
+  });
+
+  it('does not publish a 0/0 catalogue shell when a live snapshot is unavailable', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.matchInfo = { match_status: 'INNINGS_BREAK' } as any;
+    component.heroFallbackView = {
+      score: { teamName: 'IND vs SL', runs: 0, wickets: 0, overs: '0.0' }
+    } as any;
+
+    var block = component.getCanonicalMatchAeoBlock();
+    expect(block && block.answer).toContain('does not include the current score');
+    expect(block && block.answer).not.toContain('0/0');
+  });
+
+  it('treats verified stumps context as live-like before direct status arrives', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.matchInfo = {} as any;
+    component.currentMatch = { lastKnownState: 'Stumps' } as any;
+    component.heroFallbackView = {
+      score: { teamName: 'IND vs SL', runs: 0, wickets: 0, overs: '0.0' }
+    } as any;
+
+    var block = component.getCanonicalMatchAeoBlock();
+    expect(block && block.lifecycle).toBe('innings-break');
+    expect(block && block.answer).toContain('does not include the current score');
+    expect(block && block.answer).not.toContain('0/0');
+  });
+
+  it('does not erase a transferred cricket snapshot when a refresh returns empty', () => {
+    var component = createComponent();
+    component.cricObj = {
+      score: '265-8',
+      batting_team: 'SL',
+      over: 83.4,
+      current_ball: 'Stumps'
+    } as any;
+
+    (component as any).parseCricObjData(null);
+
+    expect(component.cricObj.score).toBe('265-8');
+    expect(component.cricObj.current_ball).toBe('Stumps');
+  });
+
   it('tracks the canonical page view when browser hydration reuses match-info', () => {
     var component = createComponent();
     var trackCanonicalMatchView = jasmine.createSpy('trackCanonicalMatchView');

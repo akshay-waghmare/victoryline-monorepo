@@ -21,7 +21,10 @@ const BACKEND_URL = (process.env.BACKEND_URL || process.env.API_URL || 'http://l
 const SCRAPER_URL = (process.env.SCRAPER_URL || 'http://scraper:5000').replace(/\/+$/, '');
 const MODEL_API_URL = (process.env.MODEL_API_URL || 'http://host.docker.internal:8000').replace(/\/+$/, '');
 const SSR_RENDER_TIMEOUT_MS = process.env.SSR_RENDER_TIMEOUT_MS ? Number(process.env.SSR_RENDER_TIMEOUT_MS) : 8000;
-const SSR_SNAPSHOT_TIMEOUT_MS = process.env.SSR_SNAPSHOT_TIMEOUT_MS ? Number(process.env.SSR_SNAPSHOT_TIMEOUT_MS) : 700;
+// The catalogue snapshot is the bounded source of truth for schedule-first
+// upcoming SSR. A 700 ms budget turns normal backend contention into a 503;
+// keep it bounded, but long enough for a cold H2/Redis read behind Caddy.
+const SSR_SNAPSHOT_TIMEOUT_MS = process.env.SSR_SNAPSHOT_TIMEOUT_MS ? Number(process.env.SSR_SNAPSHOT_TIMEOUT_MS) : 2500;
 const SSR_SNAPSHOT_CACHE_TTL_MS = process.env.SSR_SNAPSHOT_CACHE_TTL_MS ? Number(process.env.SSR_SNAPSHOT_CACHE_TTL_MS) : 120000;
 const SSR_LIVE_SNAPSHOT_MAX_AGE_MS = process.env.SSR_LIVE_SNAPSHOT_MAX_AGE_MS ? Number(process.env.SSR_LIVE_SNAPSHOT_MAX_AGE_MS) : 180000;
 const SSR_RETAINED_ENTITY_TIMEOUT_MS = process.env.SSR_RETAINED_ENTITY_TIMEOUT_MS ? Number(process.env.SSR_RETAINED_ENTITY_TIMEOUT_MS) : 1200;
@@ -38,6 +41,16 @@ const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/login\/?$/,
   /^\/live-cricket-score\/?$/,
   /^\/matches\/?$/,
+  /^\/prediction\/?$/,
+  /^\/how-it-works\/?$/,
+  /^\/history\/?$/,
+  /^\/history\/[^/]+\/?$/,
+  /^\/creator-packs\/?$/,
+  /^\/partners\/?$/,
+  /^\/media-kit\/?$/,
+  /^\/developers\/?$/,
+  /^\/share\/[^/]+\/?$/,
+  /^\/embed\/[^/]+\/?$/,
   /^\/live-score\/?$/,
   /^\/live-score\/today\/?$/,
   /^\/live-score\/ipl\/?$/,
@@ -52,6 +65,7 @@ const KNOWN_FRONTEND_ROUTE_PATTERNS = [
   /^\/series\/?$/,
   /^\/series\/[^/]+\/[^/]+\/?$/,
   /^\/series\/[^/]+\/[^/]+\/table\/?$/,
+  /^\/series\/[^/]+\/[^/]+\/stats\/?$/,
   /^\/privacy-policy\/?$/,
   /^\/terms-of-service\/?$/,
   /^\/about\/?$/,
@@ -217,12 +231,30 @@ function applyCanonicalSnapshotToSsrHtml(html, snapshot) {
     }
     return whole;
   });
+  let parityHtml = normalized;
   if (lifecycle === 'innings-break') {
-    return normalized
+    parityHtml = parityHtml
       .replace(/>\s*Upcoming match\s*</gi, '>Innings break<')
       .replace(/>\s*Match completed\s*</gi, '>Innings break<');
   }
-  return normalized;
+
+  // A live SSR render can complete with the match shell and JSON-LD already
+  // present while match-info arrives just after the first Angular template
+  // pass. Keep the crawler-facing answer deterministic by applying the same
+  // backend snapshot used for lifecycle/schema parity whenever the component
+  // did not emit its block yet. Browser hydration can then reuse the same
+  // authoritative text instead of exposing a blank answer surface.
+  if (!/id=["']canonical-match-aeo["']/i.test(parityHtml)) {
+    const canonicalSlug = cleanSnapshotText(snapshot.canonicalSlug || snapshot.slug);
+    const match = canonicalSlug ? parseCanonicalMatchSlug(`/cric-live/${canonicalSlug}`) : null;
+    const summary = match ? lifecycleSummary(match, snapshot) : null;
+    const aeoBlock = match && summary ? buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) : '';
+    if (aeoBlock) {
+      parityHtml = parityHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i, (heading) => heading + aeoBlock);
+    }
+  }
+
+  return parityHtml;
 }
 
 function escapeHtml(value) {
@@ -297,6 +329,232 @@ function parseCanonicalMatchSlug(pathname) {
     teams: team1 && team2 ? `${team1} vs ${team2}` : 'Cricket Match',
     series
   };
+}
+
+function parseSeriesRequest(pathname) {
+  const match = String(pathname || '').match(/^\/series\/([^/]+)\/([^/]+)(?:\/(table|stats))?\/?$/i);
+  if (!match) {
+    return null;
+  }
+
+  let externalId = match[1];
+  try {
+    externalId = decodeURIComponent(externalId);
+  } catch (_) {
+    // Keep the encoded route token when it is malformed.
+  }
+
+  return {
+    externalId,
+    slug: match[2],
+    section: (match[3] || 'matches').toLowerCase()
+  };
+}
+
+function titleCaseSeriesRouteSlug(value) {
+  return String(value || '')
+    .replace(/-/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    .map((token) => {
+      if (/^(ipl|psl|bbl|cpl|sa20|t20i?|odi|t10)$/i.test(token)) {
+        return token.toUpperCase();
+      }
+      return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
+function seriesPayloadRows(detail) {
+  const rows = [];
+  const snapshots = detail && Array.isArray(detail.standings) ? detail.standings : [];
+  snapshots.forEach((snapshot) => {
+    const payload = snapshot && snapshot.payload;
+    if (Array.isArray(payload)) {
+      payload.forEach((row) => rows.push(row));
+    } else if (payload && Array.isArray(payload.rows)) {
+      payload.rows.forEach((row) => rows.push(row));
+    }
+  });
+
+  const unique = [];
+  const seen = new Set();
+  rows.forEach((row) => {
+    const key = String(row && (row.teamExternalId || row.externalId || row.teamName || row.Team || row.teamCode) || '').trim();
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      unique.push(row);
+    }
+  });
+  return unique;
+}
+
+function seriesRowValue(row, keys) {
+  for (let index = 0; index < keys.length; index += 1) {
+    const value = row && row[keys[index]];
+    if (value !== null && value !== undefined && String(value).trim() !== '') {
+      return String(value).trim();
+    }
+  }
+  return '';
+}
+
+function seriesSlug(value) {
+  return String(value || 'series')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'series';
+}
+
+function canonicalSeriesMatchHref(row) {
+  const rawUrl = String(row && (row.url || row.matchUrl || '') || '');
+  const segments = rawUrl.split('/').filter(Boolean);
+  const slug = segments.reverse().find((segment) => /-vs-/.test(segment) && /-match-updates-[A-Za-z0-9]+$/i.test(segment));
+  return slug ? `/cric-live/${slug}` : '';
+}
+
+function seriesMatchLabel(row, href) {
+  const team1 = seriesRowValue(row, ['team1Name', 'team1', 'teamA']);
+  const team2 = seriesRowValue(row, ['team2Name', 'team2', 'teamB']);
+  if (team1 && team2) {
+    return `${team1} vs ${team2} match centre`;
+  }
+  const slug = String(href || '').replace(/^\/cric-live\//, '').replace(/-match-updates-[A-Za-z0-9]+$/i, '');
+  return `${titleCaseSeriesRouteSlug(slug)} match centre`;
+}
+
+async function fetchSeriesProfileFallbackData(seriesRequest) {
+  if (!seriesRequest || !seriesRequest.externalId || seriesRequest.externalId === 'current') {
+    return null;
+  }
+
+  const externalId = encodeURIComponent(seriesRequest.externalId);
+  const requests = [
+    fetchJsonResponse(`${BACKEND_URL}/crawler/player-stats/series?externalId=${externalId}`, 3000),
+    fetchJsonResponse(`${BACKEND_URL}/crawler/player-stats/series/standings?externalId=${externalId}`, 3000)
+  ];
+  if (seriesRequest.section === 'matches') {
+    requests.push(fetchJsonResponse(`${BACKEND_URL}/cricket-data/match-cohorts`, 5000));
+  }
+
+  const responses = await Promise.all(requests);
+  const detail = responses[0] && responses[0].data;
+  const standings = responses[1] && responses[1].data;
+  const series = (detail && detail.series) || (standings && standings.series);
+  const name = String(series && series.name || titleCaseSeriesRouteSlug(seriesRequest.slug)).trim();
+  if (!name) {
+    return null;
+  }
+
+  const matches = [];
+  const matchResponse = responses[2] && responses[2].data;
+  if (matchResponse && typeof matchResponse === 'object') {
+    ['live', 'upcoming', 'recent', 'archive'].forEach((cohort) => {
+      const rows = Array.isArray(matchResponse[cohort]) ? matchResponse[cohort] : [];
+      rows.forEach((row) => {
+        const rawUrl = String(row && row.url || '').toLowerCase();
+        if (rawUrl.indexOf(seriesRequest.slug.toLowerCase()) === -1) {
+          return;
+        }
+        const href = canonicalSeriesMatchHref(row);
+        if (href && !matches.some((item) => item.href === href)) {
+          matches.push({ href, label: seriesMatchLabel(row, href), cohort });
+        }
+      });
+    });
+  }
+
+  const stats = detail && Array.isArray(detail.stats) ? detail.stats.filter((snapshot) => snapshot && snapshot.payload) : [];
+  return {
+    externalId: seriesRequest.externalId,
+    slug: seriesRequest.slug,
+    section: seriesRequest.section,
+    name,
+    rows: seriesPayloadRows(standings || detail),
+    stats,
+    matches: matches.slice(0, 12)
+  };
+}
+
+function buildSeriesProfileFallbackHtml(req, data) {
+  if (!data) {
+    return null;
+  }
+
+  const section = data.section;
+  const seriesPath = `/series/${encodeURIComponent(data.externalId)}/${data.slug}`;
+  const canonicalPath = section === 'matches' ? seriesPath : `${seriesPath}/${section}`;
+  const canonicalUrl = `https://www.crickzen.com${canonicalPath}`;
+  const heading = section === 'table'
+    ? `${data.name} Points Table & Standings`
+    : section === 'stats' ? `${data.name} Team Stats` : `${data.name} Fixtures, Results & Schedule`;
+  const description = section === 'table'
+    ? `Current ${data.name} points table and standings with team positions, results and points where supplied.`
+    : section === 'stats'
+      ? `Current ${data.name} team statistics and series data from Crickzen.`
+      : `Live, upcoming and recent ${data.name} fixtures, results and match details on Crickzen.`;
+  const answer = `${data.name} tracks fixtures, results, points table and team statistics on Crickzen.`;
+  const tabs = `<nav aria-label="Series sections">
+    <a href="${escapeHtml(seriesPath)}">Matches</a>
+    <a href="${escapeHtml(`${seriesPath}/table`)}">Points table</a>
+    <a href="${escapeHtml(`${seriesPath}/stats`)}">Team stats</a>
+  </nav>`;
+  let content = `<p>${escapeHtml(answer)}</p>`;
+
+  if (section === 'table') {
+    if (data.rows.length === 0) {
+      content += `<h2>${escapeHtml(data.name)} points table unavailable</h2><p>The source has not supplied a current standings payload.</p>`;
+    } else {
+      content += `<h2>${escapeHtml(data.name)} points table</h2><p>The current points table lists ${data.rows.length} teams with supplied played, win, loss, net run rate and points fields.</p>`;
+      content += '<table><thead><tr><th>Team</th><th>Played</th><th>Won</th><th>Lost</th><th>NRR</th><th>Points</th></tr></thead><tbody>';
+      data.rows.forEach((row) => {
+        const teamName = seriesRowValue(row, ['teamName', 'Team', 'name', 'teamCode']) || 'Team';
+        const teamId = seriesRowValue(row, ['teamExternalId', 'externalId', 'id']);
+        const teamHref = teamId ? `/teams/${encodeURIComponent(teamId)}/${seriesSlug(teamName)}` : '';
+        const teamCell = teamHref ? `<a href="${escapeHtml(teamHref)}">${escapeHtml(teamName)}</a>` : escapeHtml(teamName);
+        content += `<tr><td>${teamCell}</td><td>${escapeHtml(seriesRowValue(row, ['P', 'played']))}</td><td>${escapeHtml(seriesRowValue(row, ['W', 'won']))}</td><td>${escapeHtml(seriesRowValue(row, ['L', 'lost']))}</td><td>${escapeHtml(seriesRowValue(row, ['Nrr', 'NRR', 'nrr']))}</td><td>${escapeHtml(seriesRowValue(row, ['Pts', 'points']))}</td></tr>`;
+      });
+      content += '</tbody></table>';
+    }
+  } else if (section === 'stats') {
+    content += `<h2>${escapeHtml(data.name)} team statistics</h2><p>${data.stats.length > 0 ? `Team statistics for ${escapeHtml(data.name)} are available below from the current series data payload.` : `Team statistics for ${escapeHtml(data.name)} are unavailable because the source has not supplied a current stats payload.`}</p>`;
+  } else {
+    content += `<h2>${escapeHtml(data.name)} fixtures and results</h2>`;
+    if (data.matches.length === 0) {
+      content += `<p>No live, upcoming or recent ${escapeHtml(data.name)} matches are currently available in the Crickzen catalogue.</p>`;
+    } else {
+      content += `<p>${escapeHtml(data.name)} currently lists ${data.matches.length} canonical match pages. Open a match for its score, details and lifecycle state.</p><ul>`;
+      data.matches.forEach((match) => {
+        content += `<li><a href="${escapeHtml(match.href)}">${escapeHtml(match.label)}</a></li>`;
+      });
+      content += '</ul>';
+    }
+  }
+
+  const structuredData = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: heading,
+    url: canonicalUrl,
+    description
+  }).replace(/</g, '\\u003c');
+  const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8').replace(/<meta\s+name="description"[^>]*>\s*/i, '');
+  const head = [
+    `<title>${escapeHtml(heading)} | Crickzen</title>`,
+    `<meta name="description" content="${escapeHtml(description)}">`,
+    '<meta name="robots" content="index,follow">',
+    `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`,
+    `<meta property="og:title" content="${escapeHtml(heading)} | Crickzen">`,
+    `<meta property="og:description" content="${escapeHtml(description)}">`,
+    `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
+    `<script type="application/ld+json">${structuredData}</script>`
+  ].join('');
+  const body = `<main id="series-profile-ssr-fallback" data-ssr-fallback="series-profile"><nav aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/series">Series</a> <span aria-hidden="true">/</span> <span>${escapeHtml(data.name)}</span></nav><h1>${escapeHtml(heading)}</h1>${tabs}<section aria-label="Series answer">${content}</section></main>`;
+  return indexHtml
+    .replace(/<title>[^<]*<\/title>/i, head)
+    .replace(/<app-root><\/app-root>/i, `<app-root>${body}</app-root>`);
 }
 
 function fetchJsonResponse(url, timeoutMs) {
@@ -483,6 +741,7 @@ function deriveSnapshotLifecycle(snapshot) {
   if (status === 'RAIN_DELAY' || /delay|postpon/.test(detail)) return 'delayed';
   if (status === 'ABANDONED' || /abandoned|no result/.test(detail)) return 'abandoned';
   if (status === 'COMPLETED' || /won by|match (?:drawn|tied)|result/.test(detail)) return 'completed';
+  if (snapshot && Number(snapshot.scheduledAtMs) > Date.now()) return 'upcoming';
   return 'neutral';
 }
 
@@ -546,13 +805,37 @@ function lifecycleSummary(match, snapshot) {
   const result = cleanSnapshotText(snapshot && (snapshot.result || snapshot.lastKnownState));
   switch (lifecycle) {
     case 'upcoming': return { lifecycle, label: 'Upcoming match', copy: `${match.teams} is scheduled to begin shortly.`, scoreLine: '' };
-    case 'live': return { lifecycle, label: 'Live match', copy: scoreLine ? `Live score: ${scoreLine}.` : 'Live match data is temporarily unavailable; updates will appear shortly.', scoreLine };
-    case 'innings-break': return { lifecycle, label: 'Innings break', copy: scoreLine ? `Innings break: ${scoreLine}.` : 'The match is at an innings break; the next update will appear shortly.', scoreLine };
+    case 'live': return { lifecycle, label: 'Live match', copy: scoreLine ? `Live score: ${scoreLine}.` : 'The match is live; the verified snapshot does not include a current score.', scoreLine };
+    case 'innings-break': return { lifecycle, label: 'Innings break', copy: scoreLine ? `Innings break: ${scoreLine}.` : 'The match is at an innings break; the verified snapshot does not include the current score.', scoreLine };
     case 'completed': return { lifecycle, label: 'Match completed', copy: result || 'This match has concluded. The final result is being confirmed.', scoreLine: '' };
     case 'delayed': return { lifecycle, label: 'Match delayed', copy: result || 'The match is delayed or postponed. Updates will appear when play resumes.', scoreLine: '' };
     case 'abandoned': return { lifecycle, label: 'Match abandoned or no result', copy: result || 'This match ended without a result or was abandoned.', scoreLine: '' };
     default: return { lifecycle, label: 'Match update', copy: 'Match data is temporarily loading. Score, commentary, and scorecard updates will appear shortly.', scoreLine: '' };
   }
+}
+
+function buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) {
+  const facts = [
+    ['Teams', match.teams],
+    ['Status', summary.label]
+  ];
+  const series = cleanSnapshotText(snapshot && snapshot.series) || match.series;
+  if (series) facts.push(['Series', series]);
+  if (snapshot && snapshot.scheduledAt) facts.push(['Start time', snapshot.scheduledAt]);
+  if (snapshot && snapshot.venue) facts.push(['Venue', snapshot.venue]);
+  if (summary.scoreLine) facts.push(['Score', summary.scoreLine]);
+  if (snapshot && snapshot.toss) facts.push(['Toss', snapshot.toss]);
+
+  const factsHtml = facts.slice(0, 8).map(([label, value]) =>
+    `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`
+  ).join('');
+
+  return `<section id="canonical-match-aeo" data-lifecycle="${escapeHtml(summary.lifecycle)}" aria-label="Match answer">
+    <span>Direct match answer</span>
+    <h2>${escapeHtml(match.teams)} — ${escapeHtml(summary.label)}</h2>
+    <p>${escapeHtml(summary.copy)}</p>
+    <dl>${factsHtml}</dl>
+  </section>`;
 }
 
 function buildCanonicalMatchFallbackHtml(req, snapshot) {
@@ -607,9 +890,11 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
     structuredData ? `<script type="application/ld+json">${structuredData}</script>` : ''
   ].join('');
+  const aeoBlock = buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary);
   const body = `<main id="canonical-match-ssr-fallback" data-ssr-fallback="canonical-match">
     <nav aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/live-score">Live Cricket Scores</a>${series ? ` <span aria-hidden="true">/</span> <span>${escapeHtml(series)}</span>` : ''}</nav>
     <h1>${escapeHtml(match.teams)} — ${escapeHtml(summary.label)}</h1>
+    ${aeoBlock}
     ${series ? `<p>${escapeHtml(series)}</p>` : ''}
     ${snapshot && snapshot.scheduledAt ? `<p>Scheduled: ${escapeHtml(snapshot.scheduledAt)}</p>` : ''}
     ${snapshot && snapshot.venue ? `<p>Venue: ${escapeHtml(snapshot.venue)}</p>` : ''}
@@ -639,6 +924,7 @@ function buildCanonicalMatchNotFoundHtml(req) {
 
 async function sendSsrFallback(req, res, routeStatus, reason) {
   const routeMatch = routeStatus === 200 ? parseCanonicalMatchSlug(req.path) : null;
+  const seriesRequest = routeStatus === 200 ? parseSeriesRequest(req.path) : null;
   const startedAt = Date.now();
   const snapshot = routeMatch ? (req.canonicalMatchSnapshot || await fetchCanonicalMatchSnapshot(routeMatch)) : null;
   if (routeMatch && snapshot && snapshot.validity === 'invalid') {
@@ -654,6 +940,22 @@ async function sendSsrFallback(req, res, routeStatus, reason) {
     res.setHeader('X-SSR-Lifecycle', lifecycle);
     res.status(200).send(canonicalFallback);
     return;
+  }
+
+  if (seriesRequest) {
+    const seriesFallback = buildSeriesProfileFallbackHtml(req, await fetchSeriesProfileFallbackData(seriesRequest));
+    if (seriesFallback) {
+      console.error('[SSR] Series profile fallback', {
+        url: req.originalUrl,
+        reason,
+        section: seriesRequest.section,
+        fallbackMs: Date.now() - startedAt
+      });
+      res.setHeader('X-SSR-Fallback', 'series-profile');
+      res.setHeader('X-SSR-Fallback-Level', 'source-data');
+      res.status(200).send(seriesFallback);
+      return;
+    }
   }
 
   if (routeMatch) {
@@ -762,9 +1064,29 @@ app.get('*', async (req, res) => {
       return;
     }
     // Retained result pages need exact series/team IDs in their first HTML
-    // response. Resolve only a unique exact series and its own standings
-    // before Angular begins SSR; any uncertainty safely leaves this unset.
-    req.retainedEntityNavigation = await fetchRetainedEntityNavigation(canonicalMatch);
+    // response. Upcoming and live pages must remain schedule/score-first and
+    // must not wait on retained-result entity fan-out that cannot improve their
+    // primary answer.
+    const snapshotLifecycle = deriveSnapshotLifecycle(req.canonicalMatchSnapshot);
+    // Upcoming pages are schedule documents first. Do not spend the full
+    // Angular render budget waiting for live score/model/commentary fan-out
+    // that does not exist before a match starts.
+    if (snapshotLifecycle === 'upcoming') {
+      const scheduleFirstHtml = buildCanonicalMatchFallbackHtml(req, req.canonicalMatchSnapshot);
+      if (scheduleFirstHtml) {
+        rememberRenderedMatchDocument(req.canonicalMatchSnapshot, req.path, scheduleFirstHtml);
+        applyRouteCacheHeaders(req, res);
+        res.setHeader('X-SSR-Fallback', 'canonical-match');
+        res.setHeader('X-SSR-Fallback-Level', 'schedule-first');
+        res.setHeader('X-SSR-Lifecycle', 'upcoming');
+        res.setHeader('X-SSR-Document-Cache', 'miss');
+        res.status(200).send(scheduleFirstHtml);
+        return;
+      }
+    }
+    if (snapshotLifecycle === 'completed' || snapshotLifecycle === 'abandoned') {
+      req.retainedEntityNavigation = await fetchRetainedEntityNavigation(canonicalMatch);
+    }
   }
 
   const routeStatus = isKnownFrontendRoute(req.path) ? 200 : 404;

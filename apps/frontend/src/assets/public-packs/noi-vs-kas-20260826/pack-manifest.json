@@ -1,0 +1,19 @@
+{
+  "schema_version": "crickzen-public-pack-v1",
+  "pack_id": "noi-vs-kas-20260826",
+  "generated_at": "2026-08-26T14:03:14.863474Z",
+  "match": "Noida Kings vs Kashi Rudras",
+  "canonical_match_url": "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+  "public_prediction_url": "https://prediction.crickzen.com/share/noi-vs-kas-t20-win-probability",
+  "source": "CrickZen public match intelligence",
+  "disclosure": "Fixed public sample generated from a verified CrickZen snapshot on 2026-08-26. The live card may change after this snapshot.",
+  "artifacts": {
+    "video": { "path": "/assets/public-packs/noi-vs-kas-20260826/match_card_reel.mp4", "sha256": "ddf31b1a777c81495de1f871a384b945ff78bbbc7bf92805ffc2b4c00b21a725" },
+    "thumbnail": { "path": "/assets/public-packs/noi-vs-kas-20260826/match_card_thumbnail.jpg", "sha256": "c5ec22a010c47ec6336f62cae60f0cf39c760cf92a6346202fd5aa033aee760f" },
+    "card": { "path": "/assets/public-packs/noi-vs-kas-20260826/match_card.json", "sha256": "e673be411474166bf3e96ad323a45045c34d6c28bb618e62d077fc3bffbc836a" },
+    "report": { "path": "/assets/public-packs/noi-vs-kas-20260826/match_intelligence_report.json", "sha256": "83fec3edcf24e54ec01507420740bab3ecbaaf1579a654fbdb7b101f9b3de81d" },
+    "caption": { "path": "/assets/public-packs/noi-vs-kas-20260826/social_caption.txt", "sha256": "e56114af1077e9d5cb4d571ac2125c6487b8108fd4ad87ceb3c08aba23e7c76e" },
+    "caption_json": { "path": "/assets/public-packs/noi-vs-kas-20260826/social_caption.json", "sha256": "061d81b52c15da96f808031c8b95c3a944e382c74a812f0ad4da91351af10b22" },
+    "timed_captions": { "path": "/assets/public-packs/noi-vs-kas-20260826/captions.json", "sha256": "d432b1da95042ef286d4f7a66ea203f581c68e7b55f74a3be3d07eef66e4e37b" }
+  }
+}

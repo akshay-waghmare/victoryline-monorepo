@@ -21,6 +21,44 @@
         </nav>
         <h1 class="cricket-odds__sr-only" *ngIf="matchSeo">{{ matchSeo.h1 }}</h1>
 
+        <section
+          class="canonical-match-aeo"
+          id="canonical-match-aeo"
+          *ngIf="getCanonicalMatchAeoBlock() as answer"
+          [attr.data-lifecycle]="answer.lifecycle"
+          aria-label="Match answer">
+          <div class="canonical-match-aeo__copy">
+            <span class="canonical-match-aeo__kicker">Direct match answer</span>
+            <h2>{{ answer.heading }}</h2>
+            <p>{{ answer.answer }}</p>
+            <p class="canonical-match-aeo__model" *ngIf="answer.modelAnswer">{{ answer.modelAnswer }}</p>
+          </div>
+          <dl class="canonical-match-aeo__facts">
+            <div *ngFor="let fact of answer.facts">
+              <dt>{{ fact.label }}</dt>
+              <dd>{{ fact.value }}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section
+          class="canonical-match-aeo-state canonical-match-aeo-state--loading"
+          *ngIf="getCanonicalMatchAeoState() === 'loading' && (!matchSeo || !matchSeo.isIndexable)"
+          aria-live="polite"
+          aria-label="Match answer loading">
+          <strong>Loading the official match state</strong>
+          <p>The canonical match answer will appear when the match feed returns an authoritative lifecycle and match identity.</p>
+        </section>
+
+        <section
+          class="canonical-match-aeo-state canonical-match-aeo-state--error"
+          *ngIf="getCanonicalMatchAeoState() === 'error' && (!matchSeo || !matchSeo.isIndexable)"
+          aria-live="polite"
+          aria-label="Match answer unavailable">
+          <strong>Match data is temporarily unavailable</strong>
+          <p>Retry shortly for the official score, lifecycle, and result. No unverified match answer is shown.</p>
+        </section>
+
         <app-live-hero
           class="cricket-odds__hero"
           *ngIf="matchId && shouldRenderLiveHero()"

@@ -61,3 +61,56 @@ def test_http_sv3_fallbacks_are_staggered_across_selected_matches(monkeypatch):
     assert service._should_enqueue_http_sv3_fallback(3) is False
     clock[0] = 115.0
     assert service._should_enqueue_http_sv3_fallback(3) is True
+
+
+def test_discovery_slate_overrides_stale_backend_catalogue():
+    service = _build_service()
+    service.settings.max_live_matches = 3
+    service._discovery_live_urls = ["https://crex.example/active-13C7"]
+
+    backend_matches = [
+        {"url": "https://crex.example/stale-12WZ"},
+        {"url": "https://crex.example/stale-12X0"},
+    ]
+
+    assert service._authoritative_live_urls(backend_matches) == [
+        "https://crex.example/active-13C7"
+    ]
+
+
+def test_empty_discovery_slate_does_not_fallback_to_backend_catalogue():
+    service = _build_service()
+    service.settings.max_live_matches = 3
+    service._discovery_live_urls = []
+
+    assert service._authoritative_live_urls([
+        {"url": "https://crex.example/stale-12WZ"}
+    ]) == []
+
+
+@pytest.mark.asyncio
+async def test_catalogue_callback_updates_authoritative_slate_and_fast_lane():
+    service = _build_service()
+    service.health = SimpleNamespace(
+        set_active_matches=lambda count: setattr(service, "health_count", count),
+        record_success=lambda: setattr(service, "health_success", True),
+    )
+    service.http_sv3_fast_lane = AsyncMock()
+    service.player_stats_crawler = AsyncMock()
+
+    await service._on_match_catalog_updated(
+        ["https://crex.example/active-13C7", "https://crex.example/active-133D"],
+        [],
+    )
+
+    assert service._last_managed_live_urls == [
+        "https://crex.example/active-13C7",
+        "https://crex.example/active-133D",
+    ]
+    assert service.health_count == 2
+    assert service.health_success is True
+    service.http_sv3_fast_lane.reconcile.assert_awaited_once_with(service._last_managed_live_urls)
+    service.player_stats_crawler.update_candidates.assert_awaited_once_with(
+        service._last_managed_live_urls,
+        [],
+    )

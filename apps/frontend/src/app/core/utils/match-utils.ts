@@ -529,7 +529,7 @@ export function buildCanonicalMatchPath(match: Pick<MatchCardViewModel, 'matchUr
     slug = match.id;
   }
 
-  if (!slug || slug.indexOf('-vs-') === -1) {
+  if (!slug || slug.indexOf('-vs-') === -1 || isPlaceholderCanonicalMatchSlug(slug)) {
     return null;
   }
 
@@ -622,6 +622,19 @@ function isPlaceholderTeamLabel(value: string): boolean {
     || normalized === 'unknown'
     || normalized === 'null'
     || normalized === 'undefined';
+}
+
+function isPlaceholderCanonicalMatchSlug(value: string): boolean {
+  var normalized = String(value || '').trim().toLowerCase();
+  var separator = normalized.indexOf('-vs-');
+  if (separator <= 0 || separator + 4 >= normalized.length) {
+    return true;
+  }
+
+  var firstTeam = normalized.substring(0, separator);
+  var secondTeamAndSeries = normalized.substring(separator + 4);
+  return /^(?:null|undefined|tbd|tbc|tba|unknown|team(?:[- ]?(?:1|2|a|b))?)(?:-|$)/i.test(firstTeam)
+    || /^(?:null|undefined|tbd|tbc|tba|unknown|team(?:[- ]?(?:1|2|a|b))?)(?:-|$)/i.test(secondTeamAndSeries);
 }
 
 function extractMatchSlugFromPath(urlOrPath: string): string | null {

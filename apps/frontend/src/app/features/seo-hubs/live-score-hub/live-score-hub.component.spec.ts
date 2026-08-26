@@ -56,7 +56,10 @@ function createComponentShape(): LiveScoreHubComponent {
   component.resultSupportLinks = [];
   component.archivePageLinks = [];
   component.archivePage = 1;
+  (component as any).archivePageSize = 80;
+  (component as any).discoveryUpcomingWindowHours = 48;
   component.config = { type: 'today' } as any;
+  (component as any).updateStructuredData = function() {};
   return component;
 }
 
@@ -108,5 +111,60 @@ describe('LiveScoreHubComponent discovery priorities', () => {
     expect(component.upcomingSectionMatches.length).toBe(0);
     expect(component.recentSectionMatches.length).toBe(1);
     expect(component.fallbackSitemapMatches.length).toBe(0);
+  });
+
+  it('keeps schedule discovery inside the next 48 hours and removes primary duplicates', () => {
+    var component = createComponentShape();
+    component.config = { type: 'scheduleToday' } as any;
+    var live = createMatch('live-a-vs-live-b-123F', MatchStatus.LIVE, -1);
+    var upcoming = createMatch('upcoming-a-vs-upcoming-b-123G', MatchStatus.UPCOMING, 24);
+    var farUpcoming = createMatch('far-a-vs-far-b-123H', MatchStatus.UPCOMING, 72);
+    var completed = createMatch('completed-a-vs-completed-b-123I', MatchStatus.COMPLETED, -3);
+
+    component.allMatches = [live, upcoming, farUpcoming, completed];
+    component.liveMatches = [live];
+    component.upcomingMatches = [upcoming, farUpcoming];
+    component.completedMatches = [completed];
+
+    (component as any).applyMatches();
+
+    expect(component.upcomingSectionMatches.map(function(match) { return match.id; }))
+      .toEqual(['upcoming-a-vs-upcoming-b-123G']);
+    expect(component.discoveryMatches.some(function(match) { return match.id === 'live-a-vs-live-b-123F'; })).toBe(false);
+    expect(component.discoveryMatches.some(function(match) { return match.id === 'upcoming-a-vs-upcoming-b-123G'; })).toBe(false);
+    expect(component.discoveryMatches.some(function(match) { return match.id === 'completed-a-vs-completed-b-123I'; })).toBe(false);
+  });
+
+  it('does not use positional sitemap links as a schedule fallback', () => {
+    var component = createComponentShape();
+    component.config = { type: 'scheduleToday' } as any;
+    component.sitemapLinks = [
+      { href: '/cric-live/old-a-vs-old-b-1st-match-2025', label: 'Old match' }
+    ] as any;
+
+    (component as any).applyMatches();
+
+    expect(component.fallbackSitemapMatches).toEqual([]);
+    expect(component.discoveryFallbackLinks).toEqual([]);
+  });
+
+  it('requires a future scheduled start for raw upcoming SSR discovery rows', () => {
+    var component = createComponentShape();
+    var future = Date.now() + (24 * 60 * 60 * 1000);
+
+    expect((component as any).isEligiblePrematchRecord({
+      status: 'UPCOMING',
+      scheduledStartTime: future,
+      url: 'https://crex.com/cricket-live-score/real-a-vs-real-b-1st-match-cup-2026-match-updates-13ZZ'
+    })).toBe(true);
+    expect((component as any).isEligiblePrematchRecord({
+      status: 'UPCOMING',
+      url: 'https://crex.com/cricket-live-score/old-a-vs-old-b-1st-match-cup-2025'
+    })).toBe(false);
+    expect((component as any).isEligiblePrematchRecord({
+      status: 'UPCOMING',
+      scheduledStartTime: future,
+      url: 'https://crex.com/cricket-live-score/tbc-vs-tbc-1st-match-cup-2026-match-updates-13C9'
+    })).toBe(false);
   });
 });

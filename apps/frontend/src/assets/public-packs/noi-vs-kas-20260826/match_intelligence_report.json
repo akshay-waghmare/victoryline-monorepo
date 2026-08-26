@@ -1,0 +1,107 @@
+{
+  "schema_version": "crickzen-match-intelligence-report-v1",
+  "generated_at": "2026-08-26T14:03:14.863474+00:00",
+  "source_url": "https://www.crickzen.com/cric-live/kas-vs-noi-22nd-match-uttar-pradesh-t20-league-2026-match-updates-133H",
+  "match": "Noida Kings vs Kashi Rudras",
+  "format": "t20",
+  "teams": [
+    "Noida Kings",
+    "Kashi Rudras"
+  ],
+  "sections": {
+    "pitch_and_venue": {
+      "status": "verified",
+      "data": {
+        "venue": null,
+        "conditions": "Tracking above the venue baseline.",
+        "stats": {
+          "avg_first_innings_score": 160.0,
+          "venue_behaviour": "Tracking above the venue baseline."
+        }
+      },
+      "note": "match-info endpoint unavailable: TimeoutError"
+    },
+    "probable_playing_xi": {
+      "status": "unavailable",
+      "data": {},
+      "note": "Only show as probable when the source marks it probable; no XI was inferred."
+    },
+    "player_matchups": {
+      "status": "unavailable",
+      "data": {},
+      "note": "No player-v-player feed was exposed by the current public contract."
+    },
+    "powerplay_and_death": {
+      "status": "unavailable",
+      "data": {
+        "powerplay": null,
+        "death": null,
+        "powerplay_wickets_per_innings": null,
+        "death_economy": null
+      }
+    },
+    "expected_score": {
+      "status": "verified",
+      "data": {
+        "value": 160,
+        "venue_average": 160.0
+      }
+    },
+    "win_conditions": {
+      "status": "derived",
+      "data": {
+        "Noida Kings": {
+          "current_state": "Protect the model edge and stay above resource-adjusted par."
+        },
+        "Kashi Rudras": {
+          "current_state": "Create pressure through wickets and required-rate control."
+        }
+      },
+      "note": "Derived from the live state; not a betting instruction."
+    },
+    "prediction_and_confidence": {
+      "status": "verified",
+      "data": {
+        "model_pick": "Kashi Rudras",
+        "probability": 51,
+        "confidence": "model probability",
+        "reasons": [
+          "Noida Kings are 0/0 after 0.0 overs.",
+          "Expected final 160, 0 above the venue average.",
+          "Current score is 0 runs above resource-adjusted par."
+        ]
+      }
+    }
+  },
+  "live_state": {
+    "phase": "live",
+    "snapshot_requested": false,
+    "balls_per_over": 6,
+    "batting_side": "Noida Kings",
+    "score": "0/0",
+    "overs": "0.0",
+    "innings": 1,
+    "current_run_rate": 0.0,
+    "required_run_rate": 0.0,
+    "resource_pct": 100.0,
+    "score_vs_par": 0.0,
+    "pressure_index": 0.0,
+    "toss_state": "Toss delay",
+    "first_innings_team": null,
+    "first_innings_score": "0/0",
+    "first_innings_overs": "",
+    "first_innings_balls": null,
+    "target": 1
+  },
+  "model_context": {
+    "label": "T20 all-gender v2",
+    "mode": "ML + calibrated",
+    "source": "combined_gender_aware_fallback",
+    "insight": "Noida Kings projection is 160 runs below the venue average."
+  },
+  "source_notes": [
+    "CrickZen canonical live catalog",
+    "CrickZen public prediction feed",
+    "match-info endpoint unavailable: TimeoutError"
+  ]
+}

@@ -161,10 +161,10 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     this.selectedSeries = null;
     this.selectedStandings = null;
     this.selectedSeriesSummary = { externalId: externalId, name: name };
-    this.titleService.setTitle(name + ' Fixtures, Table & Stats | Crickzen');
+    this.titleService.setTitle(this.getSeriesProfileTitle());
     this.metaTagsService.setPageMeta('/series/' + encodeURIComponent(externalId) + '/' + encodeURIComponent(slug), {
-      title: name + ' Fixtures, Table & Stats | Crickzen',
-      description: 'Live, upcoming and recent ' + name + ' matches, points table and team statistics on Crickzen.',
+      title: this.getSeriesProfileTitle(),
+      description: this.getSeriesProfileDescription(),
       canonicalUrl: 'https://www.crickzen.com/series/' + encodeURIComponent(externalId) + '/' + encodeURIComponent(slug),
       robots: 'index,follow'
     });
@@ -213,7 +213,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       name: resolvedName,
       seasonName: this.selectedSeries && this.selectedSeries.series && this.selectedSeries.series.seasonName
     };
-    this.titleService.setTitle(resolvedName + ' Fixtures, Table & Stats | Crickzen');
+    this.titleService.setTitle(this.getSeriesProfileTitle());
     this.profileMatches = this.filterProfileMatches(this.catalogueMatches);
     this.isDetailLoading = false;
   }
@@ -245,6 +245,100 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       'Tournament': 'badge-tournament', 'Series': 'badge-series'
     };
     return map[label] || 'badge-series';
+  }
+
+  getSeriesDisplayName(): string {
+    return (this.selectedSeries && this.selectedSeries.series && this.selectedSeries.series.name) ||
+      (this.selectedSeriesSummary && this.selectedSeriesSummary.name) ||
+      'Series details';
+  }
+
+  getSeriesProfileHeading(): string {
+    const name = this.getSeriesDisplayName();
+    if (this.activeSection === 'table') {
+      return name + ' Points Table & Standings';
+    }
+    if (this.activeSection === 'stats') {
+      return name + ' Team Stats';
+    }
+    return name + ' Fixtures, Results & Schedule';
+  }
+
+  getSeriesProfileTitle(): string {
+    return this.getSeriesProfileHeading() + ' | Crickzen';
+  }
+
+  getSeriesProfileDescription(): string {
+    const name = this.getSeriesDisplayName();
+    if (this.activeSection === 'table') {
+      return 'Current ' + name + ' points table and standings with team positions, results and points where supplied.';
+    }
+    if (this.activeSection === 'stats') {
+      return 'Current ' + name + ' team statistics and series data from Crickzen.';
+    }
+    return 'Live, upcoming and recent ' + name + ' fixtures, results and match details on Crickzen.';
+  }
+
+  getSeriesProfileBluf(): string {
+    const name = this.getSeriesDisplayName();
+    const season = (this.selectedSeries && this.selectedSeries.series && this.selectedSeries.series.seasonName) ||
+      (this.selectedSeriesSummary && this.selectedSeriesSummary.seasonName);
+    const seasonLabel = season && name.indexOf(season) === -1 ? ' ' + season : '';
+    const parts = [name + seasonLabel + ' tracks fixtures, results, points table and team statistics on Crickzen.'];
+    const matchCounts = this.getSeriesMatchCounts();
+    if (matchCounts.total > 0) {
+      const matchState = this.formatSeriesMatchCounts(matchCounts);
+      parts.push('This series currently lists ' + matchCounts.total + ' match' + (matchCounts.total === 1 ? '' : 'es') + (matchState ? ': ' + matchState : ' in the current catalogue') + '.');
+    }
+    const standingsRows = this.getSeriesStandingsRows();
+    if (standingsRows.length > 0) {
+      parts.push('The current points table contains ' + standingsRows.length + ' team' + (standingsRows.length === 1 ? '' : 's') + '.');
+    }
+    return parts.join(' ');
+  }
+
+  getSeriesMatchesAnswer(): string {
+    const counts = this.getSeriesMatchCounts();
+    if (counts.total === 0) {
+      return 'No live, upcoming or recent ' + this.getSeriesDisplayName() + ' matches are currently available in the Crickzen catalogue.';
+    }
+    const matchState = this.formatSeriesMatchCounts(counts);
+    return this.getSeriesDisplayName() + ' currently lists ' + counts.total + ' match' + (counts.total === 1 ? '' : 'es') + (matchState ? ' (' + matchState + ')' : '') + '. Open a match for its score, details and lifecycle state.';
+  }
+
+  getSeriesStandingsAnswer(): string {
+    const rows = this.getSeriesStandingsRows();
+    if (rows.length === 0) {
+      return 'The ' + this.getSeriesDisplayName() + ' points table is unavailable because the source has not supplied a current standings payload.';
+    }
+    return 'The ' + this.getSeriesDisplayName() + ' points table currently lists ' + rows.length + ' team' + (rows.length === 1 ? '' : 's') + ' with played, win, loss, net run rate and points fields where supplied.';
+  }
+
+  getSeriesStatsAnswer(): string {
+    const stats = this.getSeriesOtherStats();
+    if (stats.length === 0) {
+      return 'Team statistics for ' + this.getSeriesDisplayName() + ' are unavailable because the source has not supplied a current stats payload.';
+    }
+    return 'Team statistics for ' + this.getSeriesDisplayName() + ' are available below from the current series data payload.';
+  }
+
+  private getSeriesMatchCounts(): { live: number; upcoming: number; recent: number; total: number } {
+    const matches = this.profileMatches || [];
+    const counts = { live: 0, upcoming: 0, recent: 0, total: matches.length };
+    matches.forEach(match => {
+      if (match.status === MatchStatus.LIVE) { counts.live += 1; }
+      if (match.status === MatchStatus.UPCOMING) { counts.upcoming += 1; }
+      if (match.status === MatchStatus.COMPLETED) { counts.recent += 1; }
+    });
+    return counts;
+  }
+
+  private formatSeriesMatchCounts(counts: { live: number; upcoming: number; recent: number; total: number }): string {
+    const labels: string[] = [];
+    if (counts.live > 0) { labels.push(counts.live + ' live'); }
+    if (counts.upcoming > 0) { labels.push(counts.upcoming + ' upcoming'); }
+    if (counts.recent > 0) { labels.push(counts.recent + ' recent'); }
+    return labels.join(', ');
   }
 
   private readonly HIDDEN_KEYS = [

@@ -212,13 +212,19 @@ def health_check():
 @app.route("/prediction-candidates")
 def prediction_candidates():
     """Expose the scraper's selected live slate to the model scheduler."""
-    urls = list(getattr(scraper_service, "_last_managed_live_urls", []) or [])
-    source = "scraper:selected"
+    discovery_slate = getattr(scraper_service, "_discovery_live_urls", None)
+    if discovery_slate is not None:
+        urls = list(discovery_slate or [])
+        source = "scraper:discovery"
+    else:
+        urls = list(getattr(scraper_service, "_last_managed_live_urls", []) or [])
+        source = "scraper:selected"
 
     # The scraper lifecycle and Flask endpoint may run in different workers,
-    # so the in-memory slate is not guaranteed to be visible here. Rehydrate
-    # it from the backend catalog rather than returning a false empty slate.
-    if not urls:
+    # so older service instances may not expose the discovery field. Only that
+    # legacy shape may fall back to the backend catalog; an empty discovery
+    # result is authoritative and must not resurrect stale rows.
+    if discovery_slate is None and not urls:
         try:
             token = scraper_service._auth_token or CricketDataService.get_bearer_token()
             matches = CricketDataService.get_live_matches(token)

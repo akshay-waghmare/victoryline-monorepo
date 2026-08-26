@@ -309,7 +309,8 @@ public class SitemapService {
     }
 
     private String deriveCanonicalMatchPath(LiveMatchesService.LiveMatchEntry match) {
-        if (match == null || isCompletedWithoutIndexableResult(match)) {
+        if (match == null || !hasCanonicalMatchData(match) || isCompletedWithoutIndexableResult(match)
+                || isUpcomingWithoutFutureSchedule(match)) {
             return null;
         }
 
@@ -436,6 +437,42 @@ public class SitemapService {
         return !hasResultSignal(signals);
     }
 
+    private boolean hasCanonicalMatchData(LiveMatchesService.LiveMatchEntry match) {
+        Long scheduledStartTime = match == null ? null : match.getScheduledStartTime();
+        if (scheduledStartTime != null && scheduledStartTime <= 0L) {
+            scheduledStartTime = null;
+        }
+        return match != null && CrexMatchUrlHelper.hasCanonicalMatchData(
+                null, null, null, null, scheduledStartTime, match.getResultSummary(),
+                match.getLastKnownState(), parseLiveMatchStartDate(match.getStartDate()));
+    }
+
+    private boolean isUpcomingWithoutFutureSchedule(LiveMatchesService.LiveMatchEntry match) {
+        if (match == null) {
+            return false;
+        }
+        String status = normalize(match.getStatus());
+        String cohort = normalize(match.getLifecycleCohort());
+        if (!"upcoming".equals(status) && !"upcoming".equals(cohort)) {
+            return false;
+        }
+
+        if (match.getScheduledStartTime() != null && match.getScheduledStartTime() > System.currentTimeMillis()) {
+            return false;
+        }
+
+        String parsedStartDate = parseLiveMatchStartDate(match.getStartDate());
+        if (parsedStartDate != null) {
+            try {
+                return OffsetDateTime.parse(parsedStartDate).toInstant().toEpochMilli() <= System.currentTimeMillis();
+            } catch (Exception ignored) {
+                return true;
+            }
+        }
+
+        return true;
+    }
+
     private boolean hasResultSignal(String value) {
         return value.matches(".*\\bwon\\b.*")
                 || value.matches(".*\\bdrawn?\\b.*")
@@ -501,12 +538,7 @@ public class SitemapService {
     }
 
     private boolean isCanonicalMatchSlug(String slug) {
-        if (slug == null) {
-            return false;
-        }
-        String clean = slug.trim();
-        return !clean.isEmpty() && !clean.matches("\\d+") && !"match".equalsIgnoreCase(clean)
-                && clean.toLowerCase().contains("-vs-");
+        return CrexMatchUrlHelper.isCanonicalMatchSlug(slug);
     }
 
     private String normalize(String value) {

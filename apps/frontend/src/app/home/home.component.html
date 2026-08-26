@@ -1,3 +1,6 @@
+<app-public-prediction *ngIf="isPredictionHost"></app-public-prediction>
+
+<ng-container *ngIf="!isPredictionHost">
 <div class="container">
   <header class="home__hero">
     <div class="home__hero-shell">
@@ -295,3 +298,4 @@
     </div>
   </section>
 </div>
+</ng-container>

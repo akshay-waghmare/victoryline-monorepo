@@ -13,6 +13,10 @@ import java.util.regex.Pattern;
 public final class CrexMatchUrlHelper {
 
     private static final Pattern CREX_API_KEY_PATTERN = Pattern.compile("-match-updates-([A-Za-z0-9]+)$");
+    private static final Pattern SAFE_MATCH_SLUG_PATTERN = Pattern.compile("[A-Za-z0-9&-]+");
+    private static final Pattern PLACEHOLDER_TEAM_PATTERN = Pattern.compile(
+            "^(?:null|undefined|tbd|tba|unknown|team(?:-(?:1|2|a|b))?)(?:-|$)",
+            Pattern.CASE_INSENSITIVE);
 
     private static final Set<String> TERMINAL_MATCH_SEGMENTS = new HashSet<String>(Arrays.asList(
             "live",
@@ -46,6 +50,47 @@ public final class CrexMatchUrlHelper {
         }
         Matcher matcher = CREX_API_KEY_PATTERN.matcher(parts.get(parts.size() - 1));
         return matcher.find() ? matcher.group(1) : null;
+    }
+
+    /**
+     * Returns whether a slug is safe to publish as the canonical public match
+     * route. This rejects placeholder identities before they become sitemap
+     * locations or indexable SSR pages.
+     */
+    public static boolean isCanonicalMatchSlug(String slug) {
+        if (!hasText(slug)) {
+            return false;
+        }
+        String normalized = slug.trim();
+        if (!SAFE_MATCH_SLUG_PATTERN.matcher(normalized).matches()) {
+            return false;
+        }
+        String lower = normalized.toLowerCase(Locale.ROOT);
+        int separator = lower.indexOf("-vs-");
+        if (separator <= 0 || separator + 4 >= lower.length()) {
+            return false;
+        }
+        String firstTeam = lower.substring(0, separator);
+        String secondTeamAndSeries = lower.substring(separator + 4);
+        return !PLACEHOLDER_TEAM_PATTERN.matcher(firstTeam).matches()
+                && !PLACEHOLDER_TEAM_PATTERN.matcher(secondTeamAndSeries).matches();
+    }
+
+    /**
+     * A syntactically valid slug is not enough to publish a page.  This shared
+     * predicate rejects catalogue rows that contain only a lifecycle enum
+     * (for example UPCOMING) but no schedule, identity, score, state, or
+     * result evidence.
+     */
+    public static boolean hasCanonicalMatchData(String team1, String team2, String series,
+            String venue, Object scheduledAt, String result, String lastKnownState, String score) {
+        return hasMeaningfulPair(team1, team2)
+                || hasMeaningfulValue(series)
+                || hasMeaningfulValue(venue)
+                || hasMeaningfulValue(scheduledAt)
+                || hasMeaningfulValue(result)
+                || hasMeaningfulValue(lastKnownState)
+                || hasMeaningfulValue(score);
     }
 
     public static String toMatchDetailsUrl(String url) {
@@ -133,6 +178,26 @@ public final class CrexMatchUrlHelper {
 
     private static boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private static boolean hasMeaningfulPair(String first, String second) {
+        return hasMeaningfulValue(first) && hasMeaningfulValue(second);
+    }
+
+    private static boolean hasMeaningfulValue(Object value) {
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Number && ((Number) value).doubleValue() <= 0d) {
+            return false;
+        }
+        String normalized = String.valueOf(value).trim();
+        return !normalized.isEmpty()
+                && !"null".equalsIgnoreCase(normalized)
+                && !"undefined".equalsIgnoreCase(normalized)
+                && !"no match name".equalsIgnoreCase(normalized)
+                && !"no venue".equalsIgnoreCase(normalized)
+                && !"no data".equalsIgnoreCase(normalized);
     }
 
     private static boolean endsWithSegment(String url, String segment) {

@@ -147,7 +147,7 @@ public class LiveMatchesService {
         entry.setLifecycleCohort(node.has("lifecycleCohort") ? node.get("lifecycleCohort").asText() : null);
         entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
         entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
-        entry.setScheduledStartTime(node.has("scheduledStartTime") ? node.get("scheduledStartTime").asLong() : null);
+        entry.setScheduledStartTime(readLong(node, "scheduledStartTime"));
         entry.setLastStateUpdatedAt(readLong(node, "lastStateUpdatedAt", "last_state_updated_at"));
         entry.setSeoContentModifiedAt(readLong(node, "seoContentModifiedAt", "seo_content_modified_at"));
         entry.setId(node.has("id") ? node.get("id").asLong() : null);

@@ -1,0 +1,60 @@
+{
+  "schema_version": "crickzen-report-card-v1",
+  "generated_at": "2026-08-26T13:55:34.944407+00:00",
+  "match": "Purani Dilli-6 vs Outer Delhi Warriors",
+  "teams": {
+    "team1": {
+      "abbr": "PD",
+      "name": "Purani Dilli-6"
+    },
+    "team2": {
+      "abbr": "ODW",
+      "name": "Outer Delhi Warriors"
+    }
+  },
+  "venue": {
+    "requested": null,
+    "canonical": null,
+    "summary": {
+      "avg_first_innings_score": 178.17,
+      "venue_behaviour": "Tracking above the venue baseline.",
+      "phase": "live",
+      "balls_per_over": 6,
+      "batting_side": "Outer Delhi Warriors",
+      "current_score": "22/0",
+      "current_overs": "1.3",
+      "current_balls": 9,
+      "first_innings_team": null,
+      "first_innings_score": "22/0",
+      "first_innings_overs": "1.3",
+      "first_innings_balls": 9,
+      "target": 23,
+      "expected_final_score": 183,
+      "venue_average_score": 178.17,
+      "score_vs_par": 8.64,
+      "resource_pct": 95.32,
+      "required_run_rate": 0.0,
+      "pressure_index": 0.0,
+      "innings": 1,
+      "toss_state": "Ball Start",
+      "model_source": "combined_gender_aware_fallback",
+      "model_label": "T20 all-gender v2",
+      "model_insight": "Outer Delhi Warriors win probability up 18% across the recent overs."
+    }
+  },
+  "prediction": {
+    "model_pick": "Outer Delhi Warriors",
+    "probability": 57,
+    "inputs": {},
+    "source": "CrickZen public match intelligence"
+  },
+  "venue_behaviour": "Tracking above the venue baseline.",
+  "safe_players": [],
+  "risky_players": [],
+  "trump_pick": null,
+  "avoid_pick": null,
+  "notes": [
+    "CrickZen Match Intelligence report reel",
+    "This is descriptive match intelligence, not betting advice."
+  ]
+}

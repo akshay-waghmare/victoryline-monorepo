@@ -6,6 +6,8 @@ export interface CanonicalMeta {
   title: string;
   description: string;
   canonicalUrl: string;
+  /** Use for an explicitly owned subdomain surface; match pages keep the default www host. */
+  canonicalHost?: string;
   robots?: string; // e.g., 'index,follow' | 'noindex,follow'
   og?: {
     title?: string;
@@ -49,11 +51,11 @@ export class MetaTagsService {
   }
 
   // Ensures canonical URL uses the configured host consistently
-  ensureCanonicalHost(url: string): string {
+  ensureCanonicalHost(url: string, canonicalHost: string = this.canonicalHost): string {
     try {
-      const u = new URL(url, this.canonicalHost);
+      const u = new URL(url, canonicalHost);
       u.protocol = 'https:';
-      u.host = new URL(this.canonicalHost).host;
+      u.host = new URL(canonicalHost).host;
       return u.toString();
     } catch {
       return this.canonicalHost;
@@ -118,14 +120,16 @@ export class MetaTagsService {
 
   setPageMeta(_path: string, meta: CanonicalMeta) {
     meta = this.preserveCanonicalFallbackParity(meta);
+    const canonicalHost = meta.canonicalHost || this.canonicalHost;
+    const canonicalUrl = this.ensureCanonicalHost(meta.canonicalUrl, canonicalHost);
     this.titleService.setTitle(meta.title);
     this.metaService.updateTag({ name: 'description', content: meta.description });
     this.metaService.updateTag({ name: 'robots', content: meta.robots || 'index,follow' });
-    this.setCanonical(meta.canonicalUrl);
+    this.setCanonical(canonicalUrl, canonicalHost);
 
     this.metaService.updateTag({ property: 'og:title', content: meta.og && meta.og.title ? meta.og.title : meta.title });
     this.metaService.updateTag({ property: 'og:description', content: meta.og && meta.og.description ? meta.og.description : meta.description });
-    this.metaService.updateTag({ property: 'og:url', content: meta.og && meta.og.url ? meta.og.url : meta.canonicalUrl });
+    this.metaService.updateTag({ property: 'og:url', content: meta.og && meta.og.url ? meta.og.url : canonicalUrl });
     this.metaService.updateTag({ property: 'og:site_name', content: 'Crickzen' });
     this.metaService.updateTag({ property: 'og:type', content: 'website' });
     if (meta.og && meta.og.image) {
@@ -183,12 +187,12 @@ export class MetaTagsService {
     };
   }
 
-  private setCanonical(url: string): void {
+  private setCanonical(url: string, canonicalHost: string = this.canonicalHost): void {
     if (!this.document || !this.document.head) {
       return;
     }
 
-    const canonicalUrl = this.ensureCanonicalHost(url);
+    const canonicalUrl = this.ensureCanonicalHost(url, canonicalHost);
     const existing = Array.from(this.document.head.querySelectorAll('link[rel="canonical"]')) as any[];
     let canonical = existing.shift();
 

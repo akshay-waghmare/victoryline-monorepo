@@ -1,0 +1,19 @@
+{
+  "schema_version": "crickzen-public-pack-v1",
+  "pack_id": "tgc-vs-kk-20260826",
+  "generated_at": "2026-08-26T13:59:17.385927Z",
+  "match": "Trichy Grand Cholas vs Kovai Kings",
+  "canonical_match_url": "https://www.crickzen.com/cric-live/kk-vs-tgc-qualifier-2nd-match-tamil-nadu-premier-league-2026-match-updates-12ZP",
+  "public_prediction_url": "https://prediction.crickzen.com/share/kk-vs-tgc-t20-win-probability",
+  "source": "CrickZen public match intelligence",
+  "disclosure": "Fixed public sample generated from a verified CrickZen snapshot on 2026-08-26. The live card may change after this snapshot.",
+  "artifacts": {
+    "video": { "path": "/assets/public-packs/tgc-vs-kk-20260826/match_card_reel.mp4", "sha256": "5d446d1b86d7e6466bce49f310c80be4f8e25a1158e7c188765ac626b26c22db" },
+    "thumbnail": { "path": "/assets/public-packs/tgc-vs-kk-20260826/match_card_thumbnail.jpg", "sha256": "f6121513dd089b56b906c631ea7ddf8b995cb5c8963cf8019f894c69815c2f53" },
+    "card": { "path": "/assets/public-packs/tgc-vs-kk-20260826/match_card.json", "sha256": "6179bfe8886d069fe20402e5df1a4683c83d6429fb80050d96a630fa1c6eb802" },
+    "report": { "path": "/assets/public-packs/tgc-vs-kk-20260826/match_intelligence_report.json", "sha256": "c830086e9d959a7057075d61578dc06eb445bb50d9655696d6ff64b7967f504b" },
+    "caption": { "path": "/assets/public-packs/tgc-vs-kk-20260826/social_caption.txt", "sha256": "746e02091029a95cf897e9f3d5967b6eebf9c783848a4a8ce0dc0ed22615dc6c" },
+    "caption_json": { "path": "/assets/public-packs/tgc-vs-kk-20260826/social_caption.json", "sha256": "3d8ceb3c09babd49fe99493f0c5e060cc49f0d4b3225c8291e5b1322057c5e86" },
+    "timed_captions": { "path": "/assets/public-packs/tgc-vs-kk-20260826/captions.json", "sha256": "1d4f67a89edb5d91fef2c0840629abbf73ea97f4e4357c748646e21316bcbb1f" }
+  }
+}

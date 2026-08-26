@@ -95,4 +95,24 @@ describe('SeriesPageComponent discovery grouping', () => {
     expect(component.toDisplaySeriesName('england-one-day-cup-2026')).toBe('England One Day Cup 2026');
     expect(component.toDisplaySeriesName('w-t20i-in-switzerland-2026')).toBe('W T20I In Switzerland 2026');
   });
+
+  it('builds self-contained answer-first copy for a series profile section', () => {
+    var component = createComponentShape();
+    component.isProfileRoute = true;
+    component.activeSection = 'table';
+    component.selectedSeriesSummary = {
+      externalId: 'ipl-2026',
+      name: 'IPL 2026',
+      seasonName: '2026'
+    };
+    component.profileMatches = [];
+    component.selectedSeries = null;
+    component.selectedStandings = null;
+
+    expect(component.getSeriesProfileHeading()).toBe('IPL 2026 Points Table & Standings');
+    expect(component.getSeriesProfileTitle()).toBe('IPL 2026 Points Table & Standings | Crickzen');
+    expect(component.getSeriesProfileDescription()).toContain('Current IPL 2026 points table and standings');
+    expect(component.getSeriesProfileBluf()).toContain('IPL 2026 tracks fixtures, results, points table and team statistics');
+    expect(component.getSeriesStandingsAnswer()).toContain('IPL 2026 points table is unavailable');
+  });
 });

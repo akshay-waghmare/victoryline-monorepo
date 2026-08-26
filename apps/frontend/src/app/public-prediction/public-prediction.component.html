@@ -1,0 +1,212 @@
+<section class="public-prediction" [class.public-prediction--embed]="is('embed')">
+  <header class="public-prediction__nav" *ngIf="!is('embed')">
+    <a class="public-prediction__brand" href="/" aria-label="CrickZen public predictions home">CrickZen <span>Prediction</span></a>
+    <nav aria-label="Prediction product navigation">
+      <a href="/how-it-works">How it works</a>
+      <a href="/history">History &amp; proof</a>
+      <a href="/creator-packs">Creator packs</a>
+      <a href="/developers">Developers</a>
+      <a class="public-prediction__nav-cta" href="https://www.crickzen.com/matches">Live matches</a>
+    </nav>
+  </header>
+
+  <main class="public-prediction__shell">
+    <ng-container *ngIf="is('home')">
+      <section class="public-prediction__hero">
+        <p class="public-prediction__eyebrow">Public cricket intelligence</p>
+        <h1>See what the model thinks. Understand why.</h1>
+        <p class="public-prediction__lead">CrickZen turns a verified match snapshot into a simple win-probability signal, a plain-language explanation, and a source link you can check.</p>
+        <div class="public-prediction__hero-actions">
+          <a class="public-prediction__button public-prediction__button--primary" href="#verified-matches">See verified matches</a>
+          <a class="public-prediction__button public-prediction__button--quiet" href="/how-it-works">How the signal is made</a>
+        </div>
+      </section>
+
+      <section id="verified-matches" class="public-prediction__section" aria-labelledby="verified-matches-title">
+        <div class="public-prediction__section-heading">
+          <div>
+            <p class="public-prediction__eyebrow">Current public feed</p>
+            <h2 id="verified-matches-title">Verified match signals</h2>
+          </div>
+          <a href="https://www.crickzen.com/matches">Browse all match pages →</a>
+        </div>
+
+        <div class="public-prediction__loading" *ngIf="isLoading">
+          Loading the latest public-safe match signals…
+        </div>
+        <div class="public-prediction__empty" *ngIf="!isLoading && (loadError || matches.length === 0)">
+          No verified public prediction is available right now. You can still browse the live score and schedule pages on CrickZen.
+          <a href="https://www.crickzen.com/matches">Open live matches →</a>
+        </div>
+
+        <div class="public-prediction__match-grid" *ngIf="!isLoading && matches.length > 0">
+          <article class="public-prediction__match-card" *ngFor="let item of matches">
+            <div class="public-prediction__match-topline">
+              <span class="public-prediction__status">{{ statusLabel(item) }}</span>
+              <span>{{ item.league || 'Cricket' }}</span>
+            </div>
+            <h3>{{ matchLabel(item) }}</h3>
+            <div class="public-prediction__signal-row">
+              <div>
+                <span class="public-prediction__label">Model direction</span>
+                <strong>{{ probabilityTeam(item) }}</strong>
+              </div>
+              <strong class="public-prediction__probability" [class.public-prediction__probability--muted]="!hasFreshProbability(item)">{{ probabilityLabel(item) }}</strong>
+            </div>
+            <p class="public-prediction__freshness">{{ freshnessLabel(item) }}</p>
+            <p class="public-prediction__insight">{{ item.insight || 'The public explanation will appear when a complete model snapshot is available.' }}</p>
+            <div class="public-prediction__match-actions">
+              <a [href]="shareUrl(item)" (click)="trackPredictionView(item)">Open prediction card</a>
+              <a [href]="canonicalMatchUrl(item)">Match centre →</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="public-prediction__three-up" aria-label="What the public product includes">
+        <article><span>01</span><h2>Prediction</h2><p>A rounded probability only appears when the public model row is fresh, identified, and inside the safe range.</p></article>
+        <article><span>02</span><h2>Explanation</h2><p>See the visible match-state factors, what changed, and what to watch next without raw training data.</p></article>
+        <article><span>03</span><h2>Distribution</h2><p>Share a card, use an approved creator pack, or ask about a publisher embed with clear CrickZen attribution.</p></article>
+      </section>
+    </ng-container>
+
+    <ng-container *ngIf="is('share') || is('embed')">
+      <article class="public-prediction__share-card" *ngIf="match; else unavailableCard">
+        <p class="public-prediction__eyebrow">CrickZen public match signal</p>
+        <div class="public-prediction__match-topline"><span class="public-prediction__status">{{ statusLabel(match) }}</span><span>{{ match.league || 'Cricket' }}</span></div>
+        <h1>{{ matchLabel(match) }}</h1>
+        <div class="public-prediction__share-signal">
+          <div><span class="public-prediction__label">Model direction</span><strong>{{ probabilityTeam(match) }}</strong></div>
+          <strong class="public-prediction__probability" [class.public-prediction__probability--muted]="!hasFreshProbability(match)">{{ probabilityLabel(match) }}</strong>
+        </div>
+        <p class="public-prediction__score" *ngIf="match.score || match.overs"><strong>Score context:</strong> {{ match.score || 'Score unavailable' }}<span *ngIf="match.overs"> · {{ match.overs }}</span></p>
+        <p class="public-prediction__freshness">{{ freshnessLabel(match) }}</p>
+        <p class="public-prediction__score" *ngIf="match.historical_snapshot && match.final_winner"><strong>Recorded result:</strong> {{ match.final_winner }}</p>
+        <p class="public-prediction__share-insight">{{ match.insight || 'No short explanation is available for this snapshot yet.' }}</p>
+        <ul class="public-prediction__reasons" *ngIf="match.reasons && match.reasons.length">
+          <li *ngFor="let reason of match.reasons | slice:0:3">{{ reason }}</li>
+        </ul>
+        <p class="public-prediction__disclaimer">This is a model signal, not a guarantee or betting advice. Match state can change quickly.</p>
+        <div class="public-prediction__share-actions" *ngIf="!is('embed')">
+          <button type="button" class="public-prediction__button public-prediction__button--primary" (click)="onShare(match)">{{ copied ? 'Link copied' : 'Share prediction' }}</button>
+          <a class="public-prediction__button public-prediction__button--quiet" [href]="canonicalMatchUrl(match)">Open live match</a>
+        </div>
+        <a class="public-prediction__source" [href]="canonicalMatchUrl(match)">Source and full match context: CrickZen live match centre →</a>
+        <p class="public-prediction__powered">Powered by CrickZen · <a href="https://prediction.crickzen.com/how-it-works">How this works</a></p>
+      </article>
+      <ng-template #unavailableCard>
+        <article class="public-prediction__share-card public-prediction__share-card--unavailable">
+          <p class="public-prediction__eyebrow">CrickZen public match signal</p>
+          <h1>Prediction temporarily unavailable</h1>
+          <p>We do not show an old or invented percentage. Open the canonical match centre for the latest score context.</p>
+          <a class="public-prediction__button public-prediction__button--primary" href="https://www.crickzen.com/matches">Browse match centres</a>
+        </article>
+      </ng-template>
+
+      <section class="public-prediction__embed-help" *ngIf="is('embed')">
+        <p>Want to use this card on a publication?</p>
+        <code>{{ embedCode(match) }}</code>
+        <a href="https://prediction.crickzen.com/partners">Ask about publisher use →</a>
+      </section>
+    </ng-container>
+
+    <ng-container *ngIf="is('how-it-works')">
+      <section class="public-prediction__page-hero"><p class="public-prediction__eyebrow">Methodology</p><h1>How CrickZen predictions work</h1><p>We publish a readable model signal only when we can identify the match, explain the source, and show when the underlying snapshot was updated.</p></section>
+      <section class="public-prediction__content-grid">
+        <article><span class="public-prediction__number">01</span><h2>Start with the match state</h2><p>The system reads the verified match identity, lifecycle, score, overs, innings context, and other public-safe state available for that match.</p></article>
+        <article><span class="public-prediction__number">02</span><h2>Apply the selected model</h2><p>The public result carries a model label and source. Raw training features and operator controls stay private.</p></article>
+        <article><span class="public-prediction__number">03</span><h2>Check freshness</h2><p>A probability is hidden when the timestamp is missing, stale, outside the allowed window, or does not match the exact match identity.</p></article>
+        <article><span class="public-prediction__number">04</span><h2>Explain the visible signal</h2><p>We show a short insight and selected public-safe reasons. The words describe the current snapshot; they are not a promise about the result.</p></article>
+      </section>
+      <section class="public-prediction__notice"><h2>What this is not</h2><p>It is not certainty, inside information, betting advice, or a replacement for watching the match. A model can be wrong, and a match can change between updates.</p></section>
+    </ng-container>
+
+    <ng-container *ngIf="is('history')">
+      <section class="public-prediction__page-hero"><p class="public-prediction__eyebrow">Audit trail</p><h1>Prediction history that can be checked</h1><p>We save the first usable public forecast, wait for a verifiable final result, and then calculate trust metrics. This means the number of matches may be small at first.</p></section>
+      <div class="public-prediction__loading" *ngIf="isLoading">Loading the public history…</div>
+      <section class="public-prediction__notice" *ngIf="!isLoading && historySummary && historySummary.status === 'not_ready'"><h2>History is being collected</h2><p>No completed public forecast has passed the archive checks yet. We will not display a made-up accuracy or calibration number.</p><a href="/how-it-works">Read the methodology →</a></section>
+      <ng-container *ngIf="!isLoading && historySummary && historySummary.status !== 'not_ready'">
+        <section class="public-prediction__history-status"><p class="public-prediction__eyebrow">{{ historySummary.status === 'ready' ? 'Evidence available' : 'Early evidence' }}</p><h2>{{ historySummary.eligible_match_count }} completed match{{ historySummary.eligible_match_count === 1 ? '' : 'es' }} evaluated</h2><p *ngIf="historySummary.status === 'collecting'">This is a small sample. Treat it as a progress report, not a prediction guarantee. We will call it ready after at least 30 eligible matches.</p></section>
+        <section class="public-prediction__history-metrics" aria-label="Prediction trust metrics">
+          <article><span>Brier score</span><strong>{{ historyMetric(historySummary.metrics.brier) }}</strong><p>Probability error. Lower is better.</p></article>
+          <article><span>Calibration gap (ECE)</span><strong>{{ historyMetric(historySummary.metrics.ece) }}</strong><p>How close confidence is to actual results. Lower is better.</p></article>
+          <article><span>First-call accuracy</span><strong>{{ historyMetric(historySummary.metrics.accuracy_pct, '%') }}</strong><p>How often the selected team won.</p></article>
+          <article><span>Log loss</span><strong>{{ historyMetric(historySummary.metrics.log_loss) }}</strong><p>Supporting penalty for confident misses.</p></article>
+        </section>
+        <section class="public-prediction__history-section"><div class="public-prediction__section-heading"><div><p class="public-prediction__eyebrow">Calibration</p><h2>Forecast confidence vs results</h2></div><span>{{ historySummary.eligible_match_count }} match-level rows</span></div><div class="public-prediction__calibration-table"><div class="public-prediction__calibration-row public-prediction__calibration-row--head"><span>Forecast bucket</span><span>Average forecast</span><span>Actual win rate</span><span>Matches</span></div><div class="public-prediction__calibration-row" *ngFor="let bucket of historySummary.calibration"><span>{{ historyBucketLabel(bucket) }}</span><span>{{ bucket.forecast_mean === null || bucket.forecast_mean === undefined ? '—' : historyMetric(bucket.forecast_mean * 100, '%') }}</span><span>{{ bucket.observed_rate === null || bucket.observed_rate === undefined ? '—' : historyMetric(bucket.observed_rate * 100, '%') }}</span><span>{{ bucket.count }}</span></div></div></section>
+        <section class="public-prediction__history-section" *ngIf="historyRecords.length"><div class="public-prediction__section-heading"><div><p class="public-prediction__eyebrow">Immutable records</p><h2>What was actually published</h2></div></div><div class="public-prediction__history-records"><article class="public-prediction__history-record" *ngFor="let record of historyRecords"><div class="public-prediction__match-topline"><span class="public-prediction__status">Completed snapshot</span><span>{{ record.league }}</span></div><h3>{{ record.match_label }}</h3><p><strong>Forecast:</strong> {{ historyRecordProbability(record) }} for {{ record.prediction && record.prediction.predicted_side }}</p><p><strong>Result:</strong> {{ record.outcome && record.outcome.winner }}</p><a [href]="'/history/' + record.archive_id">Open immutable record →</a></article></div></section>
+        <section class="public-prediction__notice"><h2>How to read this</h2><p>Brier and ECE judge probability quality. Accuracy judges the simple win/loss call. They are different questions, so we show them separately. The ledger uses one first usable forecast per completed match; live ball updates are not counted as independent matches.</p><a href="/how-it-works">Read definitions →</a></section>
+      </ng-container>
+      <section class="public-prediction__notice" *ngIf="!isLoading && (!historySummary || loadError)"><h2>History is temporarily unavailable</h2><p>We do not replace missing data with an estimate. Please try again later.</p></section>
+    </ng-container>
+
+    <ng-container *ngIf="is('history-detail')">
+      <div class="public-prediction__loading" *ngIf="isLoading">Loading immutable record…</div>
+      <article class="public-prediction__share-card" *ngIf="!isLoading && historyRecord; else unavailableHistoryRecord">
+        <p class="public-prediction__eyebrow">Immutable completed-match record</p>
+        <div class="public-prediction__match-topline"><span class="public-prediction__status">Archived</span><span>{{ historyRecord.league }}</span></div>
+        <h1>{{ historyRecord.match_label }}</h1>
+        <div class="public-prediction__signal-row"><div><span class="public-prediction__label">Original public call</span><strong>{{ historyRecord.prediction && historyRecord.prediction.predicted_side }}</strong></div><strong class="public-prediction__probability">{{ historyRecordProbability(historyRecord) }}</strong></div>
+        <p class="public-prediction__freshness">Recorded {{ historyRecord.prediction && historyRecord.prediction.timestamp }}</p>
+        <p class="public-prediction__score"><strong>Final result:</strong> {{ historyRecord.outcome && historyRecord.outcome.winner }}</p>
+        <p class="public-prediction__disclaimer">This record is frozen after publication. It is evidence of what CrickZen said at that moment, not a guarantee.</p>
+        <div class="public-prediction__share-actions"><a class="public-prediction__button public-prediction__button--primary" [href]="historyRecordSharePath(historyRecord)">Open share card</a><a class="public-prediction__button public-prediction__button--quiet" [href]="historyRecord.match_url">Open source match</a></div>
+        <p class="public-prediction__source">Archive ID: {{ historyRecord.archive_id }} · Source evidence: {{ historyRecord.outcome && historyRecord.outcome.evidence }}</p>
+      </article>
+      <ng-template #unavailableHistoryRecord><article class="public-prediction__share-card public-prediction__share-card--unavailable"><p class="public-prediction__eyebrow">Immutable completed-match record</p><h1>Record unavailable</h1><p>This historical record does not exist or failed validation.</p><a class="public-prediction__button public-prediction__button--primary" href="/history">Back to history</a></article></ng-template>
+    </ng-container>
+
+    <ng-container *ngIf="is('creator-packs')">
+      <section class="public-prediction__page-hero"><p class="public-prediction__eyebrow">For cricket creators</p><h1>Ready-to-use match packs</h1><p>TrueOdds Video Studio already turns verified CrickZen match intelligence into creator-friendly assets. This public page explains the output without exposing the operator studio.</p></section>
+      <section class="public-prediction__content-grid"><article><h2>What a pack can include</h2><p>Probability card, short explanation, talking points, caption, source line, and approved visual assets when the match passes verification.</p></article><article><h2>How we keep it safe</h2><p>Every pack is tied to a verified manifest. Unsupported stages are marked as skipped; arbitrary local files and private paths are never published.</p></article><article><h2>How to use it</h2><p>Credit CrickZen, link to the canonical match centre, keep the timestamp and caveat, and do not present a model signal as a guaranteed result.</p></article><article><h2>Request a sample</h2><p>Send your channel, format, and match coverage idea through the <a href="/partners">partnership page</a>.</p></article></section>
+      <section class="public-prediction__sample-section" aria-labelledby="sample-packs-title">
+        <div class="public-prediction__section-heading">
+          <div><p class="public-prediction__eyebrow">Verified examples</p><h2 id="sample-packs-title">Preview three sample packs</h2></div>
+          <a href="/partners">Request a pack →</a>
+        </div>
+        <div class="public-prediction__pack-grid">
+          <article class="public-prediction__pack-card" *ngFor="let sample of creatorPackSamples">
+            <div class="public-prediction__match-topline"><span class="public-prediction__status">Verified sample</span><span>{{ sample.competition }}</span></div>
+            <h3>{{ sample.title }}</h3>
+            <p class="public-prediction__sample-date">{{ sample.snapshotLabel }}</p>
+            <p>{{ sample.summary }}</p>
+            <div class="public-prediction__match-actions">
+              <a [href]="creatorPackShareUrl(sample)">Preview card →</a>
+              <a [href]="creatorPackEmbedUrl(sample)">Preview embed</a>
+            </div>
+            <a class="public-prediction__source" [href]="sample.canonicalPath">Canonical match centre →</a>
+            <div class="public-prediction__artifact-links" aria-label="Download sample pack files">
+              <a *ngFor="let artifact of sample.artifacts" [href]="creatorPackArtifactUrl(artifact)" [attr.download]="artifact.downloadName">{{ artifact.label }} →</a>
+            </div>
+            <a class="public-prediction__manifest" [href]="creatorPackManifestUrl(sample)">View pack manifest →</a>
+          </article>
+        </div>
+      </section>
+      <section class="public-prediction__notice"><h2>What is public today</h2><p>The three fixed sample packs include a downloadable MP4, thumbnail, report, and caption. Custom packs and future match files are still shared through a controlled request after verification.</p><a href="/partners">Request a creator sample →</a></section>
+    </ng-container>
+
+    <ng-container *ngIf="is('partners')">
+      <section class="public-prediction__page-hero"><p class="public-prediction__eyebrow">Creators, publishers, and data teams</p><h1>Build useful cricket prediction experiences with CrickZen</h1><p>We can discuss verified cards, creator packs, newsletter visuals, publisher embeds, and carefully scoped data access.</p></section>
+      <section class="public-prediction__content-grid"><article><h2>Creators</h2><p>Use a compact card, source-backed talking points, and a clear caveat in videos, posts, podcasts, and newsletters.</p></article><article><h2>Publishers</h2><p>Ask about a responsive widget that keeps the score context, timestamp, source link, and CrickZen attribution visible.</p></article><article><h2>Developers</h2><p>Read the public API proposal and access policy on the <a href="/developers">developer page</a>. Capacity and abuse controls come before broad access.</p></article><article><h2>Start a conversation</h2><p>Tell us what you publish, who it serves, and the exact format you need. <a href="https://www.crickzen.com/contact">Contact CrickZen →</a></p></article></section>
+    </ng-container>
+
+    <ng-container *ngIf="is('media-kit')">
+      <section class="public-prediction__page-hero"><p class="public-prediction__eyebrow">Press and publishing</p><h1>CrickZen media kit</h1><p>CrickZen provides live cricket scores, match pages, and public-safe prediction intelligence. Use the wording below when describing the product.</p></section>
+      <section class="public-prediction__notice"><h2>Approved short description</h2><p>“CrickZen is a cricket information product that combines live match context with readable, public-safe model signals.”</p><h2>Attribution</h2><p>Credit “CrickZen” and link to the relevant match centre or public prediction card. Keep the timestamp and model caveat with the card.</p><h2>Claims to avoid</h2><p>Do not claim guaranteed accuracy, guaranteed winnings, inside information, or a fixed audience size. Ask us for approved logos and screenshots before publishing brand assets.</p><a href="https://www.crickzen.com/contact">Request media assets →</a></section>
+    </ng-container>
+
+    <ng-container *ngIf="is('developers')">
+      <section class="public-prediction__page-hero"><p class="public-prediction__eyebrow">Read-only access</p><h1>CrickZen public prediction API</h1><p>The API is designed around small, public-safe reads for match identity, score context, probability, freshness, explanation, and provenance. Broad self-service access will follow capacity and contract testing.</p></section>
+      <section class="public-prediction__api-block"><h2>Proposed v1 endpoints</h2><pre><code>GET /api/v1/public/matches
+GET /api/v1/public/matches/:slug
+GET /api/v1/public/matches/:slug/prediction
+GET /api/v1/public/matches/:slug/card</code></pre><p>Responses are read-only, versioned, bounded, cache-aware, and rate-limited. A stale or mismatched probability is returned as unavailable rather than silently presented as current.</p></section>
+      <section class="public-prediction__notice"><h2>Request access</h2><p>Tell us your site, expected request volume, use case, and attribution plan. <a href="https://www.crickzen.com/contact">Contact CrickZen →</a></p></section>
+    </ng-container>
+  </main>
+
+  <footer class="public-prediction__footer" *ngIf="!is('embed')">
+    <span>CrickZen public prediction product</span>
+    <nav aria-label="Prediction product footer navigation"><a href="/media-kit">Media kit</a><a href="/partners">Partners</a><a href="https://www.crickzen.com/privacy-policy">Privacy</a><a href="https://www.crickzen.com/terms-of-service">Terms</a></nav>
+  </footer>
+</section>

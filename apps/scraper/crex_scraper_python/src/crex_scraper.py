@@ -52,6 +52,10 @@ class CrexScraperService:
         self._last_live_match_count = 0
         self._last_managed_live_match_count = 0
         self._last_managed_live_urls: list[str] = []
+        # Discovery is the authoritative active slate. Keep it separate from
+        # the backend catalogue because that catalogue can retain rows that
+        # have already disappeared from the provider's live carousel.
+        self._discovery_live_urls: list[str] = []
         self._restart_condition_consecutive_count: int = 0
         
         # Persistent page pool and fast poll service (Feature 007 - Phase 2)
@@ -324,6 +328,15 @@ class CrexScraperService:
                 live_urls.append(url)
         return live_urls
 
+    def _authoritative_live_urls(self, backend_matches: Optional[list[Any]] = None) -> list[str]:
+        """Return discovery's active slate, preserving an intentional empty slate."""
+        if hasattr(self, "_discovery_live_urls"):
+            return list(dict.fromkeys(self._discovery_live_urls or []))
+        if backend_matches is None:
+            return []
+        selected_matches = select_live_matches(backend_matches, self.settings.max_live_matches)
+        return self._extract_live_urls(selected_matches)
+
     def schedule_container_restart(
         self,
         reason: str,
@@ -389,15 +402,22 @@ class CrexScraperService:
                 self._last_live_match_count = len(catalog_live_urls)
                 self.health.set_active_matches(self._last_live_match_count)
 
-                matches = select_live_matches(matches, self.settings.max_live_matches)
+                backend_selected_matches = select_live_matches(matches, self.settings.max_live_matches)
                 logger.info(
                     "poll.matches_selected count=%s limit=%s policy=international-first,series-cap-3",
-                    len(matches),
+                    len(backend_selected_matches),
                     self.settings.max_live_matches,
                 )
-                self.health.set_active_matches(len(matches))
-
-                live_urls = self._extract_live_urls(matches)
+                backend_selected_urls = self._extract_live_urls(backend_selected_matches)
+                live_urls = self._authoritative_live_urls(matches)
+                if hasattr(self, "_discovery_live_urls") and set(backend_selected_urls) != set(live_urls):
+                    logger.warning(
+                        "poll.live_slate_drift backend_selected=%s discovery_selected=%s",
+                        backend_selected_urls,
+                        live_urls,
+                    )
+                logger.info("poll.live_slate_authoritative count=%s source=discovery", len(live_urls))
+                self.health.set_active_matches(len(live_urls))
                 self._last_managed_live_match_count = len(live_urls)
                 self._last_managed_live_urls = list(live_urls)
                 if self.http_sv3_fast_lane:
@@ -440,9 +460,26 @@ class CrexScraperService:
                 await asyncio.sleep(5)
 
     async def _on_match_catalog_updated(self, live_urls: list[str], schedule_matches: list[dict]) -> None:
-        if not self.player_stats_crawler:
-            return
-        await self.player_stats_crawler.update_candidates(live_urls, schedule_matches)
+        self._discovery_live_urls = list(dict.fromkeys(live_urls or []))
+        self._last_managed_live_match_count = len(self._discovery_live_urls)
+        self._last_managed_live_urls = list(self._discovery_live_urls)
+        self.health.set_active_matches(self._last_managed_live_match_count)
+        # An empty discovery result is a successful no-live cycle, not a
+        # scrape stall. Keep health fresh even when there is no match page to
+        # scrape and the normal worker loop has no task to complete.
+        self.health.record_success()
+        logger.info(
+            "discovery.live_slate_authoritative count=%s urls=%s",
+            len(self._discovery_live_urls),
+            self._discovery_live_urls,
+        )
+        if self.http_sv3_fast_lane:
+            await self.http_sv3_fast_lane.reconcile(self._discovery_live_urls)
+        if self.player_stats_crawler:
+            await self.player_stats_crawler.update_candidates(
+                self._discovery_live_urls,
+                schedule_matches,
+            )
 
     async def _fast_poll_loop(self):
         """
@@ -467,23 +504,13 @@ class CrexScraperService:
                     self._auth_token
                 )
 
-                matches = select_live_matches(matches, self.settings.max_live_matches)
-                current_match_urls = set(self._extract_live_urls(matches))
+                current_match_urls = set(self._authoritative_live_urls(matches))
                 self._last_managed_live_match_count = len(current_match_urls)
                 self._last_managed_live_urls = sorted(current_match_urls)
                 self.health.set_active_matches(self._last_managed_live_match_count)
                 await self.persistent_page_pool.ensure_capacity(len(current_match_urls))
 
-                for match in matches:
-                    url = None
-                    if isinstance(match, dict):
-                        url = match.get('url') or match.get('matchUrl')
-                    elif isinstance(match, str):
-                        url = match
-
-                    if not url:
-                        continue
-
+                for url in sorted(current_match_urls):
                     # Extract match ID from URL
                     match_id = self._extract_match_id(url)
                     if not match_id:

@@ -22,6 +22,7 @@ import { MatchCardViewModel, MatchStatus } from '../features/matches/models/matc
 import { MatchesService } from '../features/matches/services/matches.service';
 import { MetaTagsService } from '../seo/meta-tags.service';
 import { StructuredDataService } from '../seo/structured-data.service';
+import { PublicPredictionHostService } from '../public-prediction/public-prediction-host.service';
 
 type HomeTab = 'live' | 'upcoming' | 'results';
 
@@ -102,13 +103,23 @@ export class HomeComponent implements OnInit, OnDestroy {
     private blogListService: BlogListService,
     private newsService: NewsService,
     private changeDetectorRef: ChangeDetectorRef,
-    private transferState: TransferState,
+  private transferState: TransferState,
+    private publicPredictionHostService: PublicPredictionHostService,
     @Inject(PLATFORM_ID) platformId: object
   ) {
     this.isBrowser = isPlatformBrowser(platformId);
+    this.isPredictionHost = this.publicPredictionHostService.isPredictionHost();
   }
 
+  isPredictionHost = false;
+
   ngOnInit(): void {
+    if (this.isPredictionHost) {
+      // prediction.crickzen.com owns a separate public product shell. Do not
+      // start the score/news catalogue fan-out on that host.
+      return;
+    }
+
     this.metaTagsService.setPageMeta('/', {
       title: 'Crickzen | Live Cricket Scores & Real-time Updates | International & Domestic Matches',
       description: 'Stay updated with live cricket scores and real-time updates from international and domestic matches on Crickzen. Get ball-by-ball commentary, match analysis, and comprehensive cricket coverage.',
