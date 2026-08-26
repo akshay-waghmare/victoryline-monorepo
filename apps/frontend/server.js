@@ -271,6 +271,14 @@ function applyCanonicalSnapshotToSsrHtml(html, snapshot) {
       : parityHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i, (heading) => heading + aeoBlock);
   }
 
+  if (match && summary) {
+    const stateScript = buildCanonicalMatchStateScript(match, snapshot, summary);
+    const statePattern = /<script\s+id=["']crickzen-app-state["'][^>]*>[\s\S]*?<\/script>/i;
+    parityHtml = statePattern.test(parityHtml)
+      ? parityHtml.replace(statePattern, stateScript)
+      : parityHtml.replace(/<\/head>/i, `${stateScript}</head>`);
+  }
+
   return parityHtml;
 }
 
@@ -881,6 +889,40 @@ function buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) {
     <p>${escapeHtml(summary.copy)}</p>
     <dl>${factsHtml}</dl>
   </section>`;
+}
+
+function buildCanonicalMatchStateScript(match, snapshot, summary) {
+  const scheduledValue = snapshot && (snapshot.scheduledAtMs || snapshot.scheduledAt) || null;
+  const matchInfo = {
+    url: `/cric-live/${match.slug}`,
+    match_name: match.teams,
+    series_name: cleanSnapshotText(snapshot && snapshot.series) || match.series || null,
+    match_date: scheduledValue,
+    venue: cleanSnapshotText(snapshot && snapshot.venue) || null,
+    toss_info: cleanSnapshotText(snapshot && snapshot.toss) || null,
+    final_result_text: cleanSnapshotText(snapshot && (snapshot.result || snapshot.lastKnownState)) || null,
+    match_status: cleanSnapshotText(snapshot && snapshot.status) || summary.lifecycle,
+    status: cleanSnapshotText(snapshot && snapshot.status) || summary.lifecycle,
+    lastKnownState: cleanSnapshotText(snapshot && snapshot.lastKnownState) || null,
+    team1_name: match.team1,
+    team2_name: match.team2,
+    team_comparison: {},
+    venue_stats: {},
+    playing_xi: null,
+    team_form: {}
+  };
+  const cricketData = {};
+  if (snapshot && snapshot.score) cricketData.score = snapshot.score;
+  if (snapshot && snapshot.overs !== null && snapshot.overs !== undefined) cricketData.over = snapshot.overs;
+  if (snapshot && snapshot.battingTeam) cricketData.batting_team = snapshot.battingTeam;
+  if (snapshot && snapshot.lastKnownState) cricketData.current_ball = snapshot.lastKnownState;
+
+  const state = {
+    cricket_match_info: matchInfo,
+    cricket_data_snapshot: Object.keys(cricketData).length > 0 ? cricketData : null
+  };
+  const encoded = JSON.stringify(state).replace(/</g, '\\u003c');
+  return `<script id="crickzen-app-state" type="application/json">${encoded}</script>`;
 }
 
 function buildCanonicalMatchFallbackHtml(req, snapshot) {

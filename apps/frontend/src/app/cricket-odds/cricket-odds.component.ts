@@ -2959,6 +2959,12 @@ private findSeriesStandingForTeam(
 }
 
 private populateFallbackMatchInfo(match: any = this.currentMatch): void {
+  // A canonical SSR snapshot is authoritative during browser boot. Do not
+  // replace it with a route-only placeholder while secondary API calls retry.
+  if (this.matchInfo && !this.isFallbackMatchInfo) {
+    return;
+  }
+
   if (!match) {
     var fallbackKey = this.matchUrl || this.currentUrl || this.matchId;
     if (!fallbackKey) {

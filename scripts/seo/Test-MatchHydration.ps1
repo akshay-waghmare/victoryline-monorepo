@@ -10,6 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $chromeCandidates = @(
+    'C:\Program Files\Google\Chrome\Application\chrome.exe',
     (Join-Path $env:ProgramFiles 'Google\Chrome\Application\chrome.exe'),
     (Join-Path ${env:ProgramFiles(x86)} 'Google\Chrome\Application\chrome.exe'),
     (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe')
@@ -29,21 +30,30 @@ function Get-DumpedDom {
     param([string]$TargetUrl)
 
     $profilePath = Join-Path ([System.IO.Path]::GetTempPath()) ('crickzen-hydration-' + [guid]::NewGuid().ToString('N'))
+    $stdoutPath = Join-Path $profilePath 'dump-dom.html'
+    $stderrPath = Join-Path $profilePath 'chrome.log'
     New-Item -ItemType Directory -Force -Path $profilePath | Out-Null
     try {
         $arguments = @(
-            '--headless=new',
+            '--headless',
             '--disable-gpu',
             '--disable-dev-shm-usage',
             '--no-sandbox',
+            '--no-first-run',
+            '--no-default-browser-check',
             '--run-all-compositor-stages-before-draw',
             "--virtual-time-budget=$VirtualTimeBudgetMs",
             "--user-data-dir=$profilePath",
             '--dump-dom',
             $TargetUrl
         )
-        $dom = (& $chrome @arguments 2>$null) -join [Environment]::NewLine
-        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($dom)) {
+        $process = Start-Process -FilePath $chrome -ArgumentList $arguments -PassThru -Wait -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+        $dom = if (Test-Path -LiteralPath $stdoutPath) { [System.IO.File]::ReadAllText($stdoutPath) } else { '' }
+        # Chrome can return a non-zero process code after emitting a valid
+        # dump when third-party page resources or an existing browser session
+        # close asynchronously. The DOM is the acceptance artifact; reject
+        # only an empty dump.
+        if ([string]::IsNullOrWhiteSpace($dom)) {
             throw "Chrome could not dump the hydrated DOM for $TargetUrl."
         }
         return $dom
