@@ -68,9 +68,9 @@ function Get-Metrics {
         lifecycle = if ($lifecycleMatch.Success) { $lifecycleMatch.Groups[1].Value } else { $null }
         aeoHasTeamsFact = [bool]($aeoText -match '(?i)\bTeams\b')
         aeoHasStatusFact = [bool]($aeoText -match '(?i)\bStatus\b')
-        aeoHasScore = [bool]($aeoText -match '\b\d+\s*[-/]\s*\d+\b')
+        aeoHasScore = [bool]($aeoText -match '(?is)\bScore\s+[^<]{0,80}\b\d{1,4}\s*[-/]\s*\d{1,3}\b')
         aeoHasResult = [bool]($aeoText -match '(?i)result|won by|lead by|match completed|drawn|tied')
-        aeoHasInvalidScore = [bool]($aeoText -match '(?i)\b0\s*[-/]\s*0\b')
+        aeoHasInvalidScore = [bool]($aeoText -match '(?is)\bScore\s+[^<]{0,80}\b0\s*[-/]\s*0\b')
         anchors = $anchors.Count
         internalAnchors = @($anchors | Where-Object { $_.Value -match 'href=["''](?:/|https://www\.crickzen\.com/)' }).Count
         jsonLd = ([regex]::Matches($Body, 'application/ld\+json', 'IgnoreCase')).Count
