@@ -25,39 +25,18 @@ import {
   MatSnackBar
 } from '@angular/material';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HttpClientModule } from '@angular/common/http';
 import { AuthenticationGuard } from './authentication.guard';
 import { TokenStorage } from './token.storage';
-import { LoaderComponent } from './loader/loader.component';
-import { LoaderService } from './loader/loader.service';
-import { LoaderInterceptor } from './loader/loader.interceptor';
-import { StompService, StompConfig } from '@stomp/ng2-stompjs';
 import { ElapsedTimePipe } from './utils/elapsed-time.pipe';
 import { CustomReuseStrategy } from './custom-reuse-strategy';
-import { environment } from 'src/environments/environment';
 import { LogoutFormComponent } from './logout-form/logout-form.component';
 import { LazyMediaService } from './seo/lazy-media.service';
 //import { HomeComponent } from './home/home.component';
 
-
-const stompConfig: StompConfig = {
-  // added '/websocket' for spring boot SockJS
-  url: environment.ws.brokerURL,
-  headers: {
-    login: 'guest',
-    passcode: 'guest'
-  },
-  heartbeat_in: 0,
-  heartbeat_out: 20000, // 20000 - every 20 seconds
-  reconnect_delay: 5000,
-  debug: true
-};
-
-
 @NgModule({
   declarations: [
     AppComponent,
-    LoaderComponent,
     ElapsedTimePipe,
     
     
@@ -89,17 +68,14 @@ const stompConfig: StompConfig = {
     LogoutFormComponent // Ensure the component is in entryComponents
   ],
   providers: [AuthenticationGuard,TokenStorage,
-    LoaderService,
     HttpClientModule,
-    StompConfig,
     {
       provide: APP_INITIALIZER,
       useFactory: (lazyMediaService: LazyMediaService) => () => lazyMediaService.init(),
       deps: [LazyMediaService],
       multi: true
     },
-    {provide: RouteReuseStrategy, useClass: CustomReuseStrategy },
-    { provide: HTTP_INTERCEPTORS,useValue: stompConfig, useClass: LoaderInterceptor, multi: true }],
+    {provide: RouteReuseStrategy, useClass: CustomReuseStrategy }],
   bootstrap: [AppComponent],
   
   // exports: [SidebarComponent]

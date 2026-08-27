@@ -990,9 +990,14 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     <p>${escapeHtml(summary.copy)}</p>
     <p><a href="${canonicalPath}">${escapeHtml(match.teams)} match centre</a> · <a href="/live-score">Live cricket scores</a> · <a href="/cricket-schedule/today">Today’s cricket schedule</a></p>
   </main>`;
+  // Keep the authoritative snapshot available when the fast static document
+  // hands control to Angular. Without this, the browser would briefly replace
+  // useful SSR facts with a route-only shell while its API requests warm up.
+  const stateScript = buildCanonicalMatchStateScript(match, snapshot, summary);
 
   return indexHtml
     .replace(/<title>[^<]*<\/title>/i, head)
+    .replace(/<\/head>/i, `${stateScript}</head>`)
     .replace(/<app-root><\/app-root>/i, `<app-root>${body}</app-root>`);
 }
 
@@ -1169,6 +1174,25 @@ app.get('*', async (req, res) => {
         res.setHeader('X-SSR-Lifecycle', 'upcoming');
         res.setHeader('X-SSR-Document-Cache', 'miss');
         res.status(200).send(scheduleFirstHtml);
+        return;
+      }
+    }
+    // Live and terminal match pages have the same verified snapshot-first
+    // answer contract. Send that useful document immediately instead of
+    // making crawlers wait for optional commentary, model, scorecard, and
+    // retained-entity fan-out. Angular receives the embedded state and can
+    // enrich the page without covering the answer with a global loader.
+    if (snapshotLifecycle === 'live' || snapshotLifecycle === 'innings-break'
+        || snapshotLifecycle === 'completed' || snapshotLifecycle === 'abandoned') {
+      const snapshotFirstHtml = buildCanonicalMatchFallbackHtml(req, req.canonicalMatchSnapshot);
+      if (snapshotFirstHtml) {
+        rememberRenderedMatchDocument(req.canonicalMatchSnapshot, req.path, snapshotFirstHtml);
+        applyRouteCacheHeaders(req, res);
+        res.setHeader('X-SSR-Fallback', 'canonical-match');
+        res.setHeader('X-SSR-Fallback-Level', 'snapshot-first');
+        res.setHeader('X-SSR-Lifecycle', snapshotLifecycle);
+        res.setHeader('X-SSR-Document-Cache', 'miss');
+        res.status(200).send(snapshotFirstHtml);
         return;
       }
     }

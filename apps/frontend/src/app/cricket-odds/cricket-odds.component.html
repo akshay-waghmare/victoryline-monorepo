@@ -128,8 +128,7 @@
             </app-match-details-info>
 
             <div class="loading-indicator match-tab-state" *ngIf="!matchInfo && isLoadingMatchInfo">
-              <mat-spinner></mat-spinner>
-              <p>Loading match details...</p>
+              <p role="status" aria-live="polite">Match details are refreshing in the background.</p>
             </div>
 
             <div class="match-tab-state" *ngIf="!matchInfo && !isLoadingMatchInfo">

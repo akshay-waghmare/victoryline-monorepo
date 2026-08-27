@@ -1592,14 +1592,41 @@ private resolveRouteMatch(matchSlug: string): void {
   // refetched live + upcoming + completed catalogs just to find that same
   // match, which caused three disruptive requests on every match surface.
   // Navigation state may provide richer card metadata; direct URLs use this
-  // lightweight identity until match-info responds.
-  var routeMatch = this.currentMatch && this.routeSlugMatches(matchSlug, this.currentMatch)
-    ? this.currentMatch
-    : {
+  // lightweight identity until match-info responds. A snapshot-first SSR
+  // document embeds authoritative match-info before Angular starts; use it
+  // immediately so the first browser pass does not rebuild a 0/0 route shell.
+  var hasAuthoritativeMatchInfo = !!(this.matchInfo && !this.isFallbackMatchInfo);
+  var infoTeam1 = hasAuthoritativeMatchInfo && this.matchInfo.team1_name
+    ? String(this.matchInfo.team1_name).trim() : '';
+  var infoTeam2 = hasAuthoritativeMatchInfo && this.matchInfo.team2_name
+    ? String(this.matchInfo.team2_name).trim() : '';
+  var infoCodes = hasAuthoritativeMatchInfo && this.matchInfo.team_comparison
+    && typeof this.matchInfo.team_comparison === 'object'
+    ? Object.keys(this.matchInfo.team_comparison).filter((code) => !!String(code || '').trim())
+    : [];
+  var existingRouteMatch = this.currentMatch && this.routeSlugMatches(matchSlug, this.currentMatch)
+    ? this.currentMatch : {};
+  var routeMatch = hasAuthoritativeMatchInfo
+    ? Object.assign({}, existingRouteMatch, {
+        url: this.matchInfo.url || existingRouteMatch.url || this.matchUrl || matchSlug,
+        externalMatchKey: this.matchId || existingRouteMatch.externalMatchKey || matchSlug,
+        status: this.matchInfo.match_status || this.matchInfo.status || existingRouteMatch.status,
+        displayStatus: this.matchInfo.match_status || this.matchInfo.status || existingRouteMatch.displayStatus,
+        seriesName: this.matchInfo.series_name || this.matchInfo.match_name || existingRouteMatch.seriesName,
+        scheduledStartTime: this.getCanonicalScheduleValue(this.matchInfo.match_date || this.matchInfo.start_date)
+          || existingRouteMatch.scheduledStartTime,
+        resultSummary: this.matchInfo.final_result_text || existingRouteMatch.resultSummary,
+        lastKnownState: this.matchInfo.lastKnownState || existingRouteMatch.lastKnownState,
+        team1: Object.assign({}, existingRouteMatch.team1 || {}, infoTeam1 ? { name: infoTeam1 } : {},
+          infoCodes[0] ? { shortName: infoCodes[0] } : {}),
+        team2: Object.assign({}, existingRouteMatch.team2 || {}, infoTeam2 ? { name: infoTeam2 } : {},
+          infoCodes[1] ? { shortName: infoCodes[1] } : {})
+      })
+    : (Object.keys(existingRouteMatch).length > 0 ? existingRouteMatch : {
         url: this.matchUrl || matchSlug,
         externalMatchKey: this.matchId || matchSlug,
         status: null
-      };
+      });
 
   this.currentMatch = routeMatch;
   this.applyServerRetainedEntityNavigation(matchSlug);

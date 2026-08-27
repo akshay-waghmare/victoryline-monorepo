@@ -12,8 +12,6 @@ import {MatFormFieldModule,
         MatIconModule,
         MatTooltipModule} from '@angular/material';
 import { InjectableRxStompConfig, RxStompService, StompConfig } from '@stomp/ng2-stompjs';
-import { HTTP_INTERCEPTORS } from '@angular/common/http';
-import { LoaderInterceptor } from '../loader/loader.interceptor';
 import { environment } from 'src/environments/environment';
 import { LogoutFormComponent } from '../logout-form/logout-form.component';
 import { ReactiveFormsModule } from '@angular/forms';
