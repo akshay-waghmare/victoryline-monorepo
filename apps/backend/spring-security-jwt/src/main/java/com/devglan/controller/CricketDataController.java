@@ -587,9 +587,18 @@ public class CricketDataController {
     }
 
     @GetMapping("/match-cohorts")
-    public ResponseEntity<Map<String, Object>> getMatchCohorts() {
+    public ResponseEntity<Map<String, Object>> getMatchCohorts(
+            @RequestParam(value = "includeArchive", defaultValue = "true") boolean includeArchive) {
         Map<String, Object> response = new HashMap<>();
         for (MatchLifecycleCohort cohort : MatchLifecycleCohort.values()) {
+            // Discovery surfaces need live/upcoming/recent rows. The archive
+            // is large and has its own sitemap/archive surfaces; allowing the
+            // caller to omit it keeps first paint small without changing the
+            // backwards-compatible default response.
+            if (cohort == MatchLifecycleCohort.ARCHIVE && !includeArchive) {
+                response.put(cohort.wireName(), Collections.emptyList());
+                continue;
+            }
             response.put(cohort.wireName(), liveMatchService.findMatchesByCohort(cohort));
         }
         response.put("generatedAt", System.currentTimeMillis());

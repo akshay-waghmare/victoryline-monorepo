@@ -53,12 +53,12 @@
   </div>
 
   <!-- Loading State -->
-  <div class="matches-list__content" *ngIf="isLoading">
+  <div class="matches-list__content" *ngIf="isLoading && !hasMatchSnapshot">
     <app-skeleton-card [count]="6"></app-skeleton-card>
   </div>
 
   <!-- Error State -->
-  <div class="matches-list__error" *ngIf="hasError && !isLoading">
+  <div class="matches-list__error" *ngIf="hasError && !isLoading && !hasMatchSnapshot">
     <p class="matches-list__error-message">{{ errorMessage }}</p>
     <button type="button" class="matches-list__retry-btn" (click)="onRefresh()">
       Try Again
@@ -68,7 +68,7 @@
   <!-- Match list -->
   <div
     class="matches-list__content matches-list__content--swipeable"
-    *ngIf="!isLoading && !hasError"
+    *ngIf="(!isLoading || hasMatchSnapshot) && (!hasError || hasMatchSnapshot)"
       (touchstart)="onResultsTouchStart($event)"
       (touchend)="onResultsTouchEnd($event)"
   >

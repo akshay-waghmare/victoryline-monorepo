@@ -42,7 +42,9 @@ export class EventListService {
   }
 
   getMatchCohorts() {
-    return this.getNoCache(this.match_cohorts_url);
+    return this.getNoCache(this.match_cohorts_url, new HttpParams()
+      .set('_ts', Date.now().toString())
+      .set('includeArchive', 'false'));
   }
 
   subscribeToEventsTopic(): Observable<any> {
@@ -71,10 +73,10 @@ export class EventListService {
     );
   }
 
-  private getNoCache(url: string): Observable<any> {
+  private getNoCache(url: string, params?: HttpParams): Observable<any> {
     return this._http.get(url, {
       headers: this.noCacheHeaders,
-      params: new HttpParams().set('_ts', Date.now().toString())
+      params: params || new HttpParams().set('_ts', Date.now().toString())
     });
   }
 }

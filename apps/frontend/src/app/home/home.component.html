@@ -51,7 +51,7 @@
   <section
     id="home-matches-section"
     class="home__matches"
-    *ngIf="!isLoadingMatches && (liveMatches.length > 0 || upcomingMatches.length > 0 || recentMatches.length > 0)">
+    *ngIf="hasMatchSnapshot">
     <div class="home__tab-bar" role="tablist" aria-label="Match categories">
       <div class="home__tabs">
         <button
@@ -208,7 +208,7 @@
 
   </section>
 
-  <section class="home__state home__state--loading" *ngIf="isLoadingMatches">
+  <section class="home__state home__state--loading" *ngIf="isLoadingMatches && !hasMatchSnapshot">
     <div class="home__state-shell">
       <span class="home__state-eyebrow">Updating match lanes</span>
       <h2 class="home__state-title">The scoreboard is settling into place</h2>
@@ -221,7 +221,7 @@
     </div>
   </section>
 
-  <section class="home__state home__state--error" *ngIf="hasMatchError && !isLoadingMatches">
+  <section class="home__state home__state--error" *ngIf="hasMatchError && !isLoadingMatches && !hasMatchSnapshot">
     <div class="home__state-shell">
       <span class="home__state-eyebrow">Match feed issue</span>
       <h2 class="home__state-title">Unable to load matches right now</h2>

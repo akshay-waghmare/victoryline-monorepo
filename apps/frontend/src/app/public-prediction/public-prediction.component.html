@@ -31,7 +31,7 @@
           <a href="https://www.crickzen.com/matches">Browse all match pages →</a>
         </div>
 
-        <div class="public-prediction__loading" *ngIf="isLoading">
+        <div class="public-prediction__loading" *ngIf="isLoading && matches.length === 0">
           Loading the latest public-safe match signals…
         </div>
         <div class="public-prediction__empty" *ngIf="!isLoading && (loadError || matches.length === 0)">
@@ -39,7 +39,7 @@
           <a href="https://www.crickzen.com/matches">Open live matches →</a>
         </div>
 
-        <div class="public-prediction__match-grid" *ngIf="!isLoading && matches.length > 0">
+        <div class="public-prediction__match-grid" *ngIf="matches.length > 0">
           <article class="public-prediction__match-card" *ngFor="let item of matches">
             <div class="public-prediction__match-topline">
               <span class="public-prediction__status">{{ statusLabel(item) }}</span>
@@ -71,7 +71,8 @@
     </ng-container>
 
     <ng-container *ngIf="is('share') || is('embed')">
-      <article class="public-prediction__share-card" *ngIf="match; else unavailableCard">
+      <div class="public-prediction__loading" *ngIf="isLoading && !match">Loading this public match signal…</div>
+      <article class="public-prediction__share-card" *ngIf="match">
         <p class="public-prediction__eyebrow">CrickZen public match signal</p>
         <div class="public-prediction__match-topline"><span class="public-prediction__status">{{ statusLabel(match) }}</span><span>{{ match.league || 'Cricket' }}</span></div>
         <h1>{{ matchLabel(match) }}</h1>
@@ -94,14 +95,14 @@
         <a class="public-prediction__source" [href]="canonicalMatchUrl(match)">Source and full match context: CrickZen live match centre →</a>
         <p class="public-prediction__powered">Powered by CrickZen · <a href="https://prediction.crickzen.com/how-it-works">How this works</a></p>
       </article>
-      <ng-template #unavailableCard>
+      <ng-container *ngIf="!isLoading && !match">
         <article class="public-prediction__share-card public-prediction__share-card--unavailable">
           <p class="public-prediction__eyebrow">CrickZen public match signal</p>
           <h1>Prediction temporarily unavailable</h1>
           <p>We do not show an old or invented percentage. Open the canonical match centre for the latest score context.</p>
           <a class="public-prediction__button public-prediction__button--primary" href="https://www.crickzen.com/matches">Browse match centres</a>
         </article>
-      </ng-template>
+      </ng-container>
 
       <section class="public-prediction__embed-help" *ngIf="is('embed')">
         <p>Want to use this card on a publication?</p>
@@ -123,7 +124,7 @@
 
     <ng-container *ngIf="is('history')">
       <section class="public-prediction__page-hero"><p class="public-prediction__eyebrow">Audit trail</p><h1>Prediction history that can be checked</h1><p>We save the first usable public forecast, wait for a verifiable final result, and then calculate trust metrics. This means the number of matches may be small at first.</p></section>
-      <div class="public-prediction__loading" *ngIf="isLoading">Loading the public history…</div>
+      <div class="public-prediction__loading" *ngIf="isLoading && !historySummary">Loading the public history…</div>
       <section class="public-prediction__notice" *ngIf="!isLoading && historySummary && historySummary.status === 'not_ready'"><h2>History is being collected</h2><p>No completed public forecast has passed the archive checks yet. We will not display a made-up accuracy or calibration number.</p><a href="/how-it-works">Read the methodology →</a></section>
       <ng-container *ngIf="!isLoading && historySummary && historySummary.status !== 'not_ready'">
         <section class="public-prediction__history-status"><p class="public-prediction__eyebrow">{{ historySummary.status === 'ready' ? 'Evidence available' : 'Early evidence' }}</p><h2>{{ historySummary.eligible_match_count }} completed match{{ historySummary.eligible_match_count === 1 ? '' : 'es' }} evaluated</h2><p *ngIf="historySummary.status === 'collecting'">This is a small sample. Treat it as a progress report, not a prediction guarantee. We will call it ready after at least 30 eligible matches.</p></section>
@@ -141,8 +142,8 @@
     </ng-container>
 
     <ng-container *ngIf="is('history-detail')">
-      <div class="public-prediction__loading" *ngIf="isLoading">Loading immutable record…</div>
-      <article class="public-prediction__share-card" *ngIf="!isLoading && historyRecord; else unavailableHistoryRecord">
+      <div class="public-prediction__loading" *ngIf="isLoading && !historyRecord">Loading immutable record…</div>
+      <article class="public-prediction__share-card" *ngIf="historyRecord">
         <p class="public-prediction__eyebrow">Immutable completed-match record</p>
         <div class="public-prediction__match-topline"><span class="public-prediction__status">Archived</span><span>{{ historyRecord.league }}</span></div>
         <h1>{{ historyRecord.match_label }}</h1>
@@ -153,7 +154,7 @@
         <div class="public-prediction__share-actions"><a class="public-prediction__button public-prediction__button--primary" [href]="historyRecordSharePath(historyRecord)">Open share card</a><a class="public-prediction__button public-prediction__button--quiet" [href]="historyRecord.match_url">Open source match</a></div>
         <p class="public-prediction__source">Archive ID: {{ historyRecord.archive_id }} · Source evidence: {{ historyRecord.outcome && historyRecord.outcome.evidence }}</p>
       </article>
-      <ng-template #unavailableHistoryRecord><article class="public-prediction__share-card public-prediction__share-card--unavailable"><p class="public-prediction__eyebrow">Immutable completed-match record</p><h1>Record unavailable</h1><p>This historical record does not exist or failed validation.</p><a class="public-prediction__button public-prediction__button--primary" href="/history">Back to history</a></article></ng-template>
+      <article *ngIf="!isLoading && !historyRecord" class="public-prediction__share-card public-prediction__share-card--unavailable"><p class="public-prediction__eyebrow">Immutable completed-match record</p><h1>Record unavailable</h1><p>This historical record does not exist or failed validation.</p><a class="public-prediction__button public-prediction__button--primary" href="/history">Back to history</a></article>
     </ng-container>
 
     <ng-container *ngIf="is('creator-packs')">

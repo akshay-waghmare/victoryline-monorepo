@@ -108,6 +108,7 @@ export class PublicPredictionComponent implements OnInit, OnDestroy {
 
   private routeSubscription: Subscription | null = null;
   private dataSubscription: Subscription | null = null;
+  private loadedPageKey = '';
 
   constructor(
     private route: ActivatedRoute,
@@ -305,15 +306,21 @@ export class PublicPredictionComponent implements OnInit, OnDestroy {
       this.dataSubscription.unsubscribe();
       this.dataSubscription = null;
     }
-    this.matches = [];
-    this.match = null;
-    this.historySummary = null;
-    this.historyRecords = [];
-    this.historyRecord = null;
+    const pageKey = this.page + '|' + this.slug + '|' + this.archiveId;
+    const preserveSnapshot = this.loadedPageKey === pageKey;
+    if (!preserveSnapshot) {
+      this.matches = [];
+      this.match = null;
+      this.historySummary = null;
+      this.historyRecords = [];
+      this.historyRecord = null;
+    }
+    this.loadedPageKey = pageKey;
     this.loadError = false;
     this.copied = false;
-    this.isLoading = this.page === 'home' || this.page === 'share' || this.page === 'embed'
+    const needsData = this.page === 'home' || this.page === 'share' || this.page === 'embed'
       || this.page === 'history' || this.page === 'history-detail';
+    this.isLoading = needsData && !this.hasPageSnapshot();
     this.setMetadata();
 
     if (this.page === 'home') {
@@ -381,6 +388,13 @@ export class PublicPredictionComponent implements OnInit, OnDestroy {
 
     this.isLoading = false;
     this.setMetadata();
+  }
+
+  private hasPageSnapshot(): boolean {
+    return this.matches.length > 0
+      || !!this.match
+      || !!this.historySummary
+      || !!this.historyRecord;
   }
 
   private setMetadata(): void {

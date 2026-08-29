@@ -274,7 +274,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
   }
 
   private loadPrematchDiscoveryLinks(): void {
-    this.http.get('/api/cricket-data/match-cohorts', { params: { _ts: Date.now().toString() } })
+    this.http.get('/api/cricket-data/match-cohorts', { params: { _ts: Date.now().toString(), includeArchive: 'false' } })
       .pipe(
         timeout(this.sitemapRequestTimeoutMs),
         map((response: any) => {

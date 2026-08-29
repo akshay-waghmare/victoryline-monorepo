@@ -113,6 +113,14 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   isPredictionHost = false;
 
+  /** Keep an already-rendered catalogue visible while the next refresh runs. */
+  get hasMatchSnapshot(): boolean {
+    return this.totalTrackedMatches > 0
+      || this.liveMatches.length > 0
+      || this.upcomingMatches.length > 0
+      || this.recentMatches.length > 0;
+  }
+
   ngOnInit(): void {
     if (this.isPredictionHost) {
       // prediction.crickzen.com owns a separate public product shell. Do not
@@ -197,7 +205,9 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   loadMatches(): void {
-    this.isLoadingMatches = true;
+    // Refresh in place. Skeletons are only for the first load with no usable
+    // snapshot; an existing SSR/browser snapshot stays interactive.
+    this.isLoadingMatches = !this.hasMatchSnapshot;
     this.hasMatchError = false;
 
     if (this.isBrowser) {
@@ -244,14 +254,16 @@ export class HomeComponent implements OnInit, OnDestroy {
       },
       (error) => {
         console.error('Error loading matches:', error);
-        this.liveMatches = [];
-        this.upcomingMatches = [];
-        this.allUpcomingMatches = [];
-        this.recentMatches = [];
-        this.activeMatches = [];
-        this.glanceCards = [];
-        this.totalTrackedMatches = 0;
-        this.hasMatchError = true;
+        if (!this.hasMatchSnapshot) {
+          this.liveMatches = [];
+          this.upcomingMatches = [];
+          this.allUpcomingMatches = [];
+          this.recentMatches = [];
+          this.activeMatches = [];
+          this.glanceCards = [];
+          this.totalTrackedMatches = 0;
+          this.hasMatchError = true;
+        }
         this.isLoadingMatches = false;
         this.updateCarouselControls();
         this.updateStructuredData();

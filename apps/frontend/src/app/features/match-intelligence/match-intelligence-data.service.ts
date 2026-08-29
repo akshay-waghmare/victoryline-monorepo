@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { forkJoin, Observable, of } from 'rxjs';
-import { catchError, defaultIfEmpty, map, switchMap, timeout } from 'rxjs/operators';
+import { concat, forkJoin, Observable, of } from 'rxjs';
+import { catchError, defaultIfEmpty, map, switchMap, take, timeout } from 'rxjs/operators';
 import { CricketService } from '../../cricket-odds/cricket-odds.service';
 import { MatchStatus, MatchCardViewModel } from '../matches/models/match-card.models';
 import { extractSlugFromUrl } from '../../core/utils/match-utils';
@@ -131,6 +131,8 @@ export interface MatchIntelligenceSnapshot {
 export class MatchIntelligenceDataService {
   private readonly freshnessLimitMs = 5 * 60 * 1000;
   private readonly openingArtifactFreshnessLimitMs = 24 * 60 * 60 * 1000;
+  private readonly firstPaintTimeoutMs = 3000;
+  private readonly publicPredictionTimeoutMs = 1500;
 
   constructor(
     private http: HttpClient,
@@ -138,70 +140,75 @@ export class MatchIntelligenceDataService {
   ) {}
 
   loadSnapshot(slug: string): Observable<MatchIntelligenceSnapshot> {
-    return forkJoin([
-      this.loadPublicPredictionMatches().pipe(
-        catchError(() => of([]))
-      ),
+    // Score and match identity are the first-paint contract. The prediction
+    // list/detail is enrichment and must not keep a usable match page behind
+    // a model gateway timeout.
+    const baseSnapshot$ = forkJoin([
       this.cricketService.getMatchInfo(slug).pipe(
-        timeout(5000),
+        take(1),
+        timeout(this.firstPaintTimeoutMs),
         defaultIfEmpty(null),
         catchError(() => of(null))
       ),
       this.cricketService.getLastUpdatedData(slug).pipe(
-        timeout(5000),
+        take(1),
+        timeout(this.firstPaintTimeoutMs),
         defaultIfEmpty(null),
         catchError(() => of(null))
       )
     ]).pipe(
-      map(([publicMatches, matchInfo, matchData]) => {
-        // The route slug is already the authoritative match key. Do not load
-        // the entire live/upcoming/completed catalog just to resolve one page.
-        var currentMatch = null;
-        var publicPrediction = this.findPublicPrediction(slug, currentMatch, matchInfo, publicMatches || []);
-        var lifecycle = this.resolveLifecycle(currentMatch, matchInfo, publicPrediction);
-        var mergedMatchData = this.mergePublicPrediction(matchData, publicPrediction);
-        var freshnessState = this.resolveFreshnessState(mergedMatchData, publicPrediction, lifecycle);
+      map(([matchInfo, matchData]) => this.buildSnapshot(slug, matchInfo, matchData, null))
+    );
 
-        return {
-          slug: slug,
-          currentMatch: currentMatch,
-          matchInfo: matchInfo,
-          matchData: mergedMatchData,
-          publicPrediction: publicPrediction,
-          lifecycle: lifecycle,
-          freshnessState: freshnessState
-        };
-      }),
-      switchMap((snapshot) => {
-        var publicPrediction = snapshot.publicPrediction;
+    return baseSnapshot$.pipe(
+      switchMap((snapshot) => concat(
+        of(snapshot),
+        this.enrichSnapshotWithPublicPrediction(slug, snapshot)
+      ))
+    );
+  }
+
+  private buildSnapshot(
+    slug: string,
+    matchInfo: any,
+    matchData: any,
+    publicPrediction: PublicPredictionMatch | null
+  ): MatchIntelligenceSnapshot {
+    var lifecycle = this.resolveLifecycle(null, matchInfo, publicPrediction);
+    var mergedMatchData = this.mergePublicPrediction(matchData, publicPrediction);
+    return {
+      slug: slug,
+      currentMatch: null,
+      matchInfo: matchInfo,
+      matchData: mergedMatchData,
+      publicPrediction: publicPrediction,
+      lifecycle: lifecycle,
+      freshnessState: this.resolveFreshnessState(mergedMatchData, publicPrediction, lifecycle)
+    };
+  }
+
+  private enrichSnapshotWithPublicPrediction(
+    slug: string,
+    snapshot: MatchIntelligenceSnapshot
+  ): Observable<MatchIntelligenceSnapshot> {
+    return this.loadPublicPredictionMatches().pipe(
+      timeout(this.publicPredictionTimeoutMs),
+      catchError(() => of([])),
+      map((publicMatches) => this.findPublicPrediction(slug, null, snapshot.matchInfo, publicMatches || [])),
+      switchMap((publicPrediction) => {
         if (!publicPrediction || !publicPrediction.slug) {
           return this.loadPublicPredictionBySource(slug).pipe(
-            map((detail) => detail ? Object.assign({}, snapshot, {
-              publicPrediction: detail,
-              matchData: this.mergePublicPrediction(snapshot.matchData, detail),
-              lifecycle: this.resolveLifecycle(snapshot.currentMatch, snapshot.matchInfo, detail),
-              freshnessState: this.resolveFreshnessState(
-                this.mergePublicPrediction(snapshot.matchData, detail),
-                detail,
-                this.resolveLifecycle(snapshot.currentMatch, snapshot.matchInfo, detail)
-              )
-            }) : snapshot),
+            timeout(this.publicPredictionTimeoutMs),
+            map((detail) => detail ? this.buildSnapshot(slug, snapshot.matchInfo, snapshot.matchData, detail) : snapshot),
             catchError(() => of(snapshot))
           );
         }
 
         return this.loadPublicPredictionDetail(publicPrediction.slug).pipe(
-          map((detail) => {
-            if (!detail) {
-              return snapshot;
-            }
-            var mergedMatchData = this.mergePublicPrediction(snapshot.matchData, detail);
-            return Object.assign({}, snapshot, {
-              publicPrediction: detail,
-              matchData: mergedMatchData,
-              freshnessState: this.resolveFreshnessState(mergedMatchData, detail, snapshot.lifecycle)
-            });
-          }),
+          timeout(this.publicPredictionTimeoutMs),
+          map((detail) => detail
+            ? this.buildSnapshot(slug, snapshot.matchInfo, snapshot.matchData, detail)
+            : snapshot),
           catchError(() => of(snapshot))
         );
       })
@@ -302,7 +309,7 @@ export class MatchIntelligenceDataService {
     }
 
     return this.http.get<PublicPredictionMatchesResponse>(publicPredictionApiUrl + '/matches').pipe(
-      timeout(4000),
+      timeout(this.publicPredictionTimeoutMs),
       map((response) => (response && Array.isArray(response.matches)) ? response.matches : []),
       catchError(() => of([]))
     );
@@ -317,7 +324,7 @@ export class MatchIntelligenceDataService {
     return this.http.get<PublicPredictionMatchResponse>(
       publicPredictionApiUrl + '/matches/' + encodeURIComponent(slug)
     ).pipe(
-      timeout(4000),
+      timeout(this.publicPredictionTimeoutMs),
       map((response) => response && response.match ? response.match : null),
       catchError(() => of(null))
     );
@@ -330,7 +337,7 @@ export class MatchIntelligenceDataService {
     }
     var query = league ? '?league=' + encodeURIComponent(league) : '';
     return this.http.get<PublicPredictionHistorySummary>(publicPredictionApiUrl + '/history' + query).pipe(
-      timeout(4000),
+      timeout(this.publicPredictionTimeoutMs),
       map((response) => response || null),
       catchError(() => of(null))
     );
@@ -344,7 +351,7 @@ export class MatchIntelligenceDataService {
     return this.http.get<{ record?: PublicPredictionHistoryRecord }>(
       publicPredictionApiUrl + '/history/' + encodeURIComponent(archiveId)
     ).pipe(
-      timeout(4000),
+      timeout(this.publicPredictionTimeoutMs),
       map((response) => response && response.record ? response.record : null),
       catchError(() => of(null))
     );

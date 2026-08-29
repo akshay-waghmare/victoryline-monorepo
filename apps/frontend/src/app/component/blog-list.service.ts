@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface BlogPost {
@@ -20,6 +21,9 @@ export class BlogListService {
   constructor(private http: HttpClient) {}
 
   getBlogPosts(): Observable<BlogPost[]> {
-    return this.http.get<BlogPost[]>(`${this.blog_list_url}`);
+    return this.http.get<BlogPost[]>(`${this.blog_list_url}`).pipe(
+      timeout(2500),
+      catchError(() => of([]))
+    );
   }
 }

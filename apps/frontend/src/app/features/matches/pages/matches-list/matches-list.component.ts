@@ -82,6 +82,10 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   
   // Unsubscribe subject
   private destroy$ = new Subject<void>();
+
+  get hasMatchSnapshot(): boolean {
+    return this.allMatches.length > 0;
+  }
   
   constructor(
     private matchesService: MatchesService,
@@ -111,7 +115,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    * Load matches from service with auto-refresh every 30 seconds
    */
   loadMatches(): void {
-    this.isLoading = true;
+    this.isLoading = !this.hasMatchSnapshot;
     this.hasError = false;
     
     this.matchesService.getLiveMatchesWithAutoRefresh()
@@ -131,7 +135,8 @@ export class MatchesListComponent implements OnInit, OnDestroy {
           console.log('Matches auto-refreshed:', matches.length);
         },
         (error) => {
-          this.hasError = true;
+          // Keep the last usable list visible if a background refresh fails.
+          this.hasError = !this.hasMatchSnapshot;
           this.errorMessage = 'Failed to load matches. Please try again later.';
           this.isLoading = false;
           this.updateStructuredData();

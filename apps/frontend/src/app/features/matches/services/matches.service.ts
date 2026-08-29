@@ -6,7 +6,7 @@
 
 import { Injectable, Optional } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { Observable, of, combineLatest, timer, merge, EMPTY, forkJoin } from 'rxjs';
+import { Observable, of, concat, combineLatest, timer, merge, EMPTY, forkJoin } from 'rxjs';
 import { map, switchMap, catchError, shareReplay, timeout, debounceTime, filter, startWith, distinctUntilChanged } from 'rxjs/operators';
 
 import { MatchCardViewModel, MatchStatus, TeamInfo, ScoreInfo } from '../models/match-card.models';
@@ -38,7 +38,8 @@ export class MatchesService {
   // local proxy can take longer than five seconds while a scraper refresh is
   // in flight; timing out one lane made the series centre look empty despite
   // the backend already having fixtures.
-  private readonly matchesRequestTimeoutMs = 12000;
+  private readonly matchesRequestTimeoutMs = 8000;
+  private readonly liveScorecardTimeoutMs = 3000;
 
   // Singleton shared stream — all components subscribe to the same timer + WebSocket triggers.
   // This prevents multiple components (Home, MatchesList) from each creating their own
@@ -193,17 +194,36 @@ export class MatchesService {
     const recentRows = Array.isArray(response.recent) ? response.recent : [];
     const archiveRows = Array.isArray(response.archive) ? response.archive : [];
 
-    const liveCards$ = liveRows.length === 0
-      ? of([] as MatchCardViewModel[])
-      : forkJoin(liveRows.map((match: any) => this.cricketOddsService.getScorecardInfo(match.url).pipe(
-          timeout(this.matchesRequestTimeoutMs), catchError(() => of(null))
-        ))).pipe(map((scorecards: any[]) => this.transformActiveMatches(liveRows, scorecards)));
-
-    return liveCards$.pipe(map((liveCards) => sortMatchesByPriority(this.dedupeMatches([
-      ...liveCards,
+    // Render the catalogue metadata first. A slow scorecard provider must not
+    // hold the whole homepage behind a skeleton; scorecard enrichment is a
+    // second emission for browser consumers and is intentionally skipped
+    // during SSR so first HTML remains schedule/score-first.
+    const baseLiveCards = this.transformActiveMatches(
+      liveRows,
+      liveRows.map(() => null)
+    );
+    const baseCards = sortMatchesByPriority(this.dedupeMatches([
+      ...baseLiveCards,
       ...this.transformScheduleMatches({ data: upcomingRows }, MatchStatus.UPCOMING),
       ...this.transformScheduleMatches({ data: recentRows.concat(archiveRows) }, MatchStatus.COMPLETED)
-    ]))));
+    ]));
+
+    if (!this.isBrowser() || liveRows.length === 0) {
+      return of(baseCards);
+    }
+
+    const enrichedLiveCards$ = forkJoin(liveRows.map((match: any) => this.cricketOddsService.getScorecardInfo(match.url).pipe(
+      timeout(this.liveScorecardTimeoutMs),
+      catchError(() => of(null))
+    ))).pipe(
+      map((scorecards: any[]) => sortMatchesByPriority(this.dedupeMatches([
+        ...this.transformActiveMatches(liveRows, scorecards),
+        ...this.transformScheduleMatches({ data: upcomingRows }, MatchStatus.UPCOMING),
+        ...this.transformScheduleMatches({ data: recentRows.concat(archiveRows) }, MatchStatus.COMPLETED)
+      ])))
+    );
+
+    return concat(of(baseCards), enrichedLiveCards$);
   }
 
   private getUpcomingMatches(): Observable<MatchCardViewModel[]> {

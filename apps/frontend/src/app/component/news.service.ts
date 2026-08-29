@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap, timeout } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
 export interface NewsItem {
@@ -25,6 +25,9 @@ export class NewsService {
 
   getNews(): Observable<NewsItem[]> {
     return this.http.get<NewsItem[]>(this.newsUrl).pipe(
+      // News is a secondary homepage lane. Never make the first paint wait
+      // for a slow upstream feed or an unavailable external source.
+      timeout(2500),
       map(items => items || []),
       switchMap(items => {
         if (items.length > 0 || !this.isLocalDevelopment()) {
@@ -33,6 +36,7 @@ export class NewsService {
 
         // Keep localhost useful when its news table has not been seeded yet.
         return this.http.get<NewsItem[]>('https://www.crickzen.com/api/cricket-data/news').pipe(
+          timeout(2500),
           map(fallbackItems => fallbackItems || []),
           catchError(() => of(items))
         );
