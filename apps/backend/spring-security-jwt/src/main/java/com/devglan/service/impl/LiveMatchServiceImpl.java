@@ -76,11 +76,19 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
 			for (LiveMatch match : allNotDeletedMatches) {
                 MatchLifecycleStatus currentStatus = match.getStatus();
+                boolean selectedForManagedFeed = urlList.contains(normalizeUrl(match.getUrl()));
+                if (!selectedForManagedFeed && match.isLiveFeedManaged()) {
+                    // The provider catalogue may contain more live matches than
+                    // the bounded scraper slate. Retain the catalogue row, but
+                    // withdraw its live-score freshness claim immediately.
+                    match.setLiveFeedManaged(false);
+                    liveMatchRepository.save(match);
+                }
                 if (currentStatus != null && !currentStatus.isLiveLike()) {
                     continue;
                 }
 
-				if (!urlList.contains(normalizeUrl(match.getUrl()))) {
+				if (!selectedForManagedFeed) {
 					match.setDeletionAttempts(match.getDeletionAttempts() + 1);
 					
 					if (match.getDeletionAttempts() >= 2) {
@@ -162,6 +170,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 liveMatch.setDeleted(false);
                 liveMatch.setDeletionAttempts(0);
                 liveMatch.setStatus(MatchLifecycleStatus.LIVE);
+                liveMatch.setLiveFeedManaged(true);
                 liveMatch.setLastStateUpdatedAt(System.currentTimeMillis());
                 liveMatchRepository.save(liveMatch);
 
@@ -343,6 +352,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	public List<LiveMatch> findAllLiveMatches() {
         return resolvedCanonicalCatalogue().stream()
                 .filter(this::isLiveLike)
+                .filter(LiveMatch::isLiveFeedManaged)
                 .map(this::enrichLiveMatchFromSnapshot)
                 .collect(Collectors.toList());
 	}
@@ -354,6 +364,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         }
         return resolvedCanonicalCatalogue().stream()
                 .filter(this::isPubliclyIndexable)
+                .filter(match -> cohort != MatchLifecycleCohort.LIVE || match.isLiveFeedManaged())
                 .filter(match -> cohort == cohortFor(match))
                 .map(match -> cohort == MatchLifecycleCohort.LIVE ? enrichLiveMatchFromSnapshot(match) : match)
                 .collect(Collectors.toList());
@@ -615,6 +626,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                     : lifecycleFromEvidence(snapshot);
             snapshot.setStatus(status);
             snapshot.setDeleted(owner.isDeleted() || (status != null && status.isTerminal()));
+            snapshot.setLiveFeedManaged(aliases.stream().anyMatch(LiveMatch::isLiveFeedManaged));
             snapshot.setLifecycleCohort(cohortFor(snapshot).wireName());
             resolved.add(snapshot);
         }
@@ -762,6 +774,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         copy.setMatchFormat(source.getMatchFormat());
         copy.setResultSummary(source.getResultSummary());
         copy.setLastStateUpdatedAt(source.getLastStateUpdatedAt());
+        copy.setLiveFeedManaged(source.isLiveFeedManaged());
         copy.setSeoContentFingerprint(source.getSeoContentFingerprint());
         copy.setSeoContentModifiedAt(source.getSeoContentModifiedAt());
         copy.setLifecycleCohort(source.getLifecycleCohort());

@@ -12,9 +12,13 @@ from playwright.async_api import Page
 
 from .config import get_settings
 from .browser_pool import AsyncBrowserPool
-from .crex_url_utils import normalize_crex_url
+from .crex_url_utils import extract_crex_api_key, normalize_crex_url
 from .cricket_data_service import CricketDataService
-from .live_match_selection import select_live_matches
+from .managed_live_slate import (
+    ManagedLiveSlateStore,
+    has_terminal_evidence,
+    reconcile_managed_live_slate,
+)
 from .parsers.crex_schedule_parser import extract_schedule_matches
 
 logger = logging.getLogger(__name__)
@@ -76,6 +80,13 @@ class LiveMatchDiscoverer:
         self._task: Optional[asyncio.Task] = None
         self.base_url = "https://crex.com"
         self._on_match_catalog_updated = on_match_catalog_updated
+        self._managed_slate_store = ManagedLiveSlateStore()
+        self._managed_live_urls = self._managed_slate_store.load()
+
+    @property
+    def managed_live_urls(self) -> List[str]:
+        """Return the last durable slate for startup handoff."""
+        return list(self._managed_live_urls)
 
     async def start(self):
         """Start the discovery loop."""
@@ -121,6 +132,7 @@ class LiveMatchDiscoverer:
         print("[DISCOVERY] Starting live match discovery cycle...", flush=True)
         urls = []
         schedule_matches = []
+        live_discovery_succeeded = False
         
         try:
             async with self.pool.get_context() as context:
@@ -140,6 +152,7 @@ class LiveMatchDiscoverer:
                     try:
                         # Try a broad selector for any match link or card
                         await page.wait_for_selector("li.live-card, div.live-card, a[href*='/scoreboard/'], a[href*='/cricket-live-score/']", timeout=20000)
+                        live_discovery_succeeded = True
                         print("[DISCOVERY] Found match elements.", flush=True)
                     except Exception:
                         live_cards_found = False
@@ -275,11 +288,30 @@ class LiveMatchDiscoverer:
         # Remove duplicates
         valid_urls = list(dict.fromkeys(valid_urls))
 
-        selected_urls = select_live_matches(valid_urls, self.settings.max_live_matches)
-        valid_urls = [str(url) for url in selected_urls]
+        if not live_discovery_succeeded:
+            # A selector timeout is a discovery failure, not proof that every
+            # previously managed match finished. Keep the durable slate and do
+            # not send an empty authoritative sync to the backend.
+            logger.warning(
+                "Live discovery did not produce a trustworthy catalogue; retaining managed slate=%s",
+                self._managed_live_urls,
+            )
+            print("[DISCOVERY] Live catalogue unavailable; retaining managed slate.", flush=True)
+            return
+
+        terminal_urls = await self._find_terminal_absent_matches(valid_urls)
+        selected_urls = reconcile_managed_live_slate(
+            valid_urls,
+            self._managed_live_urls,
+            self.settings.max_live_matches,
+            terminal_urls=terminal_urls,
+        )
+        self._managed_live_urls = selected_urls
+        self._managed_slate_store.save(selected_urls)
+        valid_urls = list(selected_urls)
 
         logger.info(
-            "Discovered live matches selected=%s policy=international-first,series-cap-3: %s",
+            "Discovered live matches selected=%s policy=sticky-until-terminal,international-first-fill,series-cap-3: %s",
             len(valid_urls),
             valid_urls,
         )
@@ -308,4 +340,27 @@ class LiveMatchDiscoverer:
                 logger.error("Schedule lifecycle sync failed; retrying next discovery cycle.")
 
         print("[DISCOVERY] Backend sync cycle completed.", flush=True)
+
+    async def _find_terminal_absent_matches(self, discovered_urls: List[str]) -> List[str]:
+        """Release locked slots only when the stored snapshot proves completion."""
+        discovered_keys = {
+            (extract_crex_api_key(url) or str(url).rsplit("-", 1)[-1]).lower()
+            for url in discovered_urls
+            if url
+        }
+        absent_urls = [
+            url for url in self._managed_live_urls
+            if (extract_crex_api_key(url) or str(url).rsplit("-", 1)[-1]).lower() not in discovered_keys
+        ]
+        if not absent_urls:
+            return []
+
+        token = await asyncio.to_thread(CricketDataService.get_bearer_token)
+        terminal_urls: List[str] = []
+        for url in absent_urls:
+            snapshot = await asyncio.to_thread(CricketDataService.get_last_updated_data, url, token)
+            if isinstance(snapshot, dict) and has_terminal_evidence({"url": url, **snapshot}):
+                terminal_urls.append(url)
+                logger.info("managed_slate.release_terminal_match url=%s", url)
+        return terminal_urls
 

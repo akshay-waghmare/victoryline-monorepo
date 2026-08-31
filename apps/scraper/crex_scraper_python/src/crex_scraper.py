@@ -123,6 +123,11 @@ class CrexScraperService:
             self.pool,
             on_match_catalog_updated=self._on_match_catalog_updated,
         )
+        # Resume the exact bounded slate before the first backend poll. This
+        # prevents startup discovery order from silently replacing live owners.
+        self._discovery_live_urls = self.discovery.managed_live_urls
+        self._last_managed_live_match_count = len(self._discovery_live_urls)
+        self._last_managed_live_urls = list(self._discovery_live_urls)
 
     async def start(self):
         """Start the scraper service."""

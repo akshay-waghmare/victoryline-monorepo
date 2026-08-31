@@ -3,6 +3,7 @@ package com.devglan.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
+import java.util.Arrays;
 import java.lang.reflect.Proxy;
 
 import java.lang.reflect.Method;
@@ -148,5 +149,43 @@ public class LiveMatchServiceLifecycleEvidenceTest {
         upcoming.setScheduledStartTime(System.currentTimeMillis() + 86400000L);
 
         assertThat((Boolean) method.invoke(service, upcoming)).isTrue();
+    }
+
+    @Test
+    public void excludesUnmanagedLiveRowsFromPublicLiveDiscovery() {
+        LiveMatch managed = new LiveMatch(
+                "https://crex.com/cricket-live-score/managed-a-vs-managed-b-1st-match-t20-cup-2026-match-updates-MAN");
+        managed.setStatus(MatchLifecycleStatus.LIVE);
+        managed.setLiveFeedManaged(true);
+        managed.setLastStateUpdatedAt(System.currentTimeMillis());
+        managed.setTeam1Name("Managed A");
+        managed.setTeam2Name("Managed B");
+        managed.setVenue("Test venue");
+        managed.setLastKnownState("Ball");
+
+        LiveMatch unmanaged = new LiveMatch(
+                "https://crex.com/cricket-live-score/mohali-kings-vs-bathinda-2nd-match-t20-cup-2026-match-updates-13O2");
+        unmanaged.setStatus(MatchLifecycleStatus.LIVE);
+        unmanaged.setLiveFeedManaged(false);
+        unmanaged.setLastStateUpdatedAt(System.currentTimeMillis());
+
+        LiveMatchRepository repository = (LiveMatchRepository) Proxy.newProxyInstance(
+                LiveMatchRepository.class.getClassLoader(),
+                new Class<?>[] {LiveMatchRepository.class},
+                (proxy, method, args) -> {
+                    if ("findAll".equals(method.getName())) {
+                        return Arrays.asList(managed, unmanaged);
+                    }
+                    if (method.getReturnType() == boolean.class) return false;
+                    if (method.getReturnType() == int.class) return 0;
+                    if (method.getReturnType() == long.class) return 0L;
+                    if (java.util.List.class.isAssignableFrom(method.getReturnType())) return Collections.emptyList();
+                    return null;
+                });
+        LiveMatchServiceImpl service = new LiveMatchServiceImpl(repository, null, null, null);
+
+        assertThat(service.findMatchesByCohort(com.devglan.model.MatchLifecycleCohort.LIVE))
+                .extracting(LiveMatch::getUrl)
+                .containsExactly(managed.getUrl());
     }
 }

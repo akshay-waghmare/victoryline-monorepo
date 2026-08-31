@@ -10,6 +10,10 @@ COMPOSE_DIR="${CRICKZEN_COMPOSE_DIR:-/home/administrator/victoryline-monorepo}"
 COMPOSE_FILE="${CRICKZEN_COMPOSE_FILE:-docker-compose.prod.yml}"
 CONTAINER_NAME="${CRICKZEN_SCRAPER_CONTAINER:-victoryline-scraper}"
 HEALTH_URL="${CRICKZEN_SCRAPER_HEALTH_URL:-http://127.0.0.1:5000/health}"
+# The scraper intentionally manages only the selected MAX_LIVE_MATCHES slate.
+# Check those URLs, not every row in the backend's larger live catalogue.
+CANDIDATES_URL="${CRICKZEN_SCRAPER_CANDIDATES_URL:-http://127.0.0.1:5000/prediction-candidates}"
+SNAPSHOT_URL="${CRICKZEN_MANAGED_SNAPSHOT_URL:-http://127.0.0.1:8099/cricket-data/last-updated-data}"
 STALE_SECONDS="${CRICKZEN_SCRAPER_STALE_SECONDS:-300}"
 RESTART_COOLDOWN_SECONDS="${CRICKZEN_SCRAPER_RESTART_COOLDOWN_SECONDS:-300}"
 ESCALATION_WINDOW_SECONDS="${CRICKZEN_SCRAPER_ESCALATION_WINDOW_SECONDS:-900}"
@@ -85,6 +89,45 @@ write_state() {
   mv -f "$temp_file" "$STATE_FILE"
 }
 
+check_managed_match_freshness() {
+  local candidates_payload candidate_url match_key snapshot_payload last_updated age
+  managed_matches=0
+  stale_matches=""
+  freshness_error=""
+
+  candidates_payload="$(curl -sS --max-time 15 "$CANDIDATES_URL" 2>/dev/null || true)"
+  if [ -z "$candidates_payload" ] || ! printf '%s' "$candidates_payload" | jq -e '.matches and (.matches | type == "array")' >/dev/null 2>&1; then
+    freshness_error="managed_candidates_unreachable"
+    return 1
+  fi
+
+  managed_matches="$(printf '%s' "$candidates_payload" | jq -r '.matches | length')"
+  [ "$managed_matches" -eq 0 ] && return 0
+
+  while IFS= read -r candidate_url; do
+    [ -z "$candidate_url" ] && continue
+    match_key="$(printf '%s' "$candidate_url" | sed -n 's|.*-match-updates-\([^/?#]*\).*|\1|p')"
+    if [ -z "$match_key" ]; then
+      stale_matches="${stale_matches}${candidate_url},"
+      continue
+    fi
+
+    snapshot_payload="$(curl -sS --max-time 15 --get --data-urlencode "url=${match_key}" "$SNAPSHOT_URL" 2>/dev/null || true)"
+    last_updated="$(printf '%s' "$snapshot_payload" | jq -r '.lastUpdated // .updatedTimeStamp // 0' 2>/dev/null || printf '0')"
+    if ! printf '%s' "$last_updated" | grep -Eq '^[0-9]+([.][0-9]+)?$' || [ "$last_updated" = "0" ]; then
+      stale_matches="${stale_matches}${match_key},"
+      continue
+    fi
+
+    age="$(awk -v now="$now" -v last="$last_updated" 'BEGIN {print now - (last / 1000)}')"
+    if awk -v age="$age" -v threshold="$STALE_SECONDS" 'BEGIN {exit !(age >= threshold)}'; then
+      stale_matches="${stale_matches}${match_key}:${age}s,"
+    fi
+  done < <(printf '%s' "$candidates_payload" | jq -r '.matches[]?.url // empty')
+
+  [ -z "$stale_matches" ]
+}
+
 read_state
 now="$(date +%s)"
 health_payload="$(curl -sS --max-time 15 "$HEALTH_URL" 2>/dev/null || true)"
@@ -109,13 +152,14 @@ else
   elif [ "$state" = "failing" ]; then
     reason="scraper_health_failing"
     message="state=${state} active_matches=${active_matches}"
-  elif printf '%s' "$active_matches" | grep -Eq '^[0-9]+$' \
-    && [ "$active_matches" -gt 0 ] \
-    && printf '%s' "$last_scrape" | grep -Eq '^[0-9]+([.][0-9]+)?$' \
-    && awk -v now="$now" -v last="$last_scrape" -v threshold="$STALE_SECONDS" \
-      'BEGIN { age = now - last; exit !(age >= threshold) }'; then
-    reason="stale_live_data"
-    message="state=${state} active_matches=${active_matches} seconds_since_last_scrape=$(awk -v now="$now" -v last="$last_scrape" 'BEGIN {print now - last}')"
+  elif ! check_managed_match_freshness; then
+    if [ -n "$freshness_error" ]; then
+      reason="$freshness_error"
+      message="state=${state} managed_matches=${managed_matches:-0} candidates_url=${CANDIDATES_URL}"
+    else
+      reason="managed_match_stale"
+      message="state=${state} managed_matches=${managed_matches} stale_matches=${stale_matches%,}"
+    fi
   fi
 fi
 

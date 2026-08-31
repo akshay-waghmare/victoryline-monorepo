@@ -60,6 +60,14 @@ public class LiveMatch {
     @Column(name = "last_state_updated_at")
     private Long lastStateUpdatedAt;
 
+    /**
+     * True only for the bounded live slate currently refreshed by the scraper.
+     * A provider can advertise more live rows than we intentionally manage;
+     * those rows must not be presented as fresh live-score cards.
+     */
+    @Column(name = "live_feed_managed", nullable = false)
+    private boolean liveFeedManaged = false;
+
     @Column(name = "seo_content_fingerprint", length = 64)
     private String seoContentFingerprint;
 
@@ -235,12 +243,20 @@ public class LiveMatch {
         this.resultSummary = resultSummary;
     }
 
-    public Long getLastStateUpdatedAt() {
-        return lastStateUpdatedAt;
+	public Long getLastStateUpdatedAt() {
+		return lastStateUpdatedAt;
+	}
+
+	public void setLastStateUpdatedAt(Long lastStateUpdatedAt) {
+		this.lastStateUpdatedAt = lastStateUpdatedAt;
+	}
+
+    public boolean isLiveFeedManaged() {
+        return liveFeedManaged;
     }
 
-    public void setLastStateUpdatedAt(Long lastStateUpdatedAt) {
-        this.lastStateUpdatedAt = lastStateUpdatedAt;
+    public void setLiveFeedManaged(boolean liveFeedManaged) {
+        this.liveFeedManaged = liveFeedManaged;
     }
 
     public String getSeoContentFingerprint() { return seoContentFingerprint; }
