@@ -368,6 +368,11 @@ public class SitemapPartitionTest {
         assertThat(priorityXml).doesNotContain("next5-a-vs-next5-b-cup-2026-match-updates-UP5");
         assertThat(service.getPriorityMatchUrls()).hasSize(5);
         assertThat(service.getSitemapIndexXml()).contains("sitemap-priority-0001.xml");
+        String lifecycleXml = String.valueOf(service.getPartitionXml("sitemap-live-0001"))
+                + String.valueOf(service.getPartitionXml("sitemap-upcoming-0001"));
+        assertThat(lifecycleXml).doesNotContain("managed-a-vs-managed-b-live-cup-2026-match-updates-MAN");
+        assertThat(lifecycleXml).doesNotContain("next1-a-vs-next1-b-cup-2026-match-updates-UP1");
+        assertThat(lifecycleXml).contains("next5-a-vs-next5-b-cup-2026-match-updates-UP5");
     }
 
     private LiveMatchesService.LiveMatchEntry entry(String slug, String status, Long scheduledStart) {

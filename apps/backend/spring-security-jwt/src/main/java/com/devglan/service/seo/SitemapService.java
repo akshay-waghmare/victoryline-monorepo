@@ -204,6 +204,7 @@ public class SitemapService {
         Collections.sort(prioritizedMatches, Comparator.comparingLong(this::sitemapPrioritySortValue));
         List<LiveMatchesService.LiveMatchEntry> priorityMatches = selectPriorityMatches(prioritizedMatches);
         List<String> priorityMatchUrls = new ArrayList<>();
+        Set<String> priorityCanonicalPaths = new LinkedHashSet<>();
         for (LiveMatchesService.LiveMatchEntry match : priorityMatches) {
             String canonicalPath = deriveCanonicalMatchPath(match);
             if (canonicalPath == null) continue;
@@ -211,6 +212,7 @@ public class SitemapService {
                     canonicalPath, deriveLiveMatchLastMod(match, writer), "hourly", 0.95);
             cohortUrls.get("sitemap-priority").add(url);
             priorityMatchUrls.add(url.loc);
+            priorityCanonicalPaths.add(canonicalPath);
         }
         for (LiveMatchesService.LiveMatchEntry match : prioritizedMatches) {
             String canonicalPath = deriveCanonicalMatchPath(match);
@@ -222,7 +224,11 @@ public class SitemapService {
             double priority = "sitemap-live".equals(cohort) ? 0.9 : "sitemap-upcoming".equals(cohort) ? 0.85 : 0.8;
             SitemapWriter.SitemapUrl url = writer.urlWithLastMod(canonicalPath, deriveLiveMatchLastMod(match, writer), changefreq, priority);
             allUrls.add(url);
-            cohortUrls.get(cohort).add(url);
+            // A promoted URL belongs only to the first priority child. Keeping
+            // it in a lifecycle child too duplicates the canonical location.
+            if (!priorityCanonicalPaths.contains(canonicalPath)) {
+                cohortUrls.get(cohort).add(url);
+            }
         }
 
         allUrls = deduplicateUrls(allUrls);
