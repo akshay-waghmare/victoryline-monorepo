@@ -34,7 +34,7 @@ public class IndexNowService {
     @Value("${seo.indexnow.host:www.crickzen.com}")
     private String host;
 
-    @Value("${seo.indexnow.key-location:https://www.crickzen.com/api/v1/seo/indexnow/key.txt}")
+    @Value("${seo.indexnow.key-location:https://www.crickzen.com/indexnow-key.txt}")
     private String keyLocation;
 
     private volatile long lastSubmissionEpochMs;

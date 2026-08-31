@@ -19,7 +19,7 @@ Maintain a small, current crawl target that search engines can discover before a
 - Every managed live URL is included before upcoming fillers; unmanaged live URLs are excluded.
 - Each priority URL returns 200, one canonical, one H1, no `noindex`, and at least one JSON-LD script in raw HTML.
 - The exact priority URLs appear as raw anchors on the homepage and a live/schedule hub.
-- The IndexNow key URL returns the configured key and a batch POST receives HTTP 200 or 202.
+- The root-scoped IndexNow key URL returns the configured key and a batch POST receives HTTP 200 or 202.
 - GSC sitemap submission succeeds; Google Indexing API remains disabled.
 - Follow-up monitoring records observed indexing separately for Google and Bing. No deployment is described as an indexing guarantee.
 

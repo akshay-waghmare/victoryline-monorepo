@@ -25,6 +25,17 @@ www.crickzen.com {
 
   # Historical homepage aliases should not compete with the canonical root URL.
   redir /Home / permanent
+
+  # IndexNow keys are path-scoped. Keep the public verification URL at the
+  # site root so it can authorize canonical /cric-live/* submissions.
+  @indexnow_key path /indexnow-key.txt
+  handle @indexnow_key {
+    rewrite * /api/v1/seo/indexnow/key.txt
+    reverse_proxy backend:8099 {
+      header_up Host {host}
+      header_up X-Real-IP {remote}
+    }
+  }
   
   # SEO endpoints - proxy to backend
   # These are critical for search engine indexing

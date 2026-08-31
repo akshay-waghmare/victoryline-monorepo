@@ -27,7 +27,7 @@ public class IndexNowServiceTest {
         ReflectionTestUtils.setField(service, "key", "test-key-12345678");
         ReflectionTestUtils.setField(service, "endpoint", "https://api.indexnow.org/indexnow");
         ReflectionTestUtils.setField(service, "host", "www.crickzen.com");
-        ReflectionTestUtils.setField(service, "keyLocation", "https://www.crickzen.com/api/v1/seo/indexnow/key.txt");
+        ReflectionTestUtils.setField(service, "keyLocation", "https://www.crickzen.com/indexnow-key.txt");
 
         server.expect(requestTo("https://api.indexnow.org/indexnow"))
                 .andExpect(method(HttpMethod.POST))
