@@ -147,6 +147,7 @@ public class LiveMatchesService {
         entry.setLifecycleCohort(node.has("lifecycleCohort") ? node.get("lifecycleCohort").asText() : null);
         entry.setResultSummary(node.has("resultSummary") ? node.get("resultSummary").asText() : null);
         entry.setFinished(node.has("finished") && node.get("finished").asBoolean(false));
+        entry.setLiveFeedManaged(node.has("liveFeedManaged") && node.get("liveFeedManaged").asBoolean(false));
         entry.setScheduledStartTime(readLong(node, "scheduledStartTime"));
         entry.setLastStateUpdatedAt(readLong(node, "lastStateUpdatedAt", "last_state_updated_at"));
         entry.setSeoContentModifiedAt(readLong(node, "seoContentModifiedAt", "seo_content_modified_at"));
@@ -195,6 +196,7 @@ public class LiveMatchesService {
         private String lifecycleCohort;
         private String resultSummary;
         private boolean finished;
+        private boolean liveFeedManaged;
         private Long scheduledStartTime;
         private Long lastStateUpdatedAt;
         private Long seoContentModifiedAt;
@@ -221,6 +223,9 @@ public class LiveMatchesService {
 
         public boolean isFinished() { return finished; }
         public void setFinished(boolean finished) { this.finished = finished; }
+
+        public boolean isLiveFeedManaged() { return liveFeedManaged; }
+        public void setLiveFeedManaged(boolean liveFeedManaged) { this.liveFeedManaged = liveFeedManaged; }
 
         public Long getScheduledStartTime() { return scheduledStartTime; }
         public void setScheduledStartTime(Long scheduledStartTime) { this.scheduledStartTime = scheduledStartTime; }

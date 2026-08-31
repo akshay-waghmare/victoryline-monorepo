@@ -338,6 +338,49 @@ public class SitemapPartitionTest {
     }
 
     @Test
+    public void priority_sitemap_keeps_managed_live_then_fills_to_five_with_nearest_upcoming() {
+        List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
+
+        LiveMatchesService.LiveMatchEntry unmanaged = entry(
+                "unmanaged-a-vs-unmanaged-b-live-cup-2026-match-updates-UNMAN", "LIVE", null);
+        unmanaged.setLiveFeedManaged(false);
+        entries.add(unmanaged);
+
+        LiveMatchesService.LiveMatchEntry managed = entry(
+                "managed-a-vs-managed-b-live-cup-2026-match-updates-MAN", "LIVE", null);
+        managed.setLiveFeedManaged(true);
+        entries.add(managed);
+
+        long now = System.currentTimeMillis();
+        for (int i = 1; i <= 5; i++) {
+            entries.add(entry("next" + i + "-a-vs-next" + i + "-b-cup-2026-match-updates-UP" + i,
+                    "UPCOMING", now + i * 3600000L));
+        }
+        liveMatchesService.setMatches(entries);
+
+        String priorityXml = service.getPartitionXml("sitemap-priority-0001");
+        assertThat(priorityXml).isNotNull();
+        assertThat(countOccurrences(priorityXml, "<url>")).isEqualTo(5);
+        assertThat(priorityXml).contains("managed-a-vs-managed-b-live-cup-2026-match-updates-MAN");
+        assertThat(priorityXml).doesNotContain("unmanaged-a-vs-unmanaged-b-live-cup-2026-match-updates-UNMAN");
+        assertThat(priorityXml).contains("next1-a-vs-next1-b-cup-2026-match-updates-UP1");
+        assertThat(priorityXml).contains("next4-a-vs-next4-b-cup-2026-match-updates-UP4");
+        assertThat(priorityXml).doesNotContain("next5-a-vs-next5-b-cup-2026-match-updates-UP5");
+        assertThat(service.getPriorityMatchUrls()).hasSize(5);
+        assertThat(service.getSitemapIndexXml()).contains("sitemap-priority-0001.xml");
+    }
+
+    private LiveMatchesService.LiveMatchEntry entry(String slug, String status, Long scheduledStart) {
+        LiveMatchesService.LiveMatchEntry entry = new LiveMatchesService.LiveMatchEntry();
+        entry.setUrl("https://crex.com/cricket-live-score/" + slug);
+        entry.setExternalMatchKey(slug);
+        entry.setStatus(status);
+        entry.setScheduledStartTime(scheduledStart);
+        entry.setLastKnownState("LIVE".equals(status) ? "42/1" : null);
+        return entry;
+    }
+
+    @Test
     public void sitemap_prioritizes_live_matches_into_first_partition() {
         List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
         for (int i = 1; i <= 1200; i++) {

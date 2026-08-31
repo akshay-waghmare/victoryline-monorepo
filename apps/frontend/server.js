@@ -945,24 +945,46 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
   // Google requires both startDate and location for Event rich-result
   // eligibility. A fallback must omit SportsEvent rather than emit an invalid
   // event when the stored snapshot has not yet resolved a trustworthy venue.
-  const structuredData = snapshot && snapshot.scheduledAtMs && snapshot.venue ? JSON.stringify({
+  const structuredItems = [{
     '@context': 'https://schema.org',
-    '@type': 'SportsEvent',
-    name: match.teams,
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Cricket', item: 'https://www.crickzen.com/matches' },
+      { '@type': 'ListItem', position: 2, name: 'Live Cricket Scores', item: 'https://www.crickzen.com/live-score' },
+      { '@type': 'ListItem', position: 3, name: match.teams, item: canonicalUrl }
+    ]
+  }, {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: title,
+    description,
     url: canonicalUrl,
-    competitor: [
-      { '@type': 'SportsTeam', name: match.team1 },
-      { '@type': 'SportsTeam', name: match.team2 }
-    ],
-    eventStatus: summary.lifecycle === 'live' || summary.lifecycle === 'innings-break'
-      ? 'https://schema.org/EventInProgress'
-      : summary.lifecycle === 'completed' ? 'https://schema.org/EventCompleted'
-        : summary.lifecycle === 'abandoned' ? 'https://schema.org/EventCancelled'
-          : 'https://schema.org/EventScheduled',
-    startDate: snapshot && snapshot.scheduledAtMs ? new Date(snapshot.scheduledAtMs).toISOString() : undefined,
-    location: snapshot && snapshot.venue ? { '@type': 'Place', name: snapshot.venue } : undefined,
-    description
-  }).replace(/</g, '\\u003c') : '';
+    mainEntityOfPage: canonicalUrl,
+    author: { '@type': 'Organization', name: 'Crickzen Sports Desk' },
+    publisher: { '@type': 'Organization', name: 'Crickzen' },
+    isAccessibleForFree: true
+  }];
+  if (snapshot && snapshot.scheduledAtMs && snapshot.venue) {
+    structuredItems.push({
+      '@context': 'https://schema.org',
+      '@type': 'SportsEvent',
+      name: match.teams,
+      url: canonicalUrl,
+      competitor: [
+        { '@type': 'SportsTeam', name: match.team1 },
+        { '@type': 'SportsTeam', name: match.team2 }
+      ],
+      eventStatus: summary.lifecycle === 'live' || summary.lifecycle === 'innings-break'
+        ? 'https://schema.org/EventInProgress'
+        : summary.lifecycle === 'completed' ? 'https://schema.org/EventCompleted'
+          : summary.lifecycle === 'abandoned' ? 'https://schema.org/EventCancelled'
+            : 'https://schema.org/EventScheduled',
+      startDate: new Date(snapshot.scheduledAtMs).toISOString(),
+      location: { '@type': 'Place', name: snapshot.venue },
+      description
+    });
+  }
+  const structuredData = JSON.stringify(structuredItems).replace(/</g, '\\u003c');
   const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8')
     // The application shell has a generic description. Remove it before
     // injecting the fallback head so a crawler receives one authoritative
@@ -976,7 +998,7 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     `<meta property="og:title" content="${escapeHtml(title)}">`,
     `<meta property="og:description" content="${escapeHtml(description)}">`,
     `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
-    structuredData ? `<script type="application/ld+json">${structuredData}</script>` : ''
+    `<script type="application/ld+json">${structuredData}</script>`
   ].join('');
   const aeoBlock = buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary);
   const body = `<main id="canonical-match-ssr-fallback" data-ssr-fallback="canonical-match">

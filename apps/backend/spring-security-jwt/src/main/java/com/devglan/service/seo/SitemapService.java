@@ -7,6 +7,7 @@ import com.devglan.service.seo.events.SeoContentChangeEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
@@ -60,6 +61,9 @@ public class SitemapService {
     private final LiveMatchesService liveMatchesService;
     private MatchRepository matchRepository; // optional in isolated tests
 
+    @Value("${seo.priority-match-count:5}")
+    private int priorityMatchCount = 5;
+
     private volatile boolean sitemapDirty = true;
     private volatile long lastSuccessfulGenerationEpochMs = 0L;
     private volatile long lastGenerationDurationMs = 0L;
@@ -96,6 +100,11 @@ public class SitemapService {
     public String getPartitionXml(String name) {
         SitemapManifest manifest = getOrRefreshManifest();
         return manifest == null ? null : manifest.partitionXmlByName.get(name);
+    }
+
+    public List<String> getPriorityMatchUrls() {
+        SitemapManifest manifest = getOrRefreshManifest();
+        return manifest == null ? Collections.emptyList() : manifest.priorityMatchUrls;
     }
 
     public boolean hasPublishedManifest() {
@@ -174,6 +183,7 @@ public class SitemapService {
         SitemapWriter writer = new SitemapWriter();
         List<SitemapWriter.SitemapUrl> allUrls = new ArrayList<>();
         Map<String, List<SitemapWriter.SitemapUrl>> cohortUrls = new LinkedHashMap<>();
+        cohortUrls.put("sitemap-priority", new ArrayList<>());
         cohortUrls.put("sitemap-static", new ArrayList<>());
         cohortUrls.put("sitemap-live", new ArrayList<>());
         cohortUrls.put("sitemap-upcoming", new ArrayList<>());
@@ -192,6 +202,16 @@ public class SitemapService {
         // as SSR, never both aliases.
         List<LiveMatchesService.LiveMatchEntry> prioritizedMatches = canonicalizeMatchIdentities(liveMatches);
         Collections.sort(prioritizedMatches, Comparator.comparingLong(this::sitemapPrioritySortValue));
+        List<LiveMatchesService.LiveMatchEntry> priorityMatches = selectPriorityMatches(prioritizedMatches);
+        List<String> priorityMatchUrls = new ArrayList<>();
+        for (LiveMatchesService.LiveMatchEntry match : priorityMatches) {
+            String canonicalPath = deriveCanonicalMatchPath(match);
+            if (canonicalPath == null) continue;
+            SitemapWriter.SitemapUrl url = writer.urlWithLastMod(
+                    canonicalPath, deriveLiveMatchLastMod(match, writer), "hourly", 0.95);
+            cohortUrls.get("sitemap-priority").add(url);
+            priorityMatchUrls.add(url.loc);
+        }
         for (LiveMatchesService.LiveMatchEntry match : prioritizedMatches) {
             String canonicalPath = deriveCanonicalMatchPath(match);
             if (canonicalPath == null) {
@@ -243,7 +263,8 @@ public class SitemapService {
         }
 
         return new SitemapManifest(generationId, startedAt, writer.buildIndex(cohortPaths),
-                Collections.unmodifiableMap(partitionXmlByNumber), Collections.unmodifiableMap(partitionXmlByName), allUrls.size());
+                Collections.unmodifiableMap(partitionXmlByNumber), Collections.unmodifiableMap(partitionXmlByName),
+                Collections.unmodifiableList(priorityMatchUrls), allUrls.size());
     }
 
     private List<LiveMatchesService.LiveMatchEntry> loadSitemapMatches() {
@@ -497,6 +518,41 @@ public class SitemapService {
         return Long.MAX_VALUE / 2 - Math.min(updatedAt, Long.MAX_VALUE / 8);
     }
 
+    private List<LiveMatchesService.LiveMatchEntry> selectPriorityMatches(
+            List<LiveMatchesService.LiveMatchEntry> matches) {
+        int target = Math.max(1, priorityMatchCount);
+        List<LiveMatchesService.LiveMatchEntry> selected = new ArrayList<>();
+
+        for (LiveMatchesService.LiveMatchEntry match : matches) {
+            if (selected.size() >= target) break;
+            if (isManagedLive(match) && deriveCanonicalMatchPath(match) != null) {
+                selected.add(match);
+            }
+        }
+        for (LiveMatchesService.LiveMatchEntry match : matches) {
+            if (selected.size() >= target) break;
+            if (isUpcoming(match) && deriveCanonicalMatchPath(match) != null) {
+                selected.add(match);
+            }
+        }
+        return selected;
+    }
+
+    private boolean isManagedLive(LiveMatchesService.LiveMatchEntry match) {
+        if (match == null || !match.isLiveFeedManaged()) return false;
+        String status = normalize(match.getStatus());
+        String cohort = normalize(match.getLifecycleCohort());
+        return match.isLive() || "live".equals(cohort) || status.contains("innings_break")
+                || status.contains("rain_delay");
+    }
+
+    private boolean isUpcoming(LiveMatchesService.LiveMatchEntry match) {
+        if (match == null) return false;
+        String status = normalize(match.getStatus());
+        String cohort = normalize(match.getLifecycleCohort());
+        return "upcoming".equals(cohort) || "upcoming".equals(status) || "scheduled".equals(status);
+    }
+
     private ArrayList<SitemapWriter.SitemapUrl> deduplicateUrls(List<SitemapWriter.SitemapUrl> urls) {
         Map<String, SitemapWriter.SitemapUrl> uniqueByLocation = new LinkedHashMap<>();
         for (SitemapWriter.SitemapUrl url : urls) {
@@ -554,16 +610,19 @@ public class SitemapService {
         private final String indexXml;
         private final Map<Integer, String> partitionXmlByNumber;
         private final Map<String, String> partitionXmlByName;
+        private final List<String> priorityMatchUrls;
         private final int urlCount;
 
         private SitemapManifest(long generationId, long generatedAtEpochMs, String indexXml,
                                 Map<Integer, String> partitionXmlByNumber, Map<String, String> partitionXmlByName,
+                                List<String> priorityMatchUrls,
                                 int urlCount) {
             this.generationId = generationId;
             this.generatedAtEpochMs = generatedAtEpochMs;
             this.indexXml = indexXml;
             this.partitionXmlByNumber = partitionXmlByNumber;
             this.partitionXmlByName = partitionXmlByName;
+            this.priorityMatchUrls = priorityMatchUrls;
             this.urlCount = urlCount;
         }
     }

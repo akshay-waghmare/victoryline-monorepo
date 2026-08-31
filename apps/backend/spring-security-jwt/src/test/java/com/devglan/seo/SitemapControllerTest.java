@@ -95,6 +95,16 @@ public class SitemapControllerTest {
     }
 
     @Test
+    public void public_priority_partition_returns_xml() throws Exception {
+        MvcResult result = mockMvc.perform(MockMvcRequestBuilders.get("/sitemaps/sitemap-priority-0001.xml"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_XML))
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).contains("ind-vs-aus-1st-test-2026-match-updates-111A");
+    }
+
+    @Test
     public void malformed_public_partition_route_returns_not_found_without_cache() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/sitemaps/compatibility-0001.xml"))
                 .andExpect(status().isNotFound());
@@ -106,6 +116,7 @@ public class SitemapControllerTest {
             LiveMatchEntry entry = new LiveMatchEntry();
             entry.setUrl("https://crex.com/cricket-live-score/ind-vs-aus-1st-test-2026-match-updates-111A");
             entry.setStatus("LIVE");
+            entry.setLiveFeedManaged(true);
             entry.setLastKnownState("India 10/0");
             return Collections.singletonList(entry);
         }

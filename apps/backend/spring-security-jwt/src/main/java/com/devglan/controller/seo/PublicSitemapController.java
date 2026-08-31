@@ -37,7 +37,7 @@ public class PublicSitemapController {
     public ResponseEntity<String> getSitemapPartition(@PathVariable("name") String name) {
         log.debug("Received request for sitemap partition {}", name);
         if (name == null || !(name.matches("sitemap-matches-\\d{4}")
-                || name.matches("sitemap-(static|live|upcoming|recent|archive)-\\d{4}"))) {
+                || name.matches("sitemap-(priority|static|live|upcoming|recent|archive)-\\d{4}"))) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .header(HttpHeaders.CACHE_CONTROL, "no-store")
                     .build();

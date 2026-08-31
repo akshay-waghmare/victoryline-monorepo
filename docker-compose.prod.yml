@@ -77,6 +77,10 @@ services:
       GSC_ENABLED: "${GSC_ENABLED:-true}"
       GSC_SITE_URL: "${GSC_SITE_URL:-https://www.crickzen.com/}"
       GSC_SITEMAP_URL: "${GSC_SITEMAP_URL:-https://www.crickzen.com/sitemap.xml}"
+      SEO_PRIORITY_MATCH_COUNT: "${SEO_PRIORITY_MATCH_COUNT:-5}"
+      INDEXNOW_ENABLED: "${INDEXNOW_ENABLED:-false}"
+      INDEXNOW_KEY: "${INDEXNOW_KEY:-}"
+      INDEXNOW_KEY_LOCATION: "${INDEXNOW_KEY_LOCATION:-https://www.crickzen.com/api/v1/seo/indexnow/key.txt}"
       GSC_SERVICE_ACCOUNT_PATH: "${GSC_SERVICE_ACCOUNT_PATH:-file:/app/config/gsc-service-account.json}"
       # Google credentials - also supports GOOGLE_APPLICATION_CREDENTIALS env var
       GOOGLE_APPLICATION_CREDENTIALS: "${GOOGLE_APPLICATION_CREDENTIALS:-/app/config/gsc-service-account.json}"
