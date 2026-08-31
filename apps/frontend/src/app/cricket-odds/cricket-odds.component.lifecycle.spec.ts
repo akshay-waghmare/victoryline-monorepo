@@ -43,6 +43,15 @@ function createComponent(): CricketOddsComponent {
 }
 
 describe('CricketOddsComponent lifecycle tab defaults', () => {
+  it('does not choose an unrelated first player when CREX catalog search misses', () => {
+    var component = createComponent();
+    var resolved = (component as any).findBestGlobalPlayerMatch([
+      { externalId: 'player:other-player', name: 'Other Player' }
+    ], 'Target Player');
+
+    expect(resolved).toBeNull();
+  });
+
   function setIndexableMatchSeo(component: CricketOddsComponent): void {
     component.matchSeo = {
       canonicalPath: '/cric-live/india-vs-australia-1st-match-world-cup-2026-match-updates-123A',

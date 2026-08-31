@@ -135,4 +135,24 @@ describe('HomeComponent discovery matches', () => {
     expect(component.getHomeSeriesHref('England One Day Cup 2026')).toBe('/series/current/england-one-day-cup-2026');
     expect(component.getHomeSeriesHref('Women\'s T20I — Switzerland 2026')).toBe('/series/current/women-s-t20i-switzerland-2026');
   });
+
+  it('filters the homepage without following the series discovery href', () => {
+    var component = createComponentShape();
+    (component as any).getSeriesTab = function() { return 'upcoming'; };
+    (component as any).syncActiveMatches = function() {};
+    (component as any).resetMatchesCarouselPosition = function() {};
+    (component as any).revealSelectedSeries = function() {};
+    (component as any).changeDetectorRef = { markForCheck: function() {} };
+    var prevented = false;
+    var stopped = false;
+
+    component.selectSeries('Test series', {
+      preventDefault: function() { prevented = true; },
+      stopPropagation: function() { stopped = true; }
+    } as any);
+
+    expect(prevented).toBe(true);
+    expect(stopped).toBe(true);
+    expect(component.selectedSeries).toBe('Test series');
+  });
 });

@@ -1,10 +1,13 @@
 import { MatchesService } from './matches.service';
+import { EMPTY } from 'rxjs';
 
 describe('MatchesService', () => {
   let service: MatchesService;
 
   beforeEach(() => {
-    service = new MatchesService({} as any, {} as any);
+    service = new MatchesService({
+      subscribeToEventsTopic: function() { return EMPTY; }
+    } as any, {} as any);
   });
 
   it('prefers explicit full team names over scorecard short codes', () => {

@@ -112,6 +112,19 @@ public class LiveMatchServiceLifecycleEvidenceTest {
     }
 
     @Test
+    public void retainsLiveStateWhenNoTerminalResultEvidenceExists() throws Exception {
+        LiveMatchServiceImpl service = new LiveMatchServiceImpl(null, null, null, null);
+        LiveMatch match = new LiveMatch(
+                "https://crex.com/cricket-live-score/team-a-vs-team-b-1st-match-t20-cup-2026-match-updates-ABC");
+        match.setStatus(MatchLifecycleStatus.LIVE);
+
+        Method method = LiveMatchServiceImpl.class.getDeclaredMethod("retainNonTerminalStatus", LiveMatch.class);
+        method.setAccessible(true);
+
+        assertThat((MatchLifecycleStatus) method.invoke(service, match)).isEqualTo(MatchLifecycleStatus.LIVE);
+    }
+
+    @Test
     public void rejectsUpcomingRowsWithoutAFutureScheduleFromPublicDiscovery() throws Exception {
         LiveMatchServiceImpl service = new LiveMatchServiceImpl(null, null, null, null);
         Method method = LiveMatchServiceImpl.class.getDeclaredMethod("isPubliclyIndexable", LiveMatch.class);

@@ -72,13 +72,14 @@ class ScraperSettings:
     memory_soft_limit_mb: int = 1536
     memory_hard_limit_mb: int = 2048
     polling_interval_seconds: float = 0.8
-    # Increased from 60s to 180s (3 min) to allow scrapers enough time for:
+    # Five minutes is the stale-data boundary for an active live match. The
+    # host watchdog and the in-process monitor use this same contract.
     # - Browser launch (5-10s)
     # - Page navigation (5-10s)
     # - API response processing (10-20s)
     # - Data push to backend (5-10s)
-    # Total: 25-50s minimum, 180s provides adequate buffer
-    staleness_threshold_seconds: int = 180
+    # Total: 25-50s minimum, with a five-minute stale-data boundary.
+    staleness_threshold_seconds: int = 300
     max_queue_size: int = 1000
     max_queue_size_mb: int = 10
     circuit_breaker_threshold: int = 5
@@ -268,9 +269,9 @@ class ScraperSettings:
         memory_soft_limit_mb = _coerce_int(env.get("MEMORY_SOFT_LIMIT_MB"), 1536, minimum=128)
         memory_hard_limit_mb = _coerce_int(env.get("MEMORY_HARD_LIMIT_MB"), 2048, minimum=256)
         polling_interval_seconds = _coerce_float(env.get("POLLING_INTERVAL_SECONDS"), 0.8, minimum=0.1)
-        # Increased default from 60s to 180s (3 min) to prevent premature restarts
-        # Minimum kept at 30s to avoid hyper‑aggressive restart loops
-        staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 180, minimum=30)
+        # Five minutes is long enough for a browser/provider retry but short
+        # enough to recover an active live lane before it becomes misleading.
+        staleness_threshold_seconds = _coerce_int(env.get("STALENESS_THRESHOLD_SECONDS"), 300, minimum=30)
         max_queue_size = _coerce_int(env.get("MAX_QUEUE_SIZE"), 1000, minimum=10)
         max_queue_size_mb = _coerce_int(env.get("MAX_QUEUE_SIZE_MB"), 10, minimum=1)
         circuit_breaker_threshold = _coerce_int(env.get("CIRCUIT_BREAKER_THRESHOLD"), 5, minimum=1)

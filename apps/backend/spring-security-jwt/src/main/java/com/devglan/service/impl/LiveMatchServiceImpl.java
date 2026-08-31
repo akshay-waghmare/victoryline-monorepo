@@ -96,12 +96,23 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                             match.setResultSummary(match.getLastKnownState());
                         }
 						MatchLifecycleStatus inferredStatus = lifecycleFromEvidence(match);
-                        // A multi-day match can disappear from CREX's live carousel at
+						boolean hasTerminalEvidence = hasTerminalResultSignal(match.getResultSummary());
+
+						// CREX discovery can briefly return an empty slate while the
+						// scraper/browser is recovering. Absence from that slate is not
+						// proof that a live match finished. Keep the last live state until
+						// a terminal result (or abandoned/no-result signal) is present.
+						if (!hasTerminalEvidence && inferredStatus == MatchLifecycleStatus.COMPLETED) {
+							inferredStatus = retainNonTerminalStatus(match);
+						}
+
+						// A multi-day match can disappear from CREX's live carousel at
                         // stumps. Retain only evidence-backed innings breaks (or a
                         // clearly multi-day fixture); an absent limited-overs LIVE
                         // row must leave the live catalogue instead of being kept by
                         // the generic lifecycle window.
-                        if (!inferredStatus.isTerminal() && !shouldRetainAbsentLiveMatch(match, inferredStatus)) {
+						if (!inferredStatus.isTerminal() && !shouldRetainAbsentLiveMatch(match, inferredStatus)
+								&& hasTerminalEvidence) {
                             inferredStatus = MatchLifecycleStatus.COMPLETED;
                         }
                         if (!inferredStatus.isTerminal()) {
@@ -243,6 +254,9 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             // converting "Day 2 stumps" into "Match completed".
             if (incomingStatus != null && incomingStatus.isTerminal() && !hasTerminalResultSignal(resultSummary)) {
                 incomingStatus = lifecycleFromEvidence(match);
+                if (incomingStatus == MatchLifecycleStatus.COMPLETED) {
+                    incomingStatus = retainNonTerminalStatus(match);
+                }
             }
             MatchLifecycleStatus mergedStatus = isNew ? incomingStatus : mergeLifecycleStatus(match.getStatus(), incomingStatus);
             match.setStatus(mergedStatus);
@@ -648,6 +662,13 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 || context.contains("4-day") || context.contains("four-day");
     }
 
+    private MatchLifecycleStatus retainNonTerminalStatus(LiveMatch match) {
+        if (match != null && match.getStatus() != null && match.getStatus().isLiveLike()) {
+            return match.getStatus();
+        }
+        return MatchLifecycleStatus.UPCOMING;
+    }
+
     private boolean isLifecycleWindowOpen(LiveMatch match) {
         if (match == null) {
             return false;
@@ -700,6 +721,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         if (value == null) {
             return false;
         }
+        value = value.toLowerCase();
         return value.contains("won by") || value.contains("match drawn") || value.contains("match tied")
                 || value.matches(".*\\b(match )?draw\\b.*") || value.matches(".*\\b(match )?tied\\b.*")
                 // CREX sometimes embeds the final winner between both innings

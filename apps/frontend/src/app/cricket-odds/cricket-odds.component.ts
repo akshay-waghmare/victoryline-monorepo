@@ -2654,23 +2654,28 @@ private loadPlayerStatsDetailFromGlobalSearch(
           // Match seeds can expose a player name before their asynchronous
           // roster task writes the CREX id. Let the profile endpoint hydrate
           // and persist this deterministic CREX slug on the user's click.
-          this.loadPlayerStatsDetail({
-            externalId: 'player:' + this.slugifyPlayerName(playerName),
-            name: playerName,
-            role: role
-          } as PlayerStatsSquadPlayerView, null, source);
+          this.loadPlayerStatsDetail(this.buildOnDemandCrexPlayerReference(playerName, role), null, source);
           return;
         }
 
         this.loadPlayerStatsDetail(player, null, source);
       },
       error => {
-        console.error('Error searching player details:', error);
-        this.isLoadingStatsExplorer = false;
-        this.statsExplorerErrorMessage = 'Detailed player stats could not be loaded right now.';
-        this.showToast('Detailed player stats could not be loaded for ' + playerName + ' right now.', 'Dismiss', 5000);
+        // Search is only an optimisation. If the catalog is cold or briefly
+        // unavailable, still use the deterministic CREX hydration path
+        // instead of showing a stale or unrelated player.
+        console.warn('Player catalog lookup failed; requesting CREX profile on demand:', error);
+        this.loadPlayerStatsDetail(this.buildOnDemandCrexPlayerReference(playerName, role), null, source);
       }
     );
+}
+
+private buildOnDemandCrexPlayerReference(playerName: string, role?: string): PlayerStatsSquadPlayerView {
+  return {
+    externalId: 'player:' + this.slugifyPlayerName(playerName),
+    name: playerName,
+    role: role
+  } as PlayerStatsSquadPlayerView;
 }
 
 private notifyPlayerStatsUnavailable(playerName?: string, role?: string, wicketKeeper?: boolean): void {
@@ -2723,7 +2728,9 @@ private findBestGlobalPlayerMatch(players: PlayerStatsSquadPlayerView[], playerN
       || (shortName && (shortName.indexOf(normalizedTarget) !== -1 || normalizedTarget.indexOf(shortName) !== -1));
   });
 
-  return contained || players[0];
+  // Never use the first catalog row as an identity fallback. A cold or broad
+  // search result can otherwise open a different player's profile.
+  return contained || null;
 }
 
 private loadTeamStatsDetail(team: PlayerStatsTeamView, source: 'lineups' | 'scorecard'): void {

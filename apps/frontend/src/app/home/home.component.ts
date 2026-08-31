@@ -377,6 +377,12 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   selectSeries(series: string, event: Event): void {
+    // Keep the link crawlable for SSR/discovery, but make the browser action
+    // an in-page filter rather than a navigation to the series surface.
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     this.selectedSeries = series;
     this.activeTab = this.getSeriesTab(series);
     this.syncActiveMatches();

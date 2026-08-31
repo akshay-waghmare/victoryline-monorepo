@@ -165,15 +165,8 @@ export class MatchesService {
 
   private transformActiveMatches(activeMatches: any[], scorecardDataArray: any[]): MatchCardViewModel[] {
     return activeMatches.map((match, index) => {
-      const transformed = this.transformToViewModel(match, scorecardDataArray[index]);
-      // Scorecard status strings like "Day 1 completed" must not override the live feed.
-      if (transformed.status === MatchStatus.COMPLETED || transformed.status === MatchStatus.UPCOMING) {
-        transformed.status = MatchStatus.LIVE;
-        transformed.displayStatus = getStatusDisplayText(MatchStatus.LIVE);
-        transformed.isLive = true;
-        transformed.canAnimate = true;
-      }
-      return transformed;
+      const catalogueStatus = this.parseMatchStatus(match);
+      return this.transformToViewModel(match, scorecardDataArray[index], catalogueStatus);
     });
   }
 
@@ -250,7 +243,11 @@ export class MatchesService {
    * Transform API response to MatchCardViewModel
    * Handles various API response formats
    */
-  private transformToViewModel(apiMatch: any, scorecardData: any = null): MatchCardViewModel {
+  private transformToViewModel(
+    apiMatch: any,
+    scorecardData: any = null,
+    authoritativeStatus?: MatchStatus
+  ): MatchCardViewModel {
     // Extract match ID
     const matchId = apiMatch.id ? apiMatch.id.toString() : this.generateMatchId(apiMatch);
 
@@ -258,7 +255,10 @@ export class MatchesService {
     const urlData = this.parseUrlData(apiMatch.url);
 
     // Parse match status
-    const status = this.parseMatchStatus(apiMatch, scorecardData);
+    // Lifecycle belongs to the catalogue endpoint. Scorecard data is a useful
+    // enrichment source for scores and identity, but it can lag by a day (for
+    // example, "Day 1 completed") while a multi-day match is still active.
+    const status = authoritativeStatus || this.parseMatchStatus(apiMatch, scorecardData);
 
     // Parse teams from URL and scorecard data
     const team1 = this.parseTeamInfo(apiMatch, 'team1', 0, urlData, scorecardData);
@@ -725,18 +725,6 @@ export class MatchesService {
    * Parse match status from API response
    */
   private parseMatchStatus(apiMatch: any, scorecardData?: any): MatchStatus {
-    // First check scorecard data if available
-    if (scorecardData && scorecardData.status) {
-      const statusStr = scorecardData.status.toLowerCase();
-      if (statusStr.includes('live') || statusStr.includes('in progress')) {
-        return MatchStatus.LIVE;
-      } else if (statusStr.includes('innings break') || statusStr.includes('break')) {
-        return MatchStatus.INNINGS_BREAK;
-      } else if (statusStr.includes('completed') || statusStr.includes('finished')) {
-        return MatchStatus.COMPLETED;
-      }
-    }
-
     const statusStr = (apiMatch.status || apiMatch.matchStatus || '').toLowerCase();
 
     if (statusStr.includes('live') || statusStr.includes('in progress')) {
@@ -761,6 +749,20 @@ export class MatchesService {
     // Check deleted flag after explicit status handling
     if (apiMatch.deleted === true) {
       return apiMatch.resultSummary ? MatchStatus.COMPLETED : MatchStatus.ABANDONED;
+    }
+
+    // Only use scorecard lifecycle text when the catalogue row has no
+    // lifecycle signal at all. This keeps a delayed provider snapshot from
+    // downgrading an authoritative live/innings-break row to completed.
+    if (scorecardData && scorecardData.status) {
+      const scorecardStatus = scorecardData.status.toLowerCase();
+      if (scorecardStatus.includes('live') || scorecardStatus.includes('in progress')) {
+        return MatchStatus.LIVE;
+      } else if (scorecardStatus.includes('innings break') || scorecardStatus.includes('break')) {
+        return MatchStatus.INNINGS_BREAK;
+      } else if (scorecardStatus.includes('completed') || scorecardStatus.includes('finished')) {
+        return MatchStatus.COMPLETED;
+      }
     }
 
     // Default to upcoming if status is unclear
