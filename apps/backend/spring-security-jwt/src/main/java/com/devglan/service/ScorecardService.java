@@ -52,6 +52,15 @@ public class ScorecardService {
         return null;
     }
 
+    /**
+     * Reads the durable scorecard only.  This name makes the no-hydration
+     * contract explicit for crawler-facing callers; hydration remains the
+     * responsibility of the interactive match-info endpoint.
+     */
+    public String getStoredMatchInfo(String url) {
+        return getMatchInfo(url);
+    }
+
     private String resolveLiveUrl(String url) {
         if (url == null || url.trim().isEmpty()) {
             return url;

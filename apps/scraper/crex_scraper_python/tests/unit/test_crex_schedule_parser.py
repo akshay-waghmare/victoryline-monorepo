@@ -1,12 +1,17 @@
 from src.parsers.crex_schedule_parser import (
     _match_page_candidates,
     build_team_name_lookup,
+    classify_match_status,
     expand_team_names,
     extract_external_match_key,
     extract_series_name,
     extract_team_names,
     normalize_schedule_venue,
 )
+
+
+def test_stumps_schedule_card_is_live_for_multiday_matches():
+    assert classify_match_status("Central Zone vs East Zone, Stumps") == "LIVE"
 
 
 def test_extract_team_names_prefers_json_ld_event_name():

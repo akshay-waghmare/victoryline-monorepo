@@ -647,12 +647,12 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
 
   private updateMeta(): void {
     this.metaTagsService.setPageMeta(this.config.canonicalPath, {
-      title: this.config.title + ' | Crickzen',
+      title: this.config.title + ' | CrickZen',
       description: this.config.intro,
       canonicalUrl: 'https://www.crickzen.com' + this.config.canonicalPath,
       robots: 'index,follow',
       og: {
-        title: this.config.title + ' | Crickzen',
+        title: this.config.title + ' | CrickZen',
         description: this.config.intro,
         url: 'https://www.crickzen.com' + this.config.canonicalPath
       },
@@ -667,7 +667,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
     var items: any[] = [
       this.structuredDataService.page({
         type: 'CollectionPage',
-        name: this.config.title + ' | Crickzen',
+        name: this.config.title + ' | CrickZen',
         description: this.config.intro,
         url: currentUrl
       }),
@@ -945,7 +945,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
           faqHeading: 'Cricket match archive FAQ',
           faqs: [
             {
-              question: 'Why does Crickzen have a match archive?',
+              question: 'Why does CrickZen have a match archive?',
               answer: 'The archive gives users and crawlers a clear path to older live score, scorecard, and match result pages.'
             },
             {
@@ -968,7 +968,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
           intro: 'Track live cricket score, live score cricket, ball-by-ball match updates, scorecard, toss update, playing XI, venue stats, and cricket match result links.',
           primaryKicker: 'Live cricket score centre',
           primaryHeading: 'Live cricket score, scorecard, and commentary-style updates',
-          primarySummary: 'A keyword-focused live cricket score hub inspired by ranking cricket sites, while still linking to Crickzen canonical match pages.',
+          primarySummary: 'A keyword-focused live cricket score hub inspired by ranking cricket sites, while still linking to CrickZen canonical match pages.',
           discoveryKicker: 'Live score discovery graph',
           discoveryHeading: 'More live cricket score and scorecard pages',
           discoverySummary: 'These SSR-visible links connect the live cricket score hub to current, recent, and archived canonical match pages.',
@@ -980,8 +980,8 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
               answer: 'Use this page to open live cricket score pages with scorecard, toss update, playing XI, venue stats, and match result context.'
             },
             {
-              question: 'Why does Crickzen have a live cricket score hub?',
-              answer: 'Top cricket sites use clear live cricket score hubs and match pages. This hub gives users and crawlers a direct path to canonical Crickzen match pages.'
+              question: 'Why does CrickZen have a live cricket score hub?',
+              answer: 'Top cricket sites use clear live cricket score hubs and match pages. This hub gives users and crawlers a direct path to canonical CrickZen match pages.'
             },
             {
               question: 'Does this page replace `/cric-live/` match pages?',
@@ -1016,7 +1016,7 @@ export class LiveScoreHubComponent implements OnInit, OnDestroy {
               answer: 'Yes. The links are rendered in raw SSR HTML so users and search crawlers can reach canonical match pages.'
             },
             {
-              question: 'Does Crickzen show scorecard and match result pages?',
+              question: 'Does CrickZen show scorecard and match result pages?',
               answer: 'Each match page keeps scorecard, venue stats, toss, playing XI, and match result sections available as data arrives.'
             }
           ],

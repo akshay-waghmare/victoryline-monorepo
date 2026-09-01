@@ -29,7 +29,7 @@ public class PublicSitemapController {
         }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, "application/xml;charset=UTF-8")
-                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300, stale-while-revalidate=60")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, max-age=0, must-revalidate")
                 .body(xml);
     }
 
@@ -56,7 +56,7 @@ public class PublicSitemapController {
         }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, "application/xml;charset=UTF-8")
-                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=300, stale-while-revalidate=60")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, max-age=0, must-revalidate")
                 .body(xml);
     }
 

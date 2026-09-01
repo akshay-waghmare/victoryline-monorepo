@@ -27,6 +27,7 @@ class _MatchState:
     next_poll_at: float = 0.0
     last_payload: Optional[Dict[str, Any]] = None
     active: bool = False
+    last_success_at: Optional[float] = None
 
 
 class HttpSv3FastLane:
@@ -104,7 +105,9 @@ class HttpSv3FastLane:
             if not isinstance(payload, dict):
                 raise ValueError("sV3 response is not an object")
             self._failures = 0
-            self._stats["last_success_at"] = time.time()
+            success_at = time.time()
+            self._stats["last_success_at"] = success_at
+            state.last_success_at = success_at
             state.active = True
             changed = self._changed(state.last_payload, payload)
             state.last_payload = payload
@@ -145,4 +148,13 @@ class HttpSv3FastLane:
 
     def get_stats(self) -> Dict[str, Any]:
         now = self._clock()
-        return {**self._stats, "enabled": True, "selected_matches": len(self._matches), "covered_matches": sum(1 for item in self._matches.values() if item.active), "circuit_open": now < self._circuit_open_until, "circuit_open_for_seconds": max(0, round(self._circuit_open_until - now, 2)), "requests_last_minute": len(self._request_times)}
+        match_health = {
+            match_id: {
+                "url": state.url,
+                "active": state.active,
+                "last_success_at": state.last_success_at,
+                "seconds_since_success": None if state.last_success_at is None else max(0.0, round(time.time() - state.last_success_at, 2)),
+            }
+            for match_id, state in self._matches.items()
+        }
+        return {**self._stats, "enabled": True, "selected_matches": len(self._matches), "covered_matches": sum(1 for item in self._matches.values() if item.active), "match_health": match_health, "circuit_open": now < self._circuit_open_until, "circuit_open_for_seconds": max(0, round(self._circuit_open_until - now, 2)), "requests_last_minute": len(self._request_times)}

@@ -117,11 +117,11 @@ export class StructuredDataService {
       isAccessibleForFree: input.isAccessibleForFree !== false,
       author: {
         '@type': 'Organization',
-        name: input.authorName || 'Crickzen'
+        name: input.authorName || 'CrickZen'
       },
       publisher: {
         '@type': 'Organization',
-        name: 'Crickzen',
+        name: 'CrickZen',
         logo: {
           '@type': 'ImageObject',
           url: 'https://www.crickzen.com/assets/icons/icon-512x512.png'
@@ -160,6 +160,22 @@ export class StructuredDataService {
         url: input.logoUrl
       } : undefined,
       sameAs: input.sameAs
+    });
+  }
+
+  website(input: {
+    name: string;
+    url: string;
+    alternateName?: string | string[];
+    description?: string;
+  }): JsonLd {
+    return this.cleanObject({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: input.name,
+      alternateName: input.alternateName,
+      url: input.url,
+      description: input.description
     });
   }
 
@@ -211,8 +227,8 @@ export class StructuredDataService {
       url: input.url,
       isPartOf: {
         '@type': 'WebSite',
-        name: 'Crickzen',
-        url: 'https://www.crickzen.com'
+        name: 'CrickZen',
+        url: 'https://www.crickzen.com/'
       }
     });
   }
@@ -350,11 +366,11 @@ export class StructuredDataService {
       isAccessibleForFree: input.isAccessibleForFree !== false,
       author: {
         '@type': 'Organization',
-        name: input.authorName || 'Crickzen'
+        name: input.authorName || 'CrickZen'
       },
       publisher: {
         '@type': 'Organization',
-        name: 'Crickzen',
+        name: 'CrickZen',
         logo: {
           '@type': 'ImageObject',
           url: 'https://www.crickzen.com/assets/icons/icon-512x512.png'

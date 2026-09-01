@@ -12,7 +12,12 @@ export class ScorecardComponent implements OnInit, OnChanges {
 
   @Input() scorecardInfo: any;
   @Input() playerStatsMatch?: PlayerStatsMatchView | null;
-  @Output() playerSelected = new EventEmitter<string>();
+  @Output() playerSelected = new EventEmitter<{
+    playerName: string;
+    externalId?: string;
+    teamName?: string;
+    role?: string;
+  }>();
 
   private readonly emptyBatsmanStats = {
     runs: 0,
@@ -271,7 +276,40 @@ export class ScorecardComponent implements OnInit, OnChanges {
       return;
     }
 
-    this.playerSelected.emit(playerName);
+    const reference = this.findPlayerReference(playerName);
+    this.playerSelected.emit({
+      playerName: playerName,
+      externalId: reference && reference.externalId,
+      teamName: reference && reference.teamName,
+      role: reference && reference.role
+    });
+  }
+
+  private findPlayerReference(playerName: string): any | null {
+    if (!this.playerStatsMatch || !this.playerStatsMatch.teams) {
+      return null;
+    }
+
+    const normalizedTarget = this.normalizePlayerKey(playerName);
+    for (let teamIndex = 0; teamIndex < this.playerStatsMatch.teams.length; teamIndex++) {
+      const team = this.playerStatsMatch.teams[teamIndex];
+      const squad = team.squad || [];
+      for (let playerIndex = 0; playerIndex < squad.length; playerIndex++) {
+        const player = squad[playerIndex];
+        const possibleMatches = [
+          this.normalizePlayerKey(player.name),
+          this.normalizePlayerKey(player.shortName)
+        ];
+        if (possibleMatches.indexOf(normalizedTarget) !== -1 && player.externalId) {
+          return {
+            externalId: player.externalId,
+            teamName: team.name,
+            role: player.role
+          };
+        }
+      }
+    }
+    return null;
   }
 
   selectInning(inningKey: string): void {

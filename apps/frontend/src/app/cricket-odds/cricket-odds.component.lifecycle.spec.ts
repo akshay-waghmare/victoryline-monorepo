@@ -7,6 +7,8 @@ function createComponent(): CricketOddsComponent {
     getScorecardInfo: function() { return of(null); },
     hasFreshPlayerStatsMatchCache: function() { return false; },
     getPlayerStatsMatch: function() { return of(null); },
+    getPlayerStatsPlayerByName: function() { return of(null); },
+    getPlayerStatsPlayer: function() { return of(null); },
     listSeries: function() { return of([]); },
     getPlayerStatsSeriesStandings: function() { return of(null); }
   };
@@ -34,7 +36,7 @@ function createComponent(): CricketOddsComponent {
     {} as any,
     structuredDataService as any,
     { snapshot: { params: { path: 'team-a-vs-team-b-123A' }, queryParamMap: { get: function() { return null; } } } } as any,
-    { url: '/cric-live/team-a-vs-team-b-123A' } as any,
+    { url: '/cric-live/team-a-vs-team-b-123A', navigate: jasmine.createSpy('navigate') } as any,
     { run: function(work: Function) { return work(); } } as any,
     { get: function() { return null; }, hasKey: function() { return false; }, set: function() {}, remove: function() {} } as any,
     {} as any,
@@ -52,11 +54,95 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(resolved).toBeNull();
   });
 
+  it('moves immediately to the player lookup route when the scorecard has no CREX id', () => {
+    var component = createComponent();
+    var matchSlug = 'cz-vs-ez-1st-semi-final-duleep-trophy-2026-match-updates-12X1';
+    var service = (component as any).cricketService;
+    var route = (component as any).activatedRoute;
+    route.snapshot.params.path = matchSlug;
+    component.currentUrl = matchSlug;
+    component.currentRequestedPath = '/cric-live/' + matchSlug + '/scorecard';
+    component.matchUrl = 'https://crex.com/cricket-live-score/wrong-match-9999';
+    (component as any).currentMatch = { url: 'https://crex.com/cricket-live-score/wrong-match-9999' };
+    service.getPlayerStatsPlayerByName = jasmine.createSpy('getPlayerStatsPlayerByName');
+
+    component.openPlayerStatsFromScorecard('Aryan Juyal');
+
+    expect((component as any).router.navigate).toHaveBeenCalledWith([
+      '/player',
+      'resolve',
+      'aryan-juyal'
+    ], { queryParams: {
+      name: 'Aryan Juyal',
+      matchUrl: 'https://crex.com/cricket-live-score/' + matchSlug,
+      returnTo: '/cric-live/' + matchSlug + '/scorecard'
+    }});
+    expect(service.getPlayerStatsPlayerByName).not.toHaveBeenCalled();
+  });
+
+  it('opens the canonical player page immediately when the match roster already has the CREX id', () => {
+    var component = createComponent();
+    var service = (component as any).cricketService;
+    service.getPlayerStatsPlayerByName = jasmine.createSpy('getPlayerStatsPlayerByName');
+    component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A/scorecard';
+
+    component.openPlayerStatsFromScorecard({
+      playerName: 'Aryan Juyal',
+      externalId: 'player:aryan-juyal-5m3'
+    } as any);
+
+    expect((component as any).router.navigate).toHaveBeenCalledWith([
+      '/player',
+      'player:aryan-juyal-5m3',
+      'aryan-juyal'
+    ], { state: { returnTo: '/cric-live/team-a-vs-team-b-123A/scorecard' } });
+    expect(service.getPlayerStatsPlayerByName).not.toHaveBeenCalled();
+  });
+
+  it('does not fabricate a player identifier when the match identity is unavailable', () => {
+    var component = createComponent();
+    var service = (component as any).cricketService;
+    component.currentUrl = 'cz-vs-ez-1st-semi-final-duleep-trophy-2026-match-updates-12X1';
+    (component as any).activatedRoute.snapshot.params.path = component.currentUrl;
+    component.currentRequestedPath = '/cric-live/' + component.currentUrl + '/scorecard';
+    service.getPlayerStatsPlayerByName = jasmine.createSpy('getPlayerStatsPlayerByName');
+
+    component.openPlayerStatsFromScorecard('Unknown Player');
+
+    expect((component as any).router.navigate).toHaveBeenCalledWith([
+      '/player',
+      'resolve',
+      'unknown-player'
+    ], { queryParams: {
+      name: 'Unknown Player',
+      matchUrl: 'https://crex.com/cricket-live-score/' + component.currentUrl,
+      returnTo: '/cric-live/' + component.currentUrl + '/scorecard'
+    }});
+    expect(service.getPlayerStatsPlayerByName).not.toHaveBeenCalled();
+  });
+
+  it('does not treat previous-match metadata as the current route match', () => {
+    var component = createComponent();
+    var previousMatchInfo = {
+      url: 'https://crex.com/cricket-live-score/old-match-9999',
+      match_status: 'COMPLETED'
+    };
+
+    expect((component as any).matchInfoBelongsToRoute(
+      'new-match-1111',
+      previousMatchInfo
+    )).toBe(false);
+    expect((component as any).matchInfoBelongsToRoute(
+      'old-match-9999',
+      previousMatchInfo
+    )).toBe(true);
+  });
+
   function setIndexableMatchSeo(component: CricketOddsComponent): void {
     component.matchSeo = {
       canonicalPath: '/cric-live/india-vs-australia-1st-match-world-cup-2026-match-updates-123A',
       canonicalUrl: 'https://www.crickzen.com/cric-live/india-vs-australia-1st-match-world-cup-2026-match-updates-123A',
-      title: 'India vs Australia Live Score | Crickzen',
+      title: 'India vs Australia Live Score | CrickZen',
       description: 'India vs Australia match coverage.',
       ogImageUrl: 'https://www.crickzen.com/assets/icons/icon-512x512.png',
       h1: 'India vs Australia Live Score',
@@ -199,6 +285,63 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
     expect(block && block.facts.some(function(fact) {
       return fact.label === 'Score' && fact.value.indexOf('SL 265/8') !== -1;
     })).toBe(true);
+  });
+
+  it('does not render intelligence from a different match route', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.currentUrl = 'bat-vs-lud-4th-match-sher-e-punjab-t20-2026-match-updates-13O3';
+    component.matchInfo = { match_status: 'LIVE' } as any;
+    (component as any).canonicalIntelligenceRouteSlug = 'sa-vs-zim-4th-match-namibia-t20i-tri-series-2026-match-updates-13IP';
+    component.canonicalIntelligence = {
+      lifecycle: 'live',
+      probability: 46,
+      headline: 'Zimbabwe currently has a 46% win probability.',
+      reason: 'stale prediction',
+      nextStep: 'follow the next update',
+      updatedAt: '2026-09-01T13:59:48.561138',
+      modelLabel: 'T20 all-gender v2'
+    } as any;
+
+    var block = component.getCanonicalMatchAeoBlock();
+    expect(block && block.modelAnswer).toBeNull();
+    expect(block && block.answer).not.toContain('Zimbabwe');
+  });
+
+  it('rejects a prediction whose CREX source slug differs from the requested match', () => {
+    var component = createComponent();
+    var resolved = (component as any).buildCanonicalIntelligence({
+      slug: 'bat-vs-lud-4th-match-sher-e-punjab-t20-2026-match-updates-13O3',
+      lifecycle: 'live',
+      freshnessState: 'fresh',
+      publicPrediction: {
+        match_url: 'https://crex.com/cricket-live-score/sa-vs-zim-4th-match-namibia-t20i-tri-series-2026-match-updates-13IP',
+        win_probability_pct: 46,
+        status: 'running',
+        batting_team: 'Zimbabwe',
+        prediction_history: [{ over: '3.1', score: '33/2', win_probability_pct: 46 }]
+      }
+    });
+
+    expect(resolved).toBeNull();
+  });
+
+  it('does not use a live score payload owned by the previous route', () => {
+    var component = createComponent();
+    setIndexableMatchSeo(component);
+    component.currentUrl = 'bat-vs-lud-4th-match-sher-e-punjab-t20-2026-match-updates-13O3';
+    component.matchInfo = { match_status: 'LIVE' } as any;
+    component.cricObj = {
+      score: '33-2',
+      batting_team: 'ZIM',
+      over: 3.1,
+      current_ball: 'Caught Out'
+    } as any;
+    (component as any).cricketDataRouteSlug = 'sa-vs-zim-4th-match-namibia-t20i-tri-series-2026-match-updates-13IP';
+
+    var block = component.getCanonicalMatchAeoBlock();
+    expect(block && block.answer).not.toContain('ZIM 33/2');
+    expect(block && block.answer).toContain('does not include a current score');
   });
 
   it('does not publish a 0/0 catalogue shell when a live snapshot is unavailable', () => {
@@ -390,6 +533,25 @@ describe('CricketOddsComponent lifecycle tab defaults', () => {
 
     expect(navigate).not.toHaveBeenCalled();
     expect(component.selectedTabIndex).toBe(2);
+  });
+
+  it('restores the first match surface when browser Back leaves the scorecard route', () => {
+    var component = createComponent();
+    component.currentRequestedPath = '/cric-live/team-a-vs-team-b-123A';
+    component.selectedTabIndex = 2;
+    (component as any).hasUserSelectedTab = true;
+    (component as any).isHistoryNavigation = true;
+
+    expect((component as any).shouldRestoreCanonicalTabAfterHistory(
+      '/cric-live/team-a-vs-team-b-123A/scorecard'
+    )).toBe(true);
+
+    (component as any).syncMatchTabSelection(true, true);
+
+    expect(component.selectedTabIndex).toBe(0);
+    expect((component as any).suppressNextCanonicalTabChange).toBe(true);
+    component.onTabChange({ index: 0 } as any);
+    expect((component as any).router.navigate).not.toHaveBeenCalled();
   });
 
   it('retains a stopped provider row when the canonical match lifecycle is completed', () => {

@@ -5,14 +5,14 @@ import { Component } from '@angular/core';
   template: `
     <main class="trust-page">
       <div class="trust-page__inner">
-        <a class="trust-page__back" routerLink="/">← Back to Crickzen</a>
-        <p class="trust-page__eyebrow">About Crickzen</p>
+        <a class="trust-page__back" routerLink="/">← Back to CrickZen</a>
+        <p class="trust-page__eyebrow">About CrickZen</p>
         <h1>Live cricket information, made easier to follow.</h1>
-        <p class="trust-page__lead">Crickzen brings live scores, match schedules, scorecards, lineups, player statistics, and match intelligence together in one focused cricket experience.</p>
+        <p class="trust-page__lead">CrickZen brings live scores, match schedules, scorecards, lineups, player statistics, and match intelligence together in one focused cricket experience.</p>
 
         <section>
-          <h2>Who operates Crickzen?</h2>
-          <p>Crickzen is operated by <strong>Victoricode Labs</strong>, a registered proprietorship owned by <strong>Akshay Waghmare</strong>, based in Pune, Maharashtra, India.</p>
+          <h2>Who operates CrickZen?</h2>
+          <p>CrickZen is operated by <strong>Victoricode Labs</strong>, a registered proprietorship owned by <strong>Akshay Waghmare</strong>, based in Pune, Maharashtra, India.</p>
         </section>
 
         <section>
@@ -23,7 +23,7 @@ import { Component } from '@angular/core';
 
         <section>
           <h2>Match intelligence</h2>
-          <p>Crickzen’s model-based insights are informational only. They are not betting advice, financial advice, or a guarantee of a match result.</p>
+          <p>CrickZen’s model-based insights are informational only. They are not betting advice, financial advice, or a guarantee of a match result.</p>
         </section>
 
         <p class="trust-page__links"><a routerLink="/contact">Contact us</a><a routerLink="/privacy-policy">Privacy Policy</a><a routerLink="/terms-of-service">Terms of Service</a></p>

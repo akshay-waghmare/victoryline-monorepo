@@ -129,8 +129,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
 
     this.metaTagsService.setPageMeta('/', {
-      title: 'Crickzen | Live Cricket Scores & Real-time Updates | International & Domestic Matches',
-      description: 'Stay updated with live cricket scores and real-time updates from international and domestic matches on Crickzen. Get ball-by-ball commentary, match analysis, and comprehensive cricket coverage.',
+      title: 'CrickZen | Live Cricket Scores & Real-time Updates | International & Domestic Matches',
+      description: 'Stay updated with live cricket scores and real-time updates from international and domestic matches on CrickZen. Get ball-by-ball commentary, match analysis, and comprehensive cricket coverage.',
       canonicalUrl: 'https://www.crickzen.com/',
       robots: 'index,follow'
     });
@@ -611,8 +611,20 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private updateStructuredData(): void {
     var items: any[] = [
+      this.structuredDataService.website({
+        name: 'CrickZen',
+        alternateName: 'crickzen.com',
+        url: 'https://www.crickzen.com/',
+        description: 'Live cricket scores, match schedules, results, and match intelligence from CrickZen.'
+      }),
+      this.structuredDataService.organization({
+        name: 'CrickZen',
+        url: 'https://www.crickzen.com/',
+        logoUrl: 'https://www.crickzen.com/assets/img/logos/crickzen-circular-logo-512.png',
+        description: 'Live cricket scores, match schedules, results, and match intelligence from CrickZen.'
+      }),
       this.structuredDataService.page({
-        name: 'Crickzen match centre at a glance',
+        name: 'CrickZen match centre at a glance',
         description: 'See what is live now, what starts next, and which result just landed before you dive into commentary, scorecards, or the full schedule.',
         url: 'https://www.crickzen.com/'
       }),

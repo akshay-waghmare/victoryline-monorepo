@@ -87,6 +87,8 @@ def _looks_terminal(match: Any) -> bool:
             "result_summary",
             "scoreUpdate",
             "score_update",
+            "currentBall",
+            "current_ball",
             "finalResultText",
             "final_result_text",
         )

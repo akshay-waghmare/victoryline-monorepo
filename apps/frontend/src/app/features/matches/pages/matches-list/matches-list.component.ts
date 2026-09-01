@@ -96,7 +96,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.metaTagsService.setPageMeta('/matches', {
-      title: 'Cricket Matches | Live, Upcoming & Completed | Crickzen',
+      title: 'Cricket Matches | Live, Upcoming & Completed | CrickZen',
       description: 'Browse live, upcoming, and recently completed cricket matches with direct links to scores, commentary, scorecards, and match updates.',
       canonicalUrl: 'https://www.crickzen.com/matches',
       robots: 'index,follow'
@@ -548,7 +548,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     var items: any[] = [
       this.structuredDataService.page({
         type: 'CollectionPage',
-        name: 'Cricket matches on Crickzen',
+        name: 'Cricket matches on CrickZen',
         description: 'Browse live matches, upcoming fixtures, and recent results with direct paths into commentary, scorecards, lineups, and match details.',
         url: 'https://www.crickzen.com/matches'
       }),

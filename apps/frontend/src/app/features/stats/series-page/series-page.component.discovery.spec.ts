@@ -110,7 +110,7 @@ describe('SeriesPageComponent discovery grouping', () => {
     component.selectedStandings = null;
 
     expect(component.getSeriesProfileHeading()).toBe('IPL 2026 Points Table & Standings');
-    expect(component.getSeriesProfileTitle()).toBe('IPL 2026 Points Table & Standings | Crickzen');
+    expect(component.getSeriesProfileTitle()).toBe('IPL 2026 Points Table & Standings | CrickZen');
     expect(component.getSeriesProfileDescription()).toContain('Current IPL 2026 points table and standings');
     expect(component.getSeriesProfileBluf()).toContain('IPL 2026 tracks fixtures, results, points table and team statistics');
     expect(component.getSeriesStandingsAnswer()).toContain('IPL 2026 points table is unavailable');

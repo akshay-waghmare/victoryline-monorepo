@@ -13,6 +13,8 @@ public interface PlayerStatsPlayerRepository extends JpaRepository<PlayerStatsPl
 
     Optional<PlayerStatsPlayerEntity> findFirstBySourceSystemAndExternalId(String sourceSystem, String externalId);
 
+    Optional<PlayerStatsPlayerEntity> findFirstBySourceSystemAndNameIgnoreCase(String sourceSystem, String name);
+
     Optional<PlayerStatsPlayerEntity> findFirstByNameIgnoreCase(String name);
 
     List<PlayerStatsPlayerEntity> findBySourceSystemOrderByNameAsc(String sourceSystem);

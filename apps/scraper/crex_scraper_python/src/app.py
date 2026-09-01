@@ -24,7 +24,7 @@ from .crex_url_utils import (
     get_crex_live_url,
 )
 from .cricket_data_service import CricketDataService
-from .player_stats_crawler import PlayerStatsCrawlerService, PlayerStatsTask
+from .player_stats_crawler import PlayerStatsCrawlerService, PlayerStatsTask, select_player_reference
 from .health import HealthState
 from .live_match_selection import select_live_matches
 from .prematch_selection import select_prematch_candidates
@@ -41,6 +41,7 @@ scraper_service = CrexScraperService()
 
 # Global event loop for the scraper service
 scraper_loop: Optional[asyncio.AbstractEventLoop] = None
+player_hydration_tasks: Dict[str, asyncio.Task] = {}
 
 
 async def _hydrate_match_details(url: str) -> Dict[str, Any]:
@@ -116,20 +117,84 @@ async def _hydrate_match_details(url: str) -> Dict[str, Any]:
     return result
 
 
-async def _hydrate_player_profile(external_id: str) -> Dict[str, Any]:
-    """Fetch a CREX player page on demand and persist it before responding."""
-    normalized_id = str(external_id or "").strip().lower()
-    if not re.match(r"^player:[a-z0-9][a-z0-9-]*$", normalized_id):
-        raise ValueError("externalId must be a CREX player identifier")
+async def _hydrate_player_profile(
+    external_id: Optional[str] = None,
+    match_url: Optional[str] = None,
+    player_name: Optional[str] = None,
+    role: Optional[str] = None,
+    resolve_only: bool = False,
+) -> Dict[str, Any]:
+    """Fetch a CREX player page on demand and persist it before responding.
 
-    slug = normalized_id.split(":", 1)[1]
-    player_url = "https://crex.com/player/" + slug
+    Scorecard rows do not always carry the provider ID. In that case resolve
+    the displayed name against the match's playing-XI links first, then fetch
+    the exact provider profile URL and preserve its stable suffix.
+    """
+    normalized_id = str(external_id or "").strip().lower()
+    player_url = ""
+    resolved_name = str(player_name or "").strip()
+
+    if normalized_id:
+        if not re.match(r"^player:[a-z0-9][a-z0-9-]*$", normalized_id):
+            raise ValueError("externalId must be a CREX player identifier")
+        slug = normalized_id.split(":", 1)[1]
+        player_url = "https://crex.com/player/" + slug
+
     crawler = scraper_service.player_stats_crawler or PlayerStatsCrawlerService(
         pool=scraper_service.pool,
         cache=scraper_service.cache,
         registry=scraper_service.registry,
         auth_token_provider=lambda: scraper_service._auth_token,
     )
+
+    if not normalized_id:
+        if not match_url or not resolved_name:
+            raise ValueError("matchUrl and playerName are required when externalId is absent")
+        adapter = scraper_service.registry.get_adapter("crex")
+        if not isinstance(adapter, CrexAdapter):
+            raise RuntimeError("CREX adapter is unavailable")
+        canonical_match_url = get_crex_live_url(match_url)
+        # Managed matches normally have the CREX localStorage/API snapshot in
+        # the crawler cache. Resolve from that fast lane first so a click does
+        # not open a second Playwright page just to discover an existing ID.
+        seed = await crawler._fetch_iv4_seed(canonical_match_url)
+        if not seed or not (seed.get("players") or []):
+            async with scraper_service.pool.get_context() as context:
+                seed = await adapter.fetch_player_stats_seed(context, get_crex_details_url(canonical_match_url))
+        player = select_player_reference(seed.get("players") or [], resolved_name)
+        if not player:
+            # CREX can finish the playing-XI tab after the first DOM snapshot.
+            # Retry the same provider page once before returning a false 404 to
+            # the scorecard click path.
+            logger.warning("Player link not found on first seed pass; retrying %s", resolved_name)
+            async with scraper_service.pool.get_context() as context:
+                seed = await adapter.fetch_player_stats_seed(context, get_crex_details_url(canonical_match_url))
+            player = select_player_reference(seed.get("players") or [], resolved_name)
+        if not player:
+            return {
+                "externalId": None,
+                "fetched": False,
+                "playerName": resolved_name,
+                "reason": "provider_player_link_not_found",
+            }
+        player_url = str(player.get("player_url") or "").strip()
+        normalized_id = crawler._extract_external_id(player_url, "player", resolved_name).lower()
+        resolved_name = str(player.get("player_name") or resolved_name).strip()
+
+    if resolve_only:
+        await _queue_player_profile_hydration(
+            external_id=normalized_id,
+            match_url=match_url,
+            player_name=resolved_name,
+            role=role,
+        )
+        return {
+            "externalId": normalized_id,
+            "fetched": False,
+            "queued": True,
+            "playerName": resolved_name,
+        }
+
     task = PlayerStatsTask(
         priority=0,
         match_id="demand:" + normalized_id,
@@ -137,7 +202,8 @@ async def _hydrate_player_profile(external_id: str) -> Dict[str, Any]:
         task_type="PLAYER_REFERENCE",
         metadata={
             "onDemand": True,
-            "player": {"externalId": normalized_id, "name": slug.replace("-", " ")},
+            "sourceMatchUrl": match_url,
+            "player": {"externalId": normalized_id, "name": resolved_name, "role": role},
         },
     )
     await crawler._process_player_reference_task(task)
@@ -150,7 +216,52 @@ async def _hydrate_player_profile(external_id: str) -> Dict[str, Any]:
         isinstance(snapshot, dict) and str(snapshot.get("category") or "").lower() == "player_profile"
         for snapshot in (persisted or {}).get("stats") or []
     )
-    return {"externalId": normalized_id, "fetched": has_profile}
+    return {"externalId": normalized_id, "fetched": has_profile, "playerName": resolved_name}
+
+
+async def _queue_player_profile_hydration(
+    external_id: str,
+    match_url: Optional[str] = None,
+    player_name: Optional[str] = None,
+    role: Optional[str] = None,
+) -> bool:
+    """Run one verified profile hydration in the scraper loop's background.
+
+    This function is always executed on ``scraper_loop``.  Keeping task
+    creation inside that loop is important because Flask handles requests on
+    another thread and ``asyncio.create_task`` there would have no running
+    event loop.
+    """
+    key = str(external_id or "").strip().lower()
+    if not key or scraper_loop is None or scraper_loop.is_closed():
+        return False
+
+    existing = player_hydration_tasks.get(key)
+    if existing is not None and not existing.done():
+        return True
+
+    task = asyncio.create_task(_hydrate_player_profile(
+        external_id=key,
+        match_url=match_url,
+        player_name=player_name,
+        role=role,
+    ))
+    player_hydration_tasks[key] = task
+
+    def _finish(completed: asyncio.Task) -> None:
+        if player_hydration_tasks.get(key) is completed:
+            player_hydration_tasks.pop(key, None)
+        try:
+            result = completed.result()
+            if not result.get("fetched"):
+                logger.warning("player_profile.background_unavailable", extra={"external_id": key})
+        except asyncio.CancelledError:
+            logger.info("player_profile.background_cancelled", extra={"external_id": key})
+        except Exception as exc:
+            logger.error("player_profile.background_failed", extra={"external_id": key, "error": str(exc)}, exc_info=True)
+
+    task.add_done_callback(_finish)
+    return True
 
 def start_scraper_background():
     """Start the scraper service in a background thread."""
@@ -327,13 +438,44 @@ def hydrate_match_details():
 def hydrate_player_profile():
     payload = request.get_json(silent=True) or {}
     external_id = payload.get("externalId")
-    if not external_id:
-        return jsonify({"status": "error", "message": "externalId is required"}), 400
+    match_url = payload.get("matchUrl")
+    player_name = payload.get("playerName")
+    resolve_only = str(payload.get("resolveOnly") or "").lower() == "true"
+    queue_only = str(payload.get("queueOnly") or "").lower() == "true"
+    if not external_id and not (match_url and player_name):
+        return jsonify({"status": "error", "message": "externalId or matchUrl and playerName are required"}), 400
     if scraper_loop is None or scraper_loop.is_closed() or not scraper_service._running:
         return jsonify({"status": "error", "message": "scraper service is not ready"}), 503
     try:
-        future = asyncio.run_coroutine_threadsafe(_hydrate_player_profile(external_id), scraper_loop)
-        result = future.result(timeout=60)
+        if queue_only:
+            normalized_id = str(external_id or "").strip().lower()
+            if not re.match(r"^player:[a-z0-9][a-z0-9-]*$", normalized_id):
+                return jsonify({"status": "error", "message": "externalId must be a CREX player identifier"}), 400
+            queue_future = asyncio.run_coroutine_threadsafe(
+                _queue_player_profile_hydration(external_id=normalized_id),
+                scraper_loop,
+            )
+            queued = queue_future.result(timeout=5)
+            return jsonify({
+                "status": "accepted" if queued else "unavailable",
+                "data": {"externalId": normalized_id, "queued": queued, "fetched": False},
+            }), 200 if queued else 503
+
+        future = asyncio.run_coroutine_threadsafe(
+            _hydrate_player_profile(
+                external_id=external_id,
+                match_url=match_url,
+                player_name=player_name,
+                role=payload.get("role"),
+                resolve_only=resolve_only,
+            ),
+            scraper_loop,
+        )
+        # Resolving a match name still needs a browser pass, but it must not
+        # hold the request open for the subsequent player-page crawl.
+        result = future.result(timeout=60 if not resolve_only else 45)
+        if resolve_only and result.get("externalId"):
+            return jsonify({"status": "accepted", "data": result}), 200
         if result.get("fetched"):
             return jsonify({"status": "success", "data": result})
         return jsonify({"status": "unavailable", "data": result}), 404

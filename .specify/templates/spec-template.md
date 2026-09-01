@@ -5,6 +5,22 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+## Constitution and Evidence Boundaries *(mandatory for CrickZen features)*
+
+- **Constitution version consulted**: [e.g., 1.4.0]
+- **Wiki constitution/checkpoint consulted**: [wikilink or path]
+- **Canonical surface and lifecycle owner**: [Which URL/service owns the truth?]
+- **Source-backed facts**: [Which provider, catalogue, snapshot, or model evidence is valid?]
+- **Indexability boundary**: [What may be indexable, noindex, 404, or withheld until data is ready?]
+- **Proof boundary**: [Separate local tests, runtime/artifact proof, GSC outcomes, and business outcomes]
+- **Rollback and continuity**: [Rollback artifact, isolated rollout boundary, and wiki/spec update]
+- **Managed-slate and provider boundary**: [Selection cap/stickiness, per-match freshness,
+  provider identity scope, and fallback behavior]
+- **Navigation and latency boundary**: [Immediate shell, canonical route, Back/history contract,
+  provider latency measurement, and no fabricated identity]
+- **Production image inventory**: [Service tags, immutable digests, rollback references, and
+  escalation/alert destination]
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -95,6 +111,20 @@
   by nearby support modules.
 - **FR-UI-003**: The spec MUST mark secondary SEO/support content as either directly visible
   because it is primary, or progressively disclosed because it is optional.
+- **FR-TRUTH-001**: The spec MUST define how stale, empty, placeholder, invalid, or
+  semantically default data is withheld from indexable output.
+- **FR-TRUTH-002**: The spec MUST define the authoritative source for identity, lifecycle,
+  schedule, score, and probability facts when more than one surface is involved.
+- **FR-TRUTH-003**: The spec MUST define any bounded managed-live slate, its sticky release rule,
+  and per-managed-match freshness/watchdog evidence.
+- **FR-NAV-001**: Provider-resolution routes MUST define canonicalization, sanitized return paths,
+  native/visible Back behavior, and the immediate truthful loading state.
+- **FR-OPS-001**: The spec MUST name deployed image tags/digests, rollback artifacts, and the
+  admin-visible escalation path for repeated or unresolved production failures.
+- **FR-EVIDENCE-001**: The spec MUST distinguish technical readiness from Google discovery,
+  indexing, ranking, traffic, engagement, AI citation, and business outcomes.
+- **FR-CONTINUITY-001**: The spec MUST identify the rollback boundary and the durable wiki
+  or checkpoint update required when the feature creates a CrickZen decision or checkpoint.
 
 *Example of marking unclear requirements:*
 
@@ -121,3 +151,5 @@
 - **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
 - **SC-UI-001**: [For changed user-facing screens, users can identify the primary match/page
   state from the first viewport without relying on duplicate summary blocks]
+- **SC-EVIDENCE-001**: [The changed surface has an explicit verification result and does not
+  claim an external outcome that was not measured]

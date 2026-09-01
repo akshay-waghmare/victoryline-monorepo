@@ -94,6 +94,7 @@ const publicRoutes: Routes = [
   { path: 'cricket-schedule/ipl-2026', component: LiveScoreHubComponent, data: { hubType: 'iplSchedule' } },
   { matcher: cricLiveMatcher, component: CricketOddsComponent },
   { path: 'cric-live/:path', component: CricketOddsComponent },
+  { path: 'player/resolve/:pendingSlug', component: PlayersPageComponent },
   { path: 'player/:externalId/:slug', component: PlayersPageComponent },
   { path: 'players', component: PlayersPageComponent },
   { path: 'teams/:externalId/:slug', component: TeamsPageComponent },

@@ -46,7 +46,7 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
       this.openTeamProfile(externalId, this.route.snapshot.paramMap.get('slug') || 'team');
       return;
     }
-    this.titleService.setTitle('Teams | Crickzen');
+    this.titleService.setTitle('Teams | CrickZen');
     this.loadTeams();
     this.searchSubject.pipe(
       debounceTime(300),
@@ -93,13 +93,13 @@ export class TeamsPageComponent implements OnInit, OnDestroy {
     this.detailOpen = true;
     this.selectedTeam = null;
     this.selectedTeamSummary = { externalId: externalId, name: name };
-    this.titleService.setTitle(name + ' Team Stats | Crickzen');
+    this.titleService.setTitle(name + ' Team Stats | CrickZen');
     this.cricketService.getPlayerStatsTeam(externalId, 'crex').pipe(
       takeUntil(this.destroy$)
     ).subscribe(
       (detail) => {
         this.selectedTeam = detail;
-        if (detail && detail.name) { this.titleService.setTitle(detail.name + ' Team Stats | Crickzen'); }
+        if (detail && detail.name) { this.titleService.setTitle(detail.name + ' Team Stats | CrickZen'); }
         this.isDetailLoading = false;
       },
       () => { this.selectedTeam = null; this.isDetailLoading = false; }

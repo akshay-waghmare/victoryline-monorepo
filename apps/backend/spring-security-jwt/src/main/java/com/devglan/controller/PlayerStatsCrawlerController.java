@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import com.devglan.dao.PlayerStatsIngestionRequest;
 import com.devglan.dao.PlayerStatsPlayerSummaryDTO;
@@ -108,11 +109,49 @@ public class PlayerStatsCrawlerController {
         }
         try {
             PlayerStatsPlayerDetailViewDTO response = playerStatsCrawlerService.getPlayerView(externalId, source);
-            if (!hasPlayerProfile(response) && playerProfileHydrationService.hydrate(externalId)) {
-                response = playerStatsCrawlerService.getPlayerView(externalId, source);
+            if (!hasPlayerProfile(response)) {
+                playerProfileHydrationService.queue(externalId);
+                if (response == null) {
+                    response = pendingPlayerView(externalId, source, externalId);
+                }
             }
             if (response == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No player stats found for the given player.");
+            }
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error retrieving player stats data.");
+        }
+    }
+
+    @GetMapping("/player/by-name")
+    public ResponseEntity<?> getPlayerViewByName(
+            @RequestParam("matchUrl") String matchUrl,
+            @RequestParam("playerName") String playerName,
+            @RequestParam(value = "role", required = false) String role,
+            @RequestParam(value = "source", required = false) String source) {
+        if (!crawlerPlayerStatsEnabled) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body("Player stats crawler ingestion is disabled.");
+        }
+        try {
+            PlayerStatsPlayerDetailViewDTO existing = playerStatsCrawlerService.getPlayerViewByName(playerName, source);
+            if (hasPlayerProfile(existing)) {
+                return ResponseEntity.ok(existing);
+            }
+
+            String externalId = playerProfileHydrationService.hydrateByMatchPlayer(matchUrl, playerName, role, true);
+            if (externalId == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("No CREX player link was found for the selected scorecard player.");
+            }
+            PlayerStatsPlayerDetailViewDTO response = playerStatsCrawlerService.getPlayerView(externalId, source);
+            if (!hasPlayerProfile(response)) {
+                return ResponseEntity.ok(pendingPlayerView(externalId, source,
+                        response != null && response.getName() != null ? response.getName() : playerName));
             }
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
@@ -129,6 +168,15 @@ public class PlayerStatsCrawlerController {
         }
         return response.getStats().stream().anyMatch(snapshot ->
                 snapshot != null && "player_profile".equalsIgnoreCase(snapshot.getCategory()));
+    }
+
+    private PlayerStatsPlayerDetailViewDTO pendingPlayerView(String externalId, String source, String name) {
+        PlayerStatsPlayerDetailViewDTO pending = new PlayerStatsPlayerDetailViewDTO();
+        pending.setExternalId(externalId);
+        pending.setSource(source == null || source.trim().isEmpty() ? "crex" : source);
+        pending.setName(name);
+        pending.setStats(new ArrayList<>());
+        return pending;
     }
 
     @GetMapping("/team")

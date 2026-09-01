@@ -31,6 +31,71 @@ from .loggers.adapters import get_logger
 logger = get_logger(component="player_stats_crawler")
 
 
+def select_player_reference(players: List[Dict[str, Any]], requested_name: str) -> Optional[Dict[str, Any]]:
+    """Resolve a scorecard display name to the provider's real player link.
+
+    CREX often renders scorecards with initials (for example ``J Ferdous``)
+    while the linked playing-XI row contains ``Juairiya Ferdous`` and a stable
+    ``/player/...-CODE`` URL. Matching the final surname plus the first initial
+    handles that provider presentation difference without guessing an ID from
+    a name slug alone.
+    """
+    requested = re.sub(r"\s+", " ", str(requested_name or "")).strip().lower()
+    requested_tokens = re.findall(r"[a-z0-9]+", requested)
+    if not requested_tokens:
+        return None
+    requested_key = "".join(requested_tokens)
+
+    best: Optional[Dict[str, Any]] = None
+    best_score = -1
+    for player in players or []:
+        if not isinstance(player, dict) or not player.get("player_url"):
+            continue
+        player_url = str(player.get("player_url") or "").strip()
+        candidate_name = str(player.get("player_name") or "").strip().lower()
+        candidate_tokens = re.findall(r"[a-z0-9]+", candidate_name)
+        # The visible card label can be abbreviated or include role text, while
+        # the provider URL contains the canonical full name. Use that URL only
+        # as a verified alias; never manufacture a player ID from the request.
+        url_match = re.search(r"/player/([^/?#]+)", player_url, re.IGNORECASE)
+        url_slug = url_match.group(1) if url_match else ""
+        url_slug = re.sub(r"-[a-z0-9]{2,5}$", "", url_slug, flags=re.IGNORECASE)
+        url_tokens = re.findall(r"[a-z0-9]+", url_slug.lower())
+        if not candidate_tokens and not url_tokens:
+            continue
+        candidate_key = "".join(candidate_tokens)
+        url_key = "".join(url_tokens)
+        score = 0
+        if candidate_key == requested_key:
+            score = 100
+        elif len(requested_tokens) >= 2 and len(candidate_tokens) >= 2:
+            # Compare the surname and the remaining name tokens. The first
+            # token may be a single initial on either side.
+            if candidate_tokens[-1] == requested_tokens[-1]:
+                requested_tail = requested_tokens[1:]
+                candidate_tail = candidate_tokens[1:]
+                if requested_tail == candidate_tail and requested_tokens[0][0] == candidate_tokens[0][0]:
+                    score = 90
+                elif requested_tokens[0][0] == candidate_tokens[0][0] and (
+                    requested_tail == candidate_tail
+                    or requested_tail[-1:] == candidate_tail[-1:]
+                ):
+                    score = 80
+                elif requested_tokens[0][0] == candidate_tokens[0][0]:
+                    score = 60
+        if score == 0 and (requested_key in candidate_key or candidate_key in requested_key):
+            score = 40
+        if url_key == requested_key:
+            score = max(score, 95)
+        elif url_key and (requested_key in url_key or url_key in requested_key):
+            score = max(score, 75)
+        if score > best_score:
+            best = player
+            best_score = score
+
+    return best if best_score > 0 else None
+
+
 @dataclass(order=True)
 class PlayerStatsTask:
     priority: int

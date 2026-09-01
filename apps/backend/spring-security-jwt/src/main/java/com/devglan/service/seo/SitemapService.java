@@ -4,10 +4,12 @@ import com.devglan.dao.MatchRepository;
 import com.devglan.model.Matches;
 import com.devglan.service.CrexMatchUrlHelper;
 import com.devglan.service.seo.events.SeoContentChangeEvent;
+import com.devglan.service.seo.events.SitemapManifestChangedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -59,23 +64,33 @@ public class SitemapService {
 
     private final SeoCache seoCache;
     private final LiveMatchesService liveMatchesService;
+    private final ApplicationEventPublisher eventPublisher;
     private MatchRepository matchRepository; // optional in isolated tests
 
     @Value("${seo.priority-match-count:5}")
     private int priorityMatchCount = 5;
 
     private volatile boolean sitemapDirty = true;
+    private volatile boolean lifecycleRefreshRequired = false;
     private volatile long lastSuccessfulGenerationEpochMs = 0L;
     private volatile long lastGenerationDurationMs = 0L;
 
     @Autowired
-    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService, MatchFreshnessSummaryService ignoredFreshnessSummaryService) {
-        this(seoCache, liveMatchesService);
+    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService,
+                          MatchFreshnessSummaryService ignoredFreshnessSummaryService,
+                          ApplicationEventPublisher eventPublisher) {
+        this(seoCache, liveMatchesService, eventPublisher);
     }
 
     public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService) {
+        this(seoCache, liveMatchesService, null);
+    }
+
+    public SitemapService(SeoCache seoCache, LiveMatchesService liveMatchesService,
+                          ApplicationEventPublisher eventPublisher) {
         this.seoCache = seoCache;
         this.liveMatchesService = liveMatchesService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Autowired(required = false)
@@ -108,7 +123,8 @@ public class SitemapService {
     }
 
     public boolean hasPublishedManifest() {
-        return currentManifest.get() != null;
+        SitemapManifest manifest = currentManifest.get();
+        return manifest != null && !lifecycleRefreshRequired && !lifecycleTransitionDue(manifest);
     }
 
     public Map<String, Object> getManifestMetrics() {
@@ -122,12 +138,23 @@ public class SitemapService {
         metrics.put("lastGenerationDurationMs", lastGenerationDurationMs);
         metrics.put("generationFailures", generationFailures.get());
         metrics.put("refreshPending", sitemapDirty);
+        metrics.put("lifecycleRefreshRequired", lifecycleRefreshRequired);
+        metrics.put("nextLifecycleTransitionEpochMs",
+                manifest == null ? 0L : manifest.nextLifecycleTransitionEpochMs);
         return metrics;
     }
 
     @EventListener
     public void handleContentChange(SeoContentChangeEvent event) {
         sitemapDirty = true;
+        if (event != null && (event.getChangeType() == SeoContentChangeEvent.ChangeType.MATCH_COMPLETED
+                || event.getChangeType() == SeoContentChangeEvent.ChangeType.MATCH_REMOVED
+                || event.getChangeType() == SeoContentChangeEvent.ChangeType.MATCH_PUBLISHED)) {
+            // Do not serve the previous generation while a lifecycle decision
+            // is being incorporated. It may still contain a URL whose route is
+            // already 404/noindex, or omit a newly published canonical owner.
+            lifecycleRefreshRequired = true;
+        }
         // The old Redis index could describe a different set of partitions.
         // It is intentionally not read by manifest-serving requests.
         seoCache.evictSitemapIndex();
@@ -137,31 +164,35 @@ public class SitemapService {
 
     private SitemapManifest getOrRefreshManifest() {
         SitemapManifest existing = currentManifest.get();
-        if (existing != null && !sitemapDirty) {
+        if (existing != null && !requiresRefresh(existing)) {
             return existing;
         }
 
         synchronized (generationLock) {
             existing = currentManifest.get();
-            if (existing != null && !sitemapDirty) {
+            if (existing != null && !requiresRefresh(existing)) {
                 return existing;
             }
 
             long startedAt = System.currentTimeMillis();
+            boolean staleLifecycleGeneration = lifecycleRefreshRequired || lifecycleTransitionDue(existing);
             try {
                 SitemapManifest next = buildManifest(generationSequence.incrementAndGet(), startedAt);
+                SitemapManifest previous = currentManifest.get();
                 currentManifest.set(next); // Atomic publication after complete validation.
                 sitemapDirty = false;
+                lifecycleRefreshRequired = false;
                 lastSuccessfulGenerationEpochMs = System.currentTimeMillis();
                 lastGenerationDurationMs = lastSuccessfulGenerationEpochMs - startedAt;
                 LOGGER.info("Sitemap manifest published: generationId={}, urls={}, shards={}, durationMs={}",
                         next.generationId, next.urlCount, next.partitionXmlByNumber.size(), lastGenerationDurationMs);
+                publishManifestChanged(previous, next);
                 return next;
             } catch (Exception ex) {
                 generationFailures.incrementAndGet();
                 lastGenerationDurationMs = System.currentTimeMillis() - startedAt;
                 SitemapManifest lastKnownGood = currentManifest.get();
-                if (lastKnownGood != null) {
+                if (lastKnownGood != null && !staleLifecycleGeneration) {
                     // Do not make every crawler request retry the same failed
                     // generation. The next content-change event schedules the
                     // next attempt; callers continue to receive one fast,
@@ -172,10 +203,46 @@ public class SitemapService {
                             lastKnownGood.partitionXmlByNumber.size(), ex);
                     return lastKnownGood;
                 }
+                if (staleLifecycleGeneration) {
+                    // Serving a stale lifecycle generation is worse than a
+                    // temporary sitemap outage: it advertises a URL that may
+                    // already be non-indexable. Keep the refresh pending so a
+                    // later request can retry after the source recovers.
+                    sitemapDirty = true;
+                    lifecycleRefreshRequired = true;
+                    LOGGER.error("Sitemap manifest refresh crossed a lifecycle boundary and failed; refusing to serve the previous generation", ex);
+                    return null;
+                }
                 LOGGER.error("Initial sitemap manifest generation failed after {} ms; no manifest will be published",
                         lastGenerationDurationMs, ex);
                 return null;
             }
+        }
+    }
+
+    private boolean requiresRefresh(SitemapManifest manifest) {
+        return sitemapDirty || lifecycleRefreshRequired || lifecycleTransitionDue(manifest);
+    }
+
+    private boolean lifecycleTransitionDue(SitemapManifest manifest) {
+        return manifest != null && manifest.nextLifecycleTransitionEpochMs > 0L
+                && System.currentTimeMillis() >= manifest.nextLifecycleTransitionEpochMs;
+    }
+
+    private void publishManifestChanged(SitemapManifest previous, SitemapManifest next) {
+        if (eventPublisher == null || next == null) {
+            return;
+        }
+        boolean priorityChanged = previous == null
+                || !String.valueOf(previous.priorityContentFingerprint)
+                .equals(String.valueOf(next.priorityContentFingerprint));
+        try {
+            eventPublisher.publishEvent(new SitemapManifestChangedEvent(
+                    next.generationId, next.generatedAtEpochMs, priorityChanged, next.priorityMatchUrls));
+        } catch (Exception ex) {
+            // A submission listener must not turn a valid sitemap generation
+            // into a failed crawler response.
+            LOGGER.warn("Sitemap manifest event publication failed for generationId={}", next.generationId, ex);
         }
     }
 
@@ -202,6 +269,7 @@ public class SitemapService {
         // as SSR, never both aliases.
         List<LiveMatchesService.LiveMatchEntry> prioritizedMatches = canonicalizeMatchIdentities(liveMatches);
         Collections.sort(prioritizedMatches, Comparator.comparingLong(this::sitemapPrioritySortValue));
+        long nextLifecycleTransitionEpochMs = findNextLifecycleTransition(prioritizedMatches);
         List<LiveMatchesService.LiveMatchEntry> priorityMatches = selectPriorityMatches(prioritizedMatches);
         List<String> priorityMatchUrls = new ArrayList<>();
         Set<String> priorityCanonicalPaths = new LinkedHashSet<>();
@@ -268,9 +336,46 @@ public class SitemapService {
             throw new IllegalStateException("Refusing to publish a sitemap index without child partitions");
         }
 
+        String priorityContentFingerprint = fingerprintPriorityPartitions(partitionXmlByName);
         return new SitemapManifest(generationId, startedAt, writer.buildIndex(cohortPaths),
                 Collections.unmodifiableMap(partitionXmlByNumber), Collections.unmodifiableMap(partitionXmlByName),
-                Collections.unmodifiableList(priorityMatchUrls), allUrls.size());
+                Collections.unmodifiableList(priorityMatchUrls), allUrls.size(),
+                nextLifecycleTransitionEpochMs, priorityContentFingerprint);
+    }
+
+    private long findNextLifecycleTransition(List<LiveMatchesService.LiveMatchEntry> matches) {
+        long next = Long.MAX_VALUE;
+        long now = System.currentTimeMillis();
+        for (LiveMatchesService.LiveMatchEntry match : matches) {
+            if (!isUpcoming(match) || deriveCanonicalMatchPath(match) == null) {
+                continue;
+            }
+            Long scheduledStartTime = match.getScheduledStartTime();
+            if (scheduledStartTime != null && scheduledStartTime > now && scheduledStartTime < next) {
+                next = scheduledStartTime;
+            }
+        }
+        return next == Long.MAX_VALUE ? 0L : next;
+    }
+
+    private String fingerprintPriorityPartitions(Map<String, String> partitionXmlByName) {
+        StringBuilder source = new StringBuilder();
+        for (Map.Entry<String, String> entry : partitionXmlByName.entrySet()) {
+            if (entry.getKey().startsWith("sitemap-priority-")) {
+                source.append(entry.getKey()).append('|').append(entry.getValue()).append('\n');
+            }
+        }
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(source.toString().getBytes(StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder(64);
+            for (byte value : digest) {
+                hex.append(String.format("%02x", value));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("SHA-256 unavailable", impossible);
+        }
     }
 
     private List<LiveMatchesService.LiveMatchEntry> loadSitemapMatches() {
@@ -352,9 +457,9 @@ public class SitemapService {
         Map<String, LiveMatchesService.LiveMatchEntry> ownerByIdentity = new LinkedHashMap<>();
         for (LiveMatchesService.LiveMatchEntry candidate : matches) {
             if (candidate == null) continue;
-            String identity = CrexMatchUrlHelper.extractCrexApiKey(candidate.getUrl());
+            String identity = CrexMatchUrlHelper.matchIdentityKey(candidate.getUrl());
             if (identity == null) {
-                identity = "slug:" + String.valueOf(liveMatchesService.extractSlugFromUrl(candidate.getUrl()));
+                identity = "row:" + String.valueOf(candidate.getId());
             }
             LiveMatchesService.LiveMatchEntry current = ownerByIdentity.get(identity);
             if (current == null || prefersCanonicalOwner(candidate, current)) {
@@ -618,11 +723,14 @@ public class SitemapService {
         private final Map<String, String> partitionXmlByName;
         private final List<String> priorityMatchUrls;
         private final int urlCount;
+        private final long nextLifecycleTransitionEpochMs;
+        private final String priorityContentFingerprint;
 
         private SitemapManifest(long generationId, long generatedAtEpochMs, String indexXml,
                                 Map<Integer, String> partitionXmlByNumber, Map<String, String> partitionXmlByName,
                                 List<String> priorityMatchUrls,
-                                int urlCount) {
+                                int urlCount, long nextLifecycleTransitionEpochMs,
+                                String priorityContentFingerprint) {
             this.generationId = generationId;
             this.generatedAtEpochMs = generatedAtEpochMs;
             this.indexXml = indexXml;
@@ -630,6 +738,8 @@ public class SitemapService {
             this.partitionXmlByName = partitionXmlByName;
             this.priorityMatchUrls = priorityMatchUrls;
             this.urlCount = urlCount;
+            this.nextLifecycleTransitionEpochMs = nextLifecycleTransitionEpochMs;
+            this.priorityContentFingerprint = priorityContentFingerprint;
         }
     }
 }

@@ -210,11 +210,11 @@ export class LogoComponent {
   @Input() variant: 'primary' | 'circular' | 'text' = 'primary';
   @Input() size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'navbar' | 'footer' | 'brand' | 'splash' = 'md';
   @Input() showText: boolean = true;
-  @Input() logoText: string = 'Crickzen';
+  @Input() logoText: string = 'CrickZen';
   @Input() containerClass: string = '';
   @Input() imageClass: string = '';
   @Input() textClass: string = '';
-  @Input() altText: string = 'Crickzen Live Cricket';
+  @Input() altText: string = 'CrickZen Live Cricket';
   @Input() loading: 'lazy' | 'eager' | 'auto' = 'auto';
   @Input() fetchPriority: 'high' | 'low' | 'auto' = 'auto';
 

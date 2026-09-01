@@ -270,6 +270,13 @@ function applyCanonicalSnapshotToSsrHtml(html, snapshot) {
       ? parityHtml.replace(aeoPattern, aeoBlock)
       : parityHtml.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/i, (heading) => heading + aeoBlock);
   }
+  if (match && summary) {
+    const utilityBlock = buildCanonicalMatchUtilityFallbackHtml(match, snapshot, summary);
+    const utilityPattern = /<!--canonical-match-utility-start-->[\s\S]*?<!--canonical-match-utility-end-->/i;
+    parityHtml = utilityPattern.test(parityHtml)
+      ? parityHtml.replace(utilityPattern, utilityBlock)
+      : parityHtml.replace(/<section\b[^>]*id=["']canonical-match-aeo["'][\s\S]*?<\/section>/i, (section) => section + utilityBlock);
+  }
 
   if (match && summary) {
     const stateScript = buildCanonicalMatchStateScript(match, snapshot, summary);
@@ -518,9 +525,9 @@ function buildSeriesProfileFallbackHtml(req, data) {
   const description = section === 'table'
     ? `Current ${data.name} points table and standings with team positions, results and points where supplied.`
     : section === 'stats'
-      ? `Current ${data.name} team statistics and series data from Crickzen.`
-      : `Live, upcoming and recent ${data.name} fixtures, results and match details on Crickzen.`;
-  const answer = `${data.name} tracks fixtures, results, points table and team statistics on Crickzen.`;
+      ? `Current ${data.name} team statistics and series data from CrickZen.`
+      : `Live, upcoming and recent ${data.name} fixtures, results and match details on CrickZen.`;
+  const answer = `${data.name} tracks fixtures, results, points table and team statistics on CrickZen.`;
   const tabs = `<nav aria-label="Series sections">
     <a href="${escapeHtml(seriesPath)}">Matches</a>
     <a href="${escapeHtml(`${seriesPath}/table`)}">Points table</a>
@@ -548,7 +555,7 @@ function buildSeriesProfileFallbackHtml(req, data) {
   } else {
     content += `<h2>${escapeHtml(data.name)} fixtures and results</h2>`;
     if (data.matches.length === 0) {
-      content += `<p>No live, upcoming or recent ${escapeHtml(data.name)} matches are currently available in the Crickzen catalogue.</p>`;
+      content += `<p>No live, upcoming or recent ${escapeHtml(data.name)} matches are currently available in the CrickZen catalogue.</p>`;
     } else {
       content += `<p>${escapeHtml(data.name)} currently lists ${data.matches.length} canonical match pages. Open a match for its score, details and lifecycle state.</p><ul>`;
       data.matches.forEach((match) => {
@@ -567,11 +574,11 @@ function buildSeriesProfileFallbackHtml(req, data) {
   }).replace(/</g, '\\u003c');
   const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8').replace(/<meta\s+name="description"[^>]*>\s*/i, '');
   const head = [
-    `<title>${escapeHtml(heading)} | Crickzen</title>`,
+    `<title>${escapeHtml(heading)} | CrickZen</title>`,
     `<meta name="description" content="${escapeHtml(description)}">`,
     '<meta name="robots" content="index,follow">',
     `<link rel="canonical" href="${escapeHtml(canonicalUrl)}">`,
-    `<meta property="og:title" content="${escapeHtml(heading)} | Crickzen">`,
+    `<meta property="og:title" content="${escapeHtml(heading)} | CrickZen">`,
     `<meta property="og:description" content="${escapeHtml(description)}">`,
     `<meta property="og:url" content="${escapeHtml(canonicalUrl)}">`,
     `<script type="application/ld+json">${structuredData}</script>`
@@ -637,6 +644,69 @@ function formatSnapshotSchedule(timestamp) {
   return new Date(timestamp).toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
 }
 
+function normalizeSnapshotUtility(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const utility = {};
+  if (cleanSnapshotText(raw.resultContext)) utility.resultContext = cleanSnapshotText(raw.resultContext).slice(0, 240);
+
+  if (Array.isArray(raw.scorecardInnings)) {
+    utility.scorecardInnings = raw.scorecardInnings.slice(0, 4).map((inning) => {
+      if (!inning || typeof inning !== 'object') return null;
+      const normalized = {};
+      ['label', 'team', 'score'].forEach((key) => {
+        const value = cleanSnapshotText(inning[key]);
+        if (value) normalized[key] = value.slice(0, 160);
+      });
+      ['batsmen', 'bowlers'].forEach((group) => {
+        if (!Array.isArray(inning[group])) return;
+        normalized[group] = inning[group].slice(0, 5).map((player) => {
+          if (!player || typeof player !== 'object') return null;
+          const row = {};
+          ['name', 'runs', 'balls', 'overs', 'wickets', 'fours', 'sixes', 'status'].forEach((key) => {
+            const value = cleanSnapshotText(player[key]);
+            if (value) row[key] = value.slice(0, 80);
+          });
+          return row.name ? row : null;
+        }).filter(Boolean);
+      });
+      return Object.keys(normalized).length > 0 ? normalized : null;
+    }).filter(Boolean);
+  }
+
+  if (Array.isArray(raw.performers)) {
+    utility.performers = raw.performers.slice(0, 4).map((performer) => {
+      if (!performer || typeof performer !== 'object') return null;
+      const row = {};
+      ['role', 'inning', 'name', 'stat'].forEach((key) => {
+        const value = cleanSnapshotText(performer[key]);
+        if (value) row[key] = value.slice(0, 120);
+      });
+      return row.name && row.stat ? row : null;
+    }).filter(Boolean);
+  }
+
+  if (Array.isArray(raw.keyEvents)) {
+    utility.keyEvents = raw.keyEvents.slice(0, 5).map((event) => {
+      if (!event || typeof event !== 'object') return null;
+      const row = {};
+      ['type', 'text', 'overBall', 'score'].forEach((key) => {
+        const value = cleanSnapshotText(event[key]);
+        if (value) row[key] = value.slice(0, 240);
+      });
+      return row.text ? row : null;
+    }).filter(Boolean);
+  }
+
+  if (raw.coverage && typeof raw.coverage === 'object') {
+    utility.coverage = {};
+    ['scorecardInnings', 'batsmanCount', 'bowlerCount', 'performerCount', 'keyEventCount'].forEach((key) => {
+      const value = Number(raw.coverage[key]);
+      if (Number.isFinite(value) && value >= 0) utility.coverage[key] = Math.min(999, Math.floor(value));
+    });
+  }
+  return Object.keys(utility).length > 0 ? utility : null;
+}
+
 async function fetchCanonicalMatchSnapshot(match) {
   if (!match || !match.slug) {
     return null;
@@ -676,7 +746,8 @@ async function fetchCanonicalMatchSnapshot(match) {
     overs: data.overs === null || data.overs === undefined || data.overs === '' ? null : String(data.overs),
     battingTeam: cleanSnapshotText(data.battingTeam),
     stateUpdatedAt: Number(data.stateUpdatedAt || data.snapshotTimestamp) || null,
-    source: cleanSnapshotText(data.source)
+    source: cleanSnapshotText(data.source),
+    seoUtility: normalizeSnapshotUtility(data.seoUtility)
   };
   snapshot.canonicalSlug = cleanSnapshotText(data.canonicalSlug);
   if (!snapshot.scheduledAt) {
@@ -815,6 +886,62 @@ function isRichCanonicalSnapshot(snapshot) {
   return !!(snapshot.series || snapshot.score || snapshot.result || snapshot.lastKnownState || snapshot.scheduledAt);
 }
 
+function canonicalMatchValueProfile(snapshot, summary) {
+  const lifecycle = summary && summary.lifecycle ? summary.lifecycle : deriveSnapshotLifecycle(snapshot);
+  const utility = snapshot && snapshot.seoUtility || {};
+  const innings = Array.isArray(utility.scorecardInnings) ? utility.scorecardInnings : [];
+  const performers = Array.isArray(utility.performers) ? utility.performers : [];
+  const keyEvents = Array.isArray(utility.keyEvents) ? utility.keyEvents : [];
+  const signals = [];
+  const hasTeams = !!(cleanSnapshotIdentityText(snapshot && snapshot.team1) && cleanSnapshotIdentityText(snapshot && snapshot.team2));
+  const hasSeries = !!cleanSnapshotText(snapshot && snapshot.series);
+  const hasSchedule = !!(snapshot && (snapshot.scheduledAtMs || snapshot.scheduledAt));
+  const hasVenue = !!cleanSnapshotIdentityText(snapshot && snapshot.venue);
+  const hasToss = !!cleanSnapshotText(snapshot && snapshot.toss);
+  const hasScore = (lifecycle === 'live' || lifecycle === 'innings-break')
+    ? !!((summary && summary.scoreLine) || (hasFreshLiveScore(snapshot, lifecycle) && cleanSnapshotText(snapshot && snapshot.score)) || innings.length)
+    : !!(cleanSnapshotText(snapshot && snapshot.score) || innings.length);
+  const hasResult = !!(lifecycle === 'completed' || lifecycle === 'abandoned')
+    && !!cleanSnapshotText(snapshot && (snapshot.result || snapshot.lastKnownState || (utility && utility.resultContext)));
+
+  if (hasTeams) signals.push('teams');
+  if (hasSeries) signals.push('series');
+  if (hasSchedule) signals.push('schedule');
+  if (hasVenue) signals.push('venue');
+  if (hasToss) signals.push('toss');
+  if (hasScore) signals.push('score');
+  if (hasResult) signals.push('result');
+  if (innings.length) signals.push('scorecard');
+  if (performers.length) signals.push('performers');
+  if (keyEvents.length) signals.push('key-events');
+
+  const points = [hasTeams, hasSeries, hasSchedule, hasVenue, hasToss, hasScore, hasResult,
+    innings.length > 0, performers.length > 0, keyEvents.length > 0];
+  const weights = [20, 15, 20, 10, 5, 15, 15, 10, 5, 5];
+  const score = points.reduce((total, present, index) => total + (present ? weights[index] : 0), 0);
+  let requiredSignals;
+  if (lifecycle === 'upcoming') requiredSignals = ['teams', 'series', 'schedule'];
+  else if (lifecycle === 'live' || lifecycle === 'innings-break') requiredSignals = ['teams', 'series', 'score'];
+  else if (lifecycle === 'completed' || lifecycle === 'abandoned') requiredSignals = ['teams', 'series', 'result'];
+  else requiredSignals = ['teams', 'series'];
+  const missing = requiredSignals.filter((signal) => signals.indexOf(signal) === -1);
+  const gate = missing.length === 0 ? 'pass' : 'hold';
+  const baseline = lifecycle === 'upcoming' ? 55
+    : lifecycle === 'live' || lifecycle === 'innings-break' ? 50
+      : lifecycle === 'completed' || lifecycle === 'abandoned' ? 50 : 35;
+  const band = score >= baseline + 20 ? 'strong' : score >= baseline ? 'usable' : 'thin';
+  return { lifecycle, score, band, gate, signals, missing };
+}
+
+function applyMatchValueHeaders(res, snapshot) {
+  const profile = canonicalMatchValueProfile(snapshot);
+  res.setHeader('X-SSR-Value-Score', String(profile.score));
+  res.setHeader('X-SSR-Value-Band', profile.band);
+  res.setHeader('X-SSR-Indexability-Gate', profile.gate);
+  res.setHeader('X-SSR-Value-Signals', profile.signals.join(','));
+  if (profile.missing.length) res.setHeader('X-SSR-Value-Missing', profile.missing.join(','));
+}
+
 function canonicalSnapshotFingerprint(snapshot) {
   if (!snapshot) return '';
   return JSON.stringify({
@@ -823,7 +950,8 @@ function canonicalSnapshotFingerprint(snapshot) {
     series: snapshot.series, venue: snapshot.venue, toss: snapshot.toss,
     scheduledAt: snapshot.scheduledAt, score: snapshot.score, overs: snapshot.overs,
     battingTeam: snapshot.battingTeam, result: snapshot.result,
-    finalResult: snapshot.finalResult, lastKnownState: snapshot.lastKnownState
+    finalResult: snapshot.finalResult, lastKnownState: snapshot.lastKnownState,
+    seoUtility: snapshot.seoUtility || null
   });
 }
 
@@ -868,6 +996,7 @@ function lifecycleSummary(match, snapshot) {
 }
 
 function buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) {
+  const valueProfile = canonicalMatchValueProfile(snapshot, summary);
   const facts = [
     ['Teams', match.teams],
     ['Status', summary.label]
@@ -883,12 +1012,51 @@ function buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary) {
     `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`
   ).join('');
 
-  return `<section id="canonical-match-aeo" data-lifecycle="${escapeHtml(summary.lifecycle)}" aria-label="Match answer">
+  return `<section id="canonical-match-aeo" data-lifecycle="${escapeHtml(summary.lifecycle)}" data-value-score="${valueProfile.score}" data-value-band="${escapeHtml(valueProfile.band)}" data-indexability-gate="${escapeHtml(valueProfile.gate)}" data-value-signals="${escapeHtml(valueProfile.signals.join(','))}" aria-label="Match answer">
     <span>Direct match answer</span>
     <h2>${escapeHtml(match.teams)} — ${escapeHtml(summary.label)}</h2>
     <p>${escapeHtml(summary.copy)}</p>
     <dl>${factsHtml}</dl>
   </section>`;
+}
+
+function buildCanonicalMatchUtilityFallbackHtml(match, snapshot, summary) {
+  const utility = snapshot && snapshot.seoUtility || {};
+  const profile = canonicalMatchValueProfile(snapshot, summary);
+  const innings = Array.isArray(utility.scorecardInnings) ? utility.scorecardInnings : [];
+  const performers = Array.isArray(utility.performers) ? utility.performers : [];
+  const keyEvents = Array.isArray(utility.keyEvents) ? utility.keyEvents : [];
+  const sections = [];
+
+  if (innings.length) {
+    const inningItems = innings.map((inning) => {
+      const rows = [];
+      if (inning.team || inning.score) rows.push(`<p>${escapeHtml(inning.team || 'Innings')}${inning.score ? `: ${escapeHtml(inning.score)}` : ''}</p>`);
+      const batsmen = Array.isArray(inning.batsmen) ? inning.batsmen : [];
+      const bowlers = Array.isArray(inning.bowlers) ? inning.bowlers : [];
+      if (batsmen.length) rows.push(`<p>Batter contributions: ${batsmen.map((player) => `${escapeHtml(player.name)} ${escapeHtml(player.runs || '')}${player.balls ? ` (${escapeHtml(player.balls)} balls)` : ''}`).join('; ')}.</p>`);
+      if (bowlers.length) rows.push(`<p>Bowling figures: ${bowlers.map((player) => `${escapeHtml(player.name)} ${player.wickets ? `${escapeHtml(player.wickets)} wickets` : ''}${player.overs ? ` in ${escapeHtml(player.overs)} overs` : ''}`).join('; ')}.</p>`);
+      return `<li><strong>${escapeHtml(inning.label || 'Innings')}</strong>${rows.join('')}</li>`;
+    }).join('');
+    sections.push(`<section aria-label="Verified scorecard summary"><h2>Verified scorecard summary</h2><ol>${inningItems}</ol></section>`);
+  }
+
+  if (performers.length) {
+    sections.push(`<section aria-label="Verified match performers"><h2>Verified match performers</h2><ul>${performers.map((player) => `<li>${escapeHtml(player.name)}${player.role ? ` (${escapeHtml(player.role)})` : ''}: ${escapeHtml(player.stat)}</li>`).join('')}</ul></section>`);
+  }
+
+  if (keyEvents.length) {
+    sections.push(`<section aria-label="Verified key match events"><h2>Verified key events</h2><ul>${keyEvents.map((event) => `<li>${event.overBall ? `${escapeHtml(event.overBall)} — ` : ''}${escapeHtml(event.text)}${event.score ? ` (${escapeHtml(event.score)})` : ''}</li>`).join('')}</ul></section>`);
+  }
+
+  if (utility.resultContext && (summary.lifecycle === 'completed' || summary.lifecycle === 'abandoned')) {
+    sections.push(`<p><strong>Result context:</strong> ${escapeHtml(utility.resultContext)}</p>`);
+  }
+
+  const coverageCopy = profile.signals.length
+    ? `Verified coverage for this ${escapeHtml(summary.lifecycle)} page includes ${escapeHtml(profile.signals.join(', '))}.`
+    : `Verified ${escapeHtml(summary.lifecycle)} match coverage is limited to the available schedule and lifecycle record.`;
+  return `<!--canonical-match-utility-start--><section id="canonical-match-utility" data-value-score="${profile.score}" data-value-band="${escapeHtml(profile.band)}" data-indexability-gate="${escapeHtml(profile.gate)}" data-value-signals="${escapeHtml(profile.signals.join(','))}" aria-label="Match data coverage"><h2>Match data coverage</h2><p>${coverageCopy}</p>${sections.join('')}</section><!--canonical-match-utility-end-->`;
 }
 
 function buildCanonicalMatchStateScript(match, snapshot, summary) {
@@ -916,6 +1084,7 @@ function buildCanonicalMatchStateScript(match, snapshot, summary) {
   if (snapshot && snapshot.overs !== null && snapshot.overs !== undefined) cricketData.over = snapshot.overs;
   if (snapshot && snapshot.battingTeam) cricketData.batting_team = snapshot.battingTeam;
   if (snapshot && snapshot.lastKnownState) cricketData.current_ball = snapshot.lastKnownState;
+  if (snapshot && snapshot.seoUtility) cricketData.seo_utility = snapshot.seoUtility;
 
   const state = {
     cricket_match_info: matchInfo,
@@ -937,11 +1106,11 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
   const series = cleanSnapshotText(snapshot && snapshot.series) || match.series;
   const summary = lifecycleSummary(match, snapshot);
   const title = series
-    ? `${match.teams} ${summary.label}, ${series} | Crickzen`
-    : `${match.teams} ${summary.label} | Crickzen`;
+    ? `${match.teams} ${summary.label}, ${series} | CrickZen`
+    : `${match.teams} ${summary.label} | CrickZen`;
   const description = series
-    ? `${summary.copy} Follow ${match.teams} score, commentary, and scorecard from ${series} on Crickzen.`
-    : `${summary.copy} Follow ${match.teams} score, commentary, and scorecard on Crickzen.`;
+    ? `${summary.copy} Follow ${match.teams} score, commentary, and scorecard from ${series} on CrickZen.`
+    : `${summary.copy} Follow ${match.teams} score, commentary, and scorecard on CrickZen.`;
   // Google requires both startDate and location for Event rich-result
   // eligibility. A fallback must omit SportsEvent rather than emit an invalid
   // event when the stored snapshot has not yet resolved a trustworthy venue.
@@ -960,8 +1129,8 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     description,
     url: canonicalUrl,
     mainEntityOfPage: canonicalUrl,
-    author: { '@type': 'Organization', name: 'Crickzen Sports Desk' },
-    publisher: { '@type': 'Organization', name: 'Crickzen' },
+    author: { '@type': 'Organization', name: 'CrickZen Sports Desk' },
+    publisher: { '@type': 'Organization', name: 'CrickZen' },
     isAccessibleForFree: true
   }];
   if (snapshot && snapshot.scheduledAtMs && snapshot.venue) {
@@ -1001,10 +1170,12 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
     `<script type="application/ld+json">${structuredData}</script>`
   ].join('');
   const aeoBlock = buildCanonicalMatchAeoFallbackHtml(match, snapshot, summary);
+  const utilityBlock = buildCanonicalMatchUtilityFallbackHtml(match, snapshot, summary);
   const body = `<main id="canonical-match-ssr-fallback" data-ssr-fallback="canonical-match">
     <nav aria-label="Breadcrumb"><a href="/">Home</a> <span aria-hidden="true">/</span> <a href="/live-score">Live Cricket Scores</a>${series ? ` <span aria-hidden="true">/</span> <span>${escapeHtml(series)}</span>` : ''}</nav>
     <h1>${escapeHtml(match.teams)} — ${escapeHtml(summary.label)}</h1>
     ${aeoBlock}
+    ${utilityBlock}
     ${series ? `<p>${escapeHtml(series)}</p>` : ''}
     ${snapshot && snapshot.scheduledAt ? `<p>Scheduled: ${escapeHtml(snapshot.scheduledAt)}</p>` : ''}
     ${snapshot && snapshot.venue ? `<p>Venue: ${escapeHtml(snapshot.venue)}</p>` : ''}
@@ -1025,14 +1196,14 @@ function buildCanonicalMatchFallbackHtml(req, snapshot) {
 
 function buildCanonicalMatchUnavailableHtml() {
   const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8').replace(/<meta\s+name="description"[^>]*>\s*/i, '');
-  const head = '<title>Match data temporarily unavailable | Crickzen</title><meta name="robots" content="noindex,follow"><meta name="description" content="Match data is temporarily unavailable. Please retry shortly.">';
+  const head = '<title>Match data temporarily unavailable | CrickZen</title><meta name="robots" content="noindex,follow"><meta name="description" content="Match data is temporarily unavailable. Please retry shortly.">';
   return indexHtml.replace(/<title>[^<]*<\/title>/i, head)
     .replace(/<app-root><\/app-root>/i, '<app-root><main id="canonical-match-unavailable"><h1>Match data temporarily unavailable</h1><p>Please retry shortly.</p></main></app-root>');
 }
 
 function buildCanonicalMatchNotFoundHtml(req) {
   const indexHtml = fs.readFileSync(INDEX_HTML, 'utf8').replace(/<meta\s+name="description"[^>]*>\s*/i, '');
-  const head = '<title>Cricket Match Not Found | Crickzen</title><meta name="robots" content="noindex,follow"><meta name="description" content="This cricket match URL could not be resolved.">';
+  const head = '<title>Cricket Match Not Found | CrickZen</title><meta name="robots" content="noindex,follow"><meta name="description" content="This cricket match URL could not be resolved.">';
   const body = '<main id="canonical-match-not-found"><h1>Cricket match not found</h1><p>This match URL could not be resolved. Browse live scores or today’s schedule for current cricket coverage.</p><p><a href="/live-score">Live cricket scores</a> · <a href="/cricket-schedule/today">Today’s cricket schedule</a></p></main>';
   return indexHtml.replace(/<title>[^<]*<\/title>/i, head).replace(/<app-root><\/app-root>/i, `<app-root>${body}</app-root>`);
 }
@@ -1053,6 +1224,7 @@ async function sendSsrFallback(req, res, routeStatus, reason) {
     res.setHeader('X-SSR-Fallback', 'canonical-match');
     res.setHeader('X-SSR-Fallback-Level', snapshot && snapshot.validity === 'valid' ? 'snapshot' : 'route');
     res.setHeader('X-SSR-Lifecycle', lifecycle);
+    applyMatchValueHeaders(res, snapshot);
     res.status(200).send(canonicalFallback);
     return;
   }
@@ -1174,6 +1346,7 @@ app.get('*', async (req, res) => {
     const cachedDocument = getRenderedMatchDocument(req.canonicalMatchSnapshot, req.path);
     if (cachedDocument) {
       applyRouteCacheHeaders(req, res);
+      applyMatchValueHeaders(res, req.canonicalMatchSnapshot);
       res.setHeader('X-SSR-Document-Cache', 'hit');
       res.status(200).send(cachedDocument);
       return;
@@ -1194,6 +1367,7 @@ app.get('*', async (req, res) => {
         res.setHeader('X-SSR-Fallback', 'canonical-match');
         res.setHeader('X-SSR-Fallback-Level', 'schedule-first');
         res.setHeader('X-SSR-Lifecycle', 'upcoming');
+        applyMatchValueHeaders(res, req.canonicalMatchSnapshot);
         res.setHeader('X-SSR-Document-Cache', 'miss');
         res.status(200).send(scheduleFirstHtml);
         return;
@@ -1213,6 +1387,7 @@ app.get('*', async (req, res) => {
         res.setHeader('X-SSR-Fallback', 'canonical-match');
         res.setHeader('X-SSR-Fallback-Level', 'snapshot-first');
         res.setHeader('X-SSR-Lifecycle', snapshotLifecycle);
+        applyMatchValueHeaders(res, req.canonicalMatchSnapshot);
         res.setHeader('X-SSR-Document-Cache', 'miss');
         res.status(200).send(snapshotFirstHtml);
         return;

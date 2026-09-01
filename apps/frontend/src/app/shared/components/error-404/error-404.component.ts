@@ -11,8 +11,8 @@ import { Router } from '@angular/router';
             variant="primary" 
             size="xl" 
             [showText]="true"
-            logoText="Crickzen"
-            altText="Crickzen Live Cricket"
+            logoText="CrickZen"
+            altText="CrickZen Live Cricket"
             containerClass="error-logo"
           ></app-logo>
         </div>

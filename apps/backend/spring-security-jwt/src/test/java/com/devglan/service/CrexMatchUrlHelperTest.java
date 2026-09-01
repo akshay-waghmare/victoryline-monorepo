@@ -40,6 +40,18 @@ public class CrexMatchUrlHelperTest {
     }
 
     @Test
+    public void onlyTreatsShortKeyAliasesAsTheSameMatchFamily() {
+        assertThat(CrexMatchUrlHelper.isSameMatchFamily(
+                "aus-vs-ban-1st-test-bangladesh-tour-of-australia-2026-match-updates-10MT",
+                "aus-vs-ban-1st-match-bangladesh-tour-of-australia-2026-match-updates-10MT"))
+                .isTrue();
+        assertThat(CrexMatchUrlHelper.isSameMatchFamily(
+                "cz-vs-ez-1st-semi-final-duleep-trophy-2026-match-updates-13HY",
+                "ban-w-vs-ina-w-4th-match-womens-asia-cup-2026-match-updates-13HY"))
+                .isFalse();
+    }
+
+    @Test
     public void rejectsPlaceholderCanonicalMatchSlugs() {
         assertThat(CrexMatchUrlHelper.isCanonicalMatchSlug("null-vs-null-1st-match-test-cup-2026")).isFalse();
         assertThat(CrexMatchUrlHelper.isCanonicalMatchSlug("team-1-vs-team-2-1st-match-test-cup-2026")).isFalse();

@@ -1,5 +1,5 @@
 import { Component, Inject, NgZone, OnDestroy, OnInit, Optional } from '@angular/core';
-import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, NavigationStart, Router } from '@angular/router';
 import { RxStompService } from '@stomp/ng2-stompjs';
 import { merge, Subject, Subscription, timer } from 'rxjs';
 import { filter, switchMap, take, takeUntil, timeout } from 'rxjs/operators';
@@ -159,6 +159,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   cricObj: any;
   private recentBallRenderToken: number = 0;
   private lastLiveBallEventToken: string | null = null;
+  private cricketDataRouteSlug: string | null = null;
 
   private tossWonCountrySubject: Subject<string> = new Subject<string>();
   private batOrBallSelectedSubject: Subject<string> = new Subject<string>();
@@ -214,6 +215,10 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   private hasTrackedIntelligenceCtaImpression: boolean = false;
   private hasTrackedCanonicalMatchView: boolean = false;
   canonicalIntelligence: CanonicalIntelligenceView | null = null;
+  // A match component can briefly survive SPA navigation while the next
+  // snapshot is loading. Keep the model answer bound to the route that
+  // produced it so a previous match can never appear under the new teams.
+  private canonicalIntelligenceRouteSlug: string | null = null;
   private canonicalIntelligenceSubscription: Subscription | null = null;
 
   // Toggle to hide/show odds sections
@@ -235,6 +240,8 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
   selectedTabIndex: number = 0;
   matchDetailsOpen: boolean = false;
   private hasUserSelectedTab: boolean = false;
+  private isHistoryNavigation: boolean = false;
+  private suppressNextCanonicalTabChange: boolean = false;
   private readonly tabIndexByKey: { [key in MatchPageTabKey]: number } = {
     commentary: 0,
     details: 0,
@@ -321,6 +328,18 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
           || this.extractMatchIdFromUrl(this.currentUrl);
 
     this.router.events.pipe(
+      filter(event => event instanceof NavigationStart),
+      takeUntil(this.destroy$)
+    ).subscribe((event: NavigationStart) => {
+      // Angular marks browser Back/Forward navigations with a restored state.
+      // Keep this separate from ordinary tab clicks so the canonical route can
+      // restore a useful first surface without pushing another history entry.
+      var navigation = event as any;
+      this.isHistoryNavigation = navigation.navigationTrigger === 'popstate'
+        || !!navigation.restoredState;
+    });
+
+    this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
       takeUntil(this.destroy$),
       switchMap(() => this.activatedRoute.params),
@@ -329,19 +348,22 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       // The component instance is intentionally retained while users move
       // between match tabs, so refresh the requested path before deriving
       // the selected tab from the route.
+      const previousRequestedPath = this.currentRequestedPath;
       this.currentRequestedPath = this.getRequestedMatchPath();
       this.matchDetailsOpen = this.resolveRequestedTabKey() === 'details';
       const nextMatchKey = this.normalizeRouteMatchKey(this.activatedRoute.snapshot.params['path']
         || this.activatedRoute.snapshot.params['url']
         || '');
+      const returningFromScorecard = this.shouldRestoreCanonicalTabAfterHistory(previousRequestedPath);
 
       // Supporting routes such as scorecard and lineups belong to the same
       // match entity. Keep the active socket and rendered match surface in
       // place instead of treating each tab as a fresh match-page load.
       if (nextMatchKey && nextMatchKey === this.lastFetchedRouteKey) {
-        this.syncMatchTabSelection(true);
+        this.syncMatchTabSelection(true, returningFromScorecard);
         this.ensureDataForTab(this.selectedTabIndex);
         this.resetMatchPageScroll(true);
+        this.isHistoryNavigation = false;
         return;
       }
 
@@ -354,6 +376,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
         this.cricetTopicSubscription.unsubscribe();
       }
       this.hasUserSelectedTab = false;
+      this.isHistoryNavigation = false;
       this.fetchCricketData();
     });
 
@@ -385,6 +408,13 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
     //watching live score for cricet data
     this.fetchCricketData();
+
+    // A direct /scorecard visit has no tab-click event to trigger the
+    // scorecard request. Start it from the route itself so player rows are
+    // available on the first visit and after browser Back.
+    if (this.resolveRequestedTabKey() === 'scorecard') {
+      this.fetchScorecardInfo(this.matchId || routeMatchKey);
+    }
 
     if (this.isBrowser() && legacyMatchUrl && routeMatchKey) {
       this.stripLegacyMatchUrlParam(routeMatchKey);
@@ -478,7 +508,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
   private fetchCricketData() {
     const params = this.activatedRoute.snapshot.params;
-    const match = this.normalizeRouteMatchKey(params['path']); // Use 'path' instead of 'match'
+    const match = this.normalizeRouteMatchKey(params['path'] || params['url']); // Use the canonical route identity first
     // Initial component setup and the first NavigationEnd can both reach this
     // method. Keep one data stream alive instead of briefly tearing down and
     // recreating the page, which caused visible refresh/loading flashes.
@@ -487,6 +517,7 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     }
     this.lastFetchedRouteKey = match || this.lastFetchedRouteKey;
     const isSameRouteMatch = !!(match && this.lastResolvedRouteSlug && this.lastResolvedRouteSlug === match);
+    const matchInfoBelongsToRoute = this.matchInfoBelongsToRoute(match, this.matchInfo);
 
     this.currentUrl = match || '';
     this.currentRequestedPath = this.getRequestedMatchPath(match);
@@ -510,11 +541,15 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.currentMatch = null;
       this.resolvedSeriesContext = null;
       this.seriesPageUrlFallback = null;
+      this.routeMatchHint = this.getNavigationMatchHint(match);
       this.lastLiveBallEventToken = null;
       this.lastResolvedRouteSlug = match;
       this.hasTrackedIntelligenceCtaImpression = false;
       this.hasTrackedCanonicalMatchView = false;
       this.canonicalMatchAeoDataState = 'loading';
+      if (!matchInfoBelongsToRoute) {
+        this.resetRouteScopedMatchState();
+      }
     }
 
     // The first browser pass can arrive with authoritative SSR match-info.
@@ -534,6 +569,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
     this.resolveRouteMatch(match);
 
     this.cricketService.getLastUpdatedData(match).subscribe(data => {
+      if (this.currentUrl !== match) {
+        return;
+      }
       // The SWR stream can resolve outside Angular's zone. Re-enter it so the
       // canonical AEO answer is refreshed together with the live hero after
       // the transferred/initial snapshot is replaced by the verified payload.
@@ -549,6 +587,9 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       if (topics.length > 0) {
         this.cricetTopicSubscription = merge.apply(null, topics.map(topic => this.rxStompService.watch(topic))).subscribe((data) => {
           this.ngZone.run(() => {
+            if (this.currentUrl !== match) {
+              return;
+            }
             this.parseCricObjData(data);
             // Cache WebSocket updates for instant load on next visit
             try {
@@ -572,11 +613,21 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       this.canonicalIntelligenceSubscription = null;
     }
     this.canonicalIntelligence = null;
-    if (!routeSlug) {
+    const requestedRouteSlug = this.normalizeRouteMatchKey(routeSlug || '');
+    this.canonicalIntelligenceRouteSlug = requestedRouteSlug || null;
+    if (!requestedRouteSlug) {
       return;
     }
 
     const applySnapshot = (snapshot: MatchIntelligenceSnapshot) => {
+      // Unsubscribe protects the normal HTTP path, but a timer/observable can
+      // still deliver a queued value after navigation. Reject it explicitly
+      // unless both the request and returned snapshot belong to this route.
+      const snapshotRouteSlug = this.normalizeRouteMatchKey(snapshot && snapshot.slug || '');
+      if (this.currentUrl !== requestedRouteSlug
+        || snapshotRouteSlug !== requestedRouteSlug) {
+        return;
+      }
       this.canonicalIntelligence = this.buildCanonicalIntelligence(snapshot);
       // Match-info SSR payloads can intentionally omit a lifecycle while the
       // canonical intelligence snapshot supplies the authoritative one. Track
@@ -587,18 +638,22 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
     if (this.isBrowser()) {
       this.canonicalIntelligenceSubscription = timer(0, 30000).pipe(
-        switchMap(() => this.matchIntelligenceDataService.loadSnapshot(routeSlug)),
+        switchMap(() => this.matchIntelligenceDataService.loadSnapshot(requestedRouteSlug)),
         takeUntil(this.destroy$)
       ).subscribe(applySnapshot, () => {
-        this.canonicalIntelligence = null;
+        if (this.currentUrl === requestedRouteSlug) {
+          this.canonicalIntelligence = null;
+        }
       });
       return;
     }
 
-    this.matchIntelligenceDataService.loadSnapshot(routeSlug).pipe(
+    this.matchIntelligenceDataService.loadSnapshot(requestedRouteSlug).pipe(
       takeUntil(this.destroy$)
     ).subscribe(applySnapshot, () => {
-      this.canonicalIntelligence = null;
+      if (this.currentUrl === requestedRouteSlug) {
+        this.canonicalIntelligence = null;
+      }
     });
   }
 
@@ -610,6 +665,19 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
 
     const probability = Number(prediction.win_probability_pct);
     if (isNaN(probability) || probability < 0 || probability > 100) {
+      return null;
+    }
+
+    // The public model feed carries the exact CREX source URL. If it is
+    // present, it must resolve to the same canonical route slug; otherwise a
+    // stale or mis-resolved prediction is unsafe to place in the AEO answer.
+    const requestedRouteSlug = this.normalizeRouteMatchKey(snapshot && snapshot.slug || '');
+    const predictionSource = prediction.match_url || prediction.matchUrl;
+    const predictionRouteSlug = predictionSource
+      ? this.normalizeRouteMatchKey(String(predictionSource))
+      : '';
+    if (requestedRouteSlug && predictionRouteSlug
+      && requestedRouteSlug.toLowerCase() !== predictionRouteSlug.toLowerCase()) {
       return null;
     }
 
@@ -689,9 +757,16 @@ export class CricketOddsComponent implements OnInit, OnDestroy {
       return;
     }
 
-    var previous = this.cricObj && typeof this.cricObj === 'object' && !Array.isArray(this.cricObj)
+    const incomingRouteSlug = this.currentUrl || '';
+    const canMergePrevious = !incomingRouteSlug
+      || !this.cricketDataRouteSlug
+      || this.cricketDataRouteSlug === incomingRouteSlug;
+    var previous = canMergePrevious && this.cricObj && typeof this.cricObj === 'object' && !Array.isArray(this.cricObj)
       ? this.cricObj
       : {};
+    if (incomingRouteSlug) {
+      this.cricketDataRouteSlug = incomingRouteSlug;
+    }
     this.cricObj = Object.assign({}, previous);
     meaningfulKeys.forEach((key) => {
       this.cricObj[key] = incoming[key];
@@ -1333,6 +1408,16 @@ onTabChange(event: MatTabChangeEvent) {
   // Compare against that route, not a potentially stale previous index, so a
   // real user tap is never discarded after moving between child routes.
   var requestedKey = this.resolveRequestedTabKey();
+  if (this.suppressNextCanonicalTabChange) {
+    var isExpectedCanonicalRestore = !requestedKey
+      && event.index === this.tabIndexByKey.commentary;
+    this.suppressNextCanonicalTabChange = false;
+    if (isExpectedCanonicalRestore) {
+      this.ensureDataForTab(event.index);
+      return;
+    }
+  }
+
   if (requestedKey && this.tabIndexByKey[requestedKey] === event.index) {
     // A direct child URL (especially after mobile browser restoration) can
     // select Material's tab before the component's first fetch settles.
@@ -1419,6 +1504,7 @@ fetchScorecardInfo(matchUrl:string){
   }
 
   this.isLoadingScorecard = true;
+  var requestRouteSlug = this.normalizeRouteMatchKey(this.currentUrl || matchUrl || '');
   var scorecardRequest = this.cricketService.getScorecardInfo(matchUrl);
   if (!this.isBrowser()) {
     // Do not let a slow missing scorecard force SSR to fall back to the bare Angular shell.
@@ -1427,11 +1513,17 @@ fetchScorecardInfo(matchUrl:string){
 
   scorecardRequest.pipe(takeUntil(this.destroy$)).subscribe(
     data => {
+      if (this.currentUrl !== requestRouteSlug) {
+        return;
+      }
       this.scorecardData = data;
       this.isLoadingScorecard = false;
       console.log('Match Scorecard:', this.scorecardData);
     },
     error => {
+      if (this.currentUrl !== requestRouteSlug) {
+        return;
+      }
       this.isLoadingScorecard = false;
       this.scorecardData = null;
       console.error('Error fetching match scorecard:', error);
@@ -1440,6 +1532,7 @@ fetchScorecardInfo(matchUrl:string){
 }
 
 fetchMatchInfo(matchUrl:string) {
+  var requestRouteSlug = this.normalizeRouteMatchKey(this.currentUrl || matchUrl || '');
   if (this.isLoadingMatchInfo) {
     return;
   }
@@ -1457,6 +1550,9 @@ fetchMatchInfo(matchUrl:string) {
   this.isLoadingMatchInfo = true;
   this.cricketService.getMatchInfo(matchUrl).subscribe(
     data => {
+      if (this.currentUrl !== requestRouteSlug) {
+        return;
+      }
       if (!data || typeof data !== 'object') {
         // The stale-while-revalidate service can complete without emitting
         // when a mobile request is interrupted or the upstream returns an
@@ -1525,6 +1621,9 @@ fetchMatchInfo(matchUrl:string) {
       this.setVenuePercentages();
     },
     error => {
+      if (this.currentUrl !== requestRouteSlug) {
+        return;
+      }
       this.isLoadingMatchInfo = false;
       this.canonicalMatchAeoDataState = 'error';
       console.error('Error fetching match info:', error);
@@ -1532,6 +1631,9 @@ fetchMatchInfo(matchUrl:string) {
       this.syncMatchTabSelection();
     },
     () => {
+      if (this.currentUrl !== requestRouteSlug) {
+        return;
+      }
       // `getMatchInfo` intentionally turns network failures into an empty
       // observable so cached data can still win. A no-cache mobile request
       // therefore reaches complete rather than error; settle it here.
@@ -1565,8 +1667,8 @@ private trackCanonicalMatchView(): void {
   });
 }
 
-private getCanonicalAnalyticsLifecycle(): 'upcoming' | 'live' | 'completed' | null {
-  if (this.canonicalIntelligence && this.canonicalIntelligence.lifecycle) {
+  private getCanonicalAnalyticsLifecycle(): 'upcoming' | 'live' | 'completed' | null {
+  if (this.isCanonicalIntelligenceForCurrentRoute() && this.canonicalIntelligence && this.canonicalIntelligence.lifecycle) {
     return this.canonicalIntelligence.lifecycle;
   }
 
@@ -1639,6 +1741,59 @@ private resolveRouteMatch(matchSlug: string): void {
   this.fetchPlayerStatsForMatch(routeMatch, matchSlug);
 }
 
+private resetRouteScopedMatchState(): void {
+  // Match components are retained across child-route navigation. Clear every
+  // value that is owned by the previous canonical match before the new route
+  // seeds its fallback; otherwise a slow old response can make a new URL show
+  // the previous scorecard, result, or commentary.
+  this.matchInfo = null;
+  this.isFallbackMatchInfo = false;
+  this.scorecardData = null;
+  this.scorecardInfo = null;
+  this.cricObj = null;
+  this.cricketDataRouteSlug = null;
+  this.commentaryEntries = [];
+  this.last6Balls = [];
+  this.matchAnnouncement = '';
+  this.isLoadingMatchInfo = false;
+  this.isLoadingScorecard = false;
+  this.matchSeo = null;
+  this.freshnessLinks = [];
+  this.heroFallbackView = null;
+}
+
+private matchInfoBelongsToRoute(matchSlug: string, info: any): boolean {
+  if (!matchSlug || !info) {
+    return false;
+  }
+
+  var candidates = [
+    info.externalMatchKey,
+    info.matchExternalKey,
+    info.match_id,
+    info.matchId,
+    info.id,
+    info.url,
+    info.matchUrl,
+    info.canonicalPath
+  ];
+  for (var i = 0; i < candidates.length; i++) {
+    var candidate = candidates[i];
+    if (!candidate) {
+      continue;
+    }
+    var normalizedCandidate = this.normalizeRouteMatchKey(String(candidate));
+    if (normalizedCandidate === matchSlug) {
+      return true;
+    }
+    var extractedCandidate = extractSlugFromUrl(String(candidate));
+    if (extractedCandidate && extractedCandidate === matchSlug) {
+      return true;
+    }
+  }
+  return false;
+}
+
 private applyServerRetainedEntityNavigation(matchSlug: string): void {
   var navigation = this.request && this.request.retainedEntityNavigation;
   if (!navigation || navigation.slug !== matchSlug || !navigation.series || !navigation.series.externalId) {
@@ -1705,7 +1860,7 @@ private routeSlugMatches(matchSlug: string, match: any): boolean {
     return true;
   }
 
-  return !!(sourceUrl && sourceUrl.indexOf(matchSlug) !== -1);
+  return false;
 }
 
 private isLiveLikeStatus(status: string | null | undefined): boolean {
@@ -1959,6 +2114,8 @@ shouldShowStatsExplorer(): boolean {
     this.hasSeriesStatsContext() ||
     this.isLoadingPlayerStats ||
     this.playerStatsError ||
+    this.isLoadingStatsExplorer ||
+    this.statsExplorerErrorMessage ||
     this.hasSelectedStatsExplorer()
   ));
 }
@@ -1999,14 +2156,23 @@ openPlayerStatsFromLineups(selection: PlayerStatsSelectionEvent): void {
   this.loadPlayerStatsDetail(player, team, 'lineups');
 }
 
-openPlayerStatsFromScorecard(playerName: string): void {
-  var resolved = this.findPlayerByName(playerName);
-  if (resolved && resolved.player && resolved.player.externalId) {
-    this.loadPlayerStatsDetail(resolved.player, resolved.team, 'scorecard');
+openPlayerStatsFromScorecard(selection: string | PlayerStatsSelectionEvent): void {
+  var playerName = typeof selection === 'string'
+    ? selection
+    : (selection && selection.playerName) || '';
+  if (selection && typeof selection !== 'string' && selection.externalId) {
+    // Match-level CREX ingestion already supplied the provider identity. Do
+    // not wait for another lookup: open the canonical profile immediately;
+    // the profile route will queue any missing detail in the background.
+    this.navigateToPlayerProfile(selection.externalId, playerName);
     return;
   }
 
-  this.loadPlayerStatsDetailFromGlobalSearch(playerName);
+  // Scorecards are authoritative for the displayed name, but the match-level
+  // player snapshot is optional and can legitimately be absent. Resolve the
+  // clicked name against this match's CREX page instead of trusting a global
+  // catalog entry or opening the legacy in-page modal.
+  this.loadScorecardPlayerFromCrex(playerName);
 }
 
 openTeamStatsFromSelection(selection: TeamStatsSelectionEvent, source: 'lineups' | 'scorecard' = 'lineups'): void {
@@ -2590,8 +2756,13 @@ private loadPlayerStatsDetail(
     return;
   }
 
-  this.router.navigate(['/player', player.externalId, this.slugifyPlayerName(player.name)]);
-  return;
+  // Player pages are the canonical public surface. Keep the modal only as a
+  // fallback for unresolved on-demand names; known CREX identities should
+  // always leave the match page and hydrate on the individual profile route.
+  if (!player.onDemand) {
+    this.navigateToPlayerProfile(player.externalId, player.name);
+    return;
+  }
 
   this.statsExplorerSource = source;
   this.selectedStatsExplorerType = 'player';
@@ -2603,13 +2774,22 @@ private loadPlayerStatsDetail(
   this.isLoadingStatsExplorer = true;
   this.statsExplorerErrorMessage = null;
 
-  this.cricketService.getPlayerStatsPlayer(player.externalId, this.getPlayerStatsSource())
+  var matchUrl = this.getCrexMatchUrlForPlayerHydration();
+  var detailRequest = player.onDemand && matchUrl
+    ? this.cricketService.getPlayerStatsPlayerByName(player.name, matchUrl, this.getPlayerStatsSource(), player.role)
+    : this.cricketService.getPlayerStatsPlayer(player.externalId, this.getPlayerStatsSource());
+
+  detailRequest
     .pipe(takeUntil(this.destroy$))
     .subscribe(
       (data: PlayerStatsPlayerDetailView | null) => {
         this.isLoadingStatsExplorer = false;
         if (data) {
-          this.selectedPlayerStatsDetail = data;
+          if (data.externalId) {
+            this.navigateToPlayerProfile(data.externalId, data.name || player.name);
+          } else {
+            this.selectedPlayerStatsDetail = data;
+          }
           return;
         }
         this.statsExplorerErrorMessage = 'Detailed player stats are not available for this player yet.';
@@ -2620,6 +2800,94 @@ private loadPlayerStatsDetail(
         this.statsExplorerErrorMessage = 'Detailed player stats could not be loaded right now.';
       }
     );
+}
+
+private loadScorecardPlayerFromCrex(playerName: string): void {
+  var normalizedName = this.normalizeComparableText(playerName);
+  if (!normalizedName) {
+    this.notifyPlayerStatsUnavailable(playerName);
+    return;
+  }
+
+  this.statsExplorerSource = 'scorecard';
+  this.selectedStatsExplorerType = 'player';
+  this.selectedStatsExplorerPlayer = { name: playerName } as PlayerStatsSquadPlayerView;
+  this.selectedStatsExplorerTeam = null;
+  this.selectedPlayerStatsDetail = null;
+  this.selectedTeamStatsDetail = null;
+  this.selectedSeriesStatsDetail = null;
+  this.isLoadingStatsExplorer = true;
+  this.statsExplorerErrorMessage = null;
+
+  var matchUrl = this.getCrexMatchUrlForPlayerHydration();
+  if (!matchUrl) {
+    this.isLoadingStatsExplorer = false;
+    this.statsExplorerErrorMessage = 'The CREX match identity is not available for this player yet.';
+    return;
+  }
+
+  // Do not hold the match page open while CREX resolves a player name. The
+  // lookup page is the visitor-facing fallback and performs the API call after
+  // navigation; once CREX returns an ID it redirects to the canonical profile.
+  this.router.navigate(
+    ['/player', 'resolve', this.slugifyPlayerName(playerName)],
+    {
+      queryParams: {
+        name: playerName,
+        matchUrl: matchUrl,
+        returnTo: this.getPlayerProfileReturnPath() || undefined
+      }
+    }
+  );
+}
+
+private navigateToPlayerProfile(externalId: string, playerName?: string): void {
+  if (!externalId) {
+    return;
+  }
+
+  this.isLoadingStatsExplorer = false;
+  this.router.navigate([
+    '/player',
+    externalId,
+    this.slugifyPlayerName(playerName || externalId.replace(/^player:/, '').replace(/-/g, ' '))
+  ], {
+    state: this.getPlayerProfileReturnPath()
+      ? { returnTo: this.getPlayerProfileReturnPath() }
+      : undefined
+  });
+}
+
+private getPlayerProfileReturnPath(): string | null {
+  var path = this.currentRequestedPath || this.getRequestedMatchPath();
+  if (!path || path.indexOf('/cric-live/') !== 0) {
+    return null;
+  }
+  return path.split('?')[0].split('#')[0];
+}
+
+private getCrexMatchUrlForPlayerHydration(): string {
+  // The Angular route is the canonical match identity. A retained navigation
+  // object or cached currentMatch may belong to the previous match after a
+  // client-side transition, so it must not decide which CREX page is queried.
+  var routeParam = this.activatedRoute && this.activatedRoute.snapshot
+    ? (this.activatedRoute.snapshot.params['path'] || this.activatedRoute.snapshot.params['url'] || '')
+    : '';
+  var routeKey = this.normalizeRouteMatchKey(routeParam || this.currentUrl || '');
+  if (routeKey && routeKey.indexOf('/') === -1) {
+    return 'https://crex.com/cricket-live-score/' + routeKey;
+  }
+
+  var candidate = this.matchUrl || (this.currentMatch && (this.currentMatch.url || this.currentMatch.matchUrl)) || '';
+  if (candidate.indexOf('/cricket-live-score/') !== -1 || candidate.indexOf('/scoreboard/') !== -1) {
+    return candidate;
+  }
+
+  routeKey = (this.currentMatch && this.currentMatch.externalMatchKey) || this.matchId || '';
+  if (routeKey && routeKey.indexOf('/') === -1) {
+    return 'https://crex.com/cricket-live-score/' + routeKey;
+  }
+  return candidate || this.currentUrl || '';
 }
 
 private loadPlayerStatsDetailFromGlobalSearch(
@@ -2652,8 +2920,8 @@ private loadPlayerStatsDetailFromGlobalSearch(
         var player = this.findBestGlobalPlayerMatch(players, playerName);
         if (!player || !player.externalId) {
           // Match seeds can expose a player name before their asynchronous
-          // roster task writes the CREX id. Let the profile endpoint hydrate
-          // and persist this deterministic CREX slug on the user's click.
+          // roster task writes the CREX id. Resolve the name against the
+          // selected match's real CREX player link on the user's click.
           this.loadPlayerStatsDetail(this.buildOnDemandCrexPlayerReference(playerName, role), null, source);
           return;
         }
@@ -2662,8 +2930,8 @@ private loadPlayerStatsDetailFromGlobalSearch(
       },
       error => {
         // Search is only an optimisation. If the catalog is cold or briefly
-        // unavailable, still use the deterministic CREX hydration path
-        // instead of showing a stale or unrelated player.
+        // unavailable, resolve the name against the selected match's CREX
+        // links instead of showing a stale or unrelated player.
         console.warn('Player catalog lookup failed; requesting CREX profile on demand:', error);
         this.loadPlayerStatsDetail(this.buildOnDemandCrexPlayerReference(playerName, role), null, source);
       }
@@ -2674,7 +2942,8 @@ private buildOnDemandCrexPlayerReference(playerName: string, role?: string): Pla
   return {
     externalId: 'player:' + this.slugifyPlayerName(playerName),
     name: playerName,
-    role: role
+    role: role,
+    onDemand: true
   } as PlayerStatsSquadPlayerView;
 }
 
@@ -3039,13 +3308,34 @@ private populateFallbackMatchInfo(match: any = this.currentMatch): void {
   this.syncMatchTabSelection();
 }
 
-private syncMatchTabSelection(force: boolean = false): void {
+private syncMatchTabSelection(force: boolean = false, returningFromScorecard: boolean = false): void {
+  if (returningFromScorecard && !this.resolveRequestedTabKey()) {
+    // A completed canonical URL can legitimately default to Scorecard on a
+    // fresh visit. When Back leaves /scorecard, however, showing that same tab
+    // makes the browser appear stuck even though the URL changed. Restore the
+    // first match surface and suppress the resulting Material tab event from
+    // creating a synthetic /commentary history entry.
+    this.hasUserSelectedTab = true;
+    this.suppressNextCanonicalTabChange = true;
+    this.selectedTabIndex = this.tabIndexByKey.commentary;
+    return;
+  }
+
   if (this.hasUserSelectedTab && !force) {
     return;
   }
 
   var key = this.resolveRequestedTabKey() || this.resolveLifecycleDefaultTab();
   this.selectedTabIndex = this.tabIndexByKey[key];
+}
+
+private shouldRestoreCanonicalTabAfterHistory(previousRequestedPath: string): boolean {
+  if (!this.isHistoryNavigation || this.resolveRequestedTabKey()) {
+    return false;
+  }
+
+  var previousSurface = extractMatchRouteSuffix(previousRequestedPath || '');
+  return previousSurface === 'scorecard' || previousSurface === 'match-scorecard';
 }
 
 private slugifyPlayerName(value: string | null | undefined): string {
@@ -3433,7 +3723,7 @@ getMatchShellContextNote(): string | null {
     // source even when the secondary match-info request is retrying. Keep the
     // canonical answer populated during that handoff so hydration cannot
     // remove the server answer from the browser surface.
-    if (this.matchSeo && this.matchSeo.isIndexable && (this.cricObj
+    if (this.matchSeo && this.matchSeo.isIndexable && (this.isCricketDataForCurrentRoute()
       || (this.matchInfo && !this.isFallbackMatchInfo))) {
       return 'populated';
     }
@@ -3458,9 +3748,11 @@ getMatchShellContextNote(): string | null {
       return null;
     }
 
-    var intelligenceAnswer = this.canonicalIntelligence
-      ? 'CrickZen model: ' + this.canonicalIntelligence.headline
-        + (this.canonicalIntelligence.updatedAt ? ' Refreshed ' + this.canonicalIntelligence.updatedAt + '.' : '')
+    var routeIntelligence = this.isCanonicalIntelligenceForCurrentRoute()
+      ? this.canonicalIntelligence : null;
+    var intelligenceAnswer = routeIntelligence
+      ? 'CrickZen model: ' + routeIntelligence.headline
+        + (routeIntelligence.updatedAt ? ' Refreshed ' + routeIntelligence.updatedAt + '.' : '')
         + ' Informational only; the live score and official result remain the source of match state.'
       : null;
 
@@ -3470,7 +3762,7 @@ getMatchShellContextNote(): string | null {
       this.matchInfo && this.matchInfo.lastKnownState,
       this.currentMatch && this.currentMatch.status,
       this.currentMatch && this.currentMatch.lastKnownState,
-      this.cricObj && this.cricObj.current_ball
+      this.isCricketDataForCurrentRoute() && this.cricObj && this.cricObj.current_ball
     ].filter(function(value) { return !!String(value || '').trim(); }).join(' ');
 
     return buildMatchLifecycleAeoBlock({
@@ -3486,6 +3778,19 @@ getMatchShellContextNote(): string | null {
       toss: this.getCoverageTossSummaryValue(),
       modelAnswer: intelligenceAnswer
     });
+  }
+
+  private isCanonicalIntelligenceForCurrentRoute(): boolean {
+    return !!this.canonicalIntelligence
+      && !!this.currentUrl
+      && this.canonicalIntelligenceRouteSlug === this.currentUrl;
+  }
+
+  private isCricketDataForCurrentRoute(): boolean {
+    return !!this.cricObj
+      && (!this.currentUrl
+        || !this.cricketDataRouteSlug
+        || this.cricketDataRouteSlug === this.currentUrl);
   }
 
 getMatchIntentFullPair(): string {
@@ -4256,11 +4561,12 @@ getSeoLiveScoreLabel(): string {
     return '';
   }
 
+  var currentCricketData = this.isCricketDataForCurrentRoute() ? this.cricObj : null;
   var liveScoreContext = [
     this.getResolvedMatchStatus(),
     this.matchInfo && this.matchInfo.lastKnownState,
     this.currentMatch && this.currentMatch.lastKnownState,
-    this.cricObj && this.cricObj.current_ball
+    currentCricketData && currentCricketData.current_ball
   ].filter(function(value) { return !!String(value || '').trim(); }).join(' ');
   var hasLiveScoreContext = this.isLiveLikeStatus(this.getResolvedMatchStatus())
     || /LIVE|INNINGS[\s_-]*BREAK|STUMPS|RAIN[\s_-]*DELAY/i.test(liveScoreContext);
@@ -4268,11 +4574,11 @@ getSeoLiveScoreLabel(): string {
   // The live cricket snapshot is fresher than the catalogue fallback. Prefer
   // its verified score so the canonical AEO block cannot contradict the live
   // hero after browser hydration.
-  if (hasLiveScoreContext && this.cricObj) {
+  if (hasLiveScoreContext && currentCricketData) {
     // `score_update` is often a ball-state label such as "Stumps". Prefer the
     // structured score field and only use score_update when it looks like a
     // real score, so the answer cannot publish a non-score or stale 0/0.
-    var liveSnapshotScore = this.cricObj.score || this.cricObj.score_update;
+    var liveSnapshotScore = currentCricketData.score || currentCricketData.score_update;
     if (liveSnapshotScore) {
       var liveScoreLabel = String(liveSnapshotScore).trim();
       if (!/\d+\s*[-/]\s*\d+/.test(liveScoreLabel)) {
@@ -4284,12 +4590,12 @@ getSeoLiveScoreLabel(): string {
       if (/^\d+-\d+(?:\s|$)/.test(liveScoreLabel)) {
         liveScoreLabel = liveScoreLabel.replace(/^(\d+)-(\d+)/, '$1/$2');
       }
-      if (!/^[A-Za-z][A-Za-z\s-]*\s+\d+\/\d+/i.test(liveScoreLabel) && this.cricObj.batting_team) {
-        liveScoreLabel = String(this.cricObj.batting_team).trim() + ' ' + liveScoreLabel;
+      if (!/^[A-Za-z][A-Za-z\s-]*\s+\d+\/\d+/i.test(liveScoreLabel) && currentCricketData.batting_team) {
+        liveScoreLabel = String(currentCricketData.batting_team).trim() + ' ' + liveScoreLabel;
       }
-      if (this.cricObj.over !== undefined && this.cricObj.over !== null
+      if (currentCricketData.over !== undefined && currentCricketData.over !== null
         && liveScoreLabel.toLowerCase().indexOf(' ov') === -1) {
-        liveScoreLabel += ' (' + String(this.cricObj.over).trim() + ' ov)';
+        liveScoreLabel += ' (' + String(currentCricketData.over).trim() + ' ov)';
       }
       return liveScoreLabel;
     }
@@ -4307,8 +4613,8 @@ getSeoLiveScoreLabel(): string {
       + (heroScore.resultSummary ? ' - ' + heroScore.resultSummary : '');
   }
 
-  if (this.cricObj && this.cricObj.score_update) {
-    return String(this.cricObj.score_update);
+  if (currentCricketData && currentCricketData.score_update) {
+    return String(currentCricketData.score_update);
   }
 
   if (this.matchInfo && this.matchInfo.final_result_text) {
@@ -5061,7 +5367,7 @@ private titleCaseSlug(value: string): string {
       description: this.matchSeo.description,
       url: routeUrl,
       mainEntity: { '@id': matchEntityId },
-      isPartOf: { '@type': 'WebSite', name: 'Crickzen', url: 'https://www.crickzen.com' }
+      isPartOf: { '@type': 'WebSite', name: 'CrickZen', url: 'https://www.crickzen.com' }
     }];
     var startDate = this.getStructuredDataStartDate();
     var location = this.getStructuredDataLocation();
@@ -5082,7 +5388,7 @@ private titleCaseSlug(value: string): string {
       status: this.getStructuredDataStatus(),
       offersUrl: this.matchSeo.canonicalUrl,
       image: this.matchSeo.ogImageUrl,
-      organizerName: 'Crickzen',
+      organizerName: 'CrickZen',
       organizerUrl: 'https://www.crickzen.com'
     }) : null;
     if (sportsEventSchema) {
@@ -5097,7 +5403,7 @@ private titleCaseSlug(value: string): string {
       image: this.matchSeo.ogImageUrl,
       datePublished: startDate || dateModified || undefined,
       dateModified: dateModified || startDate || undefined,
-      authorName: 'Crickzen Sports Desk',
+      authorName: 'CrickZen Sports Desk',
       articleSection: newsArticleEligible ? 'Live Match Updates' : undefined,
       isAccessibleForFree: true
     };
@@ -5123,7 +5429,7 @@ private titleCaseSlug(value: string): string {
         dateModified: dateModified || startDate || undefined,
         coverageStartTime: startDate || dateModified || undefined,
         coverageEndTime: dateModified || startDate || undefined,
-        authorName: 'Crickzen Sports Desk',
+        authorName: 'CrickZen Sports Desk',
         articleSection: 'Live Match Updates',
         about: sportsEventSchema || undefined,
         liveBlogUpdates: liveMatchUpdates.map((update, index) => ({

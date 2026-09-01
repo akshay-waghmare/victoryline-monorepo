@@ -79,6 +79,20 @@ public class SitemapManifestIntegrityTest {
         assertThat(service.getManifestMetrics().get("generationFailures")).isEqualTo(2L);
     }
 
+    @Test
+    public void lifecycle_boundary_never_serves_the_previous_manifest_after_refresh_failure() throws Exception {
+        StubLiveMatchesService source = new StubLiveMatchesService(entries(1));
+        SitemapService service = new SitemapService(new SeoCache(), source);
+        assertThat(service.getSitemapIndexXml()).isNotNull();
+
+        source.setFail(true);
+        service.handleContentChange(SeoContentChangeEvent.matchCompleted("team1-vs-side1-1st-match-test-league-2026-match-updates-1"));
+
+        assertThat(service.getSitemapIndexXml()).isNull();
+        assertThat(service.hasPublishedManifest()).isFalse();
+        assertThat(service.getManifestMetrics().get("lifecycleRefreshRequired")).isEqualTo(true);
+    }
+
     private static List<LiveMatchesService.LiveMatchEntry> entries(int count) {
         List<LiveMatchesService.LiveMatchEntry> entries = new ArrayList<>();
         for (int i = 1; i <= count; i++) {

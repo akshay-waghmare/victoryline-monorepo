@@ -5,17 +5,17 @@ import { Component } from '@angular/core';
   template: `
     <main class="trust-page">
       <div class="trust-page__inner">
-        <a class="trust-page__back" routerLink="/">← Back to Crickzen</a>
+        <a class="trust-page__back" routerLink="/">← Back to CrickZen</a>
         <p class="trust-page__eyebrow">Contact</p>
         <h1>How can we help?</h1>
-        <p class="trust-page__lead">Contact the Crickzen team for data corrections, feedback, privacy requests, or questions about the service.</p>
+        <p class="trust-page__lead">Contact the CrickZen team for data corrections, feedback, privacy requests, or questions about the service.</p>
         <section>
-          <h2>Crickzen support</h2>
+          <h2>CrickZen support</h2>
           <p><strong>Victoricode Labs</strong><br>Registered proprietorship owned by Akshay Waghmare<br>Pune, Maharashtra, India</p>
           <p><a class="contact-email" href="mailto:akshayw@crickzen.com">akshayw@crickzen.com</a></p>
           <p class="trust-page__note">For privacy or account-related requests, please include enough detail for us to identify the request. Do not send passwords or sensitive personal information by email.</p>
         </section>
-        <p class="trust-page__links"><a routerLink="/about">About Crickzen</a><a routerLink="/privacy-policy">Privacy Policy</a><a routerLink="/terms-of-service">Terms of Service</a></p>
+        <p class="trust-page__links"><a routerLink="/about">About CrickZen</a><a routerLink="/privacy-policy">Privacy Policy</a><a routerLink="/terms-of-service">Terms of Service</a></p>
       </div>
     </main>
   `,

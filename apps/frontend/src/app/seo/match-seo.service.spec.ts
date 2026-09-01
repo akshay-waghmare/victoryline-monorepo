@@ -80,7 +80,7 @@ describe('MatchSeoService canonical lifecycle', () => {
     });
 
     expect(intelligence.robots).toBe('noindex,follow');
-    expect(intelligence.title).toBe('London Spirit vs Trent Rockets, The Hundred 2026 – Live Score & Win Probability | Crickzen');
+    expect(intelligence.title).toBe('London Spirit vs Trent Rockets, The Hundred 2026 – Live Score & Win Probability | CrickZen');
     expect(intelligence.description).toContain('live score, match updates, and win probability');
     expect(intelligence.h1).toBe('London Spirit vs Trent Rockets Live Cricket Score');
     expect(intelligence.title).not.toContain('Not Available');
@@ -93,7 +93,7 @@ describe('MatchSeoService canonical lifecycle', () => {
       matchInfo: { team1_name: 'Alpha CC', team2_name: 'Delta CC', match_status: 'Live' }
     });
 
-    expect(partial.title).toBe('Alpha CC vs Delta CC – Live Cricket Score | Crickzen');
+    expect(partial.title).toBe('Alpha CC vs Delta CC – Live Cricket Score | CrickZen');
     expect(partial.title).not.toContain('Not Available');
   });
 
@@ -108,7 +108,7 @@ describe('MatchSeoService canonical lifecycle', () => {
     expect(unresolved.canonicalDecision.disposition).toBe('noindex');
     expect(unresolved.robots).toBe('noindex,follow');
     expect(unresolved.isIndexable).toBe(false);
-    expect(unresolved.title).toBe('Live Cricket Match – Score & Win Probability | Crickzen');
+    expect(unresolved.title).toBe('Live Cricket Match – Score & Win Probability | CrickZen');
     expect(unresolved.h1).toBe('Live Cricket Match');
   });
 

@@ -32,12 +32,33 @@
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 - Real-time data path preserves freshness, timestamps, and degraded-state behavior.
+- Provider discovery, match identity aliases, lifecycle state, and score semantics remain
+  authoritative; fresh timestamps alone do not establish correctness.
+- Any bounded live-management slate is sticky across discovery cycles and restarts, and
+  freshness/watchdog coverage is proven per managed match rather than by aggregate coverage.
+- Provider short keys are scoped by the verified team/format family or full source URL; player
+  resolution uses a selected-match provider URL and canonical navigation does not fabricate IDs.
 - Service boundaries remain frontend -> backend -> scraper with contract-safe changes only.
+- Canonical ownership remains on `/cric-live/{slug}`; public prediction, operator, share,
+  embed, and internal surfaces retain their defined host/indexability boundaries.
 - Tests and verification cover the touched surfaces at the appropriate layer.
+- The plan names exact runtime/artifact proof, public or authenticated verification, and a
+  rollback path; source edits and health checks alone are not completion evidence.
+- Technical crawlability/SSR/schema proof is kept separate from GSC discovery, indexing,
+  ranking, traffic, engagement, AI citation, and business outcomes.
+- Dirty-tree rollouts use an isolated clean snapshot and preserve unrelated work and storage.
 - For frontend/live-score work: above-the-fold content serves the primary user task first.
 - Hero-owned facts are not duplicated by nearby summary or "at a glance" blocks.
 - Secondary SEO/support modules are lower on the page or intentionally progressively disclosed.
 - Planned UX changes do not trade hero clarity for SEO copy or link clusters.
+- Indexable AEO content contains only populated source-backed facts; loading, error,
+  placeholder, stale, or unsupported prediction copy is excluded.
+- Provider-backed navigation plans cover the immediate loading shell, canonical route, browser
+  history/Back behavior, and the provider-latency boundary when a secondary page is involved.
+- Production plans name every deployed service image with an immutable digest, a rollback
+  image or backup, and any admin-visible escalation path for repeated failures.
+- The plan identifies the constitution version and the related wiki constitution/checkpoint
+  that were consulted; durable outcomes include a wiki synchronization task.
 
 ## Project Structure
 

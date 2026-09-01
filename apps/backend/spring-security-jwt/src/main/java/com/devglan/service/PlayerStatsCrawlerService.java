@@ -294,6 +294,20 @@ public class PlayerStatsCrawlerService {
         return view;
     }
 
+    /** Return an existing exact-name view without starting another CREX crawl. */
+    @Transactional
+    public PlayerStatsPlayerDetailViewDTO getPlayerViewByName(String name, String source) {
+        String normalizedName = trim(name);
+        if (!hasText(normalizedName)) {
+            return null;
+        }
+
+        String normalizedSource = normalizeDetailSource(source);
+        Optional<PlayerStatsPlayerEntity> player = playerStatsPlayerRepository
+                .findFirstBySourceSystemAndNameIgnoreCase(normalizedSource, normalizedName);
+        return player.isPresent() ? getPlayerView(player.get().getExternalId(), normalizedSource) : null;
+    }
+
     @Transactional
     public PlayerStatsTeamDetailViewDTO getTeamView(String externalId, String source) {
         String normalizedExternalId = trim(externalId);

@@ -1,0 +1,79 @@
+﻿{
+    "definitionVersion":  "match-page-value-v1",
+    "createdAtUtc":  "2026-09-01T11:07:41.8697792Z",
+    "baseUrl":  "https://www.crickzen.com",
+    "selection":  {
+                      "cohorts":  [
+                                      "live",
+                                      "upcoming",
+                                      "recent"
+                                  ],
+                      "samplePerCohort":  3,
+                      "selectionOrder":  "live/upcoming/recent; lifecycle date then slug"
+                  },
+    "targets":  [
+                    {
+                        "cohort":  "live",
+                        "slug":  "n-z-vs-sz-2nd-semi-final-duleep-trophy-2026-match-updates-12X2",
+                        "url":  "https://www.crickzen.com/cric-live/n-z-vs-sz-2nd-semi-final-duleep-trophy-2026-match-updates-12X2",
+                        "scheduledAt":  1788062400000,
+                        "updatedAt":  1788260815499
+                    },
+                    {
+                        "cohort":  "live",
+                        "slug":  "kas-vs-mer-29th-match-uttar-pradesh-t20-league-2026-match-updates-133O",
+                        "url":  "https://www.crickzen.com/cric-live/kas-vs-mer-29th-match-uttar-pradesh-t20-league-2026-match-updates-133O",
+                        "scheduledAt":  1788255000000,
+                        "updatedAt":  1788260741582
+                    },
+                    {
+                        "cohort":  "live",
+                        "slug":  "ned-w-vs-sco-w-3rd-odi-netherlands-women-tour-of-scotland-2026-match-updates-13MJ",
+                        "url":  "https://www.crickzen.com/cric-live/ned-w-vs-sco-w-3rd-odi-netherlands-women-tour-of-scotland-2026-match-updates-13MJ",
+                        "scheduledAt":  1788256800000,
+                        "updatedAt":  1788260579033
+                    },
+                    {
+                        "cohort":  "upcoming",
+                        "slug":  "sa-vs-zim-4th-match-namibia-t20i-tri-series-2026-match-updates-13IP",
+                        "url":  "https://www.crickzen.com/cric-live/sa-vs-zim-4th-match-namibia-t20i-tri-series-2026-match-updates-13IP",
+                        "scheduledAt":  1788264000000,
+                        "updatedAt":  1788252640759
+                    },
+                    {
+                        "cohort":  "upcoming",
+                        "slug":  "eng-w-vs-ire-w-1st-odi-ireland-women-tour-of-england-2026-match-updates-VS9",
+                        "url":  "https://www.crickzen.com/cric-live/eng-w-vs-ire-w-1st-odi-ireland-women-tour-of-england-2026-match-updates-VS9",
+                        "scheduledAt":  1788264000000,
+                        "updatedAt":  1788252439384
+                    },
+                    {
+                        "cohort":  "upcoming",
+                        "slug":  "ar-vs-kbt-26th-match-kerala-cricket-league-t20-2026-match-updates-13GK",
+                        "url":  "https://www.crickzen.com/cric-live/ar-vs-kbt-26th-match-kerala-cricket-league-t20-2026-match-updates-13GK",
+                        "scheduledAt":  1788268500000,
+                        "updatedAt":  1788252640779
+                    },
+                    {
+                        "cohort":  "recent",
+                        "slug":  "cz-vs-ez-1st-semi-final-duleep-trophy-2026-match-updates-12X1",
+                        "url":  "https://www.crickzen.com/cric-live/cz-vs-ez-1st-semi-final-duleep-trophy-2026-match-updates-12X1",
+                        "scheduledAt":  1788062400000,
+                        "updatedAt":  1788260528810
+                    },
+                    {
+                        "cohort":  "recent",
+                        "slug":  "ban-w-vs-ina-w-4th-match-womens-asia-cup-2026-match-updates-13HY",
+                        "url":  "https://www.crickzen.com/cric-live/ban-w-vs-ina-w-4th-match-womens-asia-cup-2026-match-updates-13HY",
+                        "scheduledAt":  1788186600000,
+                        "updatedAt":  1788251861782
+                    },
+                    {
+                        "cohort":  "recent",
+                        "slug":  "bat-vs-moh-3rd-match-sher-e-punjab-t20-2026-match-updates-13O2",
+                        "url":  "https://www.crickzen.com/cric-live/bat-vs-moh-3rd-match-sher-e-punjab-t20-2026-match-updates-13O2",
+                        "scheduledAt":  1788183000000,
+                        "updatedAt":  1788251861763
+                    }
+                ]
+}

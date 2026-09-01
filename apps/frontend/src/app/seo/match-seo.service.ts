@@ -68,14 +68,14 @@ export class MatchSeoService {
       ? this.buildRouteTitle(routeIntent.surface, teams, shortTeams, series, lifecycle)
       : hasLiveMatchContext
         ? this.buildLiveFallbackTitle(teams, series, hasTeams)
-        : 'Cricket Match Not Available | Crickzen';
+        : 'Cricket Match Not Available | CrickZen';
     const breadcrumbSeries = this.getBreadcrumbSeries(series);
     const ogImageUrl = this.host + getOgImageForMatch(sourceSlug || routeSlug || 'match');
     const description = isIndexable
       ? this.buildRouteDescription(routeIntent.surface, teams, shortTeams, series, lifecycle)
       : hasLiveMatchContext
         ? this.buildLiveFallbackDescription(teams, series, hasTeams)
-        : 'This cricket match page is not currently available. Browse Crickzen for live cricket scores, schedules, results, and scorecards.';
+        : 'This cricket match page is not currently available. Browse CrickZen for live cricket scores, schedules, results, and scorecards.';
     const canonicalUrl = this.host + canonicalPath;
     const h1 = isIndexable
       ? this.buildRouteH1(routeIntent.surface, teams, shortTeams, lifecycle)
@@ -116,29 +116,29 @@ export class MatchSeoService {
 
   private buildRouteTitle(surface: MatchRouteSurface, teams: string, shortTeams: string, series: string, lifecycle: MatchLifecycleState): string {
     switch (surface) {
-      case 'commentary': return `${teams} Live Commentary and Ball-by-Ball Updates | Crickzen`;
-      case 'scorecard': return `${teams} Full Scorecard${series ? ` | ${series}` : ''} | Crickzen`;
-      case 'details': return `${teams} Match Details${series ? ` | ${series}` : ''} | Crickzen`;
-      case 'lineups': return `${teams} Playing XI and Lineups${series ? ` | ${series}` : ''} | Crickzen`;
+      case 'commentary': return `${teams} Live Commentary and Ball-by-Ball Updates | CrickZen`;
+      case 'scorecard': return `${teams} Full Scorecard${series ? ` | ${series}` : ''} | CrickZen`;
+      case 'details': return `${teams} Match Details${series ? ` | ${series}` : ''} | CrickZen`;
+      case 'lineups': return `${teams} Playing XI and Lineups${series ? ` | ${series}` : ''} | CrickZen`;
       default: return this.buildTitle(teams, shortTeams, lifecycle);
     }
   }
 
   private buildLiveFallbackTitle(teams: string, series: string, hasTeams: boolean): string {
     if (!hasTeams) {
-      return 'Live Cricket Match – Score & Win Probability | Crickzen';
+      return 'Live Cricket Match – Score & Win Probability | CrickZen';
     }
 
     if (series) {
-      return `${teams}, ${series} – Live Score & Win Probability | Crickzen`;
+      return `${teams}, ${series} – Live Score & Win Probability | CrickZen`;
     }
 
-    return `${teams} – Live Cricket Score | Crickzen`;
+    return `${teams} – Live Cricket Score | CrickZen`;
   }
 
   private buildLiveFallbackDescription(teams: string, series: string, hasTeams: boolean): string {
     if (!hasTeams) {
-      return 'Follow the live cricket score, match updates, and win probability on Crickzen.';
+      return 'Follow the live cricket score, match updates, and win probability on CrickZen.';
     }
 
     return `Follow ${teams} live score, match updates, and win probability${series ? ` in ${series}` : ''}.`;
@@ -413,11 +413,11 @@ export class MatchSeoService {
   private buildSummary(teams: string, shortTeams: string, series: string, lifecycle: MatchLifecycleState): string {
     switch (lifecycle) {
       case 'prematch':
-        return `${teams} match preview, live score tracker, toss watch, and playing XI updates${series ? ` for ${series}` : ''}. ${shortTeams} start-time, venue, and fixture build-up stay together on Crickzen.`;
+        return `${teams} match preview, live score tracker, toss watch, and playing XI updates${series ? ` for ${series}` : ''}. ${shortTeams} start-time, venue, and fixture build-up stay together on CrickZen.`;
       case 'postmatch':
-        return `${teams} match result, full scorecard, and innings summary${series ? ` for ${series}` : ''}. ${shortTeams} final result, venue context, and archived score details stay together on Crickzen.`;
+        return `${teams} match result, full scorecard, and innings summary${series ? ` for ${series}` : ''}. ${shortTeams} final result, venue context, and archived score details stay together on CrickZen.`;
       default:
-        return `${teams} live score, commentary, and scorecard${series ? ` for ${series}` : ''}. ${shortTeams} innings updates, playing XI context, and match result tracking stay together on Crickzen.`;
+        return `${teams} live score, commentary, and scorecard${series ? ` for ${series}` : ''}. ${shortTeams} innings updates, playing XI context, and match result tracking stay together on CrickZen.`;
     }
   }
 

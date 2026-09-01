@@ -130,7 +130,7 @@ export class MetaTagsService {
     this.metaService.updateTag({ property: 'og:title', content: meta.og && meta.og.title ? meta.og.title : meta.title });
     this.metaService.updateTag({ property: 'og:description', content: meta.og && meta.og.description ? meta.og.description : meta.description });
     this.metaService.updateTag({ property: 'og:url', content: meta.og && meta.og.url ? meta.og.url : canonicalUrl });
-    this.metaService.updateTag({ property: 'og:site_name', content: 'Crickzen' });
+    this.metaService.updateTag({ property: 'og:site_name', content: 'CrickZen' });
     this.metaService.updateTag({ property: 'og:type', content: 'website' });
     if (meta.og && meta.og.image) {
       this.metaService.updateTag({ property: 'og:image', content: meta.og.image });

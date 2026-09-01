@@ -68,3 +68,19 @@ def test_get_restart_condition_triggers_for_pid_threshold():
     assert condition is not None
     assert condition["reason"] == "pid_threshold_exceeded"
     assert condition["metadata"]["pids"] == 275
+
+
+def test_get_restart_condition_triggers_when_one_managed_match_is_stale():
+    service = CrexScraperService()
+    object.__setattr__(service.settings, "staleness_threshold_seconds", 60)
+    object.__setattr__(service.settings, "memory_restart_grace_seconds", 30)
+    url = "https://crex.com/cricket-live-score/team-a-vs-team-b-1st-match-cup-2026-match-updates-ABC"
+    match_id = service._extract_match_id(url)
+    service._last_managed_live_urls = [url]
+    service._managed_match_last_success[match_id] = time.time() - 61
+
+    condition = service.get_restart_condition(build_summary(active_matches=1))
+
+    assert condition is not None
+    assert condition["reason"] == "stale_managed_live_match"
+    assert condition["metadata"]["stale_matches"][0]["match_id"] == match_id

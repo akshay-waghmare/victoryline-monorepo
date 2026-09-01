@@ -1,14 +1,22 @@
 package com.devglan.scheduler;
 
 import com.devglan.service.seo.GoogleSearchConsoleService;
+import com.devglan.service.seo.events.SitemapManifestChangedEvent;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.PreDestroy;
 
 /**
  * Scheduled job for automated sitemap submission to Google Search Console
@@ -27,18 +35,79 @@ public class SitemapScheduler {
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     
     private final GoogleSearchConsoleService googleSearchConsoleService;
+    private final ScheduledExecutorService changeSubmissionExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "crickzen-sitemap-submitter");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private final Object changeSubmissionLock = new Object();
+    private volatile long latestPriorityGeneration;
+    private ScheduledFuture<?> pendingChangeSubmission;
     
     @Value("${gsc.sitemap-url:https://www.crickzen.com/sitemap.xml}")
-    private String sitemapUrl;
+    private String sitemapUrl = "https://www.crickzen.com/sitemap.xml";
     
     @Value("${gsc.enabled:false}")
-    private boolean gscEnabled;
-    
+    private boolean gscEnabled = false;
+
+    @Value("${seo.sitemap-change-submit-delay-ms:30000}")
+    private long changeSubmissionDelayMs = 30000L;
+
     /**
      * Constructor injection for GoogleSearchConsoleService (T036)
      */
+    @Autowired
     public SitemapScheduler(GoogleSearchConsoleService googleSearchConsoleService) {
         this.googleSearchConsoleService = googleSearchConsoleService;
+    }
+
+    /**
+     * Submit a newly generated priority sitemap after a short quiet period.
+     * Multiple score/lifecycle updates during the quiet period coalesce into
+     * one root-sitemap submission; the hourly job remains the backstop.
+     */
+    @EventListener
+    public void onSitemapManifestChanged(SitemapManifestChangedEvent event) {
+        if (event == null || !event.isPrioritySitemapChanged() || !gscEnabled) {
+            return;
+        }
+
+        synchronized (changeSubmissionLock) {
+            latestPriorityGeneration = event.getGenerationId();
+            if (pendingChangeSubmission != null) {
+                pendingChangeSubmission.cancel(false);
+            }
+            final long generation = latestPriorityGeneration;
+            pendingChangeSubmission = changeSubmissionExecutor.schedule(
+                    () -> submitStablePrioritySitemap(generation),
+                    Math.max(0L, changeSubmissionDelayMs), TimeUnit.MILLISECONDS);
+        }
+    }
+
+    private void submitStablePrioritySitemap(long generation) {
+        synchronized (changeSubmissionLock) {
+            if (generation != latestPriorityGeneration) {
+                return;
+            }
+            pendingChangeSubmission = null;
+        }
+
+        if (!gscEnabled || !googleSearchConsoleService.isInitialized()) {
+            logger.warn("[SitemapScheduler] Skipping change-triggered submission for generation {} because GSC is unavailable", generation);
+            return;
+        }
+
+        boolean success = googleSearchConsoleService.submitSitemap(sitemapUrl);
+        if (success) {
+            logger.info("[SitemapScheduler] Change-triggered sitemap submission SUCCESSFUL for stable generation {}", generation);
+        } else {
+            logger.error("[SitemapScheduler] Change-triggered sitemap submission FAILED for stable generation {}", generation);
+        }
+    }
+
+    @PreDestroy
+    public void shutdownChangeSubmissionExecutor() {
+        changeSubmissionExecutor.shutdownNow();
     }
     
     /**

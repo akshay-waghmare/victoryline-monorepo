@@ -1,6 +1,6 @@
 {
-  "name": "Crickzen - Live Cricket Scores",
-  "short_name": "Crickzen",
+  "name": "CrickZen - Live Cricket Scores",
+  "short_name": "CrickZen",
   "description": "Live cricket scores and real-time updates from international and domestic matches",
   "start_url": "/",
   "display": "standalone",

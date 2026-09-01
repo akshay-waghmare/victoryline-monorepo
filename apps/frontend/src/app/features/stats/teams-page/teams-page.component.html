@@ -59,7 +59,7 @@
             {{ getTeamInitials(selectedTeam || selectedTeamSummary) }}
           </div>
           <div class="team-detail-header-info">
-            <span *ngIf="isProfileRoute" class="team-profile__eyebrow">Crickzen team stats</span>
+            <span *ngIf="isProfileRoute" class="team-profile__eyebrow">CrickZen team stats</span>
             <h1 *ngIf="isProfileRoute; else teamDetailName" class="stats-detail-panel__name">{{ selectedTeam?.name || selectedTeamSummary?.name }}</h1>
             <ng-template #teamDetailName><h2 class="stats-detail-panel__name">{{ selectedTeam?.name || selectedTeamSummary?.name }}</h2></ng-template>
             <div class="team-detail-meta-row">

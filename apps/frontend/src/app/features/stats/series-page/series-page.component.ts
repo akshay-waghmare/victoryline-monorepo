@@ -87,8 +87,8 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     }
 
     this.metaTagsService.setPageMeta('/series', {
-      title: 'Cricket Series, Tournaments, Tables & Standings | Crickzen',
-      description: 'Browse current cricket series and tournaments, then open available points tables, standings, and series summaries on Crickzen.',
+      title: 'Cricket Series, Tournaments, Tables & Standings | CrickZen',
+      description: 'Browse current cricket series and tournaments, then open available points tables, standings, and series summaries on CrickZen.',
       canonicalUrl: 'https://www.crickzen.com/series',
       robots: 'index,follow'
     });
@@ -265,7 +265,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   }
 
   getSeriesProfileTitle(): string {
-    return this.getSeriesProfileHeading() + ' | Crickzen';
+    return this.getSeriesProfileHeading() + ' | CrickZen';
   }
 
   getSeriesProfileDescription(): string {
@@ -274,9 +274,9 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
       return 'Current ' + name + ' points table and standings with team positions, results and points where supplied.';
     }
     if (this.activeSection === 'stats') {
-      return 'Current ' + name + ' team statistics and series data from Crickzen.';
+      return 'Current ' + name + ' team statistics and series data from CrickZen.';
     }
-    return 'Live, upcoming and recent ' + name + ' fixtures, results and match details on Crickzen.';
+    return 'Live, upcoming and recent ' + name + ' fixtures, results and match details on CrickZen.';
   }
 
   getSeriesProfileBluf(): string {
@@ -284,7 +284,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     const season = (this.selectedSeries && this.selectedSeries.series && this.selectedSeries.series.seasonName) ||
       (this.selectedSeriesSummary && this.selectedSeriesSummary.seasonName);
     const seasonLabel = season && name.indexOf(season) === -1 ? ' ' + season : '';
-    const parts = [name + seasonLabel + ' tracks fixtures, results, points table and team statistics on Crickzen.'];
+    const parts = [name + seasonLabel + ' tracks fixtures, results, points table and team statistics on CrickZen.'];
     const matchCounts = this.getSeriesMatchCounts();
     if (matchCounts.total > 0) {
       const matchState = this.formatSeriesMatchCounts(matchCounts);
@@ -300,7 +300,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
   getSeriesMatchesAnswer(): string {
     const counts = this.getSeriesMatchCounts();
     if (counts.total === 0) {
-      return 'No live, upcoming or recent ' + this.getSeriesDisplayName() + ' matches are currently available in the Crickzen catalogue.';
+      return 'No live, upcoming or recent ' + this.getSeriesDisplayName() + ' matches are currently available in the CrickZen catalogue.';
     }
     const matchState = this.formatSeriesMatchCounts(counts);
     return this.getSeriesDisplayName() + ' currently lists ' + counts.total + ' match' + (counts.total === 1 ? '' : 'es') + (matchState ? ' (' + matchState + ')' : '') + '. Open a match for its score, details and lifecycle state.';
@@ -547,7 +547,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
     this.structuredDataService.setPageSchemas([
       this.structuredDataService.page({
         type: 'CollectionPage',
-        name: 'Cricket series and standings on Crickzen',
+        name: 'Cricket series and standings on CrickZen',
         description: 'Browse current cricket series and tournaments, then open available points tables, standings, and summary data.',
         url: 'https://www.crickzen.com/series'
       }),
@@ -799,7 +799,7 @@ export class SeriesPageComponent implements OnInit, OnDestroy {
         items.push({
           name: this.getMatchLinkLabel(match),
           url: 'https://www.crickzen.com' + href,
-          description: group.seriesName + ' upcoming canonical match page on Crickzen.'
+          description: group.seriesName + ' upcoming canonical match page on CrickZen.'
         });
       }
     }

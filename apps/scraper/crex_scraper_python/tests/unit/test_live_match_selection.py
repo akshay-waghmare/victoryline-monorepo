@@ -59,3 +59,15 @@ def test_terminal_status_is_rejected_but_multiday_stumps_is_eligible():
     stumps.update({"status": "INNINGS_BREAK", "lastKnownState": "Stumps"})
 
     assert select_live_matches([completed, stumps], max_matches=3) == [stumps]
+
+
+def test_terminal_current_ball_snapshot_is_not_reselected_as_live():
+    completed = _match("a-vs-b-1st-match-series")
+    completed.update({
+        "status": "LIVE",
+        "current_ball": "A won by 4 wickets",
+    })
+    live = _match("c-vs-d-2nd-match-series")
+    live.update({"status": "INNINGS_BREAK", "current_ball": "Stumps"})
+
+    assert select_live_matches([completed, live], max_matches=3) == [live]

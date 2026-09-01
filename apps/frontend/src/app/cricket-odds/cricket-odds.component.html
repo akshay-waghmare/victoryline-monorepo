@@ -476,10 +476,10 @@
 
       <nav class="match-page-related-nav" *ngIf="matchSeo" aria-label="Explore this match">
         <span class="match-page-related-nav__label">Explore this match</span>
-        <a [attr.href]="getMatchEntityNavigationHref('commentary')">Commentary</a>
-        <a [attr.href]="getMatchEntityNavigationHref('scorecard')">Scorecard</a>
-        <a [attr.href]="getMatchEntityNavigationHref('lineups')">Lineups</a>
-        <a [attr.href]="getMatchEntityNavigationHref('details')">Match Details</a>
+        <a [routerLink]="getMatchEntityNavigationHref('commentary')" [attr.href]="getMatchEntityNavigationHref('commentary')">Commentary</a>
+        <a [routerLink]="getMatchEntityNavigationHref('scorecard')" [attr.href]="getMatchEntityNavigationHref('scorecard')">Scorecard</a>
+        <a [routerLink]="getMatchEntityNavigationHref('lineups')" [attr.href]="getMatchEntityNavigationHref('lineups')">Lineups</a>
+        <a [routerLink]="getMatchEntityNavigationHref('details')" [attr.href]="getMatchEntityNavigationHref('details')">Match Details</a>
         <a [attr.href]="getSeriesSurfaceHref()">Tournament table &amp; stats</a>
         <a *ngFor="let team of getMatchTeamEntityLinks()" [attr.href]="team.href">{{ team.label }}</a>
         <a *ngIf="isMatchIntelligenceEligible()" [attr.href]="getMatchIntelligenceHref()">Match Intelligence</a>

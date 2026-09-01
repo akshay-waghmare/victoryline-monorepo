@@ -10,8 +10,8 @@ import { Component } from '@angular/core';
             variant="primary" 
             size="footer" 
             [showText]="true"
-            logoText="Crickzen"
-            altText="Crickzen Live Cricket"
+            logoText="CrickZen"
+            altText="CrickZen Live Cricket"
             containerClass="footer__logo"
           ></app-logo>
           <p class="footer__tagline">Your ultimate destination for live cricket scores and updates</p>
@@ -42,7 +42,7 @@ import { Component } from '@angular/core';
           <div class="footer__section">
             <h3 class="footer__section-title">About</h3>
             <ul class="footer__list">
-              <li><a href="/about" class="footer__link">About Crickzen</a></li>
+              <li><a href="/about" class="footer__link">About CrickZen</a></li>
               <li><a href="/contact" class="footer__link">Contact</a></li>
               <li><a href="/privacy-policy" class="footer__link">Privacy Policy</a></li>
               <li><a href="/terms-of-service" class="footer__link">Terms of Service</a></li>
@@ -56,7 +56,7 @@ import { Component } from '@angular/core';
       <div class="footer__bottom">
         <div class="footer__container">
           <div class="footer__copyright">
-            <p>&copy; {{ currentYear }} Crickzen · Operated by Victoricode Labs</p>
+            <p>&copy; {{ currentYear }} CrickZen · Operated by Victoricode Labs</p>
           </div>
           <div class="footer__social">
             <a href="#" class="footer__social-link" aria-label="Follow us on Twitter">

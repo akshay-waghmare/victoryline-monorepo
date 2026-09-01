@@ -52,6 +52,7 @@ class CrexScraperService:
         self._last_live_match_count = 0
         self._last_managed_live_match_count = 0
         self._last_managed_live_urls: list[str] = []
+        self._managed_match_last_success: Dict[str, float] = {}
         # Discovery is the authoritative active slate. Keep it separate from
         # the backend catalogue because that catalogue can retain rows that
         # have already disappeared from the provider's live carousel.
@@ -128,6 +129,7 @@ class CrexScraperService:
         self._discovery_live_urls = self.discovery.managed_live_urls
         self._last_managed_live_match_count = len(self._discovery_live_urls)
         self._last_managed_live_urls = list(self._discovery_live_urls)
+        self._set_managed_live_urls(self._last_managed_live_urls)
 
     async def start(self):
         """Start the scraper service."""
@@ -267,6 +269,37 @@ class CrexScraperService:
                 },
             }
 
+        managed_urls = list(getattr(self, "_last_managed_live_urls", []) or [])
+        if summary.active_matches > 0 and managed_urls:
+            stale_matches = []
+            http_lane = getattr(self, "http_sv3_fast_lane", None)
+            http_stats = http_lane.get_stats() if http_lane else {}
+            http_health = http_stats.get("match_health", {}) if isinstance(http_stats, dict) else {}
+            for url in managed_urls:
+                match_id = self._extract_match_id(url) or url
+                lane_state = http_health.get(match_id) if isinstance(http_health, dict) else None
+                last_success = lane_state.get("last_success_at") if isinstance(lane_state, dict) else None
+                if not last_success:
+                    last_success = self._managed_match_last_success.get(match_id)
+                age = max(time.time() - float(last_success), 0.0) if last_success else float("inf")
+                if age >= stale_restart_threshold:
+                    stale_matches.append({
+                        "match_id": match_id,
+                        "url": url,
+                        "seconds_since_success": None if age == float("inf") else round(age, 2),
+                        "transport": "http-sv3" if http_lane else "browser",
+                    })
+            if stale_matches:
+                return {
+                    "reason": "stale_managed_live_match",
+                    "metadata": {
+                        "active_matches": summary.active_matches,
+                        "stale_matches": stale_matches,
+                        "staleness_threshold_seconds": self.settings.staleness_threshold_seconds,
+                        "restart_after_seconds": round(stale_restart_threshold, 2),
+                    },
+                }
+
         if summary.active_matches > 0 and seconds_since_last_scrape >= stale_restart_threshold:
             return {
                 "reason": "stale_live_data",
@@ -279,6 +312,23 @@ class CrexScraperService:
             }
 
         return None
+
+    def _managed_match_key(self, url: str) -> str:
+        return self._extract_match_id(url) or str(url)
+
+    def _set_managed_live_urls(self, urls: list[str]) -> None:
+        """Track per-match ownership without resetting existing freshness."""
+        now = time.time()
+        current_keys = {self._managed_match_key(url) for url in urls if url}
+        for key in current_keys:
+            self._managed_match_last_success.setdefault(key, now)
+        self._managed_match_last_success = {
+            key: value for key, value in self._managed_match_last_success.items() if key in current_keys
+        }
+
+    def _record_managed_match_success(self, url: str) -> None:
+        if url:
+            self._managed_match_last_success[self._managed_match_key(url)] = time.time()
 
     def get_fast_update_status(self) -> Dict[str, Any]:
         """Return enough fast-lane coverage detail to detect silent production drift."""
@@ -425,6 +475,7 @@ class CrexScraperService:
                 self.health.set_active_matches(len(live_urls))
                 self._last_managed_live_match_count = len(live_urls)
                 self._last_managed_live_urls = list(live_urls)
+                self._set_managed_live_urls(self._last_managed_live_urls)
                 if self.http_sv3_fast_lane:
                     await self.http_sv3_fast_lane.reconcile(live_urls)
 
@@ -468,6 +519,7 @@ class CrexScraperService:
         self._discovery_live_urls = list(dict.fromkeys(live_urls or []))
         self._last_managed_live_match_count = len(self._discovery_live_urls)
         self._last_managed_live_urls = list(self._discovery_live_urls)
+        self._set_managed_live_urls(self._last_managed_live_urls)
         self.health.set_active_matches(self._last_managed_live_match_count)
         # An empty discovery result is a successful no-live cycle, not a
         # scrape stall. Keep health fresh even when there is no match page to
@@ -512,6 +564,7 @@ class CrexScraperService:
                 current_match_urls = set(self._authoritative_live_urls(matches))
                 self._last_managed_live_match_count = len(current_match_urls)
                 self._last_managed_live_urls = sorted(current_match_urls)
+                self._set_managed_live_urls(self._last_managed_live_urls)
                 self.health.set_active_matches(self._last_managed_live_match_count)
                 await self.persistent_page_pool.ensure_capacity(len(current_match_urls))
 
@@ -604,6 +657,7 @@ class CrexScraperService:
 
     async def _on_http_sv3_update(self, match_url: str, data: Dict[str, Any], local_storage: Dict[str, str]) -> bool:
         """Reuse the existing merge-safe immediate patch contract for HTTP sV3 data."""
+        self._record_managed_match_success(match_url)
         if not self._auth_token:
             return False
         return await asyncio.to_thread(
@@ -618,6 +672,7 @@ class CrexScraperService:
         """Callback when sV3 data is intercepted from a persistent page."""
         try:
             match_id = self._extract_match_id(match_url) or match_url
+            self._record_managed_match_success(match_url)
             
             # Record success metric
             self.metrics.record_fast_poll(match_id, "success", 0, "intercept")
@@ -904,6 +959,7 @@ class CrexScraperService:
             duration = asyncio.get_running_loop().time() - start_time
             self.metrics.record_scrape_result("crex", "success", duration)
             self.metrics.update_freshness(canonical_id, "crex", 0) # 0s age immediately after scrape
+            self._record_managed_match_success(task.url)
             self.health.record_success()
             self.health.record_freshness(0.0)
             adapter.reliability.record_success()

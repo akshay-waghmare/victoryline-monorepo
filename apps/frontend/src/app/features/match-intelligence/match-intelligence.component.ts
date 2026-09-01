@@ -1000,7 +1000,7 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
     var data = this.snapshot && this.snapshot.matchData;
     var value = data ? (data.model_label || data.modelLabel) : null;
     if (!value) {
-      return 'Crickzen Match Model';
+      return 'CrickZen Match Model';
     }
     return this.humanizeModelLabel(String(value).trim());
   }
@@ -1014,15 +1014,15 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
   private humanizeModelLabel(value: string): string {
     var normalized = value.toLowerCase();
     if (normalized.indexOf('t20') !== -1) {
-      return 'Crickzen T20 Match Model';
+      return 'CrickZen T20 Match Model';
     }
     if (normalized.indexOf('odi') !== -1) {
-      return 'Crickzen ODI Match Model';
+      return 'CrickZen ODI Match Model';
     }
     if (normalized.indexOf('test') !== -1) {
-      return 'Crickzen Test Match Model';
+      return 'CrickZen Test Match Model';
     }
-    return 'Crickzen Match Model';
+    return 'CrickZen Match Model';
   }
 
   private getExpectedFinalLabel(): string | null {
@@ -1587,15 +1587,15 @@ export class MatchIntelligenceComponent implements AfterViewChecked, OnChanges, 
   private buildDescription(teams: string, series: string, lifecycle: 'upcoming' | 'live' | 'completed' | 'unknown', modelUnavailable: boolean): string {
     var baseSeries = series ? (' in ' + series) : '';
     if (lifecycle === 'upcoming') {
-      return 'Preview ' + teams + baseSeries + ' with model direction, match setup, and what matters next on Crickzen match intelligence.';
+      return 'Preview ' + teams + baseSeries + ' with model direction, match setup, and what matters next on CrickZen match intelligence.';
     }
     if (lifecycle === 'completed') {
-      return 'Review ' + teams + baseSeries + ' with turning-point framing, result context, and next-step analysis on Crickzen match intelligence.';
+      return 'Review ' + teams + baseSeries + ' with turning-point framing, result context, and next-step analysis on CrickZen match intelligence.';
     }
     if (modelUnavailable) {
-      return 'Track ' + teams + baseSeries + ' on Crickzen match intelligence with honest model availability, lifecycle context, and score-first return paths.';
+      return 'Track ' + teams + baseSeries + ' on CrickZen match intelligence with honest model availability, lifecycle context, and score-first return paths.';
     }
-    return 'Track ' + teams + baseSeries + ' with live win probability, match-state interpretation, and what matters next on Crickzen match intelligence.';
+    return 'Track ' + teams + baseSeries + ' with live win probability, match-state interpretation, and what matters next on CrickZen match intelligence.';
   }
 
   private buildH1(teams: string, lifecycle: 'upcoming' | 'live' | 'completed' | 'unknown'): string {

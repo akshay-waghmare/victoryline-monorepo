@@ -437,7 +437,7 @@ export class PublicPredictionComponent implements OnInit, OnDestroy {
     })];
     if (indexable) {
       schemas.push(this.structuredDataService.organization({
-        name: 'Crickzen',
+        name: 'CrickZen',
         url: this.publicOrigin,
         description: 'Public cricket prediction signals, explanations, and creator-ready match intelligence.'
       }));
@@ -447,17 +447,17 @@ export class PublicPredictionComponent implements OnInit, OnDestroy {
 
   private getPageTitle(): string {
     switch (this.page) {
-      case 'how-it-works': return 'How CrickZen Match Predictions Work | Crickzen';
-      case 'history': return 'CrickZen Prediction History and Methodology | Crickzen';
+      case 'how-it-works': return 'How CrickZen Match Predictions Work | CrickZen';
+      case 'history': return 'CrickZen Prediction History and Methodology | CrickZen';
       case 'history-detail': return this.historyRecord
-        ? this.historyRecord.match_label + ' Historical Prediction | Crickzen'
+        ? this.historyRecord.match_label + ' Historical Prediction | CrickZen'
         : 'CrickZen Historical Prediction';
-      case 'creator-packs': return 'CrickZen Creator Match Packs | Crickzen';
-      case 'partners': return 'CrickZen Creator and Publisher Partnerships | Crickzen';
+      case 'creator-packs': return 'CrickZen Creator Match Packs | CrickZen';
+      case 'partners': return 'CrickZen Creator and Publisher Partnerships | CrickZen';
       case 'media-kit': return 'CrickZen Media Kit | Cricket Prediction Product';
       case 'developers': return 'CrickZen Public Prediction API | Developers';
-      case 'share': return this.match ? this.matchLabel(this.match) + ' Prediction | Crickzen' : 'CrickZen Match Prediction';
-      case 'embed': return this.match ? this.matchLabel(this.match) + ' Prediction Card | Crickzen' : 'CrickZen Prediction Card';
+      case 'share': return this.match ? this.matchLabel(this.match) + ' Prediction | CrickZen' : 'CrickZen Match Prediction';
+      case 'embed': return this.match ? this.matchLabel(this.match) + ' Prediction Card | CrickZen' : 'CrickZen Prediction Card';
       default: return 'CrickZen Match Predictions | Public Cricket Intelligence';
     }
   }

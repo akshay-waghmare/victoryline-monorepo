@@ -59,7 +59,10 @@ Given that feature description, do this:
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
    - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot")
 
-3. Load `.specify/templates/spec-template.md` to understand required sections.
+3. Load `.specify/templates/spec-template.md` and `.specify/memory/constitution.md` to
+   understand required sections and non-negotiable project rules. For CrickZen work, also
+   consult `C:/Users/ADMINS/Documents/projects/agentic-os-obsidian/wiki/meta/CrickZen Constitution.md`
+   and record the constitution version and wiki sync date in the generated spec.
 
 4. Follow this execution flow:
 

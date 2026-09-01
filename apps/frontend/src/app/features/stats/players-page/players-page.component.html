@@ -63,9 +63,28 @@
         <mat-icon>close</mat-icon>
       </button>
 
-      <div *ngIf="isDetailLoading" class="stats-detail-panel__loading">
+      <div *ngIf="isDetailLoading && isProfileRoute" class="player-profile__loading-shell" aria-live="polite">
+        <div class="stats-detail-panel__header player-profile__hero">
+          <div class="player-initials-badge player-initials-badge--lg"
+               [style.background]="getPlayerBadgeColor(getActivePlayerRole())">
+            {{ getPlayerInitials(selectedPlayer || selectedPlayerSummary) }}
+          </div>
+          <div>
+            <span class="player-profile__eyebrow">CrickZen player profile</span>
+            <h1 id="player-profile-heading" class="stats-detail-panel__name" tabindex="-1">{{ getPlayerDisplayName(selectedPlayer || selectedPlayerSummary) }}</h1>
+            <span *ngIf="getActivePlayerRole() as role" class="stats-card__role" [ngClass]="getRoleBadgeClass(role)">
+              {{ role }}
+            </span>
+          </div>
+        </div>
+        <div class="stats-detail-panel__loading player-profile__loading-message">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Loading detailed player stats from CREX…</span>
+        </div>
+      </div>
+
+      <div *ngIf="isDetailLoading && !isProfileRoute" class="stats-detail-panel__loading">
         <mat-spinner diameter="32"></mat-spinner>
-        <span *ngIf="isProfileRoute">Loading player profile</span>
       </div>
 
       <ng-container *ngIf="!isDetailLoading">
@@ -75,7 +94,7 @@
             {{ getPlayerInitials(selectedPlayer || selectedPlayerSummary) }}
           </div>
           <div>
-            <span *ngIf="isProfileRoute" class="player-profile__eyebrow">Crickzen player profile</span>
+            <span *ngIf="isProfileRoute" class="player-profile__eyebrow">CrickZen player profile</span>
             <h1 *ngIf="isProfileRoute; else detailName" id="player-profile-heading" class="stats-detail-panel__name" tabindex="-1">{{ getPlayerDisplayName(selectedPlayer || selectedPlayerSummary) }}</h1>
             <ng-template #detailName>
               <h2 class="stats-detail-panel__name">{{ getPlayerDisplayName(selectedPlayer || selectedPlayerSummary) }}</h2>

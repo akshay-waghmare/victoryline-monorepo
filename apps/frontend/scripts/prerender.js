@@ -405,7 +405,7 @@ function buildMatchesJsonLd(matchesWithInfo) {
         },
         'organizer': {
           '@type': 'Organization',
-          'name': 'Crickzen',
+          'name': 'CrickZen',
           'url': 'https://www.crickzen.com'
         }
       };
@@ -433,7 +433,7 @@ function buildBlogJsonLd(posts) {
       'image': post.imgUrl || '',
       'author': {
         '@type': 'Organization',
-        'name': 'Crickzen'
+        'name': 'CrickZen'
       }
     }))
   };
@@ -461,7 +461,7 @@ function pageTemplate({ title, description, canonical, contentHtml, jsonLd, ogIm
     ${canonical ? `<meta property="og:url" content="${escapeHtml(canonical)}" />` : ''}
     <meta property="og:image" content="${escapeHtml(image)}" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Crickzen" />
+    <meta property="og:site_name" content="CrickZen" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@crickzen" />
     <meta name="twitter:title" content="${escapeHtml(safeTitle)}" />
@@ -545,7 +545,7 @@ async function build() {
 
   // Homepage snapshot
   const homeHtml = pageTemplate({
-    title: 'Crickzen | Live Cricket Scores, News & Real-time Updates',
+    title: 'CrickZen | Live Cricket Scores, News & Real-time Updates',
     description: 'Live cricket scores, match updates, and latest cricket news. Get real-time coverage of international and domestic matches with expert analysis.',
     canonical: 'https://www.crickzen.com/',
     contentHtml: `<h1>Live Cricket Matches</h1>${listHtml}${blogsHtml}`,
@@ -555,7 +555,7 @@ async function build() {
 
   // Matches page snapshot
   const matchesHtml = pageTemplate({
-    title: 'Crickzen | Live Cricket Matches & Scores',
+    title: 'CrickZen | Live Cricket Matches & Scores',
     description: 'Browse live cricket matches with real-time updates, ball-by-ball commentary, and quick links to match details.',
     canonical: 'https://www.crickzen.com/matches',
     contentHtml: `<h1>Cricket Matches</h1>${listHtml}${blogsHtml}`,
@@ -755,7 +755,7 @@ function generateMatchPageDescription(m, info) {
   const isCompleted = getMatchState(m) === 'completed';
   
   if (isCompleted) {
-    return truncateText(`${teams} final score, full scorecard, match summary, and highlights on Crickzen.`, 155);
+    return truncateText(`${teams} final score, full scorecard, match summary, and highlights on CrickZen.`, 155);
   }
   return truncateText(`${teams} live score, ball by ball commentary, latest runs, wickets, overs, and match updates.`, 155);
 }
@@ -788,7 +788,7 @@ function buildMatchPageJsonLd(m, info, urlSlug) {
     },
     'organizer': {
       '@type': 'Organization',
-      'name': 'Crickzen',
+      'name': 'CrickZen',
       'url': 'https://www.crickzen.com'
     }
   };
@@ -812,7 +812,7 @@ function renderMatchPageContent(m, info, urlSlug) {
   return `
     <h1>${escapeHtml(title)}</h1>
     ${matchName ? `<p class="match-series"><strong>${matchName}</strong></p>` : ''}
-    <p>${escapeHtml(title)} coverage on Crickzen includes live score updates, scorecard context, match status, venue details, and ball-by-ball match updates when available.</p>
+    <p>${escapeHtml(title)} coverage on CrickZen includes live score updates, scorecard context, match status, venue details, and ball-by-ball match updates when available.</p>
     ${status ? `<p class="match-status">${escapeHtml(status)}</p>` : ''}
     ${result ? `<p class="match-status">${result}</p>` : ''}
     <p class="match-format"><strong>Format:</strong> ${format}</p>

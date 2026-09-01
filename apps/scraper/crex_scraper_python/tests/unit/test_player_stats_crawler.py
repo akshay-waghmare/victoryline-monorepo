@@ -2,7 +2,42 @@ import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 
 from src.config import reload_settings
-from src.player_stats_crawler import PlayerStatsCandidate, PlayerStatsCrawlerService, PlayerStatsTask
+from src.player_stats_crawler import (
+    PlayerStatsCandidate,
+    PlayerStatsCrawlerService,
+    PlayerStatsTask,
+    select_player_reference,
+)
+
+
+def test_select_player_reference_resolves_scorecard_initials_to_crex_link():
+    players = [
+        {
+            "player_name": "Juairiya Ferdous",
+            "player_url": "https://crex.com/player/juairiya-ferdous-X1A",
+        },
+        {
+            "player_name": "Dara Paramitha",
+            "player_url": "https://crex.com/player/dara-paramitha-KFG",
+        },
+    ]
+
+    resolved = select_player_reference(players, "J Ferdous")
+
+    assert resolved["player_url"].endswith("juairiya-ferdous-X1A")
+
+
+def test_select_player_reference_uses_verified_provider_url_for_full_name_alias():
+    players = [
+        {
+            "player_name": "A Juyal",
+            "player_url": "https://crex.com/player/aryan-juyal-5M3",
+        },
+    ]
+
+    resolved = select_player_reference(players, "Aryan Juyal")
+
+    assert resolved["player_url"].endswith("aryan-juyal-5M3")
 
 
 class _DummyCache:

@@ -12,7 +12,7 @@ from playwright.async_api import Page
 
 from .config import get_settings
 from .browser_pool import AsyncBrowserPool
-from .crex_url_utils import extract_crex_api_key, normalize_crex_url
+from .crex_url_utils import normalize_crex_url
 from .cricket_data_service import CricketDataService
 from .managed_live_slate import (
     ManagedLiveSlateStore,
@@ -34,7 +34,8 @@ async def extract_schedule_window(page: Page, base_url: str) -> List[dict]:
 
     The opening-model selector still owns format, exact-source, lead-time and
     coverage checks. This helper only makes next-day source records visible;
-    it never feeds the live scraper slate.
+    live/stumps records are also returned so the bounded live slate can admit
+    a multi-day match that CREX omits from its live carousel.
     """
     matches = await extract_schedule_matches(page, base_url)
     seen_urls = {str(match.get("url") or "").strip() for match in matches}
@@ -299,7 +300,19 @@ class LiveMatchDiscoverer:
             print("[DISCOVERY] Live catalogue unavailable; retaining managed slate.", flush=True)
             return
 
-        terminal_urls = await self._find_terminal_absent_matches(valid_urls)
+        # Check every current slate owner, not only owners absent from the
+        # provider page. CREX may keep a completed card in its live carousel;
+        # absence-only checks would keep that terminal URL locked forever.
+        terminal_urls = await self._find_terminal_managed_matches()
+        schedule_live_urls = [
+            str(match.get("url") or match.get("matchUrl") or "")
+            for match in schedule_matches
+            if str(match.get("status") or "").upper() in {"LIVE", "INNINGS_BREAK"}
+        ]
+        for url in schedule_live_urls:
+            normalized = normalize_crex_url(url)
+            if normalized and normalized not in valid_urls:
+                valid_urls.append(normalized)
         selected_urls = reconcile_managed_live_slate(
             valid_urls,
             self._managed_live_urls,
@@ -322,16 +335,10 @@ class LiveMatchDiscoverer:
             if inspect.isawaitable(callback_result):
                 await callback_result
         
-        # Always reconcile the live catalog, even when CREX currently has zero live matches.
-        # Otherwise stale LIVE rows remain in the backend forever because nothing tells it
-        # the authoritative live set is now empty.
+        # Reconcile the schedule first, then apply the scraper-selected live slate last.
+        # The live slate is authoritative for this capped crawler: schedule data can lag
+        # or carry a terminal label for a multi-day match that is still being scraped.
         token = await asyncio.to_thread(CricketDataService.get_bearer_token)
-        live_synced = await asyncio.to_thread(CricketDataService.add_live_matches, valid_urls, token)
-        if live_synced:
-            logger.info("Synced live matches with backend.")
-        else:
-            logger.error("Live match lifecycle sync failed; retrying next discovery cycle.")
-
         if schedule_matches:
             schedule_synced = await asyncio.to_thread(CricketDataService.add_schedule_matches, schedule_matches, token)
             if schedule_synced:
@@ -339,25 +346,26 @@ class LiveMatchDiscoverer:
             else:
                 logger.error("Schedule lifecycle sync failed; retrying next discovery cycle.")
 
+        # Always reconcile the live catalog, even when CREX currently has zero live matches.
+        # Otherwise stale LIVE rows remain in the backend forever because nothing tells it
+        # the authoritative live set is now empty. Keep this after schedule sync so a
+        # selected managed match cannot be immediately overwritten by stale schedule state.
+        live_synced = await asyncio.to_thread(CricketDataService.add_live_matches, valid_urls, token)
+        if live_synced:
+            logger.info("Synced live matches with backend.")
+        else:
+            logger.error("Live match lifecycle sync failed; retrying next discovery cycle.")
+
         print("[DISCOVERY] Backend sync cycle completed.", flush=True)
 
-    async def _find_terminal_absent_matches(self, discovered_urls: List[str]) -> List[str]:
+    async def _find_terminal_managed_matches(self) -> List[str]:
         """Release locked slots only when the stored snapshot proves completion."""
-        discovered_keys = {
-            (extract_crex_api_key(url) or str(url).rsplit("-", 1)[-1]).lower()
-            for url in discovered_urls
-            if url
-        }
-        absent_urls = [
-            url for url in self._managed_live_urls
-            if (extract_crex_api_key(url) or str(url).rsplit("-", 1)[-1]).lower() not in discovered_keys
-        ]
-        if not absent_urls:
+        if not self._managed_live_urls:
             return []
 
         token = await asyncio.to_thread(CricketDataService.get_bearer_token)
         terminal_urls: List[str] = []
-        for url in absent_urls:
+        for url in self._managed_live_urls:
             snapshot = await asyncio.to_thread(CricketDataService.get_last_updated_data, url, token)
             if isinstance(snapshot, dict) and has_terminal_evidence({"url": url, **snapshot}):
                 terminal_urls.append(url)

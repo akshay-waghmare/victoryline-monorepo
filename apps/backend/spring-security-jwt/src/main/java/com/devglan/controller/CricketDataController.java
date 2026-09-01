@@ -8,6 +8,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +43,8 @@ import com.devglan.dao.SessionOverData;
 import com.devglan.dao.ScheduledMatchDTO;
 import com.devglan.model.Bets;
 import com.devglan.model.BlogPost;
+import com.devglan.model.BatsmanData;
+import com.devglan.model.BowlerData;
 import com.devglan.model.ExposureResult;
 import com.devglan.model.LiveMatch;
 import com.devglan.model.MatchLifecycleCohort;
@@ -59,6 +63,7 @@ import com.devglan.service.UserService;
 import com.devglan.service.seo.MatchFreshnessSummaryService;
 import com.devglan.websocket.service.CricketDataService;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -286,6 +291,7 @@ public class CricketDataController {
             cricketDataService.cacheLastUpdatedData(existingData.getUrl(), existingData);
         }
         cricketDataService.enrichCacheWithTransientData(data.getUrl(), data);
+        liveMatchService.recordSeoLiveSnapshot(existingData.getUrl(), existingData);
 
         return ResponseEntity.ok("Data received successfully!");
     }
@@ -720,8 +726,9 @@ public class CricketDataController {
 			log.debug("Stored match info unavailable for canonical snapshot {}", normalizedSlug, ex);
 		}
 
+		CricketDataDTO current = null;
 		try {
-			CricketDataDTO current = cricketDataService == null ? null : cricketDataService.getLastUpdatedData(match.getUrl());
+			current = cricketDataService == null ? null : cricketDataService.getLastUpdatedData(match.getUrl());
 			if (current != null) {
 				// Stored match-info is the authoritative static identity record. Live
 				// snapshots are allowed to fill a missing field, never erase a known
@@ -743,7 +750,232 @@ public class CricketDataController {
 			log.debug("Current score unavailable for canonical snapshot {}", normalizedSlug, ex);
 		}
 
+		applySeoUtility(response, match, current);
+
 		return ResponseEntity.ok(response);
+	}
+
+	/**
+	 * Builds a small, source-backed utility payload for the crawler-facing
+	 * snapshot.  This deliberately reads the durable scorecard and the already
+	 * available live DTO; it never starts match hydration or asks the provider
+	 * for more data.
+	 */
+	private void applySeoUtility(Map<String, Object> response, LiveMatch match, CricketDataDTO current) {
+		Map<String, Object> utility = new LinkedHashMap<>();
+		List<Map<String, Object>> innings = new ArrayList<>();
+		List<Map<String, Object>> performers = new ArrayList<>();
+		List<Map<String, Object>> keyEvents = new ArrayList<>();
+		int batsmanCount = 0;
+		int bowlerCount = 0;
+
+		if (scoreCardService != null && match != null) {
+			try {
+				String storedScorecard = scoreCardService.getStoredMatchInfo(match.getUrl());
+				if (storedScorecard != null && !storedScorecard.trim().isEmpty()) {
+					Map<String, Integer> counts = new HashMap<>();
+					buildStoredScorecardUtility(storedScorecard, innings, performers, counts);
+					batsmanCount += counts.containsKey("batsmen") ? counts.get("batsmen") : 0;
+					bowlerCount += counts.containsKey("bowlers") ? counts.get("bowlers") : 0;
+				}
+			} catch (Exception ex) {
+				log.debug("Stored scorecard unavailable for canonical snapshot {}", response.get("slug"), ex);
+			}
+		}
+
+		if (current != null) {
+			batsmanCount += appendCurrentBatsmen(current.getBatsmanData(), performers);
+			bowlerCount += appendCurrentBowlers(current.getBowlerData(), performers);
+			appendVerifiedKeyEvents(current.getCommentary(), keyEvents);
+		}
+
+		String resultContext = firstMeaningful(
+				current == null ? null : current.getFinalResultText(),
+				firstMeaningful(asText(response.get("result")), asText(response.get("lastKnownState"))));
+		if (resultContext != null && !resultContext.trim().isEmpty()) {
+			utility.put("resultContext", cleanSeoText(resultContext, 240));
+		}
+		if (!innings.isEmpty()) utility.put("scorecardInnings", innings);
+		if (!performers.isEmpty()) utility.put("performers", performers.subList(0, Math.min(4, performers.size())));
+		if (!keyEvents.isEmpty()) utility.put("keyEvents", keyEvents.subList(0, Math.min(5, keyEvents.size())));
+
+		Map<String, Object> coverage = new LinkedHashMap<>();
+		coverage.put("scorecardInnings", innings.size());
+		coverage.put("batsmanCount", batsmanCount);
+		coverage.put("bowlerCount", bowlerCount);
+		coverage.put("performerCount", Math.min(4, performers.size()));
+		coverage.put("keyEventCount", Math.min(5, keyEvents.size()));
+		if (!innings.isEmpty() || !performers.isEmpty() || !keyEvents.isEmpty() || resultContext != null) {
+			utility.put("coverage", coverage);
+			response.put("seoUtility", utility);
+		}
+	}
+
+	private void buildStoredScorecardUtility(String raw, List<Map<String, Object>> innings,
+			List<Map<String, Object>> performers, Map<String, Integer> counts) throws Exception {
+		ObjectMapper mapper = springObjectMapper == null ? new ObjectMapper() : springObjectMapper;
+		JsonNode root = mapper.readTree(raw);
+		JsonNode inningsNode = root == null ? null : root.get("innings");
+		if (inningsNode == null || !inningsNode.isObject()) return;
+
+		int batsmen = 0;
+		int bowlers = 0;
+		Iterator<Map.Entry<String, JsonNode>> iterator = inningsNode.fields();
+		while (iterator.hasNext() && innings.size() < 4) {
+			Map.Entry<String, JsonNode> entry = iterator.next();
+			JsonNode inningNode = entry.getValue();
+			if (inningNode == null || !inningNode.isObject()) continue;
+			Map<String, Object> inning = new LinkedHashMap<>();
+			inning.put("label", cleanSeoText(entry.getKey(), 40));
+			putIfPresent(inning, "team", firstNodeText(inningNode, "team_name", "teamName", "team_code"));
+			putIfPresent(inning, "score", firstNodeText(inningNode, "team_score", "score"));
+
+			List<Map<String, Object>> batsmanRows = buildStoredPlayerRows(
+					inningNode.get("batsman_stats"), true, entry.getKey(), performers);
+			List<Map<String, Object>> bowlerRows = buildStoredPlayerRows(
+					inningNode.get("bowlers_stats"), false, entry.getKey(), performers);
+			batsmen += batsmanRows.size();
+			bowlers += bowlerRows.size();
+			if (!batsmanRows.isEmpty()) inning.put("batsmen", batsmanRows.subList(0, Math.min(5, batsmanRows.size())));
+			if (!bowlerRows.isEmpty()) inning.put("bowlers", bowlerRows.subList(0, Math.min(4, bowlerRows.size())));
+			if (inning.size() > 1) innings.add(inning);
+		}
+		counts.put("batsmen", batsmen);
+		counts.put("bowlers", bowlers);
+	}
+
+	private List<Map<String, Object>> buildStoredPlayerRows(JsonNode players, boolean batsman,
+			String inningLabel, List<Map<String, Object>> performers) {
+		List<Map<String, Object>> rows = new ArrayList<>();
+		if (players == null || !players.isObject()) return rows;
+		Iterator<Map.Entry<String, JsonNode>> iterator = players.fields();
+		while (iterator.hasNext() && rows.size() < 8) {
+			Map.Entry<String, JsonNode> entry = iterator.next();
+			JsonNode stats = entry.getValue();
+			if (stats == null || !stats.isObject()) continue;
+			String name = firstNodeText(stats, "player_name", "playerName", "name");
+			if (name == null || name.trim().isEmpty()) name = cleanSeoText(entry.getKey(), 100);
+			if (name == null || name.trim().isEmpty()) continue;
+
+			Map<String, Object> row = new LinkedHashMap<>();
+			row.put("name", cleanSeoText(name, 100));
+			String primary = firstNodeText(stats, batsman ? "runs" : "overs", batsman ? "score" : "overs_bowled");
+			String secondary = firstNodeText(stats, batsman ? "balls_faced" : "runs", batsman ? "ballsFaced" : "runs_conceded");
+			if (primary != null) row.put(batsman ? "runs" : "overs", cleanSeoText(primary, 32));
+			if (secondary != null) row.put(batsman ? "balls" : "runs", cleanSeoText(secondary, 32));
+			copyNodeValue(row, "fours", stats, "fours");
+			copyNodeValue(row, "sixes", stats, "sixes");
+			copyNodeValue(row, "wickets", stats, "wickets");
+			copyNodeValue(row, "status", stats, "status");
+			if (row.size() <= 1) continue;
+			rows.add(row);
+
+			if (performers.size() < 8) {
+				Map<String, Object> performer = new LinkedHashMap<>();
+				performer.put("role", batsman ? "batter" : "bowler");
+				performer.put("inning", cleanSeoText(inningLabel, 40));
+				performer.put("name", row.get("name"));
+				performer.put("stat", buildPerformerStat(row, batsman));
+				performers.add(performer);
+			}
+		}
+		return rows;
+	}
+
+	private int appendCurrentBatsmen(List<BatsmanData> batsmen, List<Map<String, Object>> performers) {
+		if (batsmen == null) return 0;
+		int count = 0;
+		for (BatsmanData batsman : batsmen) {
+			if (batsman == null || cleanSeoText(batsman.getName(), 100).isEmpty()) continue;
+			if (cleanSeoText(firstMeaningful(batsman.getScore(), batsman.getBallsFaced()), 32).isEmpty()) continue;
+			Map<String, Object> performer = new LinkedHashMap<>();
+			performer.put("role", "batter");
+			performer.put("name", cleanSeoText(batsman.getName(), 100));
+			performer.put("stat", cleanSeoText(firstMeaningful(batsman.getScore(), "") + " runs, "
+					+ firstMeaningful(batsman.getBallsFaced(), "") + " balls", 80));
+			performers.add(performer);
+			count++;
+		}
+		return count;
+	}
+
+	private int appendCurrentBowlers(List<BowlerData> bowlers, List<Map<String, Object>> performers) {
+		if (bowlers == null) return 0;
+		int count = 0;
+		for (BowlerData bowler : bowlers) {
+			if (bowler == null || cleanSeoText(bowler.getName(), 100).isEmpty()) continue;
+			if (cleanSeoText(firstMeaningful(bowler.getScore(), bowler.getWicketsTaken()), 32).isEmpty()) continue;
+			Map<String, Object> performer = new LinkedHashMap<>();
+			performer.put("role", "bowler");
+			performer.put("name", cleanSeoText(bowler.getName(), 100));
+			performer.put("stat", cleanSeoText(firstMeaningful(bowler.getWicketsTaken(), "0")
+					+ " wickets, " + firstMeaningful(bowler.getScore(), "0") + " runs", 80));
+			performers.add(performer);
+			count++;
+		}
+		return count;
+	}
+
+	private void appendVerifiedKeyEvents(List<Map<String, Object>> commentary, List<Map<String, Object>> keyEvents) {
+		if (commentary == null) return;
+		for (Map<String, Object> entry : commentary) {
+			if (entry == null || keyEvents.size() >= 8) continue;
+			String text = cleanSeoText(asText(entry.get("text")), 240);
+			String type = cleanSeoText(asText(entry.get("type")), 40);
+			if (text.isEmpty() || !isVerifiedKeyEvent(type, text)) continue;
+			Map<String, Object> event = new LinkedHashMap<>();
+			if (!type.isEmpty()) event.put("type", type);
+			event.put("text", text);
+			String over = firstMeaningful(asText(entry.get("overBall")), firstMeaningful(asText(entry.get("over")),
+					firstMeaningful(asText(entry.get("over_ball")), asText(entry.get("ball")))));
+			if (over != null && !over.trim().isEmpty()) event.put("overBall", cleanSeoText(over, 32));
+			String total = firstMeaningful(asText(entry.get("totalScore")), firstMeaningful(asText(entry.get("score")), asText(entry.get("total_score"))));
+			if (total != null && !total.trim().isEmpty()) event.put("score", cleanSeoText(total, 32));
+			keyEvents.add(event);
+		}
+	}
+
+	private boolean isVerifiedKeyEvent(String type, String text) {
+		return "WICKET".equalsIgnoreCase(type) || "BOUNDARY".equalsIgnoreCase(type)
+				|| "OVER_SUMMARY".equalsIgnoreCase(type)
+				|| text.matches("(?i).*\\b(toss|wicket|innings break|stumps|target|partnership|fifty|hundred|four|six|won by|rain|bad light)\\b.*");
+	}
+
+	private String buildPerformerStat(Map<String, Object> row, boolean batsman) {
+		if (batsman) {
+			String runs = row.containsKey("runs") ? String.valueOf(row.get("runs")) : "";
+			String balls = row.containsKey("balls") ? String.valueOf(row.get("balls")) : "";
+			return cleanSeoText(runs + (runs.isEmpty() ? "" : " runs") + (balls.isEmpty() ? "" : ", " + balls + " balls"), 80);
+		}
+		String wickets = row.containsKey("wickets") ? String.valueOf(row.get("wickets")) : "";
+		String runs = row.containsKey("runs") ? String.valueOf(row.get("runs")) : "";
+		return cleanSeoText(wickets + (wickets.isEmpty() ? "" : " wickets") + (runs.isEmpty() ? "" : ", " + runs + " runs"), 80);
+	}
+
+	private String firstNodeText(JsonNode node, String... names) {
+		if (node == null || names == null) return null;
+		for (String name : names) {
+			if (name == null) continue;
+			JsonNode value = node.get(name);
+			if (value != null && !value.isNull() && !value.asText().trim().isEmpty()) return value.asText();
+		}
+		return null;
+	}
+
+	private void copyNodeValue(Map<String, Object> target, String key, JsonNode node, String sourceKey) {
+		String value = firstNodeText(node, sourceKey);
+		if (value != null && !value.trim().isEmpty()) target.put(key, cleanSeoText(value, 32));
+	}
+
+	private void putIfPresent(Map<String, Object> target, String key, String value) {
+		if (value != null && !value.trim().isEmpty()) target.put(key, cleanSeoText(value, 160));
+	}
+
+	private String cleanSeoText(String value, int maxLength) {
+		if (value == null) return "";
+		String cleaned = value.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+		if (cleaned.length() > maxLength) return cleaned.substring(0, maxLength).trim();
+		return cleaned;
 	}
 
 	/**
@@ -760,8 +992,10 @@ public class CricketDataController {
 			return null;
 		}
 		for (LiveMatch candidate : indexableMatches) {
+			String candidateSlug = CrexMatchUrlHelper.extractMatchKey(candidate == null ? null : candidate.getUrl());
 			boolean sameStableKey = stableKey != null
-					&& stableKey.equalsIgnoreCase(CrexMatchUrlHelper.extractCrexApiKey(candidate == null ? null : candidate.getUrl()));
+					&& stableKey.equalsIgnoreCase(CrexMatchUrlHelper.extractCrexApiKey(candidate == null ? null : candidate.getUrl()))
+					&& CrexMatchUrlHelper.isSameMatchFamily(requestedSlug, candidateSlug);
 			if (candidate != null && hasCanonicalMatchData(candidate)
 					&& (sameStableKey || matchesCanonicalSlug(candidate, requestedSlug))) {
 				siblings.add(candidate);

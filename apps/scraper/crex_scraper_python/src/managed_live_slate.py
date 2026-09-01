@@ -84,7 +84,15 @@ def reconcile_managed_live_slate(
         if len(retained) >= max_matches:
             return retained
 
-    available = [value for value in discovered if _identity(value) not in retained_keys]
+    # A provider can leave a finished card on its live page for several
+    # discovery cycles. Do not immediately re-admit a URL we just proved
+    # terminal, or the sticky slate will remain permanently full of finished
+    # matches.
+    available = [
+        value
+        for value in discovered
+        if _identity(value) not in retained_keys and _identity(value) not in terminal_keys
+    ]
     open_slots = max_matches - len(retained)
     if open_slots <= 0:
         return retained[:max_matches]

@@ -152,6 +152,57 @@ public class LiveMatchServiceLifecycleEvidenceTest {
     }
 
     @Test
+    public void rejectsCompletedRowsWithoutResultEvidenceFromPublicDiscovery() throws Exception {
+        LiveMatchServiceImpl service = new LiveMatchServiceImpl(null, null, null, null);
+        Method method = LiveMatchServiceImpl.class.getDeclaredMethod("isPubliclyIndexable", LiveMatch.class);
+        method.setAccessible(true);
+
+        LiveMatch completed = new LiveMatch("https://crex.com/cricket-live-score/alpha-vs-beta-1st-match-cup-2026-match-updates-13ZZ");
+        completed.setStatus(MatchLifecycleStatus.COMPLETED);
+
+        assertThat((Boolean) method.invoke(service, completed)).isFalse();
+    }
+
+    @Test
+    public void acceptsCompletedRowsWithResultEvidenceForPublicDiscovery() throws Exception {
+        LiveMatchServiceImpl service = new LiveMatchServiceImpl(null, null, null, null);
+        Method method = LiveMatchServiceImpl.class.getDeclaredMethod("isPubliclyIndexable", LiveMatch.class);
+        method.setAccessible(true);
+
+        LiveMatch completed = new LiveMatch("https://crex.com/cricket-live-score/alpha-vs-beta-1st-match-cup-2026-match-updates-13ZZ");
+        completed.setStatus(MatchLifecycleStatus.COMPLETED);
+        completed.setResultSummary("Team A won by 7 wickets");
+
+        assertThat((Boolean) method.invoke(service, completed)).isTrue();
+    }
+
+    @Test
+    public void doesNotReuseAnUnrelatedRowWhenCrexShortKeysCollide() throws Exception {
+        String duleepUrl = "https://crex.com/cricket-live-score/cz-vs-ez-1st-semi-final-duleep-trophy-2026-match-updates-13HY";
+        LiveMatch asiaCup = new LiveMatch(
+                "https://crex.com/cricket-live-score/ban-w-vs-ina-w-4th-match-womens-asia-cup-2026-match-updates-13HY");
+        asiaCup.setExternalMatchKey("13HY");
+
+        LiveMatchRepository repository = (LiveMatchRepository) Proxy.newProxyInstance(
+                LiveMatchRepository.class.getClassLoader(),
+                new Class<?>[] { LiveMatchRepository.class },
+                (proxy, method, args) -> {
+                    if ("findFirstByUrlContainingOrderByIdDesc".equals(method.getName())) return null;
+                    if ("findByExternalMatchKeyOrderByIdDesc".equals(method.getName())) return Collections.singletonList(asiaCup);
+                    if (method.getReturnType() == boolean.class) return false;
+                    if (method.getReturnType() == int.class) return 0;
+                    if (method.getReturnType() == long.class) return 0L;
+                    if (java.util.List.class.isAssignableFrom(method.getReturnType())) return Collections.emptyList();
+                    return null;
+                });
+        LiveMatchServiceImpl service = new LiveMatchServiceImpl(repository, null, null, null);
+        Method method = LiveMatchServiceImpl.class.getDeclaredMethod("findExistingMatch", String.class, String.class);
+        method.setAccessible(true);
+
+        assertThat(method.invoke(service, "13HY", duleepUrl)).isNull();
+    }
+
+    @Test
     public void excludesUnmanagedLiveRowsFromPublicLiveDiscovery() {
         LiveMatch managed = new LiveMatch(
                 "https://crex.com/cricket-live-score/managed-a-vs-managed-b-1st-match-t20-cup-2026-match-updates-MAN");

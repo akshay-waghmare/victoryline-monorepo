@@ -12,6 +12,7 @@ import javax.persistence.PrePersist;
 import javax.persistence.PreUpdate;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -73,6 +74,14 @@ public class LiveMatch {
 
     @Column(name = "seo_content_modified_at")
     private Long seoContentModifiedAt;
+
+    /**
+     * Fingerprint of the latest persisted audience-visible score/state
+     * snapshot. This is separate from seoContentFingerprint because live score
+     * updates arrive through CricketDataDTO rather than the catalogue row.
+     */
+    @Column(name = "seo_live_content_fingerprint", length = 64)
+    private String seoLiveContentFingerprint;
 
     @Transient
     private String lifecycleCohort;
@@ -264,6 +273,12 @@ public class LiveMatch {
 
     public Long getSeoContentModifiedAt() { return seoContentModifiedAt; }
     public void setSeoContentModifiedAt(Long seoContentModifiedAt) { this.seoContentModifiedAt = seoContentModifiedAt; }
+
+    @JsonIgnore
+    public String getSeoLiveContentFingerprint() { return seoLiveContentFingerprint; }
+    public void setSeoLiveContentFingerprint(String seoLiveContentFingerprint) {
+        this.seoLiveContentFingerprint = seoLiveContentFingerprint;
+    }
 
     public String getLifecycleCohort() { return lifecycleCohort; }
     public void setLifecycleCohort(String lifecycleCohort) { this.lifecycleCohort = lifecycleCohort; }

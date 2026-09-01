@@ -26,5 +26,7 @@ public interface LiveMatchService {
 	public List<LiveMatch> findAllLiveMatches();
 	List<LiveMatch> findMatchesByCohort(MatchLifecycleCohort cohort);
 	LiveMatch update(LiveMatch match);
+	/** Records a meaningful public score/state change for sitemap freshness. */
+	boolean recordSeoLiveSnapshot(String url, CricketDataDTO snapshot);
     
 }

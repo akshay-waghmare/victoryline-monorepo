@@ -16,7 +16,7 @@ _COMPLETED_PATTERN = re.compile(
     r"(\bwon\b|\bwon by\b|\bbeat\b|match tied|no result|match abandoned|abandoned|tied)",
     re.IGNORECASE,
 )
-_LIVE_PATTERN = re.compile(r"\blive\b|in progress|innings break", re.IGNORECASE)
+_LIVE_PATTERN = re.compile(r"\blive\b|in progress|innings break|\bstumps\b", re.IGNORECASE)
 _FORMAT_PATTERN = re.compile(r"\b(test|odi|t20i?|t10)\b", re.IGNORECASE)
 _SCORE_PATTERN = re.compile(r"\b\d{1,3}[/-]\d\b|\b\d{1,3}\.\d\b")
 _TIME_PATTERN = re.compile(r"\b(\d{1,2}):(\d{2})\s*([AP]M)\b", re.IGNORECASE)
@@ -500,10 +500,10 @@ async def extract_schedule_matches(page: Page, base_url: str = "https://crex.com
             extract_team_names(card.get("eventName"), card.get("title"), card.get("text"), combined_text),
             team_name_lookup,
         )
+        # Stumps is a live lifecycle state for multi-day cricket, not a final
+        # result. Keep it in the discovery stream so the bounded scraper can
+        # continue the match on the next day.
         status = classify_match_status(combined_text)
-        if status == "LIVE":
-            continue
-
         scheduled_start_time = parse_epoch_millis(card.get("startDate")) or parse_epoch_millis(card.get("timeValue"))
         if scheduled_start_time is None and status == "UPCOMING":
             inferred_schedule = infer_scheduled_start(

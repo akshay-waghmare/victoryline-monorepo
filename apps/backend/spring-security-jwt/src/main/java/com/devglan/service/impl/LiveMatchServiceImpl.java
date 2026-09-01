@@ -2,6 +2,9 @@ package com.devglan.service.impl;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -9,6 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -52,9 +57,13 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 	private final CricketDataService cricketDataService;
 	private final RestTemplate restTemplate;
 	private final ApplicationEventPublisher eventPublisher;
+	private final Map<String, String> liveSeoSnapshotFingerprints = new ConcurrentHashMap<>();
 
 	@Value("${stop.scrape.url:http://localhost:5000/stop-scrape}")
 	private String stopScrapeUrl;
+
+	@Value("${seo.live-content-freshness-throttle-ms:900000}")
+	private long liveContentFreshnessThrottleMs = 900000L;
 
 	@Autowired
 	public LiveMatchServiceImpl(LiveMatchRepository liveMatchRepository, CricketDataService cricketDataService,
@@ -152,8 +161,28 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 String externalKey = extractCatalogMatchKey(normalizedUrl);
                 LiveMatch liveMatch = findExistingMatch(externalKey, normalizedUrl);
                 boolean isNew = liveMatch == null;
+                // A terminal/deleted row is historical evidence, not a writable
+                // owner for a newly authoritative live selection. Create an active
+                // row so a stale retired alias can never hide a real live feed.
+                if (liveMatch != null && liveMatch.isDeleted()
+                        && liveMatch.getStatus() != null && liveMatch.getStatus().isTerminal()) {
+                    logger.warn("Creating active catalog row for previously retired live match: {}", normalizedUrl);
+                    LiveMatch retired = liveMatch;
+                    liveMatch = new LiveMatch(normalizedUrl);
+                    liveMatch.setTeam1Name(retired.getTeam1Name());
+                    liveMatch.setTeam2Name(retired.getTeam2Name());
+                    liveMatch.setSeriesName(retired.getSeriesName());
+                    liveMatch.setMatchFormat(retired.getMatchFormat());
+                    liveMatch.setVenue(retired.getVenue());
+                    liveMatch.setScheduledStartTime(retired.getScheduledStartTime());
+                    liveMatch.setResultSummary(retired.getResultSummary());
+                    liveMatch.setLastKnownState(retired.getLastKnownState());
+                    isNew = true;
+                }
                 if (isNew) {
-					liveMatch = new LiveMatch(normalizedUrl);
+					if (liveMatch == null) {
+                        liveMatch = new LiveMatch(normalizedUrl);
+                    }
                     liveMatch.setExternalMatchKey(externalKey);
                 } else {
                     liveMatch.setUrl(normalizedUrl);
@@ -201,13 +230,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 logger.warn("Ignoring malformed CREX schedule URL: {}", normalizedUrl);
                 continue;
             }
-            String externalKey = CrexMatchUrlHelper.extractCrexApiKey(normalizedUrl);
-            if (externalKey == null) {
-                externalKey = sanitizeCatalogText(dto.getExternalMatchKey());
-            }
-            if (externalKey == null || externalKey.trim().isEmpty()) {
-                externalKey = extractCatalogMatchKey(normalizedUrl);
-            }
+            String externalKey = extractCatalogMatchKey(normalizedUrl);
 
             MatchLifecycleStatus incomingStatus = MatchLifecycleStatus.fromString(dto.getStatus());
             if (incomingStatus == null) {
@@ -433,6 +456,101 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 		return liveMatchRepository.save(match);
 	}
 
+	/**
+	 * Records the latest merged viewer-facing score/state snapshot without
+	 * turning every scraper heartbeat into a sitemap regeneration. The complete
+	 * snapshot fingerprint is persisted, while seoContentModifiedAt advances at
+	 * most once per configured throttle window (or immediately for a new final
+	 * result). A sitemap event is emitted only when lastmod actually advances.
+	 */
+	@Override
+	public boolean recordSeoLiveSnapshot(String url, CricketDataDTO snapshot) {
+		if (liveMatchRepository == null || snapshot == null || isBlank(url)) {
+			return false;
+		}
+
+		String normalizedUrl = normalizeUrl(url);
+		String externalKey = extractCatalogMatchKey(normalizedUrl);
+		LiveMatch match = findExistingMatch(externalKey, normalizedUrl);
+		if (match == null) {
+			return false;
+		}
+
+		String fingerprint = buildSeoLiveContentFingerprint(snapshot);
+		if (fingerprint == null) {
+			return false;
+		}
+		String snapshotKey = extractCatalogIdentity(normalizedUrl);
+		String previousFingerprint = liveSeoSnapshotFingerprints.put(snapshotKey, fingerprint);
+		if (Objects.equals(fingerprint, previousFingerprint)
+				|| (previousFingerprint == null && Objects.equals(fingerprint, match.getSeoLiveContentFingerprint()))) {
+			return false;
+		}
+
+		match.setSeoLiveContentFingerprint(fingerprint);
+		long now = System.currentTimeMillis();
+		boolean finalResultChanged = !isBlank(snapshot.getFinalResultText())
+				&& !Objects.equals(snapshot.getFinalResultText().trim(), trimToNull(match.getResultSummary()));
+		Long previousModifiedAt = match.getSeoContentModifiedAt();
+		boolean freshnessWindowOpen = previousModifiedAt == null
+				|| now - previousModifiedAt >= Math.max(0L, liveContentFreshnessThrottleMs);
+		boolean advanceLastmod = finalResultChanged || freshnessWindowOpen;
+		if (advanceLastmod) {
+			match.setSeoContentModifiedAt(now);
+		}
+
+		if (!advanceLastmod) {
+			// Keep the latest fingerprint in memory so repeated live patches do
+			// not write the catalogue row while the freshness window is closed.
+			return false;
+		}
+
+		liveMatchRepository.save(match);
+		if (advanceLastmod && eventPublisher != null) {
+			eventPublisher.publishEvent(SeoContentChangeEvent.matchUpdated(normalizedUrl));
+		}
+		return advanceLastmod;
+	}
+
+	private String buildSeoLiveContentFingerprint(CricketDataDTO snapshot) {
+		String score = trimToNull(snapshot.getScore());
+		String over = snapshot.getOver() == null ? null : String.valueOf(snapshot.getOver());
+		String currentBall = trimToNull(snapshot.getCurrentBall());
+		String announcement = trimToNull(snapshot.getMatchAnnouncement());
+		String finalResult = trimToNull(snapshot.getFinalResultText());
+		String battingTeam = trimToNull(snapshot.getBattingTeamName());
+		String toss = trimToNull(snapshot.getTossInfo());
+		if (score == null && over == null && currentBall == null && announcement == null
+				&& finalResult == null && battingTeam == null && toss == null) {
+			return null;
+		}
+
+		String source = String.join("|", safe(score), safe(over), safe(currentBall),
+				safe(announcement), safe(finalResult), safe(battingTeam), safe(toss));
+		try {
+			byte[] digest = MessageDigest.getInstance("SHA-256")
+					.digest(source.getBytes(StandardCharsets.UTF_8));
+			StringBuilder hex = new StringBuilder(64);
+			for (byte value : digest) {
+				hex.append(String.format("%02x", value));
+			}
+			return hex.toString();
+		} catch (NoSuchAlgorithmException impossible) {
+			throw new IllegalStateException("SHA-256 unavailable", impossible);
+		}
+	}
+
+	private String trimToNull(String value) {
+		if (value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		return value.trim();
+	}
+
+	private String safe(String value) {
+		return value == null ? "" : value;
+	}
+
     private boolean isLiveLike(LiveMatch match) {
         if (match.getStatus() == null) {
             return !match.isDeleted();
@@ -460,6 +578,11 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         return apiKey != null ? apiKey : extractExternalMatchKey(url);
     }
 
+    private String extractCatalogIdentity(String url) {
+        String identity = CrexMatchUrlHelper.matchIdentityKey(url);
+        return identity == null ? "row:" + String.valueOf(url) : identity;
+    }
+
     @PostConstruct
     public void reconcileDuplicateMatchRowsOnStartup() {
         reconcileDuplicateMatchRows();
@@ -470,10 +593,10 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         for (LiveMatch match : matches) {
             normalizeStoredCatalogText(match);
         }
-        Map<String, List<LiveMatch>> byExternalKey = matches.stream()
-                .filter(match -> !isBlank(match.getExternalMatchKey()))
-                .collect(Collectors.groupingBy(LiveMatch::getExternalMatchKey));
-        for (Map.Entry<String, List<LiveMatch>> entry : byExternalKey.entrySet()) {
+        Map<String, List<LiveMatch>> byIdentity = matches.stream()
+                .filter(this::isValidCatalogMatch)
+                .collect(Collectors.groupingBy(match -> extractCatalogIdentity(match.getUrl())));
+        for (Map.Entry<String, List<LiveMatch>> entry : byIdentity.entrySet()) {
             if (entry.getValue().size() < 2) {
                 continue;
             }
@@ -488,7 +611,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
                 duplicate.setDeleted(true);
                 duplicate.setDeletionAttempts(2);
                 liveMatchRepository.save(duplicate);
-                logger.warn("Soft-deleted duplicate catalog row {} for CREX key {}; keeping {}", duplicate.getId(), entry.getKey(), keeper.getId());
+                logger.warn("Soft-deleted duplicate catalog row {} for catalog identity {}; keeping {}", duplicate.getId(), entry.getKey(), keeper.getId());
             }
         }
     }
@@ -524,6 +647,20 @@ public class LiveMatchServiceImpl implements LiveMatchService {
             return scheduledStart != null && scheduledStart > System.currentTimeMillis();
         }
 
+        // A terminal URL must carry a result decision, otherwise it is only a
+        // historical catalogue shell.  The sitemap applies the same guard;
+        // keeping it here makes match cohorts, canonical SSR resolution, and
+        // published URLs agree instead of advertising a page we cannot make
+        // meaningfully different from every other empty result page.
+        if (match.getStatus().isTerminal()) {
+            if (match.getStatus() == MatchLifecycleStatus.ABANDONED) {
+                return true;
+            }
+            String evidence = String.valueOf(match.getResultSummary()) + " "
+                    + String.valueOf(match.getLastKnownState());
+            return hasTerminalResultSignal(evidence);
+        }
+
         return true;
     }
 
@@ -545,18 +682,27 @@ public class LiveMatchServiceImpl implements LiveMatchService {
 
     private LiveMatch findExistingMatch(String externalKey, String url) {
         LiveMatch existing = null;
-        if (externalKey != null && !externalKey.trim().isEmpty()) {
-            List<LiveMatch> matches = liveMatchRepository.findByExternalMatchKeyOrderByIdDesc(externalKey);
-            if (matches != null && !matches.isEmpty()) {
-                existing = matches.get(0);
-                if (matches.size() > 1) {
-                    logger.warn("Multiple matches found for external key {}. Using latest record {}",
-                            externalKey, existing.getId());
-                }
+        if (url != null && !url.trim().isEmpty()) {
+            existing = liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(url);
+            if (existing != null) {
+                return existing;
             }
         }
-        if (existing == null && url != null && !url.trim().isEmpty()) {
-            existing = liveMatchRepository.findFirstByUrlContainingOrderByIdDesc(url);
+        if (externalKey != null && !externalKey.trim().isEmpty()) {
+            List<LiveMatch> matches = liveMatchRepository.findByExternalMatchKeyOrderByIdDesc(externalKey);
+            String requestedIdentity = extractCatalogIdentity(url);
+            if (matches != null) {
+                for (LiveMatch candidate : matches) {
+                    if (candidate != null && requestedIdentity.equals(extractCatalogIdentity(candidate.getUrl()))) {
+                        existing = candidate;
+                        break;
+                    }
+                }
+                if (existing == null && !matches.isEmpty()) {
+                    logger.warn("Rejected {} catalog rows for short CREX key {} because their team families differ from {}",
+                            matches.size(), externalKey, requestedIdentity);
+                }
+            }
         }
         return existing;
     }
@@ -584,21 +730,21 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         Map<String, List<LiveMatch>> matchesByIdentity = liveMatchRepository.findAll().stream()
                 .filter(this::isValidCatalogMatch)
                 .collect(Collectors.groupingBy(
-                        match -> isBlank(extractCatalogMatchKey(match.getUrl()))
+                        match -> isBlank(extractCatalogIdentity(match.getUrl()))
                                 ? "row:" + match.getId()
-                                : extractCatalogMatchKey(match.getUrl()),
+                                : extractCatalogIdentity(match.getUrl()),
                         LinkedHashMap::new,
                         Collectors.toList()));
 
         List<LiveMatch> resolved = new ArrayList<>();
         for (List<LiveMatch> aliases : matchesByIdentity.values()) {
             LiveMatch owner = aliases.stream().min(Comparator
-                    // Keep the most specific stable URL when a provider emits
-                    // both "1st Test" and the lossy "1st match" alias. A
-                    // deleted alias is still a better owner than publishing a
-                    // second, weaker identity for the same source match key.
-                    .comparingInt(this::canonicalSlugSpecificity).reversed()
-                    .thenComparing(LiveMatch::isDeleted)
+                    // Never let a retired alias hide an active row for the same
+                    // provider key. Among rows in the same lifecycle phase, keep
+                    // the most specific stable URL when a provider emits both
+                    // "1st Test" and a lossy "1st match" alias.
+                    .comparing(LiveMatch::isDeleted)
+                    .thenComparing(Comparator.comparingInt(this::canonicalSlugSpecificity).reversed())
                     .thenComparing(match -> match.getId() == null ? Long.MAX_VALUE : match.getId()))
                     .orElse(null);
             LiveMatch freshest = aliases.stream().max(Comparator
@@ -669,6 +815,7 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         // live catalogue. Only clearly multi-day fixtures may survive an
         // empty authoritative live discovery cycle.
         return context.contains("test") || context.contains("first-class")
+                || context.contains("multi day") || context.contains("multi-day")
                 || context.contains("2-day") || context.contains("two-day")
                 || context.contains("3-day") || context.contains("three-day")
                 || context.contains("4-day") || context.contains("four-day");
@@ -698,7 +845,8 @@ public class LiveMatchServiceImpl implements LiveMatchService {
         String context = (String.valueOf(match.getMatchFormat()) + " "
                 + String.valueOf(match.getSeriesName()) + " "
                 + String.valueOf(match.getUrl())).toLowerCase();
-        if (context.contains("test") || context.contains("first-class") || context.contains("4-day")
+        if (context.contains("test") || context.contains("first-class") || context.contains("multi day")
+                || context.contains("multi-day") || context.contains("4-day")
                 || context.contains("four-day")) {
             return 8L * ONE_DAY_MS;
         }

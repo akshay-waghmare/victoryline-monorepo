@@ -163,6 +163,25 @@ public class CricketDataControllerTest {
         assertThat(body.get("result")).isEqualTo("BAN lead by 153 runs");
     }
 
+    @Test
+    public void canonicalSnapshotDoesNotCrossLinkUnrelatedMatchesWithTheSameCrexShortKey() throws Exception {
+        String requestedSlug = "cz-vs-ez-1st-semi-final-duleep-trophy-2026-match-updates-13HY";
+        LiveMatch unrelated = new LiveMatch(
+                "https://crex.com/cricket-live-score/ban-w-vs-ina-w-4th-match-womens-asia-cup-2026-match-updates-13HY");
+        unrelated.setTeam1Name("Bangladesh Women");
+        unrelated.setTeam2Name("Indonesia Women");
+        unrelated.setSeriesName("W-Asia Cup 2026");
+        unrelated.setStatus(com.devglan.model.MatchLifecycleStatus.COMPLETED);
+        unrelated.setResultSummary("Bangladesh Women won by 71 runs");
+
+        when(liveMatchService.findIndexableMatches()).thenReturn(Arrays.asList(unrelated));
+        when(matchInfoService.getMatchInfo(requestedSlug)).thenReturn(null);
+
+        ResponseEntity<?> response = controller.getCanonicalMatchSnapshot(requestedSlug);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
     @SuppressWarnings("unchecked")
     private ResponseEntity<String> invokeMergeAndBroadcast(CricketDataDTO data, boolean persist) throws Exception {
         java.lang.reflect.Method method = CricketDataController.class

@@ -17,6 +17,8 @@ description: "Task list template for feature implementation"
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
+- Every CrickZen task list MUST identify the constitution version and related wiki checkpoint
+  in its plan/spec inputs.
 
 ## Path Conventions
 
@@ -151,6 +153,14 @@ Examples of foundational tasks (adjust based on your project):
 **Purpose**: Improvements that affect multiple user stories
 
 - [ ] TXXX [P] Documentation updates in docs/
+- [ ] TXXX [P] Add or update exact runtime/artifact verification and record its evidence boundary
+- [ ] TXXX [P] Add rollback/restore coverage for changed production state
+- [ ] TXXX [P] Record every deployed service image tag and immutable digest plus its rollback image
+- [ ] TXXX [P] Verify bounded managed-live slate stickiness and per-match freshness/watchdog behavior
+- [ ] TXXX [P] Verify provider-resolution canonicalization, immediate shell, and native/visible Back
+- [ ] TXXX [P] Verify repeated-failure escalation reaches the documented admin-visible signal
+- [ ] TXXX [P] Update the relevant CrickZen wiki checkpoint, constitution mirror, index, log,
+  and hot cache when this work creates durable knowledge
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX Validate above-the-fold hierarchy on touched user-facing pages

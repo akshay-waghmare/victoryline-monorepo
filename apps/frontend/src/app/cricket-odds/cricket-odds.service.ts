@@ -36,6 +36,7 @@ export interface PlayerStatsSquadPlayerView {
   announced?: boolean;
   lineupOrder?: number;
   stats?: PlayerStatsSnapshotView[];
+  onDemand?: boolean;
 }
 
 export interface PlayerStatsTeamView {
@@ -107,6 +108,7 @@ export class CricketService {
   private  getScorecardDetails = environment.REST_API_URL + 'cricket-data/' + 'sC4-stats/get';
   private  getPlayerStatsDetails = environment.REST_API_URL + 'crawler/player-stats/match';
   private  getPlayerStatsPlayerDetails = environment.REST_API_URL + 'crawler/player-stats/player';
+  private  getPlayerStatsPlayerByNameDetails = environment.REST_API_URL + 'crawler/player-stats/player/by-name';
   private  getPlayerStatsTeamDetails = environment.REST_API_URL + 'crawler/player-stats/team';
   private  getPlayerStatsSeriesDetails = environment.REST_API_URL + 'crawler/player-stats/series';
   private  getPlayerStatsSeriesStandingsDetails = environment.REST_API_URL + 'crawler/player-stats/series/standings';
@@ -403,6 +405,30 @@ export class CricketService {
       'player',
       externalId,
       source
+    );
+  }
+
+  getPlayerStatsPlayerByName(
+    playerName: string,
+    matchUrl: string,
+    source?: string,
+    role?: string
+  ): Observable<PlayerStatsPlayerDetailView | null> {
+    if (!playerName || !matchUrl) {
+      return of(null);
+    }
+    let params = new HttpParams()
+      .set('playerName', playerName)
+      .set('matchUrl', matchUrl);
+    if (source) { params = params.set('source', source); }
+    if (role) { params = params.set('role', role); }
+    return this.http.get<PlayerStatsPlayerDetailView>(this.getPlayerStatsPlayerByNameDetails, { params: params }).pipe(
+      catchError(err => {
+        if (err && err.status !== 404) {
+          console.warn('CREX player profile hydration failed', err.status);
+        }
+        return of(null);
+      })
     );
   }
 

@@ -1,64 +1,93 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.1.0 → 1.2.0 (Expanded Frontend UI/UX Standards with above-the-fold and progressive disclosure rules)
-Rationale: Recent live-score and SEO iterations regressed the intended above-the-fold
-hierarchy by duplicating hero facts and pushing "at a glance" support blocks too high.
-This amendment makes information hierarchy, hero ownership, and optional secondary SEO
-modules explicit repo-level constraints.
+Version Change: 1.3.0 → 1.4.0 (Added bounded live operations, provider-identity continuity,
+canonical player navigation, crawl-cohort evidence, and incident escalation rules)
+Rationale: The Aug 31–Sep 2 CrickZen work resolved recurring stale-live, short-key collision,
+CREX player hydration, scorecard navigation, and search-discovery failures. This amendment
+makes the resulting operational rules enforceable for future implementation and rollout work.
 
 Principles Established:
-- I. Real-Time Data Accuracy (UNCHANGED)
-- II. Monorepo Architecture Standards (UNCHANGED)
-- III. REST API Design Standards (UNCHANGED)
-- IV. Testing Requirements (UNCHANGED)
-- V. Performance Standards for Live Updates (UNCHANGED)
-- VI. Frontend UI/UX Standards (EXPANDED) - Added above-the-fold ownership and secondary block rules
-
-Key Learnings:
-- Hero surfaces already carry the primary match facts and must not be diluted by repeated
-  summary blocks above the fold
-- "At a glance" content is useful only when it complements the hero instead of restating it
-- Secondary SEO support modules should remain indexable but can be progressively disclosed
-  when they are not the primary user task
-- Repo-level UX law is needed because component-level choices drift during SEO iterations
+- I. Source-Backed Real-Time Data Accuracy (EXPANDED) - Provider truth, identity, lifecycle,
+  freshness, and safe degradation are explicit.
+- II. Monorepo and Public-Surface Architecture Standards (EXPANDED) - Operator, public,
+  canonical, and internal production boundaries are explicit.
+- III. REST and Public API Design Standards (EXPANDED) - Versioning, access, rate limits,
+  noindex distribution surfaces, and historical-data contracts are explicit.
+- IV. Testing and Cross-Boundary Evidence Requirements (EXPANDED) - Focused tests and exact
+  runtime/artifact proof are required for production claims.
+- V. Performance and Snapshot-First Delivery Standards (EXPANDED) - First useful HTML must
+  not wait for optional fan-out, and cold/warm behavior must be measured.
+- VI. Frontend UI/UX Standards (EXPANDED) - Hero ownership, progressive disclosure, and
+  truthful loading/error behavior are enforced.
+- VII. Canonical Lifecycle and SEO/AEO Truth (EXPANDED) - One canonical owner and evidence-backed
+  indexability govern every public match surface.
+- VIII. Evidence-Gated Public Product and Growth (NEW) - Trust, history, distribution, and
+  business claims require reproducible evidence.
+- IX. Safe Rollouts and Durable Continuity (EXPANDED) - Isolated deployment, rollback, wiki,
+  image inventory, and Spec Kit continuity are part of completion.
 
 Templates Status:
-✅ plan-template.md - Constitution Check now includes above-the-fold and hero ownership review
-✅ spec-template.md - Requirements now call out hero ownership and progressive disclosure
-✅ tasks-template.md - Task generation now requires hierarchy validation and secondary block placement
+✅ .specify/templates/plan-template.md - Constitution Check covers lifecycle, evidence,
+  canonical ownership, UX hierarchy, rollout, and continuity gates.
+✅ .specify/templates/spec-template.md - Requirements and success criteria cover lifecycle
+  truth, evidence boundaries, user-facing hierarchy, and outcome claims.
+✅ .specify/templates/tasks-template.md - Cross-cutting tasks cover contract tests, runtime
+  proof, rollback, documentation, and wiki synchronization.
+✅ .github/prompts/speckit.constitution.prompt.md - Constitution changes require a linked
+  CrickZen wiki mirror update and navigation/cache synchronization.
+✅ AGENTS.md - CrickZen work consults both the wiki constitution and repository constitution.
 
 Follow-up Actions:
-- Apply these constraints in future homepage, /matches, live hub, and /cric-live page work
-- Use click-to-expand for key moments or similar supporting blocks when they are useful but
-  not primary above-the-fold content
+- Keep [[CrickZen Constitution]] synchronized with this file on every amendment.
+- Reference the constitution version in new CrickZen specs, checkpoints, and rollout records;
+  keep the current production image tags and immutable digests in the relevant rollout note.
+- Reconcile the current production AEO bundle, upcoming schedule text, fixed historical
+  share/embed links, GSC cohort evidence, and snapshot-first deployment before claiming
+  full acceptance.
 
 Commit Message Suggestion:
-docs: amend constitution to v1.2.0 (protect above-the-fold hierarchy and hero ownership)
+docs: amend constitution to v1.4.0 (bounded live ops and provider continuity)
 -->
 
-# VictoryLine Constitution
+# VictoryLine / CrickZen Constitution
 
 ## Core Principles
 
-### I. Real-Time Data Accuracy (NON-NEGOTIABLE)
+### I. Source-Backed Real-Time Data Accuracy (NON-NEGOTIABLE)
 
-**Live match data MUST be accurate within 5 seconds of actual events.** This is the
-foundation of user trust and the primary value proposition of VictoryLine.
+**Every public score, lifecycle, team identity, schedule, and probability MUST be
+source-backed, timestamped, and semantically correct.** Fresh timestamps alone do not
+prove that the underlying state is correct.
 
 Requirements:
-- Scraper polls live matches every 60 seconds minimum during active play
+- Authoritative provider discovery MUST define the active live slate; an empty discovery
+  result MUST remain empty and MUST NOT resurrect stale backend rows.
+- Scraper polls selected live matches every 60 seconds minimum during active play
 - Backend validates all incoming data before persisting (schema validation, range checks)
-- Frontend displays loading states during data refresh (no stale data confusion)
+- Match identity MUST preserve provider-confirmed batting/bowling roles and recognize
+  documented aliases such as `NEP-A` and `Nepal`.
+- Provider short keys MUST NOT be treated as globally unique. A match identity MUST include
+  the normalized team/format family and the provider URL or scoped key before rows, aliases,
+  snapshots, or canonical routes are joined.
+- A bounded live-management cap is permitted to protect provider and server load. The
+  persisted managed slate MUST be sticky across discovery cycles and scraper restarts; a
+  selected match remains managed until credible terminal evidence, and only a released slot
+  may be filled by a new candidate.
+- Freshness and watchdog coverage MUST be evaluated per managed match. A global scrape
+  timestamp, aggregate coverage ratio, or total provider-live count MUST NOT hide a stale
+  selected match.
 - Every data point MUST include a timestamp (ISO 8601 format)
 - Data staleness indicators: >30s = warning, >120s = error state displayed to users
-- Graceful degradation: If scraper fails, display last known good data with clear staleness warning
+- Graceful degradation MUST display last known good data with a clear staleness warning;
+  it MUST NOT display fabricated, placeholder, or default `0/0` facts as current truth.
+- A fresh write with an empty or semantically default state MUST be treated as an accuracy
+  failure, not as successful freshness.
 
-Rationale: Inaccurate or delayed cricket scores destroy user trust immediately. Users will
-abandon the platform if they receive score updates later than other sources. Real-time
-accuracy is our competitive advantage.
+Rationale: Inaccurate or delayed cricket facts destroy trust immediately. Correct provider
+identity, lifecycle, and score semantics matter as much as update frequency.
 
-### II. Monorepo Architecture Standards
+### II. Monorepo and Public-Surface Architecture Standards
 
 **Three independent services communicate via REST APIs only.** No direct database access
 across service boundaries. Each service maintains its own build, test, and deployment pipeline.
@@ -85,11 +114,25 @@ Shared Contracts:
 - Breaking changes require MAJOR version bump and migration plan
 - Each service validates contracts at boundaries (request/response schemas)
 
+CrickZen Surface Boundaries:
+- `www.crickzen.com/cric-live/{slug}` is the canonical public match owner.
+- `/player/{externalId}/{slug}` is the canonical public individual-player owner. The
+  scorecard may resolve a name through the selected provider match, but it MUST NOT publish
+  a fabricated or unrelated player identity.
+- `prediction.crickzen.com` is the public prediction, methodology, history, creator,
+  partner, media, share, and embed product surface.
+- `app.crickzen.com` remains the operator/dashboard surface; operator controls and Streamlit
+  controls MUST NOT leak into the public prediction host.
+- Share and embed pages support distribution, remain `noindex`, and point to the canonical
+  main-domain match page.
+- TrueOdds is an internal verified-artifact producer. Private controls, arbitrary local
+  paths, and unverified files MUST NOT be exposed as public product behavior.
+
 Rationale: Service independence enables parallel development by different teams,
 independent scaling, technology choice flexibility, and fault isolation. If one service
 fails, others continue operating with degraded functionality.
 
-### III. REST API Design Standards (ENFORCED)
+### III. REST and Public API Design Standards (ENFORCED)
 
 **All APIs MUST follow consistent REST conventions for predictability and maintainability.**
 
@@ -153,14 +196,27 @@ Versioning:
 - Maintain previous version for 6 months minimum after new version release
 - Document deprecation timeline in API response headers (`X-API-Deprecated: true`)
 
+Public-data contracts:
+- Public prediction APIs MUST be versioned, rate-limited, CORS-scoped, and covered by
+  structured error and contract tests before being presented as developer integrations.
+- Read-only history responses MUST be whitelist-only and MUST NOT expose raw predictor
+  features, private paths, or internal rolling state.
+- Canonical and match-info APIs MUST return `404` for unresolved upcoming identities that
+  lack authoritative lifecycle evidence; stale stored metadata alone is not sufficient.
+- Historical records MUST be immutable after publication; archive IDs MUST be stable and
+  derived from normalized source identity rather than temporary process identity.
+- Provider-backed player lookup MUST be scoped to the selected match URL when a roster ID is
+  absent. A global catalog search is an optimization only; it MUST NOT substitute an
+  unrelated first result for a verified provider identity.
+
 Rationale: Consistent API design reduces cognitive load for frontend developers,
 simplifies client SDK generation, enables automated testing, and improves API
 discoverability. Standards prevent "works on my machine" integration issues.
 
-### IV. Testing Requirements
+### IV. Testing and Cross-Boundary Evidence Requirements
 
 **Testing is mandatory for production deployments.** Untested code MUST NOT merge to
-production branches.
+production branches, and a source-only green check MUST NOT be reported as runtime success.
 
 Backend (Spring Boot) - REQUIRED:
 - Unit tests: >80% code coverage (services, repositories, utilities)
@@ -168,14 +224,16 @@ Backend (Spring Boot) - REQUIRED:
 - Test database: H2 in-memory (never test against production DB)
 - Mock external dependencies (Scraper API) using WireMock or similar
 - Contract tests: Validate request/response schemas match documentation
-- Run tests: `mvn test` (must pass before merge)
+- Run tests: `mvn test` (must pass before merge, or any unrelated baseline failure MUST be
+  named, isolated, and recorded rather than silently ignored)
 
 Frontend (Angular) - REQUIRED:
 - Unit tests: >70% code coverage (components, services, pipes)
 - Component tests: Render components with test data, verify UI updates
 - Service tests: Mock HTTP calls using Angular's HttpTestingController
 - E2E tests: Critical user flows only (login, view live match, player stats)
-- Run tests: `ng test` (unit), `ng e2e` (E2E) (must pass before merge)
+- Run tests: `ng test` (unit), `ng e2e` (E2E) (must pass before merge; focused changed-surface
+  checks MUST be identified when the repository baseline is not green)
 
 Scraper (Python) - REQUIRED:
 - Unit tests: >75% code coverage (parsers, data processors)
@@ -183,6 +241,18 @@ Scraper (Python) - REQUIRED:
 - Edge case tests: Rain delays, super overs, tied matches, abandoned matches
 - Run tests: `pytest` (must pass before merge)
 - Test fixtures: Real HTML snapshots from cricket websites (anonymized)
+
+Production evidence:
+- Every production change MUST have a changed-surface test result, an exact deployed image
+  or source-artifact identity, a public or authenticated runtime proof appropriate to the
+  surface, and a retained rollback path.
+- Normal-browser, desktop-Googlebot, and mobile-Googlebot checks are synthetic request
+  profiles; they MUST NOT be described as proof of real Google crawling or indexing.
+- Public API health, HTTP 200, fresh timestamps, SSR, schema, or a deployed image MUST NOT
+  be presented alone as proof of ranking, traffic, engagement, citation, or business value.
+- Critical browser journeys MUST include route-history assertions where navigation is part of
+  the contract. For scorecard-to-player flows, proof MUST cover the immediate loading shell,
+  canonical player route, populated/error boundary, and return to the originating scorecard.
 
 Test-Driven Development (TDD):
 - TDD is ENCOURAGED but not mandated for all features
@@ -193,13 +263,18 @@ Rationale: Tests prevent regressions, document expected behavior, enable confide
 refactoring, and reduce manual QA burden. High-stakes features (user data, live scores)
 require higher test confidence.
 
-### V. Performance Standards for Live Updates
+### V. Performance and Snapshot-First Delivery Standards
 
 **Live cricket updates must feel instantaneous to users.** Perceived performance is as
 important as actual performance.
 
 Frontend Performance:
 - Initial page load: <3 seconds (First Contentful Paint)
+- Verified canonical snapshot HTML MUST be sent before optional commentary, scorecard,
+  model, or retained-entity fan-out can delay the first useful document.
+- Provider-backed secondary pages MUST paint stable identity and truthful loading state before
+  secondary data arrives. Provider latency MUST be measured separately from route-transition
+  latency and MUST NOT be hidden with a legacy modal or fabricated data.
 - Live score updates: Display within 5 seconds of actual event
 - Update mechanism: WebSocket (preferred) or polling every 5 seconds (fallback)
 - Smooth animations: 60 fps (no janky scrolling or transitions)
@@ -226,6 +301,8 @@ Monitoring:
 - Log all API response times (>95th percentile alerts)
 - Alert if scraper fails 3 consecutive times for a match
 - Track frontend performance metrics (Lighthouse CI in build pipeline)
+- Measure cold and warm SSR separately, including TTFB, cache headers, payload size, and
+  fallback level. Warm-cache performance MUST NOT conceal a cold-path regression.
 
 Rationale: Live sports require real-time performance. Users expect instant updates. Slow
 performance leads to user frustration and churn. Performance is a feature.
@@ -251,6 +328,13 @@ Information Hierarchy (NON-NEGOTIABLE):
   behind an intentional expand/collapse interaction when not primary.
 - **No SEO-Led Hero Degradation**: SEO copy, internal-link clusters, schema-support
   modules, and discovery aids MUST NOT displace live utility, readability, or hero clarity.
+- **Truthful AEO Content**: An indexable answer block MUST contain only populated,
+  source-backed lifecycle facts. Loading, error, stale, placeholder, and unsupported
+  probability copy MUST NOT be emitted as indexable answer content.
+- **Canonical Navigation Continuity**: A temporary provider-resolution route MUST be replaced
+  when canonical identity is known. It MUST NOT trap browser history. Canonical player pages
+  MUST preserve a sanitized local return path to the originating match surface, and visible
+  Back behavior MUST be tested alongside native browser Back.
 - **One Primary Story Per Screen**: Each screen must have a clear first job. Homepage,
   `/matches`, live hubs, and canonical match pages may support SEO, but the first visual
   contract MUST remain obvious to a human user within one quick scan.
@@ -401,6 +485,99 @@ Lessons Learned (Feature 001 - Modern UI Redesign):
 - Debounced theme toggle prevented 87% of reported "flashing" issues
 - FPS monitoring caught animation issues on low-end devices before production
 
+### VII. Canonical Lifecycle and SEO/AEO Truth (NON-NEGOTIABLE)
+
+**Each match intent MUST have one canonical owner, one authoritative lifecycle, and one
+evidence-backed indexability decision.** Sitemaps, hubs, APIs, SSR, hydration, schema, and
+navigation MUST agree on the same lifecycle contract.
+
+Requirements:
+- Canonical match ownership MUST remain on `/cric-live/{slug}`; supporting intelligence,
+  share, and embed routes MUST NOT compete as indexable duplicates.
+- Indexable upcoming pages MUST have a real future schedule; live-like pages MUST have
+  authoritative live or multi-day evidence; completed pages MUST have terminal result or
+  retained-result evidence. Stored metadata alone MUST NOT create indexable lifecycle truth.
+- Limited-overs `Innings Break` MUST NOT be treated as multi-day retention evidence. Valid
+  Test, first-class, or explicit multi-day `Stumps` states MAY remain live-like while their
+  lifecycle window remains open.
+- Provider `Multi Day`/`multi-day` labels, `Stumps`, and lead summaries MUST be interpreted
+  through the format-specific lifecycle contract; a multi-day match MUST NOT be completed by
+  a limited-overs retention rule.
+- Deterministic priority sitemap cohorts MUST contain each canonical URL exactly once across
+  sitemap children. IndexNow or search-engine submission receipts MUST be recorded as
+  notifications, not represented as proof of crawling or indexing.
+- Hubs, sitemap projections, catalogue rows, canonical resolution, and match-info lookup
+  MUST reject placeholders, stale upcoming rows, deleted-row re-inference, and duplicate
+  primary/discovery anchors.
+- SSR and hydration MUST preserve the authoritative transferred snapshot. Empty or null
+  refresh responses MUST NOT erase verified state or replace it with a default shell.
+- AEO, JSON-LD, visible facts, and browser-hydrated facts MUST agree. A stale point-in-time
+  canary MUST be marked historical when a later audit contradicts it.
+
+Rationale: Search engines and users both experience the combined catalogue, document,
+hydrated UI, and links. A correct individual endpoint cannot compensate for contradictory
+public surfaces.
+
+### VIII. Evidence-Gated Public Product and Growth
+
+**Public prediction, history, creator distribution, and growth claims MUST earn trust from
+reproducible data and useful user outcomes.** Technical delivery is a prerequisite, not
+the outcome itself.
+
+Requirements:
+- Public prediction results MUST be useful before consent-based follow, alert, email, or
+  contact capture is requested.
+- Public history MUST use write-once records that begin with a non-terminal forecast and
+  end with verified outcome evidence. Terminal-clamped forecasts MUST NOT be treated as
+  original predictions.
+- The history surface MUST remain `collecting` until at least 30 eligible matches are
+  reviewed for duplicate URLs, identity reversal, abandoned/tied outcomes, stale sidecars,
+  and terminal-clamp leakage. A small sample MUST NOT support a general accuracy claim.
+- Creator packs MUST bind match identity, canonical URL, source timestamp, probability,
+  caveat, attribution, rendered assets, and a reproducible manifest. Fixed historical
+  samples MUST use immutable archive/share IDs before outreach.
+- Outreach MUST use relevant, personalized, evidence-backed destinations. Bulk directories,
+  link dumping, fabricated contacts, guaranteed-win claims, betting advice, and unsupported
+  probabilities are prohibited.
+- Success MUST be measured separately for discovery, utility completion, owned relationship,
+  distribution, original evidence, repeat use, and business outcomes.
+
+Rationale: CrickZen's defensible advantage is useful, explainable, repeatable intelligence,
+not a raw backlink count, a three-match metric, or a technical SEO score.
+
+### IX. Safe Rollouts and Durable Continuity
+
+**A CrickZen change is complete only when its implementation, runtime boundary, rollback,
+and durable documentation agree.** The project must preserve user data, unrelated work,
+and historical truth while moving quickly.
+
+Requirements:
+- Dirty worktrees and production checkouts MUST NOT be used as implicit build sources for
+  narrow rollouts. Use an isolated clean snapshot with explicit overlays and preserve
+  unrelated changes.
+- Production changes MUST be narrow, ordered, health-checked, and accompanied by a named
+  rollback image, source copy, or configuration backup. Persistent storage MUST be preserved.
+- Completion claims MUST cite the exact runtime, public endpoint, authenticated surface, or
+  immutable artifact that proves the claim. Source edits and health checks alone are not
+  completion proof.
+- Historical checkpoint evidence MUST be separated from current runtime proof. When a later
+  audit contradicts an earlier claim, record the contradiction and current resolution;
+  never silently overwrite the historical record.
+- Every durable CrickZen decision, checkpoint, contradiction, and verified rollout MUST be
+  represented in the Agentic OS wiki and linked from its navigation/cache. The wiki MUST
+  include the current constitution version and its synchronization date.
+- Every production service image used in a rollout MUST be recorded with service, tag,
+  immutable digest, deployment date, and named rollback/preserved image where available.
+- A host-level scraper watchdog MUST check the container and each managed match at least
+  once per minute, restart only within a bounded cooldown policy, and emit an admin-visible
+  critical signal after repeated failures or unresolved staleness. A healthy container alone
+  is not proof that every selected match is fresh.
+- Every new or amended Spec Kit artifact MUST consult the repository constitution and the
+  wiki constitution mirror before implementation or diagnosis.
+
+Rationale: Continuity is an operational control. Without exact evidence, rollback, and
+shared memory, later agents can repeat resolved incidents or trust superseded claims.
+
 ## Development Workflow
 
 **Code Quality Gates** (ENFORCED):
@@ -446,8 +623,11 @@ Lessons Learned (Feature 001 - Modern UI Redesign):
 
 ## Governance
 
-**Constitution Authority**: This constitution supersedes all other development practices
-and documentation. When conflicts arise, constitution takes precedence.
+**Constitution Authority**: This constitution is the normative repository source for
+CrickZen development practices. The Agentic OS wiki page `[[CrickZen Constitution]]` is
+the durable continuity mirror for rationale, current checkpoints, contradictions, and
+operating memory. When the two disagree, verify the repository and runtime evidence,
+then reconcile both records; do not silently choose the convenient version.
 
 **Amendment Process**:
 1. Propose amendment via pull request to `.specify/memory/constitution.md`
@@ -455,7 +635,10 @@ and documentation. When conflicts arise, constitution takes precedence.
 3. Require team consensus (majority vote, quorum of 50%+1)
 4. Document version bump reasoning (MAJOR/MINOR/PATCH)
 5. Update dependent templates and docs in same PR
-6. Announce changes in team channel before merge
+6. Update `wiki/meta/CrickZen Constitution.md`, `wiki/index.md`, `wiki/log.md`, and
+   `wiki/hot.md` in the same change using the wiki lock/save workflow
+7. Update `AGENTS.md` or Spec Kit prompts when the enforcement workflow changes
+8. Announce changes in team channel before merge
 
 **Version Semantics** (Semantic Versioning):
 - **MAJOR**: Backward-incompatible principle removals or redefinitions (breaking changes)
@@ -467,6 +650,10 @@ and documentation. When conflicts arise, constitution takes precedence.
 - `/speckit.plan` command includes Constitution Check gate (MUST pass)
 - Monthly constitution review: Are we following it? Is it still relevant?
 - Violations documented in PR review with reference to specific principle
+- Every CrickZen work session MUST confirm the repository constitution version and the
+  wiki mirror version/date before implementation, diagnosis, review, or rollout.
+- Any durable decision, checkpoint, contradiction, or verified rollout MUST link the
+  applicable constitution principle and update the wiki navigation/cache.
 
 **Living Document**: This constitution is expected to evolve. Challenge principles that
 no longer serve the project. Update principles that block productivity without improving
@@ -476,10 +663,17 @@ quality. Archive obsolete sections rather than deleting (preserve history).
 - Use `/speckit.constitution` command to view or update this document
 - Consult constitution before major architectural decisions
 - Link to specific principles in PR discussions when relevant
+- Consult `wiki/meta/CrickZen Constitution.md` for durable rationale and current operating
+  context; keep it synchronized whenever this file changes
 
-**Version**: 1.2.0 | **Ratified**: 2025-11-06 | **Last Amended**: 2026-06-30
+**Version**: 1.4.0 | **Ratified**: 2025-11-06 | **Last Amended**: 2026-09-02
 
 **Amendment History**:
+- v1.4.0 (2026-09-02): Added bounded sticky live-slate and per-match watchdog rules,
+  scoped provider identity, canonical scorecard-to-player navigation, first-render latency
+  evidence, priority sitemap/IndexNow boundaries, and production image inventory requirements
+- v1.3.0 (2026-08-27): Added source-backed lifecycle truth, canonical/AEO rules, cross-boundary
+  evidence gates, public prediction trust rules, safe rollout requirements, and wiki continuity
 - v1.2.0 (2026-06-30): Expanded Principle VI with above-the-fold discipline, hero ownership, and progressive disclosure rules for secondary SEO/support blocks
 - v1.1.0 (2025-11-07): Added Principle VI - Frontend UI/UX Standards based on Feature 001 learnings
 - v1.0.0 (2025-11-06): Initial constitution ratification with 5 core principles

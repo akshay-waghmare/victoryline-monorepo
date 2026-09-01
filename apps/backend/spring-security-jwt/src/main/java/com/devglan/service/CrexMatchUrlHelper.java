@@ -13,6 +13,8 @@ import java.util.regex.Pattern;
 public final class CrexMatchUrlHelper {
 
     private static final Pattern CREX_API_KEY_PATTERN = Pattern.compile("-match-updates-([A-Za-z0-9]+)$");
+    private static final Pattern MATCH_FAMILY_PATTERN = Pattern.compile(
+            "^(.+?-vs-.+?)-\\d+(?:st|nd|rd|th)-.*$", Pattern.CASE_INSENSITIVE);
     private static final Pattern SAFE_MATCH_SLUG_PATTERN = Pattern.compile("[A-Za-z0-9&-]+");
     private static final Pattern PLACEHOLDER_TEAM_PATTERN = Pattern.compile(
             "^(?:null|undefined|tbd|tba|unknown|team(?:-(?:1|2|a|b))?)(?:-|$)",
@@ -50,6 +52,51 @@ public final class CrexMatchUrlHelper {
         }
         Matcher matcher = CREX_API_KEY_PATTERN.matcher(parts.get(parts.size() - 1));
         return matcher.find() ? matcher.group(1) : null;
+    }
+
+    /**
+     * Returns whether two human-readable CREX slugs describe the same team
+     * pairing. CREX short update keys are not globally unique, so they may be
+     * used for aliasing only inside this family (for example, "1st test" and
+     * "1st match"), never across unrelated fixtures.
+     */
+    public static boolean isSameMatchFamily(String firstSlug, String secondSlug) {
+        String firstFamily = extractMatchFamilyKey(firstSlug);
+        String secondFamily = extractMatchFamilyKey(secondSlug);
+        return firstFamily != null && firstFamily.equalsIgnoreCase(secondFamily);
+    }
+
+    /**
+     * Returns the catalogue identity used for deduplication. CREX's short key
+     * is scoped to the teams in the slug because that key can recur in another
+     * match, while wording aliases in the same family remain deduplicated.
+     */
+    public static String matchIdentityKey(String slugOrUrl) {
+        String slug = extractMatchKey(slugOrUrl);
+        if (!hasText(slug)) {
+            return null;
+        }
+        String stableKey = extractCrexApiKey(slug);
+        if (hasText(stableKey)) {
+            String family = extractMatchFamilyKey(slug);
+            if (hasText(family)) {
+                return "crex:" + family + "|" + stableKey.toLowerCase(Locale.ROOT);
+            }
+        }
+        return "slug:" + slug.toLowerCase(Locale.ROOT);
+    }
+
+    private static String extractMatchFamilyKey(String slug) {
+        if (!hasText(slug)) {
+            return null;
+        }
+        String normalized = slug.trim().toLowerCase(Locale.ROOT);
+        Matcher matcher = MATCH_FAMILY_PATTERN.matcher(normalized);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        }
+        int updatesMarker = normalized.indexOf("-match-updates-");
+        return updatesMarker > 0 ? normalized.substring(0, updatesMarker) : normalized;
     }
 
     /**

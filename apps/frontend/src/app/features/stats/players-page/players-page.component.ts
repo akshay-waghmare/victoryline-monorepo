@@ -42,6 +42,10 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
   isDetailLoading = false;
   detailOpen = false;
   isProfileRoute = false;
+  private profileReturnUrl: string | null = null;
+  private profileRetryTimer: any = null;
+  private profileRetryAttempt = 0;
+  private readonly maxProfileRetryAttempts = 30;
 
   constructor(
     private cricketService: CricketService,
@@ -55,14 +59,29 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const externalId = this.route.snapshot.paramMap.get('externalId');
-    if (externalId) {
+    const pendingSlug = this.route.snapshot.paramMap.get('pendingSlug');
+    if (pendingSlug) {
       this.isProfileRoute = true;
-      this.openPlayerProfile(externalId, this.route.snapshot.paramMap.get('slug') || 'player');
+      this.openPendingPlayerProfile(
+        this.route.snapshot.queryParamMap.get('name') || pendingSlug.replace(/-/g, ' '),
+        this.route.snapshot.queryParamMap.get('matchUrl') || '',
+        this.route.snapshot.queryParamMap.get('returnTo') || ''
+      );
       return;
     }
 
-    this.titleService.setTitle('Players | Crickzen');
+    const externalId = this.route.snapshot.paramMap.get('externalId');
+    if (externalId) {
+      this.isProfileRoute = true;
+      this.openPlayerProfile(
+        externalId,
+        this.route.snapshot.paramMap.get('slug') || 'player',
+        this.route.snapshot.queryParamMap.get('returnTo') || ''
+      );
+      return;
+    }
+
+    this.titleService.setTitle('Players | CrickZen');
     this.loadPlayers();
     this.searchSubject.pipe(
       debounceTime(300),
@@ -75,6 +94,10 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.profileRetryTimer) {
+      clearTimeout(this.profileRetryTimer);
+      this.profileRetryTimer = null;
+    }
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -109,8 +132,9 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
     return '/player/' + encodeURIComponent(player.externalId) + '/' + this.toSlug(this.getPlayerDisplayName(player));
   }
 
-  private openPlayerProfile(externalId: string, slug: string): void {
+  private openPlayerProfile(externalId: string, slug: string, returnTo?: string): void {
     const name = this.getPlayerDisplayName({ externalId: externalId, name: slug.replace(/-/g, ' ') });
+    this.profileReturnUrl = this.resolveProfileReturnUrl(returnTo);
     if (isPlatformBrowser(this.platformId)) {
       window.scrollTo(0, 0);
     }
@@ -118,31 +142,154 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
     this.detailOpen = true;
     this.selectedPlayer = null;
     this.selectedPlayerSummary = { externalId: externalId, name: name };
-    this.titleService.setTitle(name + ' Cricket Profile | Crickzen');
+    this.profileRetryAttempt = 0;
+    if (this.profileRetryTimer) {
+      clearTimeout(this.profileRetryTimer);
+      this.profileRetryTimer = null;
+    }
+    this.titleService.setTitle(name + ' Cricket Profile | CrickZen');
     const profileKey = makeStateKey<PlayerStatsPlayerDetailView | null>('player-profile:' + externalId);
     const hydrated = isPlatformBrowser(this.platformId) ? this.transferState.get(profileKey, null) : null;
     if (hydrated) {
-      this.applyPlayerProfile(hydrated);
       this.transferState.remove(profileKey);
+      if (this.hasPlayerProfileData(hydrated)) {
+        this.applyPlayerProfile(hydrated);
+      } else {
+        this.applyPendingPlayerProfile(hydrated);
+        this.schedulePlayerProfileRetry(externalId, profileKey);
+      }
       return;
     }
 
+    this.loadPlayerProfile(externalId, profileKey);
+  }
+
+  private openPendingPlayerProfile(name: string, matchUrl: string, returnTo?: string): void {
+    this.profileReturnUrl = this.resolveProfileReturnUrl(returnTo);
+    if (isPlatformBrowser(this.platformId)) {
+      window.scrollTo(0, 0);
+    }
+    this.isDetailLoading = true;
+    this.detailOpen = true;
+    this.selectedPlayer = null;
+    this.selectedPlayerSummary = { externalId: '', name: name };
+    this.titleService.setTitle(name + ' Cricket Profile | CrickZen');
+
+    if (!matchUrl) {
+      this.isDetailLoading = false;
+      this.notifyStatsUnavailable(name);
+      return;
+    }
+
+    this.cricketService.getPlayerStatsPlayerByName(name, matchUrl, 'crex').pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(
+      detail => {
+        if (detail && detail.externalId) {
+          if (isPlatformBrowser(this.platformId)) {
+            this.router.navigate(
+              ['/player', detail.externalId, this.toSlug(this.getPlayerDisplayName(detail) || name)],
+              {
+                // The resolver is an implementation detail. Replace it so
+                // browser Back returns to the scorecard instead of re-running
+                // the same CREX lookup and appearing stuck.
+                replaceUrl: true,
+                state: this.profileReturnUrl ? { returnTo: this.profileReturnUrl } : undefined
+              }
+            );
+          } else {
+            this.applyPendingPlayerProfile(detail);
+            if (this.hasPlayerProfileData(detail)) {
+              this.applyPlayerProfile(detail);
+            }
+          }
+          return;
+        }
+        this.isDetailLoading = false;
+        this.notifyStatsUnavailable(name);
+      },
+      () => {
+        this.isDetailLoading = false;
+        this.notifyStatsUnavailable(name);
+      }
+    );
+  }
+
+  private loadPlayerProfile(externalId: string, profileKey: any): void {
     this.cricketService.getPlayerStatsPlayer(externalId, 'crex').pipe(
       takeUntil(this.destroy$)
     ).subscribe(
       (detail) => {
-        this.applyPlayerProfile(detail);
-        if (isPlatformServer(this.platformId)) {
-          this.transferState.set(profileKey, detail);
+        if (this.hasPlayerProfileData(detail)) {
+          this.applyPlayerProfile(detail);
+          if (isPlatformServer(this.platformId)) {
+            this.transferState.set(profileKey, detail);
+          }
+          return;
         }
+
+        // The API can return a pending identity while the scraper hydrates the
+        // CREX profile. Keep the canonical page visible and retry in-browser;
+        // do not turn this normal async state into a false "unavailable".
+        this.applyPendingPlayerProfile(detail);
+        this.schedulePlayerProfileRetry(externalId, profileKey);
       },
       () => {
+        if (isPlatformBrowser(this.platformId) && this.profileRetryAttempt < this.maxProfileRetryAttempts) {
+          this.schedulePlayerProfileRetry(externalId, profileKey);
+          return;
+        }
         this.selectedPlayer = null;
         this.isDetailLoading = false;
         this.notifyStatsUnavailable(this.selectedPlayerSummary && this.selectedPlayerSummary.name);
         this.resetProfileViewport();
       }
     );
+  }
+
+  private hasPlayerProfileData(detail: PlayerStatsPlayerDetailView | null): boolean {
+    return !!(detail && detail.stats && detail.stats.some(snapshot =>
+      snapshot && String(snapshot.category || '').toLowerCase() === 'player_profile'
+    ));
+  }
+
+  private applyPendingPlayerProfile(detail: PlayerStatsPlayerDetailView | null): void {
+    if (detail && detail.name) {
+      this.selectedPlayerSummary = {
+        externalId: detail.externalId || (this.selectedPlayerSummary && this.selectedPlayerSummary.externalId) || '',
+        name: this.getPlayerDisplayName(detail),
+        role: detail.role,
+        battingStyle: detail.battingStyle,
+        bowlingStyle: detail.bowlingStyle,
+        country: detail.country,
+        imageUrl: detail.imageUrl
+      };
+      this.titleService.setTitle(this.getPlayerDisplayName(detail) + ' Cricket Profile | CrickZen');
+    }
+    this.selectedPlayer = detail;
+    this.detailOpen = true;
+    this.isDetailLoading = true;
+  }
+
+  private schedulePlayerProfileRetry(externalId: string, profileKey: any): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    if (this.profileRetryAttempt >= this.maxProfileRetryAttempts) {
+      this.selectedPlayer = null;
+      this.isDetailLoading = false;
+      this.notifyStatsUnavailable(this.selectedPlayerSummary && this.selectedPlayerSummary.name);
+      this.resetProfileViewport();
+      return;
+    }
+    if (this.profileRetryTimer) {
+      clearTimeout(this.profileRetryTimer);
+    }
+    this.profileRetryAttempt += 1;
+    this.profileRetryTimer = window.setTimeout(() => {
+      this.profileRetryTimer = null;
+      this.loadPlayerProfile(externalId, profileKey);
+    }, 2500);
   }
 
   private resetProfileViewport(): void {
@@ -169,7 +316,7 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
         country: detail.country,
         imageUrl: detail.imageUrl
       };
-      this.titleService.setTitle(this.getPlayerDisplayName(detail) + ' Cricket Profile | Crickzen');
+      this.titleService.setTitle(this.getPlayerDisplayName(detail) + ' Cricket Profile | CrickZen');
     }
     if (!detail || !detail.stats || detail.stats.length === 0) {
       this.notifyStatsUnavailable(this.selectedPlayerSummary && this.selectedPlayerSummary.name);
@@ -187,7 +334,15 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
   }
 
   closeDetail(): void {
+    if (this.profileRetryTimer) {
+      clearTimeout(this.profileRetryTimer);
+      this.profileRetryTimer = null;
+    }
     if (this.isProfileRoute) {
+      if (this.profileReturnUrl && isPlatformBrowser(this.platformId)) {
+        this.router.navigateByUrl(this.profileReturnUrl, { replaceUrl: true });
+        return;
+      }
       this.location.back();
       return;
     }
@@ -292,6 +447,29 @@ export class PlayersPageComponent implements OnInit, OnDestroy {
     if (p.rows && Array.isArray(p.rows)) { return p.rows; }
     if (Array.isArray(p)) { return p; }
     return [];
+  }
+
+  private resolveProfileReturnUrl(routeReturnTo?: string): string | null {
+    const candidates: string[] = [];
+    if (routeReturnTo) {
+      candidates.push(routeReturnTo);
+    }
+    if (isPlatformBrowser(this.platformId) && window.history && window.history.state) {
+      const historyReturnTo = window.history.state.returnTo;
+      if (historyReturnTo) {
+        candidates.push(historyReturnTo);
+      }
+    }
+
+    for (let i = 0; i < candidates.length; i++) {
+      const value = String(candidates[i] || '').split('?')[0].split('#')[0];
+      if (value.indexOf('/cric-live/') === 0
+        && value.indexOf('//') === -1
+        && value.indexOf('/player') !== 0) {
+        return value;
+      }
+    }
+    return null;
   }
 
   getRecentFormRows(discipline: 'batting' | 'bowling'): PlayerRecentFormRow[] {

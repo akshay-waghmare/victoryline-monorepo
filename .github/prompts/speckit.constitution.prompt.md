@@ -40,8 +40,9 @@ Follow this execution flow:
    - Read `.specify/templates/plan-template.md` and ensure any "Constitution Check" or rules align with updated principles.
    - Read `.specify/templates/spec-template.md` for scope/requirements alignment—update if constitution adds/removes mandatory sections or constraints.
    - Read `.specify/templates/tasks-template.md` and ensure task categorization reflects new or removed principle-driven task types (e.g., observability, versioning, testing discipline).
-   - Read each command file in `.specify/templates/commands/*.md` (including this one) to verify no outdated references (agent-specific names like CLAUDE only) remain when generic guidance is required.
+   - Read each active command prompt in `.github/prompts/*.md` (and `.specify/templates/commands/*.md` if that directory exists) to verify no outdated references or agent-specific guidance remain when generic guidance is required.
    - Read any runtime guidance docs (e.g., `README.md`, `docs/quickstart.md`, or agent-specific guidance files if present). Update references to principles changed.
+   - Read `AGENTS.md` and `C:/Users/ADMINS/Documents/projects/agentic-os-obsidian/wiki/meta/CrickZen Constitution.md` when they exist. Keep the repository constitution and wiki mirror aligned.
 
 5. Produce a Sync Impact Report (prepend as an HTML comment at top of the constitution file after update):
    - Version change: old → new
@@ -58,6 +59,8 @@ Follow this execution flow:
    - Principles are declarative, testable, and free of vague language ("should" → replace with MUST/SHOULD rationale where appropriate).
 
 7. Write the completed constitution back to `.specify/memory/constitution.md` (overwrite).
+   - For CrickZen amendments, update the wiki mirror at `wiki/meta/CrickZen Constitution.md` in the same change.
+   - Use the wiki transport/lock workflow and update `wiki/index.md`, `wiki/log.md`, and `wiki/hot.md` so future sessions retrieve the new version.
 
 8. Output a final summary to the user with:
    - New version and bump rationale.
