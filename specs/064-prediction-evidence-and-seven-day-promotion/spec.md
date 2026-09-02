@@ -2,9 +2,19 @@
 
 ## Status
 
-Drafted for implementation on 2026-09-02. This is a cross-repository contract:
+Implemented and deployed on 2026-09-02. This is a cross-repository contract:
 the CrickZen application starts and displays predictions, while the prediction
 repository owns model inference, evidence capture, evaluation, and promotion.
+
+## Constitution and evidence boundaries
+
+- **Constitution version consulted**: 1.5.0
+- **Wiki constitution/checkpoint consulted**: `[[CrickZen Constitution]]`; `[[CrickZen Prediction Evidence and Seven-Day Promotion 2026-09-02]]`
+- **Canonical/model owners**: `www.crickzen.com/cric-live/{slug}` owns public match identity; the prediction repository owns inference and evidence.
+- **Source-backed facts**: provider URL and provider-scoped team identity define batting/bowling orientation; market values are retained only with source/status metadata.
+- **Proof boundary**: focused tests, deterministic reports, production image/runtime proof, and eventual seven-day outcomes are separate evidence gates.
+- **Promotion boundary**: a candidate remains shadow-only until all seven-day, sample, coverage, metric, reproducibility, and incumbent-safety gates pass with explicit human review.
+- **Rollback/continuity**: production uses an isolated image/source release with preserved persistent mounts, named rollback, and synchronized wiki records.
 
 ## Objective
 

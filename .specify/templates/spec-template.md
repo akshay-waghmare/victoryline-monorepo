@@ -7,12 +7,14 @@
 
 ## Constitution and Evidence Boundaries *(mandatory for CrickZen features)*
 
-- **Constitution version consulted**: [e.g., 1.4.0]
+- **Constitution version consulted**: [e.g., 1.5.0]
 - **Wiki constitution/checkpoint consulted**: [wikilink or path]
 - **Canonical surface and lifecycle owner**: [Which URL/service owns the truth?]
 - **Source-backed facts**: [Which provider, catalogue, snapshot, or model evidence is valid?]
 - **Indexability boundary**: [What may be indexable, noindex, 404, or withheld until data is ready?]
 - **Proof boundary**: [Separate local tests, runtime/artifact proof, GSC outcomes, and business outcomes]
+- **Predictive evaluation boundary**: [If model work is in scope, define batting-team orientation,
+  same-state market/incumbent/candidate evidence, Brier/log-loss/ECE window, and promotion gate]
 - **Rollback and continuity**: [Rollback artifact, isolated rollout boundary, and wiki/spec update]
 - **Managed-slate and provider boundary**: [Selection cap/stickiness, per-match freshness,
   provider identity scope, and fallback behavior]

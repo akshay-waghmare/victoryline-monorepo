@@ -1,11 +1,12 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: 1.3.0 → 1.4.0 (Added bounded live operations, provider-identity continuity,
-canonical player navigation, crawl-cohort evidence, and incident escalation rules)
-Rationale: The Aug 31–Sep 2 CrickZen work resolved recurring stale-live, short-key collision,
-CREX player hydration, scorecard navigation, and search-discovery failures. This amendment
-makes the resulting operational rules enforceable for future implementation and rollout work.
+Version Change: 1.4.0 → 1.5.0 (Added auditable prediction evidence, market comparison,
+and seven-day candidate promotion rules)
+Rationale: The Sep 2 CrickZen prediction work established that model quality must be
+measured against the market on Brier score, log loss, and ECE using source-scoped,
+per-ball evidence before any model is promoted. This amendment makes the evidence,
+shadow evaluation, and human promotion boundary enforceable for future model work.
 
 Principles Established:
 - I. Source-Backed Real-Time Data Accuracy (EXPANDED) - Provider truth, identity, lifecycle,
@@ -26,6 +27,8 @@ Principles Established:
   business claims require reproducible evidence.
 - IX. Safe Rollouts and Durable Continuity (EXPANDED) - Isolated deployment, rollback, wiki,
   image inventory, and Spec Kit continuity are part of completion.
+- X. Predictive Model Evidence and Promotion (NEW) - Market-beating claims require
+  same-state, auditable, chronological evidence and explicit multi-metric gates.
 
 Templates Status:
 ✅ .specify/templates/plan-template.md - Constitution Check covers lifecycle, evidence,
@@ -42,6 +45,8 @@ Follow-up Actions:
 - Keep [[CrickZen Constitution]] synchronized with this file on every amendment.
 - Reference the constitution version in new CrickZen specs, checkpoints, and rollout records;
   keep the current production image tags and immutable digests in the relevant rollout note.
+- New prediction/model specs MUST reference v1.5.0 and define the batting-team probability
+  orientation, per-ball evidence contract, chronological shadow window, and promotion gates.
 - Reconcile the current production AEO bundle, upcoming schedule text, fixed historical
   share/embed links, GSC cohort evidence, and snapshot-first deployment before claiming
   full acceptance.
@@ -578,6 +583,46 @@ Requirements:
 Rationale: Continuity is an operational control. Without exact evidence, rollback, and
 shared memory, later agents can repeat resolved incidents or trust superseded claims.
 
+### X. Predictive Model Evidence and Promotion (NON-NEGOTIABLE)
+
+**A CrickZen prediction model MUST NOT be called better, promoted, or deployed from
+accuracy intuition, a single metric, a small sample, or source-only validation.** The
+claim is valid only when the same eligible match states show lower Brier score, log
+loss, and ECE than the market under the frozen review gates.
+
+Requirements:
+- Every training, inference, and evaluation probability MUST be expressed in the
+  probability that the current batting team wins. Provider-authoritative match identity
+  and batting/bowling orientation MUST be validated before the state is eligible.
+- Every distinct observed ball state MUST retain a stable source-scoped identity and
+  the inputs used by inference: source URL, innings/over/ball, score context, striker,
+  non-striker, bowler and bowling figures, recent-ball context, engineered features,
+  calibration/inference context, and data-quality flags.
+- Each eligible state MUST record market, incumbent, and candidate probabilities when
+  available, market source/raw odds/age/status, signed and absolute differences, model
+  versions, artifact/feature-order fingerprints, and provenance. Missing or ambiguous
+  market data MUST be explicit and MUST NOT be imputed as a neutral probability.
+- Market, incumbent, and candidate scores MUST be computed on the same valid rows and
+  proven outcomes. Promotion reports MUST publish match-equal Brier, log loss, and ECE,
+  plus ball-level and segment diagnostics for innings, phase, competition, confidence,
+  and market coverage.
+- A candidate MUST run in shadow against the exact incumbent state and ball-history
+  snapshot and MUST NOT alter public/live output during the review window.
+- A candidate review MUST cover at least seven elapsed calendar days, seven completed
+  matches, 200 eligible rows, 80% market coverage, 95% feature completeness, complete
+  team identity, reproducible immutable manifests, and incumbent safety. The default
+  practical improvement margins versus market are Brier `0.002`, log loss `0.010`, and
+  ECE `0.005`; incumbent tolerances remain separately frozen in the linked Spec 064.
+- Review output MUST be deterministic, immutable, and append-only auditable. A passing
+  report authorizes an explicit human-reviewed promotion and production rollout; failed
+  or insufficient evidence MUST retain the incumbent and create a targeted next action.
+  Auto-promotion and unverified model-superiority claims are prohibited.
+
+Rationale: Proper scoring rules and calibration expose overconfident or weak predictions
+that accuracy alone hides. Source-scoped per-ball evidence makes team orientation,
+training/inference parity, market comparison, and targeted model improvement auditable
+over a long horizon.
+
 ## Development Workflow
 
 **Code Quality Gates** (ENFORCED):
@@ -666,9 +711,12 @@ quality. Archive obsolete sections rather than deleting (preserve history).
 - Consult `wiki/meta/CrickZen Constitution.md` for durable rationale and current operating
   context; keep it synchronized whenever this file changes
 
-**Version**: 1.4.0 | **Ratified**: 2025-11-06 | **Last Amended**: 2026-09-02
+**Version**: 1.5.0 | **Ratified**: 2025-11-06 | **Last Amended**: 2026-09-02
 
 **Amendment History**:
+- v1.5.0 (2026-09-02): Added source-scoped per-ball prediction evidence, batting-team
+  probability orientation, market/incumbent/candidate comparison, seven-day shadow
+  review, Brier/log-loss/ECE gates, and explicit human-reviewed promotion boundaries
 - v1.4.0 (2026-09-02): Added bounded sticky live-slate and per-match watchdog rules,
   scoped provider identity, canonical scorecard-to-player navigation, first-render latency
   evidence, priority sitemap/IndexNow boundaries, and production image inventory requirements

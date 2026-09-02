@@ -29,3 +29,39 @@ For every CrickZen implementation, diagnosis, review, rollout, or Spec Kit task:
    the two sources silently divergent.
 5. Separate historical checkpoint evidence from current runtime proof, and record later
    contradictions instead of deleting the earlier evidence.
+
+## Prediction model evidence and promotion
+
+The current CrickZen prediction objective is to build a model that is demonstrably
+better than the market on all three primary measures: Brier score, log loss, and
+expected calibration error (ECE). A model is not considered better because it wins
+on accuracy, one metric, a small sample, or a source-only test.
+
+- Treat every probability as the probability that the current batting team wins.
+  Validate batting/bowling roles from the authoritative provider identity before
+  using a state for training, inference, or evaluation.
+- Record one source-scoped, versioned state per observed ball with the source URL,
+  match/innings/over/ball identity, striker, non-striker, bowler and bowling figures,
+  score context, all engineered features, inference/calibration context, market
+  source/age/status/raw odds, incumbent and candidate probabilities, differences,
+  model versions, artifact hashes, and quality flags. Missing market data is explicit;
+  never impute or silently drop it.
+- Compare market, incumbent, and candidate on the same eligible rows. Use
+  match-equal-weighted Brier, log loss, and ECE for promotion, with ball-level and
+  segment diagnostics for innings, phase, competition, confidence, and coverage.
+- Run candidates in shadow against the exact incumbent state and ball history. A
+  candidate must not change public/live output during evaluation.
+- Require an untouched chronological window of at least seven calendar days, seven
+  completed matches, 200 eligible rows, 80% market coverage, 95% feature completeness,
+  complete team identity, reproducible manifests, and incumbent safety before promotion.
+  Default practical improvements are Brier `0.002`, log loss `0.010`, and ECE `0.005`
+  versus market; incumbent regressions are bounded separately by the Spec 064 gates.
+- Promotion is an explicit human-reviewed action from an immutable deterministic
+  report. Never auto-promote, auto-deploy, or claim market superiority before all
+  gates pass. Retain rollback artifacts and record the exact image/source proof.
+
+The canonical implementation lives in
+`C:/Users/ADMINS/Documents/projects/machine_learning_bbl_009-odi-mc-predictor/` and
+the cross-repository contract is Spec 064. Use the LoopX-bound goal and daily monitor
+for this long-horizon evidence lane; quiet monitoring is expected until a material
+review window, data-quality regression, or candidate decision is ready.

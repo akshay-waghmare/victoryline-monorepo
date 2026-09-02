@@ -1,5 +1,8 @@
 # Implementation Plan: Prediction Evidence and Seven-Day Promotion
 
+**Constitution version consulted**: 1.5.0
+**Wiki constitution/checkpoint**: `[[CrickZen Constitution]]`; `[[CrickZen Prediction Evidence and Seven-Day Promotion 2026-09-02]]`
+
 ## Workstreams
 
 ### 1. Freeze the measurement contract

@@ -55,6 +55,9 @@
   placeholder, stale, or unsupported prediction copy is excluded.
 - Provider-backed navigation plans cover the immediate loading shell, canonical route, browser
   history/Back behavior, and the provider-latency boundary when a secondary page is involved.
+- Prediction-model plans record market/incumbent/candidate probabilities in batting-team
+  orientation on the same state rows, retain per-ball inference inputs, and define the
+  chronological Brier/log-loss/ECE review and explicit promotion boundary when applicable.
 - Production plans name every deployed service image with an immutable digest, a rollback
   image or backup, and any admin-visible escalation path for repeated failures.
 - The plan identifies the constitution version and the related wiki constitution/checkpoint

@@ -19,6 +19,8 @@ description: "Task list template for feature implementation"
 - Include exact file paths in descriptions
 - Every CrickZen task list MUST identify the constitution version and related wiki checkpoint
   in its plan/spec inputs.
+- Prediction-model task lists MUST include evidence capture, same-state market comparison,
+  candidate shadow validation, and an explicit seven-day promotion-gate task when applicable.
 
 ## Path Conventions
 
