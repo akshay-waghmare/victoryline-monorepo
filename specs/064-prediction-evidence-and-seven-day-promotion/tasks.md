@@ -18,6 +18,7 @@
 ## Validation and operations
 
 - [x] Add focused unit and integration tests for the acceptance scenarios.
+- [x] Add an independent in-between evidence-storage watcher with atomic health and transition reports.
 - [x] Run a synthetic seven-day review and repeat it for deterministic output.
 - [ ] Add authenticated operator visibility if needed after artifact validation.
 - [x] Record verified checkpoint in the CrickZen wiki.

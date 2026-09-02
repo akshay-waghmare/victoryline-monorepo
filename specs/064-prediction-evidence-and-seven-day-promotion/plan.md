@@ -51,7 +51,12 @@
 2. Add tests for capture, orientation, missing market, winner settlement,
    candidate comparison, and each promotion gate.
 3. Validate a local replay and an unchanged-ledger repeatability run.
-4. Production rollout is a separate checkpoint requiring exact image/source
+4. Run an independent evidence-storage watcher during live matches. It joins
+   the fresh dashboard state to the exact provider match URL and durable
+   Parquet file, checks schema/identity/quality/market completeness, writes an
+   atomic health report, and escalates repeated storage failures without
+   restarting or changing prediction output.
+5. Production rollout is a separate checkpoint requiring exact image/source
    proof and rollback artifacts.
 
 ## Execution order
@@ -66,11 +71,12 @@
 
 ## Current checkpoint
 
-The implementation slice is complete: production capture, full-feature snapshots,
-metadata settlement, candidate manifests, and deterministic review gates are
-deployed in dashboard image `20260902-market-evidence-r2`. The incumbent route
-remains active and no candidate artifact is configured yet; the next work is the
-real seven-day shadow window and its review artifact.
+The implementation slice is complete in source: production capture, full-feature
+snapshots, metadata settlement, candidate manifests, deterministic review gates,
+and the evidence-storage watcher. The watcher deployment is the next rollout
+step; the incumbent route remains active and no candidate artifact is configured
+yet. After the watcher rollout, the next work is the real seven-day shadow
+window and its review artifact.
 
 ## Operator workflow
 
