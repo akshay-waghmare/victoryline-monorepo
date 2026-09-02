@@ -71,12 +71,14 @@
 
 ## Current checkpoint
 
-The implementation slice is complete in source: production capture, full-feature
+The implementation slice is complete: production capture, full-feature
 snapshots, metadata settlement, candidate manifests, deterministic review gates,
-and the evidence-storage watcher. The watcher deployment is the next rollout
-step; the incumbent route remains active and no candidate artifact is configured
-yet. After the watcher rollout, the next work is the real seven-day shadow
-window and its review artifact.
+and the evidence-storage watcher. Production is running dashboard image
+`20260902-market-evidence-r2` with isolated source release
+`market-evidence-r3-20260903` and container `crickzen-evidence-watcher`.
+The watcher is healthy, the incumbent route remains active, and no candidate
+artifact is configured yet. The next work is the real seven-day shadow window
+and its review artifact.
 
 ## Operator workflow
 
