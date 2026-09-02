@@ -115,9 +115,9 @@
 
     <div class="matches-list__load-more" *ngIf="canLoadMore">
       <p class="matches-list__load-more-copy">
-        Showing {{ visibleMatches.length }} of {{ filteredMatches.length }}
+        Showing {{ visibleMatches.length }} of {{ getResultTotalCount() }}
       </p>
-      <button type="button" class="matches-list__load-more-btn" (click)="onLoadMore()">
+      <button type="button" class="matches-list__load-more-btn" [disabled]="isLoadingMore" (click)="onLoadMore()">
         {{ loadMoreLabel }}
       </button>
     </div>

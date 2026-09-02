@@ -10,7 +10,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 import { MatchCardViewModel, MatchStatus } from '../../models/match-card.models';
-import { MatchesService } from '../../services/matches.service';
+import { MatchPageSnapshot, MatchesService } from '../../services/matches.service';
 import { buildCanonicalMatchLinkLabel, buildCanonicalMatchPath, extractSlugFromUrl } from '../../../../core/utils/match-utils';
 import { formatCalendarDate } from '../../models/match-status';
 import { 
@@ -49,6 +49,10 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   private suppressNavigationUntil = 0;
   private hasInitializedStatus = false;
   private visibleMatchCount = this.pageSizeByStatus[MatchStatus.LIVE];
+  private loadedMatchCountByStatus: { [key: string]: number } = {};
+  private totalMatchCountByStatus: { [key: string]: number } = {};
+  private searchCatalogueLoaded = false;
+  private searchCatalogueLoading = false;
 
   // Match data
   allMatches: MatchCardViewModel[] = [];
@@ -63,6 +67,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   
   // Loading states
   isLoading = true;
+  isLoadingMore = false;
   hasError = false;
   errorMessage = '';
   
@@ -118,11 +123,24 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     this.isLoading = !this.hasMatchSnapshot;
     this.hasError = false;
     
-    this.matchesService.getLiveMatchesWithAutoRefresh()
+    this.matchesService.getMatchesPageWithAutoRefresh(24)
       .pipe(takeUntil(this.destroy$))
       .subscribe(
-        (matches) => {
-          this.allMatches = sortMatchesByPriority(matches);
+        (snapshot: MatchPageSnapshot) => {
+          this.totalMatchCountByStatus = {
+            [MatchStatus.LIVE]: snapshot.counts.live,
+            [MatchStatus.UPCOMING]: snapshot.counts.upcoming,
+            [MatchStatus.COMPLETED]: snapshot.counts.recent
+          };
+          if (!this.hasInitializedStatus) {
+            this.allMatches = sortMatchesByPriority(snapshot.matches);
+            this.seedLoadedMatchCounts(snapshot.matches);
+          } else {
+            // Refresh the first page while retaining pages the user has
+            // already opened during this session.
+            this.allMatches = this.mergeMatches(snapshot.matches);
+            this.refreshLoadedMatchCounts(snapshot.matches);
+          }
           if (!this.hasInitializedStatus) {
             this.selectedStatus = this.getDefaultStatus();
             this.resetVisibleMatchCount();
@@ -132,7 +150,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
           this.applyFilters();
           this.isLoading = false;
           this.updateStructuredData();
-          console.log('Matches auto-refreshed:', matches.length);
+          console.log('Matches page auto-refreshed:', snapshot.matches.length);
         },
         (error) => {
           // Keep the last usable list visible if a background refresh fails.
@@ -219,6 +237,7 @@ export class MatchesListComponent implements OnInit, OnDestroy {
     this.searchQuery = query;
     this.resetVisibleMatchCount();
     this.applyFilters();
+    this.loadFullCatalogueForSearch();
   }
   
   /**
@@ -322,21 +341,21 @@ export class MatchesListComponent implements OnInit, OnDestroy {
    * Get live matches count
    */
   get liveMatchesCount(): number {
-    return filterLiveMatches(this.allMatches).length;
+    return this.getTotalMatchCount(MatchStatus.LIVE);
   }
   
   /**
    * Get upcoming matches count
    */
   get upcomingMatchesCount(): number {
-    return filterUpcomingMatches(this.allMatches).length;
+    return this.getTotalMatchCount(MatchStatus.UPCOMING);
   }
   
   /**
    * Get completed matches count
    */
   get completedMatchesCount(): number {
-    return filterCompletedMatches(this.allMatches).length;
+    return this.getTotalMatchCount(MatchStatus.COMPLETED);
   }
   
   /**
@@ -420,7 +439,9 @@ export class MatchesListComponent implements OnInit, OnDestroy {
 
   getResultSummaryCopy(): string {
     const shownCount = this.visibleMatches.length;
-    const totalCount = this.filteredMatches.length;
+    const totalCount = this.searchQuery.trim()
+      ? this.filteredMatches.length
+      : this.getTotalMatchCount(this.selectedStatus);
 
     if (this.searchQuery.trim()) {
       return `${shownCount} of ${totalCount} matches shown for "${this.searchQuery.trim()}".`;
@@ -436,6 +457,12 @@ export class MatchesListComponent implements OnInit, OnDestroy {
       default:
         return `${shownCount} of ${totalCount} matches visible.`;
     }
+  }
+
+  getResultTotalCount(): number {
+    return this.searchQuery.trim()
+      ? this.filteredMatches.length
+      : this.getTotalMatchCount(this.selectedStatus);
   }
 
   isUpcomingGroupedView(): boolean {
@@ -507,12 +534,61 @@ export class MatchesListComponent implements OnInit, OnDestroy {
   }
 
   get canLoadMore(): boolean {
-    return this.visibleMatches.length < this.filteredMatches.length;
+    if (this.visibleMatches.length < this.filteredMatches.length) {
+      return true;
+    }
+
+    return !this.searchQuery.trim()
+      && this.getLoadedMatchCount(this.selectedStatus) < this.getTotalMatchCount(this.selectedStatus);
   }
 
   onLoadMore(): void {
-    this.visibleMatchCount += this.getPageSize(this.selectedStatus);
-    this.applyFilters();
+    if (this.isLoadingMore) {
+      return;
+    }
+
+    // The initial API response may contain more rows than are rendered in the
+    // first view. Reveal those rows before making another network request.
+    if (this.visibleMatchCount < this.filteredMatches.length) {
+      this.visibleMatchCount += this.getPageSize(this.selectedStatus);
+      this.applyFilters();
+      return;
+    }
+
+    const total = this.getTotalMatchCount(this.selectedStatus);
+    const offset = this.getLoadedMatchCount(this.selectedStatus);
+    if (offset >= total) {
+      return;
+    }
+
+    this.isLoadingMore = true;
+    this.matchesService.getMatchCohortPage(
+      this.selectedStatus,
+      offset,
+      this.getPageSize(this.selectedStatus)
+    ).pipe(takeUntil(this.destroy$)).subscribe(
+      (snapshot: MatchPageSnapshot) => {
+        this.allMatches = this.mergeMatches(snapshot.matches);
+        this.totalMatchCountByStatus = {
+          ...this.totalMatchCountByStatus,
+          [MatchStatus.LIVE]: snapshot.counts.live,
+          [MatchStatus.UPCOMING]: snapshot.counts.upcoming,
+          [MatchStatus.COMPLETED]: snapshot.counts.recent
+        };
+        const loadedFromPage = this.countMatchesForStatus(snapshot.matches, this.selectedStatus);
+        this.loadedMatchCountByStatus[this.selectedStatus] = Math.max(
+          offset + loadedFromPage,
+          this.getLoadedMatchCount(this.selectedStatus)
+        );
+        this.visibleMatchCount += this.getPageSize(this.selectedStatus);
+        this.applyFilters();
+        this.isLoadingMore = false;
+      },
+      (error) => {
+        this.isLoadingMore = false;
+        console.error('Error loading more matches:', error);
+      }
+    );
   }
 
   get loadMoreLabel(): string {
@@ -542,6 +618,75 @@ export class MatchesListComponent implements OnInit, OnDestroy {
 
   private getPageSize(status: MatchStatus): number {
     return this.pageSizeByStatus[status] || 24;
+  }
+
+  private getTotalMatchCount(status: MatchStatus): number {
+    const total = this.totalMatchCountByStatus && this.totalMatchCountByStatus[status];
+    return typeof total === 'number' ? total : this.filteredMatches.length;
+  }
+
+  private getLoadedMatchCount(status: MatchStatus): number {
+    const loaded = this.loadedMatchCountByStatus && this.loadedMatchCountByStatus[status];
+    return typeof loaded === 'number' ? loaded : this.countMatchesForStatus(this.allMatches, status);
+  }
+
+  private countMatchesForStatus(matches: MatchCardViewModel[], status: MatchStatus): number {
+    if (status === MatchStatus.UPCOMING) {
+      return filterUpcomingMatches(matches).length;
+    }
+    if (status === MatchStatus.COMPLETED) {
+      return filterCompletedMatches(matches).length;
+    }
+    return filterLiveMatches(matches).length;
+  }
+
+  private seedLoadedMatchCounts(matches: MatchCardViewModel[]): void {
+    this.loadedMatchCountByStatus = {
+      [MatchStatus.LIVE]: this.countMatchesForStatus(matches, MatchStatus.LIVE),
+      [MatchStatus.UPCOMING]: this.countMatchesForStatus(matches, MatchStatus.UPCOMING),
+      [MatchStatus.COMPLETED]: this.countMatchesForStatus(matches, MatchStatus.COMPLETED)
+    };
+  }
+
+  private refreshLoadedMatchCounts(matches: MatchCardViewModel[]): void {
+    [MatchStatus.LIVE, MatchStatus.UPCOMING, MatchStatus.COMPLETED].forEach((status) => {
+      this.loadedMatchCountByStatus[status] = Math.max(
+        this.loadedMatchCountByStatus[status] || 0,
+        this.countMatchesForStatus(matches, status)
+      );
+    });
+  }
+
+  private mergeMatches(incoming: MatchCardViewModel[]): MatchCardViewModel[] {
+    const merged: { [key: string]: MatchCardViewModel } = {};
+    (incoming || []).concat(this.allMatches || []).forEach((match) => {
+      const key = buildCanonicalMatchPath(match) || match.id;
+      if (key && !merged[key]) {
+        merged[key] = match;
+      }
+    });
+    return sortMatchesByPriority(Object.keys(merged).map((key) => merged[key]));
+  }
+
+  private loadFullCatalogueForSearch(): void {
+    if (!this.searchQuery.trim() || this.searchCatalogueLoaded || this.searchCatalogueLoading) {
+      return;
+    }
+
+    this.searchCatalogueLoading = true;
+    this.matchesService.getAllMatches().pipe(takeUntil(this.destroy$)).subscribe(
+      (matches: MatchCardViewModel[]) => {
+        this.allMatches = this.mergeMatches(matches);
+        this.refreshLoadedMatchCounts(this.allMatches);
+        this.searchCatalogueLoaded = true;
+        this.searchCatalogueLoading = false;
+        this.applyFilters();
+      },
+      (error) => {
+        this.searchCatalogueLoading = false;
+        console.error('Error loading the full matches catalogue for search:', error);
+      }
+    );
   }
 
   private updateStructuredData(): void {

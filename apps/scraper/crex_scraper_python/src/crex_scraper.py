@@ -19,7 +19,7 @@ from .cache import ScrapeCache
 from .metrics import MetricsCollector
 from .health import HealthGrader
 from .adapters.registry import AdapterRegistry
-from .crex_url_utils import extract_crex_match_key, get_crex_details_url
+from .crex_url_utils import extract_crex_match_key, get_crex_details_url, normalize_crex_url
 from .cricket_data_service import CricketDataService
 from .discovery import LiveMatchDiscoverer
 from .player_stats_crawler import PlayerStatsCrawlerService
@@ -57,6 +57,7 @@ class CrexScraperService:
         # the backend catalogue because that catalogue can retain rows that
         # have already disappeared from the provider's live carousel.
         self._discovery_live_urls: list[str] = []
+        self._discovery_live_matches: list[dict] = []
         self._restart_condition_consecutive_count: int = 0
         
         # Persistent page pool and fast poll service (Feature 007 - Phase 2)
@@ -517,6 +518,22 @@ class CrexScraperService:
 
     async def _on_match_catalog_updated(self, live_urls: list[str], schedule_matches: list[dict]) -> None:
         self._discovery_live_urls = list(dict.fromkeys(live_urls or []))
+        schedule_by_url = {
+            normalize_crex_url(str(match.get("url") or match.get("matchUrl") or "")): match
+            for match in (schedule_matches or [])
+            if normalize_crex_url(str(match.get("url") or match.get("matchUrl") or ""))
+        }
+        # Keep provider full names alongside the sticky URL slate. URL
+        # abbreviations are not globally unique across competitions.
+        self._discovery_live_matches = []
+        for url in self._discovery_live_urls:
+            source_match = schedule_by_url.get(normalize_crex_url(url))
+            if source_match:
+                selected_match = dict(source_match)
+                selected_match["url"] = url
+            else:
+                selected_match = {"url": url}
+            self._discovery_live_matches.append(selected_match)
         self._last_managed_live_match_count = len(self._discovery_live_urls)
         self._last_managed_live_urls = list(self._discovery_live_urls)
         self._set_managed_live_urls(self._last_managed_live_urls)

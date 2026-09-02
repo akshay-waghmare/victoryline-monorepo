@@ -594,21 +594,62 @@ public class CricketDataController {
 
     @GetMapping("/match-cohorts")
     public ResponseEntity<Map<String, Object>> getMatchCohorts(
-            @RequestParam(value = "includeArchive", defaultValue = "true") boolean includeArchive) {
-        Map<String, Object> response = new HashMap<>();
+            @RequestParam(value = "includeArchive", defaultValue = "true") boolean includeArchive,
+            @RequestParam(value = "cohort", required = false) String cohortName,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
+            @RequestParam(value = "limit", defaultValue = "-1") int limit) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        int safeOffset = Math.max(0, offset);
+        int safeLimit = limit < 0 ? -1 : Math.min(limit, 100);
+        Set<MatchLifecycleCohort> requestedCohorts = requestedCohorts(cohortName);
         for (MatchLifecycleCohort cohort : MatchLifecycleCohort.values()) {
             // Discovery surfaces need live/upcoming/recent rows. The archive
             // is large and has its own sitemap/archive surfaces; allowing the
             // caller to omit it keeps first paint small without changing the
             // backwards-compatible default response.
-            if (cohort == MatchLifecycleCohort.ARCHIVE && !includeArchive) {
-                response.put(cohort.wireName(), Collections.emptyList());
-                continue;
-            }
-            response.put(cohort.wireName(), liveMatchService.findMatchesByCohort(cohort));
+            List<LiveMatch> matches = cohort == MatchLifecycleCohort.ARCHIVE && !includeArchive
+                    ? Collections.emptyList()
+                    : liveMatchService.findMatchesByCohort(cohort);
+            response.put(cohort.wireName() + "Count", matches.size());
+            response.put(cohort.wireName(), requestedCohorts.contains(cohort)
+                    ? paginateMatches(matches, safeOffset, safeLimit)
+                    : Collections.emptyList());
         }
         response.put("generatedAt", System.currentTimeMillis());
         return ResponseEntity.ok(response);
+    }
+
+    private Set<MatchLifecycleCohort> requestedCohorts(String cohortName) {
+        Set<MatchLifecycleCohort> cohorts = new HashSet<>();
+        if (cohortName == null || cohortName.trim().isEmpty()) {
+            Collections.addAll(cohorts, MatchLifecycleCohort.values());
+            return cohorts;
+        }
+
+        for (String value : cohortName.split(",")) {
+            if (value == null || value.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                cohorts.add(MatchLifecycleCohort.valueOf(value.trim().toUpperCase()));
+            } catch (IllegalArgumentException ignored) {
+                // An unknown cohort is treated as an empty selection. This
+                // keeps the public discovery endpoint backwards-compatible
+                // while never returning an accidental unbounded page.
+            }
+        }
+        return cohorts;
+    }
+
+    private List<LiveMatch> paginateMatches(List<LiveMatch> matches, int offset, int limit) {
+        if (matches == null || matches.isEmpty() || offset >= matches.size()) {
+            return Collections.emptyList();
+        }
+        if (limit < 0) {
+            return matches;
+        }
+        int end = Math.min(matches.size(), offset + limit);
+        return new ArrayList<>(matches.subList(offset, end));
     }
 
 	@GetMapping("/live-matches") // Map to "/cricket-data/live-matches"

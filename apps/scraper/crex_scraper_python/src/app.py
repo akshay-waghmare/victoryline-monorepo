@@ -324,12 +324,17 @@ def health_check():
 def prediction_candidates():
     """Expose the scraper's selected live slate to the model scheduler."""
     discovery_slate = getattr(scraper_service, "_discovery_live_urls", None)
+    discovery_matches = getattr(scraper_service, "_discovery_live_matches", None)
     if discovery_slate is not None:
         urls = list(discovery_slate or [])
         source = "scraper:discovery"
+        candidate_matches = list(discovery_matches or [])
+        if not candidate_matches:
+            candidate_matches = [{"url": url} for url in urls]
     else:
         urls = list(getattr(scraper_service, "_last_managed_live_urls", []) or [])
         source = "scraper:selected"
+        candidate_matches = [{"url": url} for url in urls]
 
     # The scraper lifecycle and Flask endpoint may run in different workers,
     # so older service instances may not expose the discovery field. Only that
@@ -342,13 +347,33 @@ def prediction_candidates():
             selected_matches = select_live_matches(matches, settings.max_live_matches)
             urls = scraper_service._extract_live_urls(selected_matches)
             source = "backend:fallback"
+            candidate_matches = selected_matches
         except Exception as exc:
             logger.warning("prediction_candidates.fallback_error", extra={"error": str(exc)})
 
+    payload = []
+    for match in candidate_matches:
+        url = match.get("url") or match.get("matchUrl") or match.get("match_url")
+        if not url:
+            continue
+        team1 = str(match.get("team1Name") or match.get("team1_name") or "").strip()
+        team2 = str(match.get("team2Name") or match.get("team2_name") or "").strip()
+        label = " vs ".join(team for team in (team1, team2) if team)
+        payload.append({
+            "url": url,
+            "is_live": True,
+            "source": source,
+            "label": label,
+            "scheduled_start_time": match.get("scheduledStartTime") or match.get("scheduled_start_time"),
+            "match_format": match.get("matchFormat") or match.get("match_format") or match.get("format"),
+            "team1_name": team1 or None,
+            "team2_name": team2 or None,
+        })
+
     return jsonify({
         "status": "success",
-        "matches": [{"url": url, "is_live": True, "source": source} for url in urls],
-        "count": len(urls),
+        "matches": payload,
+        "count": len(payload),
     })
 
 

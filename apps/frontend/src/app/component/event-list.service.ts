@@ -41,10 +41,27 @@ export class EventListService {
     return this.getNoCache(this.completed_matches_url);
   }
 
-  getMatchCohorts() {
-    return this.getNoCache(this.match_cohorts_url, new HttpParams()
+  getMatchCohorts(options: {
+    includeArchive?: boolean;
+    cohort?: string;
+    offset?: number;
+    limit?: number;
+  } = {}) {
+    let params = new HttpParams()
       .set('_ts', Date.now().toString())
-      .set('includeArchive', 'false'));
+      .set('includeArchive', String(options.includeArchive === true));
+
+    if (options.cohort) {
+      params = params.set('cohort', options.cohort);
+    }
+    if (typeof options.offset === 'number') {
+      params = params.set('offset', String(Math.max(0, options.offset)));
+    }
+    if (typeof options.limit === 'number') {
+      params = params.set('limit', String(options.limit));
+    }
+
+    return this.getNoCache(this.match_cohorts_url, params);
   }
 
   subscribeToEventsTopic(): Observable<any> {

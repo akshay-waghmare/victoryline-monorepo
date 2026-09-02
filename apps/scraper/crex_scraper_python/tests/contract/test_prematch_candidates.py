@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from crex_scraper_python.src.app import app
+from crex_scraper_python.src.app import app, scraper_service
 
 
 @pytest.fixture
@@ -48,3 +48,25 @@ def test_prematch_endpoint_exposes_a_bounded_non_live_contract(client):
         "team2_name": "Bravo",
         "label": "Alpha vs Bravo",
     }]
+
+
+def test_prediction_endpoint_exposes_authoritative_provider_team_names(client):
+    selected_url = "https://crex.com/cricket-live-score/dg-vs-rd-10th-match-european-t20-premier-league-2026-match-updates-13F3"
+    with patch.object(scraper_service, "_discovery_live_urls", [selected_url]), patch.object(
+        scraper_service,
+        "_discovery_live_matches",
+        [{
+            "url": selected_url,
+            "team1Name": "Dublin Guardians",
+            "team2Name": "Rotterdam Dockers",
+            "matchFormat": "T20",
+        }],
+    ):
+        response = client.get("/prediction-candidates")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["count"] == 1
+    assert payload["matches"][0]["team1_name"] == "Dublin Guardians"
+    assert payload["matches"][0]["team2_name"] == "Rotterdam Dockers"
+    assert payload["matches"][0]["match_format"] == "T20"

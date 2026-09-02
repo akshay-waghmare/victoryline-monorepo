@@ -15,6 +15,7 @@ def _build_service():
     )
     service.persistent_page_pool = AsyncMock()
     service._last_full_live_scrape_at = {}
+    service._managed_match_last_success = {}
     service._http_sv3_fallback_next_at = 0.0
     service.http_sv3_fast_lane = None
     return service
@@ -114,3 +115,32 @@ async def test_catalogue_callback_updates_authoritative_slate_and_fast_lane():
         service._last_managed_live_urls,
         [],
     )
+
+
+@pytest.mark.asyncio
+async def test_catalogue_callback_keeps_provider_team_names_for_prediction_candidates():
+    service = _build_service()
+    service.health = SimpleNamespace(
+        set_active_matches=lambda count: None,
+        record_success=lambda: None,
+    )
+    service.http_sv3_fast_lane = None
+    service.player_stats_crawler = None
+    selected_url = "https://crex.com/cricket-live-score/dg-vs-rd-10th-match-european-t20-premier-league-2026-match-updates-13F3"
+
+    await service._on_match_catalog_updated(
+        [selected_url],
+        [{
+            "url": selected_url,
+            "team1Name": "Dublin Guardians",
+            "team2Name": "Rotterdam Dockers",
+            "matchFormat": "T20",
+        }],
+    )
+
+    assert service._discovery_live_matches == [{
+        "url": selected_url,
+        "team1Name": "Dublin Guardians",
+        "team2Name": "Rotterdam Dockers",
+        "matchFormat": "T20",
+    }]

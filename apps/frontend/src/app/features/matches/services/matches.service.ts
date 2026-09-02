@@ -27,6 +27,20 @@ interface MatchCohortResponse {
   upcoming?: any[];
   recent?: any[];
   archive?: any[];
+  liveCount?: number;
+  upcomingCount?: number;
+  recentCount?: number;
+  archiveCount?: number;
+}
+
+export interface MatchPageSnapshot {
+  matches: MatchCardViewModel[];
+  counts: {
+    live: number;
+    upcoming: number;
+    recent: number;
+    archive: number;
+  };
 }
 
 @Injectable({
@@ -105,6 +119,36 @@ export class MatchesService {
   }
 
   /**
+   * Load the first page for every public cohort and refresh that small page.
+   * The full catalogue remains available through getAllMatches() for surfaces
+   * that need it; /matches uses this bounded stream so a large recent history
+   * cannot delay its first view.
+   */
+  getMatchesPageWithAutoRefresh(pageSize = 24): Observable<MatchPageSnapshot> {
+    const fetchPage = () => this.getMatchPageSnapshot(undefined, 0, pageSize);
+
+    if (!this.isBrowser()) {
+      return fetchPage();
+    }
+
+    const wsRefresh$ = this.eventListService.subscribeToEventsTopic().pipe(
+      debounceTime(3000),
+      catchError(() => EMPTY)
+    );
+
+    return merge(timer(0, 30000), wsRefresh$).pipe(
+      switchMap(() => fetchPage()),
+      shareReplay(1)
+    );
+  }
+
+  /** Load one additional page for the selected matches cohort. */
+  getMatchCohortPage(status: MatchStatus, offset: number, limit: number): Observable<MatchPageSnapshot> {
+    const cohort = this.cohortForStatus(status);
+    return this.getMatchPageSnapshot(cohort, offset, limit);
+  }
+
+  /**
    * Stop auto-refresh (retained for backwards compatibility — teardown is managed by subscriptions).
    */
   stopAutoRefresh(): void {}
@@ -179,6 +223,51 @@ export class MatchesService {
       switchMap((response: MatchCohortResponse) => this.transformCohortResponse(response || {})),
       catchError(() => of([]))
     );
+  }
+
+  private getMatchPageSnapshot(cohort: string | undefined, offset: number, limit: number): Observable<MatchPageSnapshot> {
+    return this.eventListService.getMatchCohorts({
+      cohort,
+      offset,
+      limit,
+      includeArchive: false
+    }).pipe(
+      timeout(this.matchesRequestTimeoutMs),
+      switchMap((response: MatchCohortResponse) => this.transformCohortResponse(response || {}).pipe(
+        map((matches: MatchCardViewModel[]) => ({
+          matches,
+          counts: {
+            live: this.readCohortCount(response, 'live', matches),
+            upcoming: this.readCohortCount(response, 'upcoming', matches),
+            recent: this.readCohortCount(response, 'recent', matches),
+            archive: this.readCohortCount(response, 'archive', matches)
+          }
+        }))
+      )),
+      catchError(() => of({
+        matches: [],
+        counts: { live: 0, upcoming: 0, recent: 0, archive: 0 }
+      }))
+    );
+  }
+
+  private readCohortCount(response: MatchCohortResponse, cohort: string, fallbackMatches: MatchCardViewModel[]): number {
+    const count = Number((response as any)[cohort + 'Count']);
+    return isNaN(count) ? fallbackMatches.length : count;
+  }
+
+  private cohortForStatus(status: MatchStatus): string {
+    switch (status) {
+      case MatchStatus.UPCOMING:
+        return 'upcoming';
+      case MatchStatus.COMPLETED:
+        return 'recent';
+      case MatchStatus.LIVE:
+      case MatchStatus.INNINGS_BREAK:
+      case MatchStatus.RAIN_DELAY:
+      default:
+        return 'live';
+    }
   }
 
   private transformCohortResponse(response: MatchCohortResponse): Observable<MatchCardViewModel[]> {
