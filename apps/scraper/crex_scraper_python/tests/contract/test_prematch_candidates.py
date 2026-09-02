@@ -70,3 +70,23 @@ def test_prediction_endpoint_exposes_authoritative_provider_team_names(client):
     assert payload["matches"][0]["team1_name"] == "Dublin Guardians"
     assert payload["matches"][0]["team2_name"] == "Rotterdam Dockers"
     assert payload["matches"][0]["match_format"] == "T20"
+
+
+def test_prediction_endpoint_enriches_discovery_url_from_backend_catalogue(client):
+    selected_url = "https://crex.com/cricket-live-score/dg-vs-rd-10th-match-european-t20-premier-league-2026-match-updates-13F3"
+    with patch.object(scraper_service, "_auth_token", "test-token"), patch.object(
+        scraper_service, "_discovery_live_urls", [selected_url]
+    ), patch.object(scraper_service, "_discovery_live_matches", [{"url": selected_url}]), patch(
+        "crex_scraper_python.src.app.CricketDataService.get_live_matches",
+        return_value=[{
+            "url": selected_url,
+            "team1Name": "Dublin Guardians",
+            "team2Name": "Rotterdam Dockers",
+        }],
+    ):
+        response = client.get("/prediction-candidates")
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload["matches"][0]["team1_name"] == "Dublin Guardians"
+    assert payload["matches"][0]["team2_name"] == "Rotterdam Dockers"

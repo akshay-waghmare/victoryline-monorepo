@@ -22,6 +22,7 @@ from .crex_url_utils import (
     get_crex_details_url,
     get_crex_scorecard_url,
     get_crex_live_url,
+    normalize_crex_url,
 )
 from .cricket_data_service import CricketDataService
 from .player_stats_crawler import PlayerStatsCrawlerService, PlayerStatsTask, select_player_reference
@@ -350,6 +351,42 @@ def prediction_candidates():
             candidate_matches = selected_matches
         except Exception as exc:
             logger.warning("prediction_candidates.fallback_error", extra={"error": str(exc)})
+
+    # Discovery owns the bounded live URL slate, but its schedule page can
+    # occasionally omit the full provider names. Enrich only those candidates
+    # from the current backend live catalogue; never replace the discovery
+    # slate or use URL abbreviations as identity.
+    missing_provider_names = any(
+        not (
+            (match.get("team1Name") or match.get("team1_name"))
+            and (match.get("team2Name") or match.get("team2_name"))
+        )
+        for match in candidate_matches
+    )
+    if missing_provider_names and candidate_matches:
+        try:
+            token = scraper_service._auth_token or CricketDataService.get_bearer_token()
+            backend_matches = CricketDataService.get_live_matches(token)
+            backend_by_url = {
+                normalize_crex_url(str(match.get("url") or match.get("matchUrl") or "")): match
+                for match in (backend_matches or [])
+                if isinstance(match, dict)
+                and normalize_crex_url(str(match.get("url") or match.get("matchUrl") or ""))
+            }
+            enriched_matches = []
+            for match in candidate_matches:
+                enriched = dict(match)
+                source_match = backend_by_url.get(
+                    normalize_crex_url(str(match.get("url") or match.get("matchUrl") or ""))
+                )
+                if source_match:
+                    for key in ("team1Name", "team1_name", "team2Name", "team2_name", "matchFormat", "match_format"):
+                        if not enriched.get(key) and source_match.get(key):
+                            enriched[key] = source_match[key]
+                enriched_matches.append(enriched)
+            candidate_matches = enriched_matches
+        except Exception as exc:
+            logger.warning("prediction_candidates.identity_enrichment_error", extra={"error": str(exc)})
 
     payload = []
     for match in candidate_matches:
