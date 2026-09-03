@@ -78,8 +78,8 @@
             <p class="canonical-intelligence__next"><strong>What matters next:</strong> {{ intelligence.nextStep }}</p>
             <small *ngIf="intelligence.modelLabel">Model: {{ intelligence.modelLabel }}<span *ngIf="intelligence.updatedAt"> · Updated {{ intelligence.updatedAt }}</span></small>
           </div>
-          <div class="canonical-intelligence__probability" aria-label="Win probability">
-            <span>Win probability</span>
+          <div class="canonical-intelligence__probability" aria-label="CrickZen model probability">
+            <span>CrickZen model probability</span>
             <strong>{{ intelligence.probability }}%</strong>
           </div>
           <nav class="canonical-intelligence__entities" aria-label="Related match entities">
@@ -252,16 +252,21 @@
                 <div class="odds-sidebar-card">
                   <h3 class="odds-sidebar-title">
                     <mat-icon>pie_chart</mat-icon>
-                    Win Probability
+                    CREX Market Odds
                   </h3>
 
                   <div *ngIf="!(testMatchOdds && testMatchOdds.length > 0) && favTeam !== '-' && !favTeam.includes('Unknown')"
-                       class="win-prob-block">
+                       class="win-prob-block"
+                       aria-label="CREX market-implied win probability">
                     <div class="win-prob-team-name">{{ favTeam }}</div>
                     <div class="win-prob-bar-wrap">
                       <div class="win-prob-bar-fill" [style.width]="getProbability(backOdds)">
                         {{ getProbability(backOdds) }}
                       </div>
+                    </div>
+                    <div class="odds-team-values">
+                      <span class="odds-back">Back {{ backOdds }}</span>
+                      <span class="odds-lay">Lay {{ layOdds }}</span>
                     </div>
                   </div>
 

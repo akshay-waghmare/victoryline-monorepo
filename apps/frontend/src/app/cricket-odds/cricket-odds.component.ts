@@ -1751,6 +1751,11 @@ private resetRouteScopedMatchState(): void {
   this.scorecardData = null;
   this.scorecardInfo = null;
   this.cricObj = null;
+  this.favTeam = '-';
+  this.backOdds = 0;
+  this.layOdds = 1;
+  this.testMatchOdds = [];
+  this.sessionOddsListDisplay = [];
   this.cricketDataRouteSlug = null;
   this.commentaryEntries = [];
   this.last6Balls = [];

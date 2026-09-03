@@ -45,6 +45,26 @@ function createComponent(): CricketOddsComponent {
 }
 
 describe('CricketOddsComponent lifecycle tab defaults', () => {
+  it('labels market odds separately and clears them between match routes', () => {
+    var component = createComponent();
+
+    expect(component.getProbability(48)).toBe('67.6%');
+
+    component.favTeam = 'Kashi Rudras';
+    component.backOdds = 48;
+    component.layOdds = 53;
+    component.testMatchOdds = [{ teamName: 'Kashi Rudras' }] as any;
+    component.sessionOddsListDisplay = [{ session: '1 Over' }] as any;
+
+    (component as any).resetRouteScopedMatchState();
+
+    expect(component.favTeam).toBe('-');
+    expect(component.backOdds).toBe(0);
+    expect(component.layOdds).toBe(1);
+    expect(component.testMatchOdds).toEqual([]);
+    expect(component.sessionOddsListDisplay).toEqual([]);
+  });
+
   it('does not choose an unrelated first player when CREX catalog search misses', () => {
     var component = createComponent();
     var resolved = (component as any).findBestGlobalPlayerMatch([
